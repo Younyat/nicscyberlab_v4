@@ -1,7 +1,0 @@
----
-# Stop the container prior to redeploying it.
-- name: Stop bifrost containers
-  import_tasks: stop.yml
-
-- name: Deploy bifrost
-  import_tasks: deploy.yml

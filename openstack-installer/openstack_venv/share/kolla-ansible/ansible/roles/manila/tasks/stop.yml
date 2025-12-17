@@ -1,7 +1,0 @@
----
-- name: Stop manila containers
-  import_role:
-    name: service-stop
-  vars:
-    project_services: "{{ manila_services }}"
-    service_name: "{{ project_name }}"

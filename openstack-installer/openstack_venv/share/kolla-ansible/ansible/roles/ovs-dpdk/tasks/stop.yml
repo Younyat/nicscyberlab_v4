@@ -1,7 +1,0 @@
----
-- name: Stop ovs-dpdk containers
-  import_role:
-    name: service-stop
-  vars:
-    project_services: "{{ ovsdpdk_services }}"
-    service_name: "{{ project_name }}"

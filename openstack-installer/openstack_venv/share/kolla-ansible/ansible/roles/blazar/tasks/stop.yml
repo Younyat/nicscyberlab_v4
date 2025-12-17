@@ -1,7 +1,0 @@
----
-- name: Stop blazar containers
-  import_role:
-    name: service-stop
-  vars:
-    project_services: "{{ blazar_services }}"
-    service_name: "{{ project_name }}"

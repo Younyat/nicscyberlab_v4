@@ -1,9 +1,0 @@
----
-- name: Configure prometheus-node-exporters
-  import_tasks: config.yml
-
-- name: Check prometheus-node-exporters containers
-  import_tasks: check-containers.yml
-
-- name: Flush handlers
-  meta: flush_handlers

@@ -1,9 +1,0 @@
----
-- name: Configure cron
-  import_tasks: config.yml
-
-- name: Check cron containers
-  import_tasks: check-containers.yml
-
-- name: Flush handlers
-  meta: flush_handlers

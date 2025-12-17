@@ -1,8 +1,0 @@
-default introspect
-
-label introspect
-kernel ironic-agent.kernel
-
-append initrd=ironic-agent.initramfs ipa-inspection-callback-url={{ ironic_internal_endpoint }}/v1/continue systemd.journald.forward_to_console=yes {{ ironic_kernel_cmdline_extras | join(' ') }}
-
-ipappend 3

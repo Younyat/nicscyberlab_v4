@@ -1,9 +1,0 @@
----
-- name: Configure collectd
-  import_tasks: config.yml
-
-- name: Check collectd containers
-  import_tasks: check-containers.yml
-
-- name: Flush handlers
-  meta: flush_handlers

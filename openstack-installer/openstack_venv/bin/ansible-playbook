@@ -1,7 +1,0 @@
-#!/home/nics/Desktop/nics-cyberlab-A/openstack-installer/openstack_venv/bin/python
-import sys
-from ansible.cli.playbook import main
-if __name__ == '__main__':
-    if sys.argv[0].endswith('.exe'):
-        sys.argv[0] = sys.argv[0][:-4]
-    sys.exit(main())

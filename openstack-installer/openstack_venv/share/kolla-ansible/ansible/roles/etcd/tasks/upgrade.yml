@@ -1,9 +1,0 @@
----
-- name: Configure etcd
-  import_tasks: config.yml
-
-- name: Check etcd containers
-  import_tasks: check-containers.yml
-
-- name: Flush handlers
-  meta: flush_handlers
