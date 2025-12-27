@@ -1,6 +1,35 @@
 tf_out/
 last_deployment.pid
 
+# === Pesado / binario ===
+img/
+openstack-installer/
+initial/
+
+# === Logs y artefactos ===
+*.log
+*.pcap
+*.qcow2
+*.img
+*.tar
+*.zip
+
+# === Python ===
+__pycache__/
+*.pyc
+.venv/
+
+# === Terraform / OpenStack ===
+.terraform/
+*.tfstate*
+clouds.yaml
+
+# === IA / modelos ===
+models/
+*.gguf
+
+# === Temporales ===
+tools-installer-tmp/
 
 # ========================
 # Entornos virtuales

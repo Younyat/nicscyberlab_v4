@@ -2,7 +2,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-VM_NAME="${1:-AI_Server}"
+VM_NAME="AI_Server_Qwen2_5_7B"
 SSH_KEY="${SSH_KEY:-$HOME/.ssh/cyberlab-key}"
 SSH_USER="ubuntu"
 
@@ -36,11 +36,33 @@ for i in {1..40}; do
 done
 
 echo "[+] Step 6: Bootstrap AI stack remotely"
-# Subimos el bootstrap por stdin para no depender de scp/permiso exec
-ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$FIP" "bash -s" < "$SCRIPT_DIR/bootstrap_ai_stack.sh"
+ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$FIP" "bash -s" < "$SCRIPT_DIR/bootstrap_ai_stack_Qwen2_5_7B.sh"
+
+# =====================================================
+# MODIFICACIÓN: Crear el archivo de cliente local
+# =====================================================
+echo "[+] Step 7: Creating local CLI client (preguntar.sh)"
+cat << EOF > "$SCRIPT_DIR/preguntar.sh"
+#!/bin/bash
+# Cliente rápido para hablar con Qwen en la instancia $VM_NAME
+URL="http://$FIP:8000/v1/chat/completions"
+
+if [ -z "\$1" ]; then
+    echo "Uso: ./preguntar.sh \"Tu mensaje aquí\""
+    exit 1
+fi
+
+curl -s -X POST "\$URL" \\
+     -H "Content-Type: application/json" \\
+     -d "{\"model\": \"qwen\", \"messages\": [{\"role\": \"user\", \"content\": \"\$1\"}]}" \\
+     | python3 -c "import sys, json; print(json.load(sys.stdin)['choices'][0]['message']['content'])"
+EOF
+
+chmod +x "$SCRIPT_DIR/preguntar.sh"
 
 echo
 echo "[✓] DONE"
 echo "[✓] Web UI: http://$FIP:3000"
 echo "[✓] API:    http://$FIP:8000/v1/chat/completions"
 echo "[✓] SSH:    ssh -i $SSH_KEY $SSH_USER@$FIP"
+echo "[✓] CLI:    ./preguntar.sh \"Tu pregunta\""

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -e
 
-VM_NAME="${1:-AI_Server}"
+VM_NAME="${1}"
 
 IMAGE="ubuntu-22.04"
-FLAVOR="large"          # con 4GB RAM ok, si tienes uno más pequeño, ponlo aquí
+FLAVOR="M_4CPU_8GB"          # con 8GB RAM ok, si tienes uno más pequeño, ponlo aquí
 PRIVATE_NET="private-net"
 KEYPAIR="cyberlab-key"
 SG_AI="ai_sg"

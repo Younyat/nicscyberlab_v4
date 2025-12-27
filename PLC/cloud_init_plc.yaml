@@ -1,0 +1,199 @@
+#cloud-config
+
+output:
+  all: '| tee -a /var/log/cloud-init-output.log | tee /dev/console'
+
+package_update: true
+package_upgrade: false
+
+packages:
+  - git
+  - build-essential
+  - cmake
+  - python3
+  - python3-pip
+  - tcpdump
+  - iproute2
+  - curl
+  - dos2unix
+
+write_files:
+  # ---------------------------------------------------------
+  # 1. PLC PROGRAM (MASTER MODBUS – LEE SENSOR EXTERNO)
+  # ---------------------------------------------------------
+  - path: /opt/plc_program.st
+    permissions: '0644'
+    content: |
+      PROGRAM prog0
+       VAR
+         sensor_ext AT %IW100 : INT;   (* Valor HR0 leído del slave externo *)
+         actuator   AT %MW0   : INT;   (* Salida interna del PLC *)
+       END_VAR
+
+       actuator := sensor_ext * 2;
+      END_PROGRAM
+
+      CONFIGURATION Config0
+        RESOURCE Res0 ON PLC
+          TASK Main(INTERVAL := T#100ms, PRIORITY := 0);
+          PROGRAM Inst0 WITH Main : prog0;
+        END_RESOURCE
+      END_CONFIGURATION
+
+  # ---------------------------------------------------------
+  # 2. SCRIPT PARA CARGAR Y COMPILAR EL PROGRAMA IEC
+  # ---------------------------------------------------------
+  - path: /opt/load_plc.sh
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      set -u
+      OPENPLC_DIR="/opt/OpenPLC_v3/webserver"
+      PLC_SOURCE="/opt/plc_program.st"
+
+      echo "[PLC] Waiting for OpenPLC directories..."
+      while [ ! -d "$OPENPLC_DIR/st_files" ]; do
+          sleep 3
+      done
+
+      echo "[PLC] Copying program..."
+      cp "$PLC_SOURCE" "$OPENPLC_DIR/st_files/active_program.st"
+
+      echo "[PLC] Compiling program..."
+      cd "$OPENPLC_DIR/scripts"
+      ./compile_st.sh active_program.st
+
+      echo "[PLC] Restarting OpenPLC service..."
+      systemctl restart openplc
+      echo "[PLC] Program loaded successfully"
+
+runcmd:
+  # ---------------------------------------------------------
+  # 0. CLEAN PREVIOUS INSTALLATION
+  # ---------------------------------------------------------
+  - echo "[0] Cleaning previous OpenPLC installation"
+  - rm -rf /opt/OpenPLC_v3
+
+  # ---------------------------------------------------------
+  # 1. INSTALL OPENPLC
+  # ---------------------------------------------------------
+  - echo "[1] Installing OpenPLC"
+  - cd /opt
+  - git clone https://github.com/thiagoralves/OpenPLC_v3.git
+  - cd OpenPLC_v3
+  - ./install.sh linux
+
+  # ---------------------------------------------------------
+  # 2. DEPLOY PLC PROGRAM
+  # ---------------------------------------------------------
+  - echo "[2] Copying PLC program"
+  - cp /opt/plc_program.st /opt/OpenPLC_v3/webserver/st_files/
+
+  # ---------------------------------------------------------
+  # 3. ENABLE MODBUS SERVER (PLC AS MASTER)
+  # ---------------------------------------------------------
+  - echo "[3] Configuring Modbus"
+  - |
+    cat > /opt/OpenPLC_v3/webserver/settings.ini <<EOF
+    [Modbus]
+    Enabled = true
+    Port = 502
+    Address = 0.0.0.0
+    EOF
+
+  # ---------------------------------------------------------
+  # 4. START OPENPLC SERVICE
+  # ---------------------------------------------------------
+  - echo "[4] Starting OpenPLC service"
+  - systemctl daemon-reexec
+  - systemctl restart openplc
+
+  # ---------------------------------------------------------
+  # 5. LOAD PLC PROGRAM
+  # ---------------------------------------------------------
+  - echo "[5] Loading program into OpenPLC"
+  - bash /opt/load_plc.sh
+
+  # ---------------------------------------------------------
+  # FINAL FLAG
+  # ---------------------------------------------------------
+  - echo "[FINAL] PLC READY (MASTER CONFIGURED)"
+  - touch /opt/PLC_READY
+
+final_message: |
+  OpenPLC MASTER installation complete.
+  -------------------------------------
+
+  NEXT STEPS (manual actions required after deployment):
+
+  1) Load the PLC program (MASTER logic)
+     -----------------------------------
+     In the OpenPLC Web UI:
+         Dashboard → Programs → Upload Program
+     Select:
+         /opt/plc_program.st
+     Also available in project folder:
+         PLC/plc_programs/
+
+  2) Configure the external Modbus SLAVE device (sensor)
+     ---------------------------------------------------
+     In the OpenPLC Web UI:
+         Hardware → Slave Devices → Add new device
+
+     Fill the fields EXACTLY like this:
+
+         Device Name:
+             sensor1
+
+         Device Type:
+             Modbus TCP
+
+         Address:
+             PRIVATE IP of the VM where sensor_slave.py is running
+             Example:
+               10.0.2.13
+
+         Port:
+             502
+
+         DI / DO / AI / AO:
+             Leave all empty.
+
+     Important:
+         OpenPLC maps Modbus slave registers starting at address 100:
+             %IW100 → Holding Register 0 (HR0) from the sensor
+             %IW101 → Holding Register 1 (HR1)
+             ...
+
+     Press “Add” or “Save”.
+
+  3) Start the PLC runtime
+     ----------------------
+     In Dashboard:
+         Click “Start PLC”
+
+  4) Start the external sensor (Modbus SLAVE)
+     -----------------------------------------
+     On the SENSOR VM, run:
+
+         sudo nohup python3 /opt/sensor_slave.py > /opt/sensor.log 2>&1 &
+
+     This starts:
+         - A Modbus TCP server on port 502
+         - HR0 updated every 2 seconds
+         - Logs at /opt/sensor.log
+
+     A copy of the sensor script is also inside your project:
+         PLC/plc_programs/sensor_slave.py
+
+  5) Verification
+     -------------
+     In OpenPLC Monitoring:
+         sensor_ext should update live from HR0
+         actuator should be: sensor_ext * 2
+
+     On the sensor VM:
+         tail -f /opt/sensor.log
+
+  Scenario is ready:
+       OpenPLC (MASTER) ↔ Sensor VM (SLAVE Modbus TCP)

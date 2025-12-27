@@ -48,6 +48,7 @@ sleep 1
 
 # Flavors y sus recursos
 declare -A FLAVORS_DEF=(
+  [XT_1CPU_1GB]="--ram 1024  --vcpus 1 --disk 10"
   [T_1CPU_2GB]="--ram 2048  --vcpus 1 --disk 20"
   [S_2CPU_4GB]="--ram 4096  --vcpus 2 --disk 40"
   [M_4CPU_8GB]="--ram 8192  --vcpus 4 --disk 80"

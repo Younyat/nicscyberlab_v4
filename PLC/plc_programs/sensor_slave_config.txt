@@ -1,0 +1,20 @@
+| Campo       | Valor                     |
+| ----------- | ------------------------- |
+| Device Name | sensor1                   |
+| Device Type | MODBUS TCP                |
+| Address     | `<IP del sensor virtual>` |
+| Port        | 502                       |
+
+
+
+
+VM SENSOR EXTERNO (Slave Modbus)
+   - sensor_slave.py
+   - HR0 = temperatura simulada
+   - puerto 502
+         ↑
+         | (OpenPLC lee con Read Holding Registers)
+         |
+OPENPLC (Master Modbus)
+   sensor_ext AT %IW100  ← valor del slave
+   actuator   AT %MW0    ← lógica del PLC

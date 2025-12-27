@@ -4,22 +4,27 @@ import os
 import subprocess
 import logging
 import json
+from datetime import datetime
 
 from .json_tools_handler import remove_tool_from_json, load_tools
 
 logger = logging.getLogger("tools_uninstall_manager")
+
+# ============================================================
+#  Rutas base
+# ============================================================
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+TOOLS_DIR = os.path.join(BASE_DIR, "tools_uninstall_manager")
+
+SCRIPTS_DIR = os.path.join(TOOLS_DIR, "uninstall_scripts")
+LOGS_DIR = os.path.join(TOOLS_DIR, "logs")   # 👈 AQUÍ LOS LOGS
 
 
 # ============================================================
 #  Detectar sistema operativo y usuario SSH
 # ============================================================
 def detect_instance_os_and_user(instance_name, ip):
-    """
-    Detecta imagen de la VM desde OpenStack y 
-    prueba usuarios SSH hasta encontrar uno válido.
-    """
     try:
-        # Obtener info de la instancia desde OpenStack
         cmd = ["openstack", "server", "show", instance_name, "-f", "json"]
         output = subprocess.check_output(cmd, text=True)
         info = json.loads(output)
@@ -32,33 +37,38 @@ def detect_instance_os_and_user(instance_name, ip):
 
         logger.info(f" Imagen detectada: {image_name}")
 
-        # Posibles usuarios según la imagen
         if "ubuntu" in image_name:
             users = ["ubuntu", "debian"]
         elif "debian" in image_name:
             users = ["debian", "ubuntu"]
         elif "kali" in image_name:
             users = ["kali", "debian", "ubuntu"]
-        elif "centos" in image_name:
+        elif "centos" in image_name or "rocky" in image_name:
             users = ["centos", "rocky", "ubuntu"]
         else:
-            users = ["ubuntu", "debian"]  # fallback
+            users = ["ubuntu", "debian"]
 
-        ssh_key = os.path.expanduser("~/.ssh/id_rsa")
+        ssh_key = os.path.expanduser("~/.ssh/cyberlab-key")
 
-        # Probar usuarios
         for u in users:
             test = subprocess.run(
-                ["ssh", "-o", "StrictHostKeyChecking=no", "-i", ssh_key, f"{u}@{ip}", "echo ok"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                [
+                    "ssh",
+                    "-o", "StrictHostKeyChecking=no",
+                    "-o", "BatchMode=yes",
+                    "-i", ssh_key,
+                    f"{u}@{ip}",
+                    "echo ok"
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
                 text=True
             )
             if test.returncode == 0:
                 logger.info(f" Usuario SSH detectado: {u}")
                 return u
 
-        logger.warning(" No fue posible detectar un usuario SSH válido. Usando fallback: ubuntu")
+        logger.warning(" No fue posible detectar usuario SSH válido. Fallback: ubuntu")
         return "ubuntu"
 
     except Exception as e:
@@ -67,21 +77,24 @@ def detect_instance_os_and_user(instance_name, ip):
 
 
 # ============================================================
-#  Rutas principales
-# ============================================================
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-SCRIPTS_DIR = os.path.join(BASE_DIR, "tools_uninstall_manager", "uninstall_scripts")
-
-
-# ============================================================
 #  Desinstalar herramienta
 # ============================================================
 def uninstall_tool(instance: str, tool: str, ip_private: str, ip_floating: str):
     logger.info(f" Solicitada eliminación '{tool}' en instancia '{instance}'")
 
+    os.makedirs(LOGS_DIR, exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = os.path.join(
+        LOGS_DIR,
+        f"uninstall_{tool}_{instance}_{timestamp}.log"
+    )
+
+    logger.info(f" Logs de desinstalación en: {log_file}")
+
     script = os.path.join(SCRIPTS_DIR, f"uninstall_{tool}.sh")
     if not os.path.exists(script):
-        logger.warning(f" No existe script uninstall: {script}")
+        logger.error(" Script de uninstall no existe")
         return {
             "status": "error",
             "msg": f"No existe script de uninstall para {tool}",
@@ -91,50 +104,114 @@ def uninstall_tool(instance: str, tool: str, ip_private: str, ip_floating: str):
 
     os.chmod(script, 0o755)
 
-    #  Detectar usuario SSH correcto
-    ssh_user = detect_instance_os_and_user(
-        instance,
-        ip_floating or ip_private
-    )
+    target_ip = ip_floating or ip_private
+    ssh_user = detect_instance_os_and_user(instance, target_ip)
 
     logger.info(f" SSH User FINAL para desinstalación: {ssh_user}")
 
-    proc = subprocess.run(
-        [script, instance, ip_private, ip_floating, ssh_user],
+    ssh_key = os.path.expanduser("~/.ssh/cyberlab-key")
+    remote_script = f"/tmp/uninstall_{tool}.sh"
+
+    # ------------------------------------------------------------
+    #  Copiar script a la VM
+    # ------------------------------------------------------------
+    scp = subprocess.run(
+        [
+            "scp",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "BatchMode=yes",
+            "-i", ssh_key,
+            script,
+            f"{ssh_user}@{target_ip}:{remote_script}"
+        ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True
     )
 
-    exit_code = proc.returncode
+    if scp.returncode != 0:
+        with open(log_file, "w") as lf:
+            lf.write(scp.stderr)
+
+        logger.error(" Fallo SCP del script de uninstall")
+        return {
+            "status": "error",
+            "msg": "Fallo SCP del script",
+            "exit_code": scp.returncode,
+            "script_executed": False,
+            "log_file": log_file,
+            "tools": None
+        }
+
+    # ------------------------------------------------------------
+    #  Ejecutar script REMOTO como root (LOG + TIMEOUT)
+    # ------------------------------------------------------------
+    try:
+        with open(log_file, "w") as lf:
+            proc = subprocess.run(
+                [
+                    "ssh",
+                    "-o", "StrictHostKeyChecking=no",
+                    "-o", "BatchMode=yes",
+                    "-o", "ConnectTimeout=10",
+                    "-o", "ServerAliveInterval=5",
+                    "-o", "ServerAliveCountMax=3",
+                    "-i", ssh_key,
+                    f"{ssh_user}@{target_ip}",
+                    f"sudo -n bash {remote_script}"
+                ],
+                stdout=lf,
+                stderr=lf,
+                text=True,
+                timeout=300   # ⏱️ 5 minutos
+            )
+        exit_code = proc.returncode
+
+    except subprocess.TimeoutExpired:
+        with open(log_file, "a") as lf:
+            lf.write("\n[TIMEOUT] Ejecución excedió 300 segundos\n")
+        exit_code = 124
+        logger.error(" Timeout ejecutando uninstall remoto")
+
+    # ------------------------------------------------------------
+    #  Limpieza remota del script
+    # ------------------------------------------------------------
+    subprocess.run(
+        [
+            "ssh",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "BatchMode=yes",
+            "-i", ssh_key,
+            f"{ssh_user}@{target_ip}",
+            f"rm -f {remote_script}"
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL
+    )
 
     logger.info(f" UNINSTALL exit code: {exit_code}")
-    logger.info(f" STDOUT:\n{proc.stdout}")
-    logger.info(f" STDERR:\n{proc.stderr}")
+    logger.info(f" Logs completos en {log_file}")
 
-    # ============================================================
-    # SOLO si exit_code == 0 eliminamos del JSON
-    # ============================================================
+    # ------------------------------------------------------------
+    #  Actualización del JSON SOLO si OK
+    # ------------------------------------------------------------
     if exit_code == 0:
-        removed, updated_tools = remove_tool_from_json(instance, tool)
+        _, updated_tools = remove_tool_from_json(instance, tool)
         return {
             "status": "success",
             "msg": f" '{tool}' desinstalada COMPLETAMENTE de '{instance}'",
             "exit_code": exit_code,
             "script_executed": True,
-            "stdout": proc.stdout,
-            "stderr": proc.stderr,
+            "log_file": log_file,
             "tools": updated_tools
         }
     else:
-        # No se borra del JSON
         current_tools, _ = load_tools(instance)
         return {
             "status": "warning",
-            "msg": f" '{tool}' sigue instalada en '{instance}'. Validación falló.",
+            "msg": f" '{tool}' sigue instalada en '{instance}'. Ver logs.",
             "exit_code": exit_code,
             "script_executed": True,
-            "stdout": proc.stdout,
-            "stderr": proc.stderr,
+            "log_file": log_file,
             "tools": current_tools
         }

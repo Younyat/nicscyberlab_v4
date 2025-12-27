@@ -38,10 +38,10 @@
                 </div>
 
                 <div class="grid grid-cols-2 gap-3 mb-5">
-                    <button onclick="openTool('MITRE Caldera', 'http://10.0.2.237:8888', 'Framework adversario automatizado', '')" 
-                            class="bg-red-600 hover:bg-red-500 text-white px-4 py-3 rounded-lg transition-all transform hover:scale-105 shadow-lg flex flex-col items-center gap-1">
-                        <span class="text-2xl"></span> <span class="text-xs">MITRE Caldera</span>
-                    </button>
+                    <button onclick="openCalderaDynamic()" 
+        class="bg-red-600 hover:bg-red-500 text-white px-4 py-3 rounded-lg transition-all transform hover:scale-105 shadow-lg flex flex-col items-center gap-1">
+    <span class="text-xs font-bold uppercase">MITRE Caldera</span>
+</button>
 
                     <button onclick="openTool('Nmap', 'https://nmap.org', 'Escáner de redes y puertos', '')" 
                             class="bg-red-600 hover:bg-red-500 text-white px-4 py-3 rounded-lg transition-all transform hover:scale-105 shadow-lg flex flex-col items-center gap-1">
@@ -486,6 +486,41 @@ function enableConsoleDrag() {
 
 // Activar movilidad al cargar la página
 document.addEventListener("DOMContentLoaded", enableConsoleDrag);
+
+async function openCalderaDynamic() {
+    try {
+        // Notificar en el log de la interfaz
+        appendAttackLog("Buscando instancia del atacante...");
+
+        // 1. Obtener la lista de roles desde el backend
+        const response = await fetch("http://localhost:5001/api/instance_roles");
+        const roles = await response.json();
+
+        // 2. Identificar la instancia atacante (soporta 'attacker' o 'attack')
+        const attacker = roles.attacker || roles.attack;
+
+        if (!attacker || !attacker.ip) {
+            appendAttackLog("Error: Instancia atacante no localizada.");
+            return;
+        }
+
+        const targetIP = attacker.ip;
+        appendAttackLog("IP detectada: " + targetIP + ". Abriendo consola.");
+
+        // 3. Ejecutar la apertura de la herramienta con la IP real
+        openTool(
+            'MITRE Caldera', 
+            'http://' + targetIP + ':8888', 
+            'Framework adversario automatizado', 
+            ''
+        );
+
+    } catch (error) {
+        console.error("Error en openCalderaDynamic:", error);
+        appendAttackLog("Error de conexion con el backend.");
+    }
+}
+
 
 
 async function checkWazuhMonitor() {

@@ -1,41 +1,31 @@
-IP final para Dashboard: 10.0.2.13
-URL prevista: https://10.0.2.13
-[0/6] Validando estado del sistema APT/DPKG...
-[WARN] Se detectaron paquetes residuales en dpkg:
+[INFO] ============================================================
+[INFO] Wazuh single-node install starting
+[INFO]   MANAGER_IP = 10.0.2.211
+[INFO]   PURGE      = false
+[INFO]   FORCE      = false
+[INFO]   URL        = https://packages.wazuh.com/4.7/wazuh-install.sh
+[INFO]   LOG        = /var/log/wazuh-install-20251227_203110.log
+[INFO] ============================================================
+[INFO] [0/6] Validando estado del sistema APT/DPKG...
+[33m[WARN][0m Se detectaron paquetes residuales en dpkg:
+filebeat
 wazuh-dashboard
-wazuh-manager wazuh-dashboard      Wazuh dashboard is a user interface and visualization too
- wazuh-manager        Wazuh helps you to gain security visibility into your inf
- wazuh-dashboard      Wazuh dashboard is a user interface and visualization too
- wazuh-manager        Wazuh helps you to gain security visibility into your inf
-Aplicando purga agresiva...
-[Limpieza previa] Eliminando usuarios y grupos Wazuh
-The group `wazuh' does not exist.
-The group `wazuh-indexer' does not exist.
-The group `wazuh-dashboard' does not exist.
-[OK] Sistema apt/dpkg listo. Continuando...
-[1/6] Preparando sistema
-Hit:1 http://archive.ubuntu.com/ubuntu jammy InRelease
-Hit:2 http://archive.ubuntu.com/ubuntu jammy-updates InRelease
-Hit:3 http://archive.ubuntu.com/ubuntu jammy-backports InRelease
-Hit:4 http://security.ubuntu.com/ubuntu jammy-security InRelease
-Reading package lists...
-[2/6] Descargando instalador oficial Wazuh
-[3/6] Instalando Wazuh (forzado overwrite)
-[OK] Instalación oficial completada
-[4/6] Extrayendo contraseña admin
-[OK] Contraseña extraída correctamente
-[5/6] Activando servicios
-Synchronizing state of wazuh-indexer.service with SysV service script with /lib/systemd/systemd-sysv-install.
-Executing: /lib/systemd/systemd-sysv-install enable wazuh-indexer
-[6/6] Validando instalación final
-[OK] Wazuh está operativo!
-
-====================================================
- WAZUH INSTALADO CORRECTAMENTE
- Tiempo total: 9m 55s
-====================================================
-Dashboard: https://10.0.2.13
-Usuario: admin
-Password: Bg.gy4Y1A.mCN+d5NAIPzX0gpXKaX2Y3
-Log instalacion: /tmp/wazuh-install.log
-====================================================
+wazuh-indexer
+wazuh-manager
+[33m[WARN][0m No se aplicará purga (usa --purge si quieres limpieza agresiva)
+[INFO] [1/6] Preparando sistema
+[32m[OK][0m  Sistema preparado
+[INFO] [2/6] Descargando instalador oficial Wazuh
+[32m[OK][0m  Instalador descargado: /tmp/wazuh-install.sh
+[INFO] [3/6] Instalando Wazuh (single-node all-in-one)
+[33m[WARN][0m Wazuh Manager ya instalado. Saltando instalación.
+[INFO] [4/6] Verificando servicios
+[32m[OK][0m  wazuh-manager: active
+[32m[OK][0m  wazuh-indexer: active
+[32m[OK][0m  wazuh-dashboard: active
+[INFO] [5/6] Información de acceso
+[32m[OK][0m  Dashboard: https://10.0.2.211
+[33m[WARN][0m Si no abre: https://10.0.2.211:5601 (revisa security groups)
+[INFO] [6/6] Finalizado
+[32m[OK][0m  Instalación terminada
+[32m[OK][0m  Log: /var/log/wazuh-install-20251227_203110.log

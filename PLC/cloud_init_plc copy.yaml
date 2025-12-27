@@ -1,0 +1,158 @@
+#cloud-config
+
+output:
+  all: '| tee -a /var/log/cloud-init-output.log | tee /dev/console'
+
+package_update: true
+package_upgrade: false
+
+packages:
+  - git
+  - build-essential
+  - cmake
+  - python3
+  - python3-pip
+  - tcpdump
+  - iproute2
+  - curl
+  - dos2unix
+
+write_files:
+  # -----------------------------
+  # PLC PROGRAM (IEC 61131-3)
+  # -----------------------------
+  - path: /opt/plc_program.st
+    permissions: '0644'
+    content: |
+      PROGRAM Demo
+      VAR
+        sensor AT %IW0 : INT;
+        actuator AT %QW0 : INT;
+      END_VAR
+      actuator := sensor + 5;
+      END_PROGRAM
+
+  # -----------------------------
+  # SCRIPT: LOAD PLC PROGRAM (SAFE)
+  # -----------------------------
+  - path: /opt/load_plc.sh
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+
+      set -u   # NO set -e en cloud-init
+
+      OPENPLC_DIR="/opt/OpenPLC_v3/webserver"
+      PLC_FILE="st_files/plc_program.st"
+
+      echo "[PLC] Waiting for OpenPLC service..."
+      until systemctl is-active --quiet openplc; do
+        sleep 2
+      done
+
+      cd "$OPENPLC_DIR" || exit 1
+
+      echo "[PLC] Compiling PLC program"
+      python3 openplc.py compile "$PLC_FILE"
+
+      echo "[PLC] Uploading PLC program"
+      python3 openplc.py upload "$PLC_FILE"
+
+      echo "[PLC] Starting PLC program"
+      python3 openplc.py start
+
+      echo "[PLC] PLC program loaded successfully"
+
+  # -----------------------------
+  # MODBUS CLIENT (LOOPBACK)
+  # -----------------------------
+  - path: /opt/modbus_generator.py
+    permissions: '0755'
+    content: |
+      from pymodbus.client.sync import ModbusTcpClient
+      import time
+
+      client = ModbusTcpClient("127.0.0.1", port=502)
+      client.connect()
+
+      while True:
+          client.write_register(0, 42)
+          client.read_holding_registers(0, 4)
+          time.sleep(1)
+
+runcmd:
+  # =============================
+  # [0] PREPARE ENVIRONMENT
+  # =============================
+  - echo "[0] Preparing OpenPLC environment"
+  - rm -rf /opt/OpenPLC_v3
+
+  # =============================
+  # [1] INSTALL OPENPLC
+  # =============================
+  - echo "[1] Installing OpenPLC"
+  - cd /opt
+  - git clone https://github.com/thiagoralves/OpenPLC_v3.git
+  - cd OpenPLC_v3
+  - ./install.sh linux
+
+  # =============================
+  # [2] DEPLOY PLC PROGRAM
+  # =============================
+  - echo "[2] Deploying PLC program"
+  - cp /opt/plc_program.st /opt/OpenPLC_v3/webserver/st_files/
+
+  # =============================
+  # [3] CONFIGURE MODBUS
+  # =============================
+  - echo "[3] Configuring Modbus"
+  - |
+    cat > /opt/OpenPLC_v3/webserver/settings.ini <<EOF
+    [Modbus]
+    Enabled = true
+    Port = 502
+    Address = 0.0.0.0
+    EOF
+
+  # =============================
+  # [4] START OPENPLC (CORRECT)
+  # =============================
+  - echo "[4] Starting OpenPLC service"
+  - systemctl daemon-reexec
+  - systemctl restart openplc
+
+  # =============================
+  # [5] LOAD PLC PROGRAM
+  # =============================
+  - echo "[5] Loading PLC program"
+  - /opt/load_plc.sh
+
+  # =============================
+  # [6] INSTALL PYMODBUS
+  # =============================
+  - echo "[6] Installing pymodbus"
+  - pip3 install pymodbus==2.5.3
+
+  # =============================
+  # [7] START MODBUS CLIENT
+  # =============================
+  - echo "[7] Starting Modbus client"
+  - nohup python3 /opt/modbus_generator.py >/opt/modbus.log 2>&1 &
+
+  # =============================
+  # [8] CAPTURE LOOPBACK TRAFFIC
+  # =============================
+  - echo "[8] Capturing Modbus traffic"
+  - nohup tcpdump -i lo tcp port 502 -w /opt/modbus_loopback.pcap >/opt/tcpdump.log 2>&1 &
+
+  # =============================
+  # [FINAL]
+  # =============================
+  - echo "[FINAL] PLC READY"
+  - touch /opt/PLC_READY
+
+final_message: |
+  OpenPLC installed correctly.
+  PLC program compiled and loaded.
+  Modbus TCP active on loopback.
+  Forensic capture started.
