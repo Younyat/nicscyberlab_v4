@@ -69,43 +69,24 @@ async function loadExistingScenario() {
 
     try {
         const res = await fetch("/api/openstack/instances");
-        const raw = await res.text();
-
-        console.log(" RAW API RESPONSE:", raw);
-
-        let data;
-        try {
-            data = JSON.parse(raw);
-        } catch (err) {
-            console.error(" Error parseando JSON:", err);
-            showNoScenario();
-            return;
-        }
-
-        console.log(" JSON PARSEADO:", data);
+        const data = await res.json();
 
         if (!data.instances || data.instances.length === 0) {
-            console.warn(" No hay instancias en OpenStack");
             showNoScenario();
             return;
         }
 
         const scenario = {
             nodes: data.instances.map((vm, i) => ({
-                id: vm.id,
+                id: vm.id, // Este es el UUID de OpenStack
                 name: vm.name,
                 type: detectType(vm.name),
-
-                //  Nueva información
-                ip: vm.ip_floating || vm.ip_private || "N/A",
+                ip: vm.ip || "N/A",
                 ip_private: vm.ip_private,
                 ip_floating: vm.ip_floating,
-                image: vm.image_name,
-                flavor: vm.flavor_name,
                 status: vm.status,
-
-                tools: [],
-
+                // CARGAMOS LAS TOOLS QUE EL BACKEND YA CONOCE
+                tools: vm.installed_tools || {}, 
                 position: { x: 200 + i * 200, y: 150 }
             })),
             edges: []
@@ -151,48 +132,84 @@ function showNoScenario() {
 /* ============================================================
    3. Pintar grafo
    ============================================================ */
+/* ============================================================
+    3. PINTAR GRAFO (Versión Completa y Sincronizada)
+   ============================================================ */
+/* ============================================================
+    3. PINTAR GRAFO (Respetando tu formato JSON original)
+   ============================================================ */
 function loadScenarioGraph(scenario) {
-    console.log(" Renderizando grafo…");
+    console.log(" Renderizando grafo con formato original...");
 
     if (!ensureCy()) return;
 
+    // 1. Configurar estilos para que el borde indique el estado
+    cy.style()
+        .selector('node[?has_installed]')
+        .style({
+            'border-width': 4,
+            'border-color': '#10B981', // Verde: "installed"
+            'border-opacity': 1
+        })
+        .selector('node[?has_pending]')
+        .style({
+            'border-width': 4,
+            'border-color': '#F59E0B', // Naranja: "pending"
+            'border-style': 'dashed'
+        })
+        .update();
+
     let elements = [];
 
-    // Nodos
+    // 2. Procesar Nodos según tu esquema: { id, name, tools: { tool: status } }
     scenario.nodes.forEach(n => {
+        const toolValues = Object.values(n.tools || {});
+        
+        // Verificamos estados dentro del objeto tools
+        const isInstalled = toolValues.includes("installed");
+        const isPending = toolValues.includes("pending");
+
         elements.push({
             data: {
-                id: n.id,
-                label: n.name,
+                id: n.id,           // Tu "id" original
+                label: n.name,      // Tu "name" original
                 type: n.type,
+                ip: n.ip,
                 ip_private: n.ip_private,
                 ip_floating: n.ip_floating,
-                ip: n.ip_floating || n.ip_private || "N/A",
-
                 status: n.status,
-                image: n.image,
-                flavor: n.flavor,
-                tools: n.tools || []
+                tools: n.tools || {}, // El objeto { "caldera": "installed" }
+                // Marcadores para el estilo visual
+                has_installed: isInstalled,
+                has_pending: isPending && !isInstalled
             },
-            position: n.position
+            position: n.position || { x: 100, y: 100 }
         });
     });
 
-    // Aristas
-    scenario.edges.forEach(e => {
-        elements.push({
-            data: { id: e.id, source: e.source, target: e.target }
+    // 3. Procesar Aristas
+    if (scenario.edges) {
+        scenario.edges.forEach(e => {
+            elements.push({
+                data: { id: e.id, source: e.source, target: e.target }
+            });
         });
-    });
+    }
 
+    // 4. Actualizar Cy
+    cy.elements().remove();
     cy.add(elements);
 
+    // 5. Ajustar vista
+    cy.layout({ name: 'preset' }).run();
+    cy.fit();
+
+    // 6. Evento de click
     cy.on("tap", "node", evt => {
-        const node = evt.target.data();
-        selectInstanceFromScenario(node);
+        const nodeData = evt.target.data();
+        selectInstanceFromScenario(nodeData);
     });
 }
-
 /* ============================================================
    4. Panel izquierdo
    ============================================================ */
@@ -219,25 +236,30 @@ function loadScenarioTools(scenario) {
    ============================================================ */
 async function selectInstanceFromScenario(node) {
     selectedInstance = node;
-
     const instanceName = node.name || node.label || node.id;
 
+    // 1. Mostrar el panel y actualizar nombre
     document.getElementById("selected-instance-info").classList.remove("hidden");
     document.getElementById("instance-name").innerText = instanceName;
-    document.getElementById("instance-ip").innerText = `Privada: ${node.ip_private || "N/A"} | Flotante: ${node.ip_floating || "N/A"}`;
 
-    // ===  Cargar tools desde backend ===
-    let tools = [];
+    // 2. RECUPERADO: Mostrar las IPs en el panel derecho
+    document.getElementById("instance-ip").innerText = 
+        `Privada: ${node.ip_private || "N/A"} | Flotante: ${node.ip_floating || "N/A"}`;
+
+    // 3. Cargar herramientas desde el backend usando el nombre con espacios
     try {
-        const res = await fetch(`/api/get_tools_for_instance?instance=${instanceName}`);
+        // Usamos encodeURIComponent para que "attack 2" viaje bien en la URL
+        const res = await fetch(`/api/get_tools_for_instance?instance=${encodeURIComponent(instanceName)}`);
         const data = await res.json();
-        tools = data.tools || [];
-        node.tools = tools;  //  Guardar en memoria
+        
+        // Guardar las tools en el nodo (ahora es un objeto) y dibujar
+        selectedInstance.tools = data.tools || {};
+        renderToolsList(selectedInstance.tools);
+        
     } catch (err) {
-        console.log(" Error obteniendo tools:", err);
+        console.error("Error obteniendo tools:", err);
+        renderToolsList({}); // Limpiar lista si hay error
     }
-
-    renderToolsList(tools);
 }
 
 /* ============================================================
@@ -245,31 +267,43 @@ async function selectInstanceFromScenario(node) {
    ============================================================ */
 function renderToolsList(tools) {
     const toolsBox = document.getElementById("installed-tools");
-    toolsBox.innerHTML = "";
+    toolsBox.innerHTML = ""; 
 
-    if (!tools || tools.length === 0) {
-        toolsBox.innerHTML = `<p class="text-gray-400 text-sm">No hay herramientas instaladas.</p>`;
+    if (!tools || Object.keys(tools).length === 0) {
+        toolsBox.innerHTML = `<p class="text-gray-400 text-sm italic">No hay herramientas configuradas.</p>`;
         return;
     }
 
-    tools.forEach(tool => {
+    Object.entries(tools).forEach(([toolName, status]) => {
+        // Si el status no es 'pending' ni 'error', asumimos que es la fecha de instalación
+        const isInstalled = status !== 'pending' && status !== 'error';
+        
         const row = document.createElement("div");
-        row.className = "flex justify-between bg-gray-800 p-2 rounded-lg";
+        row.className = `flex justify-between p-2 rounded-lg items-center mb-1 border-l-4 transition-all ${
+            isInstalled ? 'bg-gray-900 border-green-500' : 'bg-gray-800 border-yellow-500'
+        }`;
 
         row.innerHTML = `
-            <span>${tool}</span>
+            <div class="flex items-center space-x-3">
+                <i class="fas ${isInstalled ? 'fa-check-circle text-green-500' : 'fa-hourglass-half text-yellow-500'}"></i>
+                <div class="flex flex-col">
+                    <span class="font-bold text-white text-sm">${toolName.toUpperCase()}</span>
+                    <span class="text-[9px] uppercase font-bold ${isInstalled ? 'text-green-400' : 'text-yellow-500'}">
+                        ${isInstalled ? `INSTALADO (${status})` : status}
+                    </span>
+                </div>
+            </div>
             <div class="flex space-x-2">
-
-                <button onclick="removeToolFromScenario('${tool}')"
-                        class="text-red-500 font-bold">
-                     JSON
-                </button>
-
-                <button onclick="uninstallTool('${tool}')"
-                        class="text-yellow-400 font-bold">
-                     Uninstall
-                </button>
-
+                ${isInstalled ? `
+                    <button onclick="uninstallTool('${toolName}')" 
+                            class="text-orange-500 hover:bg-orange-500/10 p-1 text-[10px] font-bold border border-orange-500/30 rounded px-2">
+                        UNINSTALL
+                    </button>
+                ` : `
+                    <button onclick="removeToolFromScenario('${toolName}')" class="text-red-500 hover:text-red-400 p-1">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                `}
             </div>
         `;
         toolsBox.appendChild(row);
@@ -277,44 +311,79 @@ function renderToolsList(tools) {
 }
 
 /* ============================================================
+    FUNCIONES DE APOYO
+   ============================================================ */
+async function refreshSelectedInstance() {
+    // Esta función vuelve a pedir las instancias para actualizar los estados de las tools
+    try {
+        const res = await fetch("/api/openstack/instances");
+        const data = await res.json();
+        const updated = data.instances.find(i => i.id === selectedInstance.id);
+        if (updated) {
+            selectedInstance.tools = updated.installed_tools || {};
+            renderToolsList(selectedInstance.tools);
+        }
+    } catch (e) {
+        console.error("Error al refrescar instancia:", e);
+    }
+}
+/* ============================================================
    7. Añadir herramienta + enviar JSON al backend
    ============================================================ */
 async function addTool() {
     const select = document.getElementById("available-tools");
     const tool = select.value;
+    
+    if (!selectedInstance || !tool) {
+        alert("Selecciona una instancia y una herramienta primero");
+        return;
+    }
 
-    if (!selectedInstance || !tool) return;
+    // Asegurar que tools sea un objeto
+    if (!selectedInstance.tools || Array.isArray(selectedInstance.tools)) {
+        selectedInstance.tools = {};
+    }
 
-    const instanceName = selectedInstance.name || selectedInstance.label || selectedInstance.id;
+    // 1. VALIDACIÓN: Bloquear duplicados
+    if (selectedInstance.tools.hasOwnProperty(tool)) {
+        alert(`La herramienta ${tool.toUpperCase()} ya está en la lista de esta instancia.`);
+        return;
+    }
 
-    selectedInstance.tools.push(tool);
+    // 2. Añadir localmente con estado inicial
+    selectedInstance.tools[tool] = "pending";
 
+    // 3. PAYLOAD: Respetando estrictamente tu formato JSON original
     const payload = {
-        instance: selectedInstance.name,
         id: selectedInstance.id,
-        name: selectedInstance.name || selectedInstance.label,
+        name: selectedInstance.name,
         type: selectedInstance.type,
-
+        ip: selectedInstance.ip,
         ip_private: selectedInstance.ip_private,
         ip_floating: selectedInstance.ip_floating,
-        ip: selectedInstance.ip,
-
         status: selectedInstance.status,
-        image: selectedInstance.image,
-        flavor: selectedInstance.flavor,
-
-        tools: selectedInstance.tools
+        tools: selectedInstance.tools,
+        position: selectedInstance.position // Mantenemos la posición original
     };
 
-    await fetch("/api/add_tool_to_instance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-    });
+    try {
+        const res = await fetch("/api/add_tool_to_instance", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
 
-    await selectInstanceFromScenario(selectedInstance);
+        if (res.ok) {
+            console.log(`Herramienta ${tool} registrada exitosamente.`);
+            // Actualizar solo la lista visual
+            renderToolsList(selectedInstance.tools);
+        } else {
+            console.error("Error en el servidor al añadir la herramienta.");
+        }
+    } catch (err) {
+        console.error("Error de red al añadir herramienta:", err);
+    }
 }
-
 /* ============================================================
    8. Leer archivos JSON con configuraciones de tools
    ============================================================ */
@@ -343,18 +412,30 @@ async function loadToolsConfig() {
     Ejecutar instalación de tools
    ============================================================ */
 async function installTools() {
+    if (!selectedInstance) {
+        alert("Selecciona una instancia primero");
+        return;
+    }
+
     const terminal = document.getElementById("tools-terminal");
     terminal.innerHTML += "\n Iniciando instalación...\n";
     freezeUI();
 
     try {
-        const res = await fetch("/api/install_tools", { method: "POST" });
+        // Enviamos el ID y la lista de herramientas que están en 'pending'
+        const payload = {
+            instance: selectedInstance.name,
+            instance_id: selectedInstance.id,
+            tools: Object.keys(selectedInstance.tools)
+        };
 
-        if (!res.ok) {
-            terminal.innerHTML += ` Error HTTP: ${res.status}\n`;
-            unfreezeUI();
-            return;
-        }
+        const res = await fetch("/api/install_tools", { 
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) throw new Error(`Error HTTP: ${res.status}`);
 
         const reader = res.body.getReader();
         const decoder = new TextDecoder("utf-8");
@@ -364,46 +445,43 @@ async function installTools() {
             if (done) break;
 
             const text = decoder.decode(value, { stream: true });
-
-            // Procesar lineas estilo SSE: "data: ..."
             text.split("\n").forEach(line => {
                 if (line.startsWith("data:")) {
-                    terminal.innerHTML += line.replace("data: ", "") + "\n";
+                    const msg = line.replace("data: ", "");
+                    terminal.innerHTML += msg + "\n";
+                    terminal.scrollTop = terminal.scrollHeight;
                 }
             });
         }
 
-        terminal.innerHTML += " Finalizado.\n";
+        terminal.innerHTML += " Finalizado correctamente.\n";
+
+        // IMPORTANTE: Refrescar la instancia para obtener las nuevas fechas de instalación
+        await refreshSelectedInstance();
 
     } catch (err) {
-        terminal.innerHTML += ` Error ejecutando instalación: ${err}\n`;
+        terminal.innerHTML += ` Error: ${err.message}\n`;
+    } finally {
+        unfreezeUI();
     }
-
-    unfreezeUI();
 }
-
-
 /* ============================================================
     Eliminar tool SOLO de JSON
    ============================================================ */
 async function removeToolFromScenario(tool) {
-    if (!selectedInstance) return;
+    if (!selectedInstance || !selectedInstance.tools) return;
 
-    selectedInstance.tools = selectedInstance.tools.filter(t => t !== tool);
+    // ELIMINACIÓN PARA OBJETO
+    if (selectedInstance.tools[tool]) {
+        delete selectedInstance.tools[tool];
+    }
 
+    // Actualizamos la UI localmente
     renderToolsList(selectedInstance.tools);
 
+    // Payload actualizado con el objeto
     const payload = {
-        instance: selectedInstance.name,
-        id: selectedInstance.id,
-        name: selectedInstance.name || selectedInstance.label,
-        type: selectedInstance.type,
-        ip_private: selectedInstance.ip_private,
-        ip_floating: selectedInstance.ip_floating,
-        ip: selectedInstance.ip,
-        status: selectedInstance.status,
-        image: selectedInstance.image,
-        flavor: selectedInstance.flavor,
+        instance: selectedInstance.name || selectedInstance.label,
         tools: selectedInstance.tools
     };
 
@@ -413,6 +491,7 @@ async function removeToolFromScenario(tool) {
         body: JSON.stringify(payload)
     });
 
+    // Recargamos para asegurar sincronía
     await selectInstanceFromScenario(selectedInstance);
 }
 
@@ -428,9 +507,10 @@ async function uninstallTool(tool) {
     try {
         const payload = {
             instance: selectedInstance.name,
+            instance_id: selectedInstance.id, // Enviamos el UUID
             ip_private: selectedInstance.ip_private,
             ip_floating: selectedInstance.ip_floating,
-            tool: tool     // <-- CORRECTO
+            tool: tool
         };
 
         const res = await fetch("/api/uninstall_tool_from_instance", {
@@ -441,24 +521,17 @@ async function uninstallTool(tool) {
 
         const data = await res.json();
 
-        terminal.innerHTML += ` ${JSON.stringify(data, null, 2)}\n`;
-
-        if (data.status === "success" && data.exit_code === 0) {
-    console.log(" Desinstalación verificada. Eliminando del JSON...");
-    selectedInstance.tools = selectedInstance.tools.filter(t => t !== tool);
-
-    renderToolsList(selectedInstance.tools);
-    updateToolsBackend(selectedInstance);
-
-    } else {
-        console.warn(" La herramienta NO se ha eliminado del sistema.");
-        console.warn(" NO se actualizará el JSON porque todavía existen restos.");
-
-        terminal.innerHTML += "\n La herramienta sigue detectada en la instancia. Revisa logs.\n";
-    }
+        if (data.status === "success") {
+            terminal.innerHTML += ` OK: ${tool} desinstalado.\n`;
+            // Quitamos la tool localmente y refrescamos
+            delete selectedInstance.tools[tool];
+            renderToolsList(selectedInstance.tools);
+        } else {
+            terminal.innerHTML += ` Error: ${data.msg || 'No se pudo desinstalar'}\n`;
+        }
 
     } catch (err) {
-        terminal.innerHTML += ` Error al desinstalar ${tool}: ${err}\n`;
+        terminal.innerHTML += ` Error en petición: ${err}\n`;
     }
 }
 

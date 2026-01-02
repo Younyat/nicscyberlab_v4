@@ -3,7 +3,7 @@ set -euo pipefail
 trap 'echo " ERROR en línea ${LINENO}" >&2' ERR
 
 echo "===================================================="
-echo " TOOLS INSTALLER MASTER INIT"
+echo " TOOLS INSTALLER MASTER INIT (State-Aware Version)"
 echo "===================================================="
 
 # ====================================================
@@ -16,7 +16,7 @@ LOGS_DIR="$BASE_DIR/tools-installer/logs"
 
 mkdir -p "$LOGS_DIR"
 
-echo " BASE_DIR:             $BASE_DIR"
+echo " BASE_DIR:              $BASE_DIR"
 echo " JSON Tools Directory: $TOOLS_JSON_DIR"
 echo " Scripts Directory:    $TOOLS_SCRIPTS_DIR"
 echo " Logs Directory:       $LOGS_DIR"
@@ -94,9 +94,7 @@ SSH_KEY=""
 
 # Buscar ficheros privados válidos
 for CANDIDATE in \
-    "$HOME/.ssh/id_rsa" \
-    "$HOME/.ssh/id_ed25519" \
-    "$HOME/.ssh"/* \
+    "$HOME/.ssh/my_key" \
 ; do
     if [[ -f "$CANDIDATE" ]] && grep -q "PRIVATE KEY" "$CANDIDATE" 2>/dev/null; then
         SSH_KEY="$CANDIDATE"
@@ -142,16 +140,12 @@ for FILE in *_tools.json; do
     done
 
     INSTANCE=$(jq -r '.name' "$FILE")
-    TOOLS=$(jq -r '
-    if (.tools | type == "string") 
-    then (.tools | fromjson[]) 
-    else (.tools[]) 
-    end
-    ' "$FILE")
+    
+    # --- CAMBIO AQUÍ: Obtenemos las llaves del objeto 'tools' ---
+    TOOLS=$(jq -r '.tools | keys[]' "$FILE")
 
 
     echo " Instancia: $INSTANCE"
-    echo " Tools     : $TOOLS"
 
     FLOATING_IP=$(jq -r '.ip_floating // empty' "$FILE")
     PRIVATE_IP=$(jq -r '.ip_private // empty' "$FILE")
@@ -189,14 +183,14 @@ for FILE in *_tools.json; do
 
     USER=""
     for u in "${POSSIBLE_USERS[@]}"; do
-        if ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "$u@$IP" "echo ok" >/dev/null 2>&1; then
+        if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i "$SSH_KEY" "$u@$IP" "echo ok" >/dev/null 2>&1; then
             USER="$u"
             break
         fi
     done
 
     if [[ -z "$USER" ]]; then
-        echo " ERROR: No fue posible conectar vía SSH."
+        echo " ERROR: No fue posible conectar vía SSH a $IP."
         continue
     fi
 
@@ -208,7 +202,16 @@ for FILE in *_tools.json; do
     #  Instalación por herramienta
     # ====================================================
     for TOOL in $TOOLS; do
-        echo " Instalando herramienta: $TOOL"
+        
+        # --- CAMBIO AQUÍ: Leer estado actual ---
+        CURRENT_STATUS=$(jq -r ".tools.\"$TOOL\"" "$FILE")
+        
+        echo " Revisando herramienta: $TOOL (Estado actual: $CURRENT_STATUS)"
+
+        if [[ "$CURRENT_STATUS" == "installed" ]]; then
+            echo " [AVISO] $TOOL ya está instalada. Saltando..."
+            continue
+        fi
 
         INSTALL_SCRIPT_LOCAL="$TOOLS_SCRIPTS_DIR/install_${TOOL}.sh"
         TOOL_DIR_LOCAL="$BASE_DIR/tools-installer/${TOOL}"
@@ -217,97 +220,60 @@ for FILE in *_tools.json; do
         LOG_FILE="$LOGS_DIR/${INSTANCE}_${TOOL}_install.log"
         echo " Log → $LOG_FILE"
 
-        # -------------------------------------------
-        # Validar existencia de instalador local
-        # -------------------------------------------
         if [[ ! -f "$INSTALL_SCRIPT_LOCAL" ]]; then
             echo " ERROR: Falta script de instalación: $INSTALL_SCRIPT_LOCAL"
             continue
         fi
 
-        # Asegurar permisos aunque no existan
         if [[ ! -x "$INSTALL_SCRIPT_LOCAL" ]]; then
-            echo " Ajustando permiso +x al script: $INSTALL_SCRIPT_LOCAL"
             chmod +x "$INSTALL_SCRIPT_LOCAL"
         fi
 
-     echo " Creando directorio remoto: $TOOL_DIR_REMOTE"
-        ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "$USER@$IP" \
-            "sudo mkdir -p $TOOL_DIR_REMOTE"
+        echo " Preparando entorno remoto para $TOOL..."
+        ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "$USER@$IP" "sudo mkdir -p $TOOL_DIR_REMOTE"
 
         if [[ -d "$TOOL_DIR_LOCAL" ]]; then
-            echo " Copiando contenido de $TOOL_DIR_LOCAL → instancia"
-            scp -o StrictHostKeyChecking=no -i "$SSH_KEY" \
-                -r "$TOOL_DIR_LOCAL/" "$USER@$IP:$TOOL_DIR_REMOTE/"
+            scp -o StrictHostKeyChecking=no -i "$SSH_KEY" -r "$TOOL_DIR_LOCAL/" "$USER@$IP:$TOOL_DIR_REMOTE/"
         fi
 
-        echo " Subiendo install_${TOOL}.sh a /tmp por compatibilidad"
-        scp -o StrictHostKeyChecking=no -i "$SSH_KEY" \
-            "$INSTALL_SCRIPT_LOCAL" "$USER@$IP:/tmp/"
+        scp -o StrictHostKeyChecking=no -i "$SSH_KEY" "$INSTALL_SCRIPT_LOCAL" "$USER@$IP:/tmp/"
 
-        echo " Ajustando permisos remotos..."
         ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "$USER@$IP" "
             sudo chmod -R 755 $TOOL_DIR_REMOTE || true
             sudo chmod +x /tmp/install_${TOOL}.sh || true
             sudo chmod +x $TOOL_DIR_REMOTE/installer.sh 2>/dev/null || true
         "
 
-        # -----------------------------------------------------
-        #  Ejecución del installer 
-        # (con la IP bien pasada como argumento)
-        # -----------------------------------------------------
-        if ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "$USER@$IP" \
-            "[ -f $TOOL_DIR_REMOTE/installer.sh ]"; then
-            
-            echo " Ejecutando installer.sh de la instancia..."
-            ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "$USER@$IP" \
-                "cd $TOOL_DIR_REMOTE && sudo bash ./installer.sh \"$IP\"" \
-                >"$LOG_FILE" 2>&1
-
+        # Ejecución
+        INSTALL_SUCCESS=true
+        if ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "$USER@$IP" "[ -f $TOOL_DIR_REMOTE/installer.sh ]"; then
+            echo " Ejecutando installer.sh..."
+            ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "$USER@$IP" "cd $TOOL_DIR_REMOTE && sudo bash ./installer.sh \"$IP\"" >"$LOG_FILE" 2>&1 || INSTALL_SUCCESS=false
         else
-            echo " No existe installer.sh dentro de la instancia."
-            echo " Ejecutando install_${TOOL}.sh desde /tmp como fallback"
-            ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "$USER@$IP" \
-                "sudo bash /tmp/install_${TOOL}.sh \"$IP\"" \
-                >"$LOG_FILE" 2>&1
+            echo " Ejecutando install_${TOOL}.sh..."
+            ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "$USER@$IP" "sudo bash /tmp/install_${TOOL}.sh \"$IP\"" >"$LOG_FILE" 2>&1 || INSTALL_SUCCESS=false
         fi
 
-        echo " Instalación ejecutada (log almacenado)"
-
-        # -----------------------------------------------------
-        #  Validación de instalación
-        # -----------------------------------------------------
+        # Validación
         case "$TOOL" in
-            suricata)
-                CHECK_CMD="suricata -V"
-                ;;
-
-            snort)
-                CHECK_CMD="snort -V"
-                ;;
-
-            wazuh)
-                CHECK_CMD="systemctl status wazuh-manager"
-                ;;
-
-            caldera)
-                CHECK_CMD="
-                    ps aux | grep -q '[p]ython3 server.py' &&
-                    ss -tunlp | grep -q ':8888'
-                "
-            ;;
-
-            *)
-                CHECK_CMD="which $TOOL"
-                ;;
+            suricata) CHECK_CMD="suricata -V" ;;
+            snort)    CHECK_CMD="snort -V" ;;
+            wazuh)    CHECK_CMD="systemctl is-active wazuh-manager" ;;
+            caldera)  CHECK_CMD="ss -tunlp | grep -q ':8888'" ;;
+            *)        CHECK_CMD="which $TOOL" ;;
         esac
 
-        if ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "$USER@$IP" "$CHECK_CMD" >/dev/null 2>&1; then
-            echo " Instalación CONFIRMADA: $TOOL está funcionando en $INSTANCE"
+        if [[ "$INSTALL_SUCCESS" == true ]] && ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "$USER@$IP" "$CHECK_CMD" >/dev/null 2>&1; then
+            echo " Instalación CONFIRMADA: $TOOL"
+            NEW_STATUS="installed"
         else
-            echo " ERROR DE INSTALACIÓN: $TOOL NO responde como instalado"
+            echo " ERROR DE INSTALACIÓN: $TOOL"
+            NEW_STATUS="error"
         fi
 
+        # --- CAMBIO AQUÍ: Actualización del JSON ---
+        jq ".tools.\"$TOOL\" = \"$NEW_STATUS\"" "$FILE" > "${FILE}.tmp" && mv "${FILE}.tmp" "$FILE"
+        echo " Estado actualizado en $FILE a: $NEW_STATUS"
         echo "----------------------------------------------------"
 
     done  # <-- CIERRA for TOOL

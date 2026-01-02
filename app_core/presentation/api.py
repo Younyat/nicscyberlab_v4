@@ -456,14 +456,14 @@ def get_openstack_connection():
 def api_get_openstack_instances():
     try:
         conn = get_openstack_connection()
-
         instances = []
 
+        # Listar todos los servidores de OpenStack
         for server in conn.compute.servers():
-
             ip_private = None
             ip_floating = None
 
+            # Extraer direcciones IP
             for net_name, addresses in server.addresses.items():
                 for addr in addresses:
                     ip = addr.get("addr")
@@ -472,6 +472,21 @@ def api_get_openstack_instances():
                     else:
                         ip_private = ip
 
+            # --- NUEVA LÓGICA DE PERSISTENCIA ---
+            # Buscamos si existe un registro de herramientas para este ID de instancia
+            installed_path = os.path.join(INSTALLED_DIR, f"{server.id}.json")
+            installed_tools = {}
+
+            if os.path.exists(installed_path):
+                try:
+                    with open(installed_path, "r") as f:
+                        tool_data = json.load(f)
+                        # Obtenemos el diccionario de herramientas (ej: {"wazuh": "2024-05-20..."})
+                        installed_tools = tool_data.get("installed_tools", {})
+                except Exception as e:
+                    logger.error(f"Error leyendo registro de herramientas para {server.id}: {e}")
+
+            # Construir el objeto de la instancia para el frontend
             instances.append({
                 "id": server.id,
                 "name": server.name,
@@ -480,34 +495,30 @@ def api_get_openstack_instances():
                 "ip_floating": ip_floating,
                 "ip": ip_floating or ip_private or "N/A",
                 "image": server.image["id"] if server.image else None,
-                "flavor": server.flavor["id"] if server.flavor else None
+                "flavor": server.flavor["id"] if server.flavor else None,
+                # Enviamos las herramientas instaladas para que el frontend las muestre
+                "installed_tools": installed_tools 
             })
 
         return jsonify({"instances": instances}), 200
 
     except Exception as e:
-        logger.error(f" Error al consultar instancias OpenStack: {e}", exc_info=True)
+        logger.error(f"Error al consultar instancias OpenStack: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
-
+    finally:
+        if 'conn' in locals():
+            conn.close()
 
 @api_bp.route('/api/add_tool_to_instance', methods=['POST'])
 def add_tool_to_instance():
-    print(" Método HTTP:", request.method)
-    print(" Headers:", dict(request.headers))
-    print(" request.data crudo:", request.data)
-
     try:
         data = request.get_json(force=True)
-
         if not data:
             return jsonify({"status": "error", "msg": "JSON vacío"}), 400
 
         instance = data.get("instance") or data.get("name")
-
-        if not instance:
-            return jsonify({"status": "error", "msg": "Falta el nombre de instancia"}), 400
-
-        tools = data.get("tools", [])
+        # Capturamos las tools. Si vienen como lista, las convertiremos a objeto abajo.
+        tools_data = data.get("tools", {})
 
         DIR = os.path.join(REPO_ROOT, "tools-installer-tmp")
         os.makedirs(DIR, exist_ok=True)
@@ -515,17 +526,21 @@ def add_tool_to_instance():
         safe = re.sub(r'[^a-zA-Z0-9_-]', '_', instance.lower())
         path = os.path.join(DIR, f"{safe}_tools.json")
 
+        # Mantenemos la estructura original pero aseguramos que 'tools' sea un objeto
+        # Si recibimos ['wazuh'], lo convertimos a {'wazuh': 'pending'}
+        if isinstance(tools_data, list):
+            new_tools_obj = {}
+            for t in tools_data:
+                new_tools_obj[t] = "pending" # Estado por defecto para nuevos
+            data["tools"] = new_tools_obj
+
         with open(path, "w") as f:
             json.dump(data, f, indent=4)
 
-        print(" Guardado en:", path)
-
-        return jsonify({"status": "success", "saved": path})
+        return jsonify({"status": "success", "saved": path, "current_tools": data["tools"]})
 
     except Exception as e:
-        print(" ERROR:", e)
         return jsonify({"status": "error", "msg": str(e)}), 500
-
 
 @api_bp.route('/api/read_tools_configs', methods=['GET'])
 def read_tools_configs():
@@ -558,7 +573,11 @@ def read_tools_configs():
 
 @api_bp.route('/api/install_tools', methods=['POST'])
 def install_tools():
-    print(" Iniciando instalación de tools...")
+    # Obtenemos los datos para saber a quién registrar al final
+    data = request.get_json()
+    instance_id = data.get("instance_id")
+    instance_name = data.get("instance")
+    tools_to_install = data.get("tools", []) # Lista de nombres de tools
 
     SCRIPT = os.path.join(REPO_ROOT, "tools-installer", "tools_install_master.sh")
 
@@ -580,43 +599,54 @@ def install_tools():
             yield f"data: {line.strip()}\n\n"
 
         process.wait()
+        
+        # MOMENTO CLAVE: Si el proceso terminó bien (código 0)
+        if process.returncode == 0:
+            # Registramos cada herramienta instalada en el JSON persistente
+            for t_name in tools_to_install:
+                save_as_installed(instance_id, instance_name, t_name)
+            yield f"data: [SUCCESS] Registro actualizado en el sistema.\n\n"
+        
         yield f"data: [FIN] Exit Code: {process.returncode}\n\n"
 
     return Response(generate(), mimetype='text/event-stream')
 
+import re
 
 @api_bp.route('/api/get_tools_for_instance', methods=['GET'])
 def get_tools_for_instance():
-    instance = request.args.get("instance")
+    instance_name = request.args.get("instance")
 
-    if not instance:
-        return jsonify({"tools": []})
+    if not instance_name:
+        # Importante: devolver un objeto {} no un array []
+        return jsonify({"tools": {}})
 
     DIR = os.path.join(REPO_ROOT, "tools-installer-tmp")
+    
+    # NORMALIZACIÓN: "attack 2" -> "attack_2"
+    # Esto coincide con como se guardan físicamente los archivos
+    safe_name = re.sub(r'[^a-zA-Z0-9_-]', '_', instance_name.lower())
+    filename = f"{safe_name}_tools.json"
+    path = os.path.join(DIR, filename)
 
-    instance = instance.strip().lower()
+    print(f" Buscando archivo: {path} para instancia: {instance_name}")
 
-    print(f" Buscando JSON para instancia: {instance}")
-
-    for filename in os.listdir(DIR):
-        if filename.endswith("_tools.json"):
-            path = os.path.join(DIR, filename)
-
+    if os.path.exists(path):
+        try:
             with open(path, "r") as f:
                 data = json.load(f)
+                
+            print(f" JSON encontrado y cargado: {filename}")
+            return jsonify({
+                "instance": instance_name,
+                "tools": data.get("tools", {}) # Retorna el objeto de herramientas
+            })
+        except Exception as e:
+            print(f" Error al leer el archivo: {e}")
+            return jsonify({"tools": {}}), 500
 
-            stored = (data.get("instance") or "").strip().lower()
-
-            if stored == instance:
-                print(f" JSON encontrado: {filename}")
-                return jsonify({
-                    "instance": instance,
-                    "tools": data.get("tools", [])
-                })
-
-    print(" JSON NO encontrado para esta instancia")
-    return jsonify({"instance": instance, "tools": []})
-
+    print(f" JSON NO encontrado: {path}")
+    return jsonify({"instance": instance_name, "tools": {}})
 
 from tools_uninstall_manager.tools_uninstall_manager import uninstall_tool
 
@@ -625,34 +655,39 @@ from tools_uninstall_manager.tools_uninstall_manager import uninstall_tool
 def api_uninstall_tool():
     try:
         data = request.get_json()
-
         if not data:
             return jsonify({"status": "error", "msg": "JSON vacío"}), 400
 
-        instance = data.get("instance")
+        instance_name = data.get("instance")
+        instance_id = data.get("instance_id") # Importante: enviar ID desde el front
         ip_private = data.get("ip_private", "")
         ip_floating = data.get("ip_floating", "")
         tool = data.get("tool")
 
-        if not instance or not tool:
+        if not instance_name or not tool or not instance_id:
             return jsonify({
-                "status": "error",
-                "msg": "Faltan campos: instance y tool son obligatorios"
+                "status": "error", 
+                "msg": "Faltan campos: instance, instance_id y tool son obligatorios"
             }), 400
 
+        # 1. Ejecutar la desinstalación física en el servidor
         result = uninstall_tool(
-            instance,
+            instance_name,
             tool,
             ip_private,
             ip_floating
         )
+
+        # 2. Si el script tuvo éxito, actualizamos nuestro registro local JSON
+        if result.get("status") == "success" or result.get("exit_code") == 0:
+            remove_from_installed(instance_id, tool)
+            logger.info(f"Registro actualizado: {tool} eliminado de {instance_name}")
 
         return jsonify(result), 200
 
     except Exception as e:
         logger.error(f" Error API uninstall: {e}", exc_info=True)
         return jsonify({"status": "error", "msg": str(e)}), 500
-
 
 @api_bp.route("/api/instance_roles", methods=["GET"])
 def api_instance_roles():
@@ -1048,6 +1083,84 @@ def save_industrial_scenario():
             "message": str(e)
         }), 500
 
+import os
+import json
+from datetime import datetime
+
+INSTALLED_DIR = os.path.join(REPO_ROOT, "tools-installer", "installed")
+os.makedirs(INSTALLED_DIR, exist_ok=True)
+
+def is_tool_installed(instance_id, tool_name):
+    path = os.path.join(INSTALLED_DIR, f"{instance_id}.json")
+    if os.path.exists(path):
+        with open(path, "r") as f:
+            data = json.load(f)
+            return tool_name in data.get("installed_tools", {})
+    return False
+
+def mark_tool_as_installed(instance_id, instance_name, tool_name):
+    path = os.path.join(INSTALLED_DIR, f"{instance_id}.json")
+    data = {"instance_id": instance_id, "instance_name": instance_name, "installed_tools": {}}
+    
+    if os.path.exists(path):
+        with open(path, "r") as f:
+            data = json.load(f)
+    
+    data["installed_tools"][tool_name] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    with open(path, "w") as f:
+        json.dump(data, f, indent=4)
+
+
+
+def remove_from_installed(instance_id, tool_name):
+    """Borra una herramienta del registro persistente de la instancia"""
+    path = os.path.join(INSTALLED_DIR, f"{instance_id}.json")
+    if os.path.exists(path):
+        try:
+            with open(path, "r") as f:
+                data = json.load(f)
+            
+            if tool_name in data.get("installed_tools", {}):
+                del data["installed_tools"][tool_name]
+                with open(path, "w") as f:
+                    json.dump(data, f, indent=4)
+                return True
+        except Exception as e:
+            logger.error(f"Error al actualizar JSON en desinstalación: {e}")
+    return False
+
+import os
+import json
+from datetime import datetime
+
+# Definir la ruta permanente
+INSTALLED_DIR = os.path.join(REPO_ROOT, "tools-installer", "installed")
+
+def save_as_installed(instance_id, instance_name, tool_name):
+    """Crea el archivo de registro permanente para la instancia"""
+    if not os.path.exists(INSTALLED_DIR):
+        os.makedirs(INSTALLED_DIR, exist_ok=True)
+
+    path = os.path.join(INSTALLED_DIR, f"{instance_id}.json")
+    
+    # Cargar datos existentes o crear nuevos
+    if os.path.exists(path):
+        with open(path, "r") as f:
+            data = json.load(f)
+    else:
+        data = {
+            "instance_id": instance_id,
+            "instance_name": instance_name,
+            "installed_tools": {}
+        }
+
+    # Registrar la herramienta con la fecha actual
+    data["installed_tools"][tool_name] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    with open(path, "w") as f:
+        json.dump(data, f, indent=4)
+    print(f"Registro permanente creado en: {path}")
 
 @api_bp.route('/')
 def index():
