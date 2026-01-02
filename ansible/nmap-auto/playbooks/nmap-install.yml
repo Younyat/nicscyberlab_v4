@@ -1,0 +1,25 @@
+---
+- name: Instalación de Suite Nmap
+  hosts: scanner_host
+  become: true
+  tasks:
+    - name: 1. Instalar Nmap y herramientas de red
+      apt:
+        name: 
+          - nmap
+          - ncat
+          - ndiff
+        state: present
+        update_cache: true
+
+    - name: 2. Actualizar base de datos de scripts NSE
+      command: nmap --script-updatedb
+      changed_when: false
+
+    - name: 3. Verificar instalación
+      command: nmap --version
+      register: nmap_ver
+      changed_when: false
+
+    - debug:
+        msg: "Nmap instalado correctamente: {{ nmap_ver.stdout_lines[0] }}"

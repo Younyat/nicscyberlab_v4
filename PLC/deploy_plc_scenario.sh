@@ -7,16 +7,16 @@ set -euo pipefail
 VM_NAME="PLC_Instance"
 
 IMAGE="ubuntu-22.04"
-FLAVOR="plc.micro"
+FLAVOR="plc_flavor_2"
 
-PRIVATE_NET="private-net"
-EXTERNAL_NET="external-net"
+PRIVATE_NET="net_private_01"
+EXTERNAL_NET="net_external_01"
 
-KEYPAIR="cyberlab-key"
-KEY_PATH="$HOME/.ssh/cyberlab-key"
+KEYPAIR="my_key"
+KEY_PATH="$HOME/.ssh/my_key"
 
 SG_PLC="plc-sg"
-CLOUD_INIT="PLC/cloud_init_plc.yaml"
+CLOUD_INIT="cloud_init_plc.yaml"
 
 TCP_PORTS=(22 502 8080 8443)
 

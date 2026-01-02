@@ -1,151 +1,81 @@
 #!/usr/bin/env bash
-# ============================================================
-#   Wazuh Uninstaller (Ubuntu 22.04)
-#   Limpieza real sin falsos positivos de dpkg
-# ============================================================
 set -euo pipefail
 
-INSTANCE="$1"
-IP_PRIV="$2"
-IP_FLOAT="$3"
-USER="$4"
-
-IP="${IP_FLOAT:-$IP_PRIV}"
-
 echo "----------------------------------------------------------"
-echo "DESINSTALACIÓN WAZUH/FILEBEAT en $INSTANCE ($IP)"
+echo "🔥 MODO ELIMINACIÓN TOTAL: WAZUH / INDEXER / DASHBOARD"
 echo "----------------------------------------------------------"
 
-# ---------------------------------------------------------
-# Detectar clave SSH válida
-# ---------------------------------------------------------
-SSH_KEY=""
-for K in "$HOME/.ssh/"*; do
-    [[ -f "$K" ]] && grep -q "PRIVATE KEY" "$K" && SSH_KEY="$K" && break
+# 1. Parada forzosa
+echo "[1/8] Matando procesos residuales (pkill)..."
+for proc in wazuh-manager wazuh-db wazuh-modulesd wazuh-authd filebeat opensearch dashboard; do
+    # Usamos || true para que el script no se detenga si no encuentra el proceso
+    sudo pkill -9 -f "$proc" >/dev/null 2>&1 || true
 done
+sleep 1
 
-if [[ -z "$SSH_KEY" ]]; then
-    echo "ERROR: No se encontró clave privada SSH en ~/.ssh"
-    exit 1
-fi
+# 2. Servicios systemd
+echo "[2/8] Deteniendo y deshabilitando servicios systemd..."
+sudo systemctl stop wazuh-manager wazuh-dashboard wazuh-indexer filebeat 2>/dev/null || true
+sudo systemctl disable wazuh-manager wazuh-dashboard wazuh-indexer filebeat 2>/dev/null || true
 
-chmod 600 "$SSH_KEY"
-
-# ==========================================================
-# EJECUCIÓN REMOTA
-# ==========================================================
-ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "$USER@$IP" bash << 'EOF'
-set -euo pipefail
-
-FAILED=false
-
-echo "[1/8] Deteniendo servicios"
-sudo systemctl stop wazuh-manager.service 2>/dev/null || true
-sudo systemctl stop wazuh-dashboard.service 2>/dev/null || true
-sudo systemctl stop wazuh-indexer.service 2>/dev/null || true
-sudo systemctl stop filebeat.service 2>/dev/null || true
-
-echo "[2/8] Deshabilitando servicios"
-sudo systemctl disable wazuh-manager.service 2>/dev/null || true
-sudo systemctl disable wazuh-dashboard.service 2>/dev/null || true
-sudo systemctl disable wazuh-indexer.service 2>/dev/null || true
-sudo systemctl disable filebeat.service 2>/dev/null || true
-
-echo "[3/8] Eliminando unidades systemd"
-sudo rm -f /etc/systemd/system/wazuh*.service
-sudo rm -f /lib/systemd/system/wazuh*.service
-sudo rm -f /etc/systemd/system/filebeat*.service
-sudo rm -f /lib/systemd/system/filebeat*.service
-sudo rm -f /etc/init.d/filebeat 2>/dev/null || true
-
-echo "[4/8] Purga directa de paquetes"
-sudo apt purge -y wazuh* filebeat opensearch* >/dev/null 2>&1 || true
-
-echo "[5/8] Eliminando directorios residuales"
-sudo rm -rf /var/ossec
-sudo rm -rf /etc/ossec*
-sudo rm -rf /opt/wazuh*
-sudo rm -rf /usr/share/wazuh*
-sudo rm -rf /etc/wazuh*
-sudo rm -rf /var/lib/wazuh*
-sudo rm -rf /var/log/wazuh*
-sudo rm -rf /etc/filebeat
-sudo rm -rf /var/lib/filebeat
-sudo rm -rf /var/log/filebeat
-sudo rm -rf /usr/share/filebeat
-sudo rm -rf /etc/opensearch*
-sudo rm -rf /var/lib/opensearch*
-sudo rm -rf /usr/share/opensearch*
-sudo rm -rf /var/log/opensearch*
-
-echo "[6/8] Eliminando binarios"
-sudo rm -f /usr/bin/filebeat 2>/dev/null || true
-sudo rm -f /usr/bin/wazuh* 2>/dev/null || true
-
-echo "[7/8] Eliminando usuarios"
-sudo userdel -r wazuh 2>/dev/null || true
-sudo userdel -r wazuh-indexer 2>/dev/null || true
-sudo userdel -r wazuh-dashboard 2>/dev/null || true
-sudo userdel -r filebeat 2>/dev/null || true
-
-echo "[8/8] Recargando systemd"
+# 3. Archivos de unidad
+echo "[3/8] Eliminando archivos de configuración de servicios..."
+sudo rm -f /etc/systemd/system/wazuh* /lib/systemd/system/wazuh* /etc/systemd/system/filebeat*
 sudo systemctl daemon-reload
 
+# 4. Purga de paquetes
+echo "[4/8] Purgando paquetes (apt purge)..."
+sudo apt-get purge -y wazuh-manager wazuh-dashboard wazuh-indexer filebeat opensearch* >/dev/null 2>&1 || true
+sudo apt-get autoremove -y >/dev/null 2>&1 || true
 
-# ==========================================================
-# VALIDACIÓN REAL SIN dpkg
-# ==========================================================
-echo
-echo "Validación final real..."
+# 5. Directorios y Datos
+echo "[5/8] Eliminando directorios de datos y configuraciones..."
+sudo rm -rf /var/ossec /etc/ossec* /usr/share/wazuh* /etc/wazuh* /var/lib/wazuh* /opt/wazuh*
+sudo rm -rf /etc/filebeat /etc/opensearch* /var/lib/opensearch* /usr/share/opensearch*
 
-# 1. Procesos activos
-pgrep -fa wazuh && FAILED=true
-pgrep -fa filebeat && FAILED=true
-pgrep -fa opensearch && FAILED=true
+# 6. Logs y Registros
+echo "[6/8] Limpiando archivos de log y temporales..."
+sudo rm -rf /var/log/wazuh* /var/log/filebeat* /var/log/opensearch* /tmp/wazuh-*
 
-# 2. Servicios
-systemctl list-units | grep -qi "wazuh" && FAILED=true
-systemctl list-units | grep -qi "filebeat" && FAILED=true
-systemctl list-units | grep -qi "opensearch" && FAILED=true
+# 7. Usuarios y Grupos
+echo "[7/8] Eliminando usuarios y grupos del sistema..."
+for u in wazuh wazuh-indexer wazuh-dashboard filebeat; do
+    sudo userdel -f "$u" >/dev/null 2>&1 || true
+    sudo groupdel "$u" >/dev/null 2>&1 || true
+done
 
-# 3. Binarios
-command -v wazuh-control >/dev/null 2>&1 && FAILED=true
-command -v filebeat >/dev/null 2>&1 && FAILED=true
+# 8. Validación Final
+echo "[8/8] Validación de seguridad (Puertos y Procesos)..."
+FAILED=false
+MY_PID=$$
 
-# 4. Directorios
-[[ -d "/var/ossec" ]] && FAILED=true
-[[ -d "/etc/wazuh" ]] && FAILED=true
-[[ -d "/opt/wazuh" ]] && FAILED=true
-[[ -d "/usr/share/opensearch" ]] && FAILED=true
-[[ -d "/etc/filebeat" ]] && FAILED=true
+# BUSQUEDA ULTRA-FILTRADA: 
+# Buscamos procesos que tengan wazuh/filebeat/opensearch 
+# PERO ignoramos: el PID del script ($MY_PID), el proceso 'sudo', el propio 'grep' y el nombre del script 'uninstall'
+PROCESOS_VIVOS=$(pgrep -a -f "wazuh|filebeat|opensearch" | grep -v "$MY_PID" | grep -v "uninstall" | grep -v "grep" | grep -v "sudo" || true)
 
-# 5. Puertos
-ss -tunlp | grep -q ":1515" && FAILED=true
-ss -tunlp | grep -q ":5601" && FAILED=true
-
-
-# ==========================================================
-# RESULTADO FINAL
-# ==========================================================
-if [[ "$FAILED" == false ]]; then
-  echo "--------------------------------------------------"
-  echo "LIMPIEZA TOTAL COMPLETADA"
-  echo "WAZUH / FILEBEAT / OPENSEARCH ELIMINADOS"
-  echo "--------------------------------------------------"
-  echo
-  echo "Información dpkg (solo metadatos, NO relevantes):"
-  dpkg -l | grep -E 'wazuh|filebeat|opensearch' || true
-  exit 0
-else
-  echo "--------------------------------------------------"
-  echo "ATENCIÓN: Algún componente sigue ACTIVO"
-  echo "Esto NO depende de dpkg, sino de:"
-  echo "  - procesos"
-  echo "  - servicios"
-  echo "  - binarios"
-  echo "  - rutas físicas"
-  echo "  - puertos"
-  echo "--------------------------------------------------"
-  exit 3
+if [[ -n "$PROCESOS_VIVOS" ]]; then
+    echo "⚠️ ATENCIÓN: Se detectaron estos procesos activos:"
+    echo "$PROCESOS_VIVOS"
+    FAILED=true
 fi
-EOF
+
+# Revisar puertos
+PUERTOS_VIVOS=$(ss -tunlp | grep -E ":1515|:1514|:55000|:5601|:9200" || true)
+if [[ -n "$PUERTOS_VIVOS" ]]; then
+    echo "⚠️ ATENCIÓN: Hay puertos todavía ocupados:"
+    echo "$PUERTOS_VIVOS"
+    FAILED=true
+fi
+
+if [[ "$FAILED" == false ]]; then
+    echo "--------------------------------------------------"
+    echo "✅ [SUCCESS] LIMPIEZA 8/8 COMPLETADA"
+    echo "--------------------------------------------------"
+    exit 0
+else
+    echo "--------------------------------------------------"
+    echo "❌ [ERROR] EL SISTEMA NO ESTÁ LIMPIO"
+    echo "--------------------------------------------------"
+    exit 1
+fi

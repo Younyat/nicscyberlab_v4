@@ -1,0 +1,50 @@
+---
+- name: "Reinstalación Total Limpia de Wazuh Agent"
+  hosts: victim
+  become: true
+  tasks:
+    - name: "1. ELIMINACIÓN RADICAL (Limpieza total de restos de v4.9)"
+      shell: |
+        systemctl stop wazuh-agent || true
+        apt-get purge -y wazuh-agent || true
+        rm -rf /var/ossec
+        rm -rf /etc/wazuh-agent
+      args:
+        executable: /bin/bash
+
+    - name: "2. Re-importar GPG"
+      apt_key:
+        url: https://packages.wazuh.com/key/GPG-KEY-WAZUH
+        state: present
+
+    - name: "3. Añadir repositorio oficial"
+      apt_repository:
+        repo: "deb https://packages.wazuh.com/4.x/apt/ stable main"
+        state: present
+
+    - name: "4. Instalación limpia de versión 4.7.3"
+      apt:
+        name: "wazuh-agent=4.7.3-1"
+        state: present
+        update_cache: true
+
+    - name: "5. Configurar IP del Manager en ossec.conf"
+      lineinfile:
+        path: /var/ossec/etc/ossec.conf
+        regexp: '<address>.*</address>'
+        line: "      <address>10.0.2.160</address>"
+
+    - name: "6. Iniciar Servicio"
+      systemd:
+        name: wazuh-agent
+        state: started
+        enabled: true
+        daemon_reload: true
+
+    - name: "7. VERIFICACIÓN: Comprobar si el proceso está en ejecución"
+      shell: ps aux | grep wazuh-agentd | grep -v grep
+      register: ps_check
+
+    - name: "8. Mostrar resultado del proceso"
+      debug:
+        msg: "Proceso levantado: {{ ps_check.stdout }}"

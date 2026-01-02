@@ -7,16 +7,18 @@ set -euo pipefail
 VM_NAME="FUXA_Instance"
 
 IMAGE="ubuntu-22.04"
-FLAVOR="scada.micro"
+FLAVOR="plc_flavor"
 
-PRIVATE_NET="private-net"
-EXTERNAL_NET="external-net"
+PRIVATE_NET="net_private_01"
+EXTERNAL_NET="net_external_01"
 
-KEYPAIR="cyberlab-key"
-KEY_PATH="$HOME/.ssh/cyberlab-key"
+KEYPAIR="my_key"
+KEY_PATH="$HOME/.ssh/my_key"
+
+
 
 SG_FUXA="fuxa-sg"
-CLOUD_INIT="FUXA/cloud_init_fuxa.yaml"
+CLOUD_INIT="cloud_init_fuxa.yaml"
 
 TCP_PORTS=(22 1881)
 
@@ -121,10 +123,10 @@ openstack keypair show "$KEYPAIR" >/dev/null 2>&1 || fail "Keypair not found"
 # ============================================================
 # FLAVOR
 # ============================================================
-openstack flavor show "$FLAVOR" >/dev/null 2>&1 || \
+ openstack flavor show "$FLAVOR" >/dev/null 2>&1 || \
 openstack flavor create "$FLAVOR" --vcpus 1 --ram 1024 --disk 10 >/dev/null
 
-ok "Flavor ready: $FLAVOR"
+ ok "Flavor ready: $FLAVOR"
 
 # ============================================================
 # SECURITY GROUP RULES

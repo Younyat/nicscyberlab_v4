@@ -1,0 +1,56 @@
+---
+- name: Desinstalación Forense y Limpieza de Identidad
+  hosts: victim
+  become: true
+  vars:
+    # Usamos búsqueda insensible a mayúsculas para mayor fiabilidad
+    agent_search_name: "victim-3" 
+
+  tasks:
+    # --- FASE 1: LIMPIEZA EN LA VÍCTIMA ---
+    - name: 1.1 Detener y purgar wazuh-agent
+      apt:
+        name: wazuh-agent
+        state: absent
+        purge: true
+      ignore_errors: true
+
+    - name: 1.2 Eliminar directorios críticos
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/ossec
+        - /etc/wazuh-agent
+
+    # --- FASE 2: LIMPIEZA EN EL MANAGER ---
+    - name: 2.1 Buscar ID del agente (Insensitive Search)
+      # El comando 'manage_agents -l' devuelve una lista. Filtramos por el nombre.
+      shell: |
+        /var/ossec/bin/manage_agents -l | grep -i "{{ agent_search_name }}" | cut -d',' -f1 | awk '{print $2}' | head -n 1
+      delegate_to: "{{ groups['manager'][0] }}"
+      register: agent_id
+      changed_when: false
+
+    - name: 2.2 Eliminar registro del agente en el Manager
+      # Usamos 'expect' o simplemente pasamos el ID al comando de borrado
+      # manage_agents no tiene flag -y, así que el ID debe ser exacto.
+      shell: |
+        /var/ossec/bin/manage_agents -r {{ agent_id.stdout }}
+      delegate_to: "{{ groups['manager'][0] }}"
+      when: agent_id.stdout != ""
+      notify: Reiniciar Wazuh Manager
+
+    - name: 2.3 Borrar base de datos forense residual
+      file:
+        path: "/var/ossec/queue/db/{{ agent_id.stdout }}.db"
+        state: absent
+      delegate_to: "{{ groups['manager'][0] }}"
+      when: agent_id.stdout != ""
+
+  handlers:
+    - name: Reiniciar Wazuh Manager
+      systemd:
+        name: wazuh-manager
+        state: restarted
+      delegate_to: "{{ groups['manager'][0] }}"

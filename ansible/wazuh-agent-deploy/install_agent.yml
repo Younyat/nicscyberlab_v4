@@ -1,0 +1,57 @@
+---
+- name: Despliegue Profesional de Wazuh Agent
+  hosts: victim
+  become: true
+  vars:
+    manager_ip: "10.0.2.160"
+    agent_name: "Victim-3"
+
+  tasks:
+    - name: 1. Instalar dependencias para repositorios HTTPS
+      apt:
+        name: [curl, gnupg2, apt-transport-https]
+        state: present
+        update_cache: true
+
+    - name: 2. Añadir clave GPG oficial de Wazuh
+      apt_key:
+        url: https://packages.wazuh.com/key/GPG-KEY-WAZUH
+        state: present
+
+    - name: 3. Añadir repositorio oficial (v4.x)
+      apt_repository:
+        repo: "deb https://packages.wazuh.com/4.x/apt/ stable main"
+        state: present
+        filename: wazuh
+
+    - name: 4. Instalar wazuh-agent
+      apt:
+        name: wazuh-agent
+        state: present
+        update_cache: true
+
+    - name: 5. Configurar la IP del Manager en ossec.conf
+      lineinfile:
+        path: /var/ossec/etc/ossec.conf
+        regexp: '<address>.*</address>'
+        line: "      <address>{{ manager_ip }}</address>"
+      notify: Reiniciar Agente
+
+    - name: 6. Configurar nombre personalizado del agente
+      lineinfile:
+        path: /var/ossec/etc/local_internal_options.conf
+        line: "agent.name={{ agent_name }}"
+        create: yes
+      notify: Reiniciar Agente
+
+    - name: 7. Asegurar que el servicio esté habilitado y activo
+      systemd:
+        name: wazuh-agent
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Reiniciar Agente
+      systemd:
+        name: wazuh-agent
+        state: restarted

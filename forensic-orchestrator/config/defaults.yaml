@@ -1,0 +1,23 @@
+# Default configuration for forensic-orchestrator
+
+evidence:
+  alerts_path: "/var/ossec/logs/alerts/alerts.json"
+  archives_path: "/var/ossec/logs/archives/archives.json"
+
+output:
+  base_dir: "./cases"
+
+report:
+  top_timeline_rows: 50
+  suspicious_keywords:
+    - "sudo"
+    - "root"
+    - "authentication"
+    - "failed"
+    - "passwd"
+    - "useradd"
+    - "ssh"
+    - "cron"
+    - "systemctl"
+    - "wget"
+    - "curl"

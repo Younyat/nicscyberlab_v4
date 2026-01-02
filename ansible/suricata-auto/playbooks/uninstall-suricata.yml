@@ -1,0 +1,46 @@
+---
+- name: Desinstal·lació completa de Suricata
+  hosts: suricata
+  become: true
+  tasks:
+    - name: Aturar el servei Suricata
+      systemd:
+        name: suricata
+        state: stopped
+        enabled: false
+      ignore_errors: true
+
+    - name: Eliminar paquets de Suricata i dependències
+      apt:
+        name: [suricata, suricata-update]
+        state: absent
+        purge: true  # Això elimina els fitxers de configuració (/etc/suricata)
+
+    - name: Eliminar dependències no utilitzades
+      apt:
+        autoremove: true
+        purge: true
+
+    - name: Esborrar directoris residuals (logs i regles)
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/suricata
+        - /var/log/suricata
+        - /var/lib/suricata
+        - /run/suricata
+
+    - name: Eliminar configuració de sudo NOPASSWD (opcional)
+      file:
+        path: /etc/sudoers.d/ansible_nopasswd
+        state: absent
+
+    - name: Verificar si el procés encara existeix
+      shell: pkill -9 suricata
+      ignore_errors: true
+      changed_when: false
+
+    - name: Confirmació
+      debug:
+        msg: "Suricata ha estat eliminat completament de la instància."

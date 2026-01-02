@@ -1,0 +1,67 @@
+---
+- name: Desinstalación completa de Wazuh Stack
+  hosts: all
+  become: true
+  tasks:
+    - name: 1. Detener todos los servicios de Wazuh
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+      loop:
+        - wazuh-dashboard
+        - wazuh-manager
+        - wazuh-indexer
+        - filebeat
+      ignore_errors: true
+
+    - name: 2. Eliminar paquetes y configuraciones (Purge)
+      apt:
+        name:
+          - wazuh-indexer
+          - wazuh-manager
+          - wazuh-dashboard
+          - filebeat
+          - wazuh-agent
+        state: absent
+        purge: true
+
+    - name: 3. Limpiar dependencias y repositorios
+      apt:
+        autoremove: true
+        purge: true
+
+    - name: 4. Eliminar directorios de datos, certificados y logs
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/ossec                # Core de Wazuh Manager
+        - /var/lib/wazuh-indexer    # Datos de los índices (Base de datos)
+        - /etc/wazuh-indexer
+        - /etc/wazuh-dashboard
+        - /etc/wazuh-manager
+        - /etc/filebeat
+        - /var/log/wazuh-indexer
+        - /var/log/wazuh-dashboard
+        - /usr/share/wazuh-indexer
+        - /usr/share/wazuh-dashboard
+
+    - name: 5. Eliminar el repositorio de Wazuh de las listas de APT
+      file:
+        path: "/etc/apt/sources.list.d/wazuh.list"
+        state: absent
+
+    - name: 6. Matar procesos Java residuales (Indexer/Dashboard)
+      shell: pkill -9 -f "wazuh|opensearch"
+      ignore_errors: true
+      changed_when: false
+
+    - name: 7. Limpiar reglas de sudoers de Ansible
+      file:
+        path: /etc/sudoers.d/ansible_nopasswd
+        state: absent
+
+    - name: Finalizado
+      debug:
+        msg: "Limpieza profunda de Wazuh completada en el servidor."

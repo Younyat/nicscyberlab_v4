@@ -1,31 +1,8 @@
 [INFO] ============================================================
 [INFO] Wazuh single-node install starting
 [INFO]   MANAGER_IP = 10.0.2.211
-[INFO]   PURGE      = false
-[INFO]   FORCE      = false
-[INFO]   URL        = https://packages.wazuh.com/4.7/wazuh-install.sh
-[INFO]   LOG        = /var/log/wazuh-install-20251227_203110.log
+[INFO]   LOG        = /var/log/wazuh-install-20251228_011929.log
 [INFO] ============================================================
 [INFO] [0/6] Validando estado del sistema APT/DPKG...
-[33m[WARN][0m Se detectaron paquetes residuales en dpkg:
-filebeat
-wazuh-dashboard
-wazuh-indexer
-wazuh-manager
-[33m[WARN][0m No se aplicará purga (usa --purge si quieres limpieza agresiva)
 [INFO] [1/6] Preparando sistema
-[32m[OK][0m  Sistema preparado
-[INFO] [2/6] Descargando instalador oficial Wazuh
-[32m[OK][0m  Instalador descargado: /tmp/wazuh-install.sh
-[INFO] [3/6] Instalando Wazuh (single-node all-in-one)
-[33m[WARN][0m Wazuh Manager ya instalado. Saltando instalación.
-[INFO] [4/6] Verificando servicios
-[32m[OK][0m  wazuh-manager: active
-[32m[OK][0m  wazuh-indexer: active
-[32m[OK][0m  wazuh-dashboard: active
-[INFO] [5/6] Información de acceso
-[32m[OK][0m  Dashboard: https://10.0.2.211
-[33m[WARN][0m Si no abre: https://10.0.2.211:5601 (revisa security groups)
-[INFO] [6/6] Finalizado
-[32m[OK][0m  Instalación terminada
-[32m[OK][0m  Log: /var/log/wazuh-install-20251227_203110.log
+E: Sub-process /usr/bin/dpkg returned an error code (1)

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "forensic-orchestrator"
+version = "0.1.0"
+description = "Standalone headless forensic case builder from Wazuh Manager evidence"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "PyYAML>=6.0.1"
+]
+
+[project.scripts]
+forensic-orchestrator = "forensic_orchestrator.presentation.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
