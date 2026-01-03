@@ -2,102 +2,98 @@
 set -euo pipefail
 
 # ============================================================
-#  NMAP & NCAT UNINSTALLER (TOTAL CLEANUP)
+#  CALDERA UNINSTALLER (SERVER & AGENT - INTEGRATED)
 # ============================================================
 
-# --- 1. CONFIGURACIÓN DE RUTAS RELATIVAS ---
+# --- 1. CONFIGURACION DE RUTAS RELATIVAS ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Subimos niveles para llegar a la raíz del proyecto
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../" && pwd)"
 ADMIN_OPENRC="$PROJECT_ROOT/admin-openrc.sh"
 
-# --- 2. CARGAR ENTORNO OPENSTACK ---
-if [[ -f "$ADMIN_OPENRC" ]]; then 
-    source "$ADMIN_OPENRC"
-    echo "[OK] Credenciales OpenStack cargadas."
-    
-    # Verificación de seguridad: ¿Token válido?
-    if ! openstack token issue &>/dev/null; then
-        echo "ERROR: Las credenciales de OpenStack han expirado o son incorrectas."
-        exit 1
-    fi
-else 
-    echo "ERROR: No se encontró admin-openrc.sh en $ADMIN_OPENRC"
-    exit 1
-fi
-
-# --- 3. PARÁMETROS ---
-# Recibe el nombre de la instancia (ej: "attack 2") y la llave desde Python
+# --- 2. PARAMETROS RECIBIDOS DESDE EL MANAGER (Python) ---
+# $1: instance | $2: ssh_key | $3: target_ip | $4: ssh_user
 INSTANCE_NAME="${1:-}"
-SSH_KEY="${2:-$HOME/.ssh/my_key}"
-SSH_USER="debian" 
+SSH_KEY="${2:-}"
+TARGET_IP="${3:-}"
+SSH_USER="${4:-}"
 
-if [[ -z "$INSTANCE_NAME" ]]; then
-    echo "ERROR: No se recibió el nombre de la instancia (INSTANCE_NAME)."
+if [[ -z "$INSTANCE_NAME" || -z "$TARGET_IP" || -z "$SSH_USER" ]]; then
+    echo "ERROR: Argumentos insuficientes recibidos de Python."
     exit 1
 fi
 
-# --- 4. DETECCIÓN DINÁMICA DE IP ---
-echo " Buscando IP para Nmap en: $INSTANCE_NAME..."
-TARGET_IP=$(openstack server show "$INSTANCE_NAME" -f json | jq -r '.addresses' | grep -oE '10\.0\.2\.[0-9]+' | head -1)
-
-if [[ -z "$TARGET_IP" ]]; then
-    echo " Error: No se pudo encontrar la IP interna para $INSTANCE_NAME"
-    exit 1
-fi
-
-# Carpeta temporal para el proceso de Ansible
-TEMP_WORK_DIR="/tmp/ansible_nmap_cleanup_$INSTANCE_NAME"
+# --- 3. TRABAJO TEMPORAL ---
+TEMP_WORK_DIR="/tmp/ansible_caldera_cleanup_${INSTANCE_NAME// /_}"
 mkdir -p "$TEMP_WORK_DIR"
 
-# --- 5. GENERACIÓN DE INVENTARIO Y PLAYBOOK ---
+# --- 4. GENERACION DE INVENTARIO ---
 cat > "$TEMP_WORK_DIR/hosts.ini" <<EOF
-[target]
+[caldera_target]
 $TARGET_IP ansible_user=$SSH_USER ansible_ssh_private_key_file=$SSH_KEY
 EOF
 
-cat > "$TEMP_WORK_DIR/nmap-cleanup.yml" <<'EOF'
+# --- 5. GENERACION DEL PLAYBOOK DE PURGA ---
+cat > "$TEMP_WORK_DIR/caldera-cleanup.yml" <<'EOF'
 ---
-- name: Borrado de la suite Nmap
-  hosts: target
+- name: Desinstalacion completa de componentes Caldera
+  hosts: caldera_target
   become: true
   tasks:
-    - name: 1. Eliminar paquetes de Nmap (nmap, ncat, ndiff)
-      apt:
-        name: 
-          - nmap
-          - ncat
-          - ndiff
+    - name: 1. Detener y deshabilitar servicios (Servidor y Agente)
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+      loop:
+        - caldera
+        - caldera-agent
+      ignore_errors: true
+
+    - name: 2. Matar procesos residuales (Python server y binarios Sandcat)
+      shell: |
+        pkill -9 -f "server.py" || true
+        pkill -9 -f "sandcat" || true
+        pkill -9 -f "splunkd" || true
+      ignore_errors: true
+      changed_when: false
+
+    - name: 3. Eliminar archivos de servicio systemd
+      file:
+        path: "{{ item }}"
         state: absent
-        purge: true
+      loop:
+        - /etc/systemd/system/caldera.service
+        - /etc/systemd/system/caldera-agent.service
 
-    - name: 2. Limpiar dependencias y archivos huérfanos
-      apt:
-        autoremove: true
-        purge: true
+    - name: 4. Eliminar directorios de instalacion (Servidor y Agente)
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /opt/caldera
+        - /home/{{ ansible_user }}/caldera
+        - /usr/local/bin/sandcat
+        - /usr/local/bin/splunkd
+        - /usr/local/bin/sandcat_paw
 
-    - name: 3. Limpiar caché de apt
-      apt:
-        autoclean: true
+    - name: 5. Recargar daemon-reload
+      systemd:
+        daemon_reload: true
 
-    - name: 4. Limpiar sudoers de Ansible
+    - name: 6. Limpiar sudoers de Ansible
       file:
         path: /etc/sudoers.d/ansible_nopasswd
         state: absent
 EOF
 
-# --- 6. EJECUCIÓN DE ANSIBLE ---
-echo "===================================================="
-echo "  ELIMINANDO NMAP DE $INSTANCE_NAME ($TARGET_IP)"
-echo "===================================================="
+# --- 6. EJECUCION DE ANSIBLE ---
+echo "Iniciando purga de Caldera en $INSTANCE_NAME ($TARGET_IP)"
 export ANSIBLE_HOST_KEY_CHECKING=False
 
-ansible-playbook -i "$TEMP_WORK_DIR/hosts.ini" "$TEMP_WORK_DIR/nmap-cleanup.yml" \
+ansible-playbook -i "$TEMP_WORK_DIR/hosts.ini" "$TEMP_WORK_DIR/caldera-cleanup.yml" \
     --ssh-common-args='-o StrictHostKeyChecking=no'
 
 # --- 7. LIMPIEZA FINAL ---
 rm -rf "$TEMP_WORK_DIR"
 
-echo "===================================================="
-echo "  PROCESO FINALIZADO - NMAP ELIMINADO"
-echo "===================================================="
+echo "Proceso de desinstalacion de Caldera finalizado en $INSTANCE_NAME"

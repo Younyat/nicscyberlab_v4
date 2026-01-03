@@ -1,232 +1,133 @@
 #!/usr/bin/env bash
-#
-# ============================================================
-#       Suricata Installer (Idempotent + Floating IP)
-# ============================================================
 set -euo pipefail
 
-START_TIME=$(date +%s)
+# ============================================================
+#  SURICATA FULL AUTO DEPLOY (ANSIBLE)
+#  Filosofía: Identidad basada en IP, compatible con Master
+# ============================================================
 
-FLOATING_IP="${1:-}"
+# --- 1. PARÁMETROS RECIBIDOS ---
+# El Master envía: $1=IP, $2=User
+TARGET_IP="${1:-}"
+SSH_USER="${2:-debian}"
 
-format_time() {
-    local t=$1
-    printf "%dm %ds\n" $((t/60)) $((t%60))
-}
+# Variables de entorno internas
+SSH_KEY="$HOME/.ssh/my_key"
+INSTANCE_ID="suricata_$(echo "$TARGET_IP" | tr '.' '_')"
+
+if [[ -z "$TARGET_IP" ]]; then
+    echo "❌ ERROR: No se proporcionó la IP de destino para Suricata."
+    exit 1
+fi
+
+# --- 2. PREPARACIÓN DE ENTORNO TEMPORAL ---
+BASE_DIR="/tmp/ansible_suricata_$INSTANCE_ID"
+mkdir -p "$BASE_DIR"/{inventory,playbooks}
 
 echo "===================================================="
-echo " Instalador de Suricata"
+echo " [1/3] CONFIGURANDO SURICATA EN: $TARGET_IP"
 echo "===================================================="
 
+# Generar Inventario Dinámico
+cat > "$BASE_DIR/inventory/hosts.ini" <<EOF
+[suricata]
+$TARGET_IP ansible_user=$SSH_USER ansible_ssh_private_key_file=$SSH_KEY ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+EOF
 
-# -----------------------------------------------------
-#  Determinar IP final
-# -----------------------------------------------------
-if [[ -z "$FLOATING_IP" ]]; then
-    FLOATING_IP=$(hostname -I | awk '{print $1}')
-    echo " No se pasó Floating IP -> usando IP interna: $FLOATING_IP"
-else
-    echo " Floating IP recibida: $FLOATING_IP"
-fi
+echo "[2/3] GENERANDO PLAYBOOK DE INSTALACIÓN"
 
+cat > "$BASE_DIR/playbooks/suricata-aio.yml" <<'EOF'
+---
+- name: Instalación Definitiva de Suricata IDS
+  hosts: suricata
+  become: true
+  tasks:
+    - name: 1. Instalar Suricata y utilidades
+      apt:
+        name: [suricata, jq, curl, net-tools]
+        state: present
+        update_cache: true
 
-# -----------------------------------------------------
-#  Detectar interfaz activa automáticamente
-# -----------------------------------------------------
-INTERFACE=$(ip route get 8.8.8.8 2>/dev/null | awk '{print $5; exit}')
+    - name: 2. Detectar Interfaz de Red Activa
+      shell: "ip route get 8.8.8.8 | awk '{print $5; exit}'"
+      register: iface_detected
+      changed_when: false
 
-if [[ -z "${INTERFACE:-}" ]]; then
-    INTERFACE=$(ip -o link show | awk -F': ' '!/lo/ {print $2; exit}')
-fi
+    - name: 3. Configurar suricata.yaml (Optimizado)
+      copy:
+        dest: /etc/suricata/suricata.yaml
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          %YAML 1.1
+          ---
+          vars:
+            address-groups:
+              HOME_NET: "[10.0.2.0/24]"
+              EXTERNAL_NET: "!$HOME_NET"
 
-echo "Interfaz activa detectada: $INTERFACE"
-echo "----------------------------------------------------"
+          default-log-dir: /var/log/suricata/
 
+          stats:
+            enabled: yes
+            interval: 10s
 
-# -----------------------------------------------------
-#  Detectar binario y rutas dinámicas
-# -----------------------------------------------------
-SURICATA_BIN=$(command -v suricata || true)
+          outputs:
+            - fast:
+                enabled: yes
+                filename: fast.log
+            - eve-log:
+                enabled: yes
+                filetype: regular
+                filename: eve.json
+                types: [alert, http, dns, tls]
 
-RULES_DIR=""
-for R in "/etc/suricata" "/usr/local/etc/suricata"; do
-    [[ -d "$R" ]] && RULES_DIR="$R" && break
-done
-RULES_DIR="${RULES_DIR:-/etc/suricata}"
+          af-packet:
+            - interface: {{ iface_detected.stdout }}
+              cluster-id: 99
+              cluster-type: cluster_flow
+              defrag: yes
 
-LOG_DIR="/var/log/suricata"
+          default-rule-path: /var/lib/suricata/rules
+          rule-files:
+            - suricata.rules
 
-echo " Binario        : ${SURICATA_BIN:-NO INSTALADO}"
-echo " Configuración  : $RULES_DIR"
-echo " Logs           : $LOG_DIR"
-echo "----------------------------------------------------"
+    - name: 4. Crear regla de alerta ICMP (Test)
+      copy:
+        dest: /var/lib/suricata/rules/suricata.rules
+        content: |
+          alert icmp any any -> any any (msg:"ALERTA: Ping Detectado"; sid:1000001; rev:1;)
 
+    - name: 5. Validar y Reiniciar Servicio
+      systemd:
+        name: suricata
+        state: restarted
+        enabled: true
+        daemon_reload: true
 
-# -----------------------------------------------------
-#  DETECCIÓN: ¿Suricata ya instalado?
-# -----------------------------------------------------
-ALREADY=false
+    - name: 6. Verificar estado activo
+      command: systemctl is-active suricata
+      register: suri_status
+      changed_when: false
 
-# Binario existente
-if command -v suricata >/dev/null 2>&1; then
-    echo " Suricata ya está instalado"
-    ALREADY=true
-fi
-
-# Puerto estándar IDS
-if ss -tunlp | grep -q ':9000'; then
-    echo " Puerto Suricata detectado"
-    ALREADY=true
-fi
-
-# Config existente
-if [[ -f "$RULES_DIR/suricata.yaml" ]]; then
-    echo " Configuración existente detectada"
-    ALREADY=true
-fi
-
-if $ALREADY; then
-    echo
-    echo "===================================================="
-    echo " Suricata YA está instalado"
-    echo "===================================================="
-    echo " IP: $FLOATING_IP"
-    echo " Interfaz: $INTERFACE"
-    echo
-    echo " Ejecutar IDS:"
-    echo "   sudo suricata -c $RULES_DIR/suricata.yaml -i $INTERFACE"
-    echo
-    echo " Logs:"
-    echo "   sudo tail -f $LOG_DIR/fast.log"
-    echo "===================================================="
-    exit 0
-fi
-
-
-# -----------------------------------------------------
-#  INSTALACIÓN NUEVA
-# -----------------------------------------------------
-echo
-echo " Instalando Suricata..."
-export DEBIAN_FRONTEND=noninteractive
-
-echo "[1/5]  Actualizando sistema..."
-sudo apt-get update -y >/dev/null
-sudo apt-get upgrade -y >/dev/null
-
-echo "[2/5]  Dependencias..."
-sudo apt-get install -y \
-  suricata \
-  jq \
-  net-tools \
-  >/dev/null
-
-echo "[3/5]  Configurando Suricata..."
-sudo mkdir -p "$RULES_DIR/rules"
-
-# regla de prueba ICMP
-sudo tee "$RULES_DIR/rules/local.rules" >/dev/null <<EOF
-alert icmp any any -> any any (msg:"ICMP detectado por Suricata"; sid:1000001; rev:1;)
+    - debug:
+        msg: "Suricata activo en {{ iface_detected.stdout }} (IP: {{ inventory_hostname }})"
 EOF
 
 
-# Ajustar interfaz en el YAML sin hardcoding
-sudo sed -i "s|^ *af-packet:.*|af-packet:\n  - interface: $INTERFACE|g" "$RULES_DIR/suricata.yaml" || true
 
+echo "[3/3] EJECUTANDO DESPLIEGUE ANSIBLE"
+export ANSIBLE_HOST_KEY_CHECKING=False
 
-echo "[4/5]  Carpeta logs..."
-sudo mkdir -p "$LOG_DIR"
-sudo touch "$LOG_DIR/fast.log"
-sudo chmod -R 755 "$LOG_DIR"
-
-echo "[5/5]  Permitir modo promiscuo..."
-sudo ip link set "$INTERFACE" promisc on
-
-
-
-
-# -----------------------------------------------------
-#  Verificación automática de instalación y reglas
-# -----------------------------------------------------
-echo
-echo " Validando estado de Suricata..."
-
-# 1) Verificar binario
-if ! command -v suricata >/dev/null 2>&1; then
-    echo " ERROR: No se detecta el binario 'suricata' en PATH"
-    echo "   Revisa la instalación."
-    exit 1
+if ansible-playbook -i "$BASE_DIR/inventory/hosts.ini" "$BASE_DIR/playbooks/suricata-aio.yml"; then
+    echo "----------------------------------------------------"
+    echo " ✅ SURICATA INSTALADO Y MONITORIZANDO EN $TARGET_IP"
+    echo "----------------------------------------------------"
 else
-    echo " Binario detectado: $(command -v suricata)"
-fi
-
-# 2) Validar configuración
-if [[ ! -f "$RULES_DIR/suricata.yaml" ]]; then
-    echo " ERROR: No existe configuración Suricata en $RULES_DIR/suricata.yaml"
-    exit 1
-else
-    echo " Configuración YAML detectada"
-fi
-
-# 3) Validar reglas cargadas
-if [[ ! -f "$RULES_DIR/rules/local.rules" ]]; then
-    echo " Advertencia: No se encontró archivo de reglas $RULES_DIR/rules/local.rules"
-else
-    RULES_COUNT=$(grep -E "^(alert|drop|reject)" "$RULES_DIR/rules/local.rules" | wc -l)
-    echo " Reglas cargadas: $RULES_COUNT"
-    [[ "$RULES_COUNT" -eq 0 ]] && echo " No hay reglas activas, Suricata arrancará 'vacío'"
-fi
-
-# 4) Arranque en modo test para validar config
-echo
-echo " Probando configuración..."
-if sudo suricata -T -c "$RULES_DIR/suricata.yaml" >/dev/null 2>&1; then
-    echo " Configuración válida (test OK)"
-else
-    echo " ERROR en configuración Suricata"
-    sudo suricata -T -c "$RULES_DIR/suricata.yaml"
+    echo " ❌ ERROR en la instalación de Suricata."
     exit 1
 fi
 
-# 5) Confirmar arranque
-echo
-echo " Confirmando arranque del motor IDS..."
-if sudo suricata -c "$RULES_DIR/suricata.yaml" -i "$INTERFACE" >/dev/null 2>&1 & then
-    sleep 2
-    if ss -tunlp | grep -q "suricata"; then
-        echo " Motor Suricata ACTIVO en la interfaz $INTERFACE"
-    else
-        echo " Suricata arrancó pero no se detectan procesos escuchando"
-    fi
-else
-    echo " ERROR: Suricata no pudo iniciar el motor IDS"
-    exit 1
-fi
-
-echo "----------------------------------------------------"
-
-
-END_TIME=$(date +%s)
-TOTAL=$((END_TIME - START_TIME))
-
-
-
-
-
-# -----------------------------------------------------
-#  Instalación terminada
-# -----------------------------------------------------
-echo
-echo "===================================================="
-echo " Suricata INSTALADO con éxito"
-echo " Tiempo total: $(format_time $TOTAL)"
-echo "===================================================="
-echo " IP instancia: $FLOATING_IP"
-echo " Interfaz:    $INTERFACE"
-echo
-echo " Ejecutar IDS:"
-echo "   sudo suricata -c $RULES_DIR/suricata.yaml -i $INTERFACE"
-echo
-echo " Logs tiempo real:"
-echo "   sudo tail -f $LOG_DIR/fast.log"
-echo "===================================================="
+# --- 3. LIMPIEZA FINAL ---
+rm -rf "$BASE_DIR"

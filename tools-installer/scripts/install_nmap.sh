@@ -1,146 +1,91 @@
 #!/usr/bin/env bash
-#
-# ============================================================
-#   Nmap Installer (Idempotent + Validation)
-#   Versión robusta para producción / auto-deploy
-# ============================================================
 set -euo pipefail
-trap 'echo " ERROR en línea ${LINENO}" >&2' ERR
-
-START_TIME=$(date +%s)
-
-echo "===================================================="
-echo " Instalador de Nmap"
-echo "===================================================="
 
 # ============================================================
-#  FUNCIÓN: Validar estado real de Nmap
-#  Parámetro opcional:
-#     1 → verbose
-#     0 → silencioso
-# Return:
-#     0 → OK
-#     1 → fallo
+#  NMAP SUITE DYNAMIC DEPLOYER
+#  Filosofía: Basado en IP, compatible con Master Orchestrator
 # ============================================================
-check_nmap_alive() {
-    local verbose="${1:-1}"
-    local rc=0
 
-    if [[ "$verbose" == "1" ]]; then
-        echo " Validando estado de Nmap..."
-    fi
+# --- 1. PARÁMETROS RECIBIDOS ---
+# El Master envía: $1=IP, $2=User
+TARGET_IP="${1:-}"
+SSH_USER="${2:-debian}"
 
-    # 1) Binario
-    if command -v nmap >/dev/null 2>&1; then
-        [[ "$verbose" == "1" ]] && echo " + Binario detectado en PATH"
-    else
-        [[ "$verbose" == "1" ]] && echo " - Binario de nmap NO encontrado"
-        rc=1
-    fi
+# Variables de entorno y rutas
+SSH_KEY="$HOME/.ssh/my_key"
+INSTANCE_ID="nmap_$(echo "$TARGET_IP" | tr '.' '_')"
 
-    # 2) Versión
-    if nmap --version >/dev/null 2>&1; then
-        [[ "$verbose" == "1" ]] && echo " + nmap --version responde correctamente"
-    else
-        [[ "$verbose" == "1" ]] && echo " - nmap --version NO responde"
-        rc=1
-    fi
-
-    # 3) Ejecución mínima
-    if nmap -v >/dev/null 2>&1; then
-        [[ "$verbose" == "1" ]] && echo " + Ejecución mínima correcta (nmap -v)"
-    else
-        [[ "$verbose" == "1" ]] && echo " - Problema ejecutando 'nmap -v'"
-        rc=1
-    fi
-
-    return "$rc"
-}
-
-# ============================================================
-#  DETECCIÓN: ¿YA ESTÁ INSTALADO?
-# ============================================================
-ALREADY=false
-
-if command -v nmap >/dev/null 2>&1; then
-    echo " Detectado binario nmap en el sistema"
-    ALREADY=true
-fi
-
-if dpkg -l | grep -qE '^ii\s+nmap(\s|$)'; then
-    echo " Paquete nmap instalado en sistema"
-    ALREADY=true
-fi
-
-# ============================================================
-#  SI ESTÁ INSTALADO → Validación
-# ============================================================
-if $ALREADY; then
-    echo
-    echo " Nmap detectado previamente. Validando estado..."
-
-    if check_nmap_alive 1; then
-        END_TIME=$(date +%s)
-        TOTAL=$((END_TIME - START_TIME))
-
-        echo
-        echo "===================================================="
-        echo " Nmap YA ESTÁ INSTALADO Y FUNCIONAL"
-        echo " Tiempo total: ${TOTAL}s"
-        echo "===================================================="
-        echo " Ruta binario: $(command -v nmap)"
-        echo " Versión:"
-        nmap --version | head -n1
-        echo "===================================================="
-        exit 0
-    else
-        echo
-        echo " Estado de Nmap detectado como no funcional."
-        echo " Procediendo a reinstalación limpia..."
-    fi
-fi
-
-# ============================================================
-#  INSTALACIÓN NUEVA O REPARACIÓN
-# ============================================================
-echo
-echo " Iniciando instalación limpia de Nmap..."
-export DEBIAN_FRONTEND=noninteractive
-
-echo "[1/3] Forzando limpieza previa..."
-sudo apt-get purge -y nmap nmap-common >/dev/null 2>&1 || true
-sudo apt-get autoremove -y >/dev/null 2>&1 || true
-
-echo "[2/3] Actualizando repositorios..."
-sudo apt-get update -y >/dev/null
-
-echo "[3/3] Instalando Nmap..."
-if ! sudo apt-get install -y nmap >/dev/null 2>&1; then
-    echo " ERROR: No se pudo instalar nmap"
+if [[ -z "$TARGET_IP" ]]; then
+    echo "❌ ERROR: No se proporcionó la IP de destino para Nmap."
     exit 1
 fi
 
-sleep 2
+# --- 2. PREPARACIÓN DE ENTORNO TEMPORAL ---
+BASE_DIR="/tmp/ansible_nmap_$INSTANCE_ID"
+mkdir -p "$BASE_DIR"/{inventory,playbooks}
 
-# ============================================================
-#  VALIDACIÓN FINAL
-# ============================================================
-echo
-echo " Validando instalación final..."
-if ! check_nmap_alive 1; then
-    echo " ERROR: Nmap sigue sin funcionar correctamente."
-    exit 2
+echo "===================================================="
+echo " [1/3] CONFIGURANDO ESCÁNER EN: $TARGET_IP"
+echo "===================================================="
+
+# Generar Inventario Dinámico
+cat > "$BASE_DIR/inventory/hosts.ini" <<EOF
+[scanner_host]
+$TARGET_IP ansible_user=$SSH_USER ansible_ssh_private_key_file=$SSH_KEY ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+EOF
+
+echo "[2/3] GENERANDO PLAYBOOK DE INSTALACIÓN"
+
+cat > "$BASE_DIR/playbooks/nmap-install.yml" <<'EOF'
+---
+- name: Instalación de Suite Nmap Profesional
+  hosts: scanner_host
+  become: true
+  tasks:
+    - name: 1. Instalar Nmap, Ncat y Ndiff
+      apt:
+        name: 
+          - nmap
+          - ncat
+          - ndiff
+          - tcpdump
+        state: present
+        update_cache: true
+
+    - name: 2. Descargar dependencias para scripts NSE
+      apt:
+        name: [lua-lpeg, libblas3]
+        state: present
+
+    - name: 3. Actualizar base de datos de scripts NSE
+      command: nmap --script-updatedb
+      changed_when: false
+
+    - name: 4. Verificar binarios instalados
+      command: "{{ item }} --version"
+      loop:
+        - nmap
+        - ncat
+      register: tool_check
+      changed_when: false
+
+    - debug:
+        msg: "Suite Nmap lista en {{ inventory_hostname }}. Versión: {{ tool_check.results[0].stdout_lines[0] }}"
+EOF
+
+
+
+echo "[3/3] EJECUTANDO DESPLIEGUE ANSIBLE"
+export ANSIBLE_HOST_KEY_CHECKING=False
+
+if ansible-playbook -i "$BASE_DIR/inventory/hosts.ini" "$BASE_DIR/playbooks/nmap-install.yml"; then
+    echo "----------------------------------------------------"
+    echo " ✅ NMAP INSTALADO EXITOSAMENTE EN $TARGET_IP"
+    echo "----------------------------------------------------"
+else
+    echo " ❌ ERROR en la instalación de Nmap."
+    exit 1
 fi
 
-END_TIME=$(date +%s)
-TOTAL=$((END_TIME - START_TIME))
-
-echo
-echo "===================================================="
-echo " Instalación COMPLETA DE NMAP"
-echo " Tiempo total: ${TOTAL}s"
-echo "===================================================="
-echo " Binario  : $(command -v nmap)"
-echo " Versión  : $(nmap --version | head -n1)"
-echo "===================================================="
-exit 0
+# --- 3. LIMPIEZA FINAL ---
+rm -rf "$BASE_DIR"
