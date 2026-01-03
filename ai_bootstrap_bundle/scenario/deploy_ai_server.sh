@@ -3,7 +3,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VM_NAME="AI_Server_Qwen2_5_7B"
-SSH_KEY="${SSH_KEY:-$HOME/.ssh/cyberlab-key}"
+SSH_KEY="${SSH_KEY:-$HOME/.ssh/my_key}"
 SSH_USER="ubuntu"
 
 echo "[+] Step 1: Security groups"

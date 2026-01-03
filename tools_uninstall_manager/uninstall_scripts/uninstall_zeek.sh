@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ============================================================
-#  SNORT IDS UNINSTALLER (INTEGRATED WITH PYTHON MANAGER)
+# ZEEK IDS UNINSTALLER (INTEGRATED WITH PYTHON MANAGER)
 # ============================================================
 
 # --- 1. CONFIGURACION DE RUTAS RELATIVAS ---
@@ -23,8 +23,9 @@ if [[ -z "$INSTANCE_NAME" || -z "$TARGET_IP" || -z "$SSH_USER" ]]; then
 fi
 
 # --- 3. TRABAJO TEMPORAL ---
-# Sustituimos espacios por guiones bajos para evitar problemas en rutas de archivos
-TEMP_WORK_DIR="/tmp/ansible_snort_cleanup_${INSTANCE_NAME// /_}"
+# Normalizamos el nombre para evitar conflictos en el sistema de archivos
+CLEAN_NAME="${INSTANCE_NAME// /_}"
+TEMP_WORK_DIR="/tmp/ansible_zeek_cleanup_${CLEAN_NAME}"
 mkdir -p "$TEMP_WORK_DIR"
 
 # --- 4. GENERACION DE INVENTARIO Y PLAYBOOK ---
@@ -33,53 +34,56 @@ cat > "$TEMP_WORK_DIR/hosts.ini" <<EOF
 $TARGET_IP ansible_user=$SSH_USER ansible_ssh_private_key_file=$SSH_KEY
 EOF
 
-cat > "$TEMP_WORK_DIR/snort-cleanup.yml" <<'EOF'
+cat > "$TEMP_WORK_DIR/zeek-cleanup.yml" <<'EOF'
 ---
-- name: Borrado Total de Snort IDS
+- name: Borrado Total de Zeek IDS
   hosts: target
   become: true
   tasks:
-    - name: 1. Detener servicio snort
-      systemd:
-        name: snort
-        state: stopped
-        enabled: false
+    - name: 1. Detener instancias de Zeek mediante zeekctl
+      command: /opt/zeek/bin/zeekctl stop
       ignore_errors: true
 
-    - name: 2. Purgar paquetes de snort
+    - name: 2. Matar procesos Zeek residuales
+      shell: pkill -9 zeek
+      ignore_errors: true
+      changed_when: false
+
+    - name: 3. Eliminar paquetes de Zeek (Purge)
       apt:
-        name: snort
+        name: "zeek*"
         state: absent
         purge: true
 
-    - name: 3. Eliminar directorios residuales y configuraciones
+    - name: 4. Eliminar directorios, logs y repositorios
       file:
         path: "{{ item }}"
         state: absent
       loop:
-        - /etc/snort
-        - /var/log/snort
-        - /var/lib/snort
-        - /etc/default/snort
+        - /opt/zeek
+        - /var/log/zeek
+        - /etc/apt/sources.list.d/network:zeek.list
+        - /etc/apt/trusted.gpg.d/network_zeek.gpg
 
-    - name: 4. Limpiar dependencias no utilizadas
+    - name: 5. Limpiar dependencias y archivos huerfanos
       apt:
         autoremove: true
         purge: true
 
-    - name: 5. Limpiar cache de apt
-      apt:
-        autoclean: true
+    - name: 6. Limpiar sudoers de Ansible
+      file:
+        path: /etc/sudoers.d/ansible_nopasswd
+        state: absent
 EOF
 
 # --- 5. EJECUCION DE ANSIBLE ---
-echo "Iniciando desinstalacion de Snort en $TARGET_IP con usuario $SSH_USER"
+echo "Iniciando desinstalacion de Zeek en $TARGET_IP con usuario $SSH_USER"
 export ANSIBLE_HOST_KEY_CHECKING=False
 
-ansible-playbook -i "$TEMP_WORK_DIR/hosts.ini" "$TEMP_WORK_DIR/snort-cleanup.yml" \
+ansible-playbook -i "$TEMP_WORK_DIR/hosts.ini" "$TEMP_WORK_DIR/zeek-cleanup.yml" \
     --ssh-common-args='-o StrictHostKeyChecking=no'
 
 # --- 6. LIMPIEZA FINAL ---
 rm -rf "$TEMP_WORK_DIR"
 
-echo "Proceso de desinstalacion de Snort finalizado en $INSTANCE_NAME"
+echo "Proceso de desinstalacion de Zeek finalizado en $INSTANCE_NAME"

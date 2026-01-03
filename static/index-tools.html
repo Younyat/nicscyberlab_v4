@@ -7,18 +7,27 @@
     <meta charset="UTF-8">
     <title>Gestor de Herramientas por Instancia</title>
 
-    <!--  FALTA ESTO PARA QUE FUNCIONE CYTOSCAPE -->
+   
     <script src="https://unpkg.com/cytoscape/dist/cytoscape.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
-    <script src="https://unpkg.com/cytoscape/dist/cytoscape.min.js"></script>
-    <script src="index-tools.js"></script>
+ 
+  
 
 
     <style>
         #cy {
             height: 600px;
             width: 100%;
+        }
+        .btn-uninstall {
+        transition: all 0.3s ease;
+        border: 1px solid rgba(249, 115, 22, 0.3);
+        }
+        .btn-uninstall:hover {
+            background-color: rgba(249, 115, 22, 0.1);
+            border-color: rgba(249, 115, 22, 1);
+            box-shadow: 0 0 10px rgba(249, 115, 22, 0.2);
         }
     </style>
 </head>
@@ -70,6 +79,7 @@
             <option value="snort">Snort</option>
             <option value="nmap">Nmap</option>
             <option value="caldera">MITRE Caldera</option>
+             <option value="caldera_agent">MITRE Caldera Agent</option>
             <option value="tcpdump">TCPDump</option>
             <option value="zeek">Zeek</option>
         </select>
@@ -89,9 +99,10 @@
     <i class="fas fa-play"></i> Ejecutar instalación de herramientas
 </button>
 
-        <div id="tools-terminal" 
-             class="bg-black rounded-lg p-3 h-40 overflow-y-auto font-mono text-sm"></div>
-    </div>
+    <div id="tools-terminal" 
+     class="bg-black text-green-500 rounded-lg p-3 h-64 overflow-y-auto font-mono text-xs border border-gray-700">
+     > Sistema listo para desinstalación...
+</div>
 </div>
 
 <!-- SCRIPT PRINCIPAL -->

@@ -1,81 +1,107 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "----------------------------------------------------------"
-echo "🔥 MODO ELIMINACIÓN TOTAL: WAZUH / INDEXER / DASHBOARD"
-echo "----------------------------------------------------------"
+# ============================================================
+# WAZUH ALL-IN-ONE UNINSTALLER (INTEGRATED WITH PYTHON MANAGER)
+# ============================================================
 
-# 1. Parada forzosa
-echo "[1/8] Matando procesos residuales (pkill)..."
-for proc in wazuh-manager wazuh-db wazuh-modulesd wazuh-authd filebeat opensearch dashboard; do
-    # Usamos || true para que el script no se detenga si no encuentra el proceso
-    sudo pkill -9 -f "$proc" >/dev/null 2>&1 || true
-done
-sleep 1
+# --- 1. PARAMETROS RECIBIDOS DESDE EL MANAGER (Python) ---
+# $1: instance | $2: ssh_key | $3: target_ip | $4: ssh_user
+INSTANCE_NAME="${1:-}"
+SSH_KEY="${2:-}"
+TARGET_IP="${3:-}"
+SSH_USER="${4:-}"
 
-# 2. Servicios systemd
-echo "[2/8] Deteniendo y deshabilitando servicios systemd..."
-sudo systemctl stop wazuh-manager wazuh-dashboard wazuh-indexer filebeat 2>/dev/null || true
-sudo systemctl disable wazuh-manager wazuh-dashboard wazuh-indexer filebeat 2>/dev/null || true
-
-# 3. Archivos de unidad
-echo "[3/8] Eliminando archivos de configuración de servicios..."
-sudo rm -f /etc/systemd/system/wazuh* /lib/systemd/system/wazuh* /etc/systemd/system/filebeat*
-sudo systemctl daemon-reload
-
-# 4. Purga de paquetes
-echo "[4/8] Purgando paquetes (apt purge)..."
-sudo apt-get purge -y wazuh-manager wazuh-dashboard wazuh-indexer filebeat opensearch* >/dev/null 2>&1 || true
-sudo apt-get autoremove -y >/dev/null 2>&1 || true
-
-# 5. Directorios y Datos
-echo "[5/8] Eliminando directorios de datos y configuraciones..."
-sudo rm -rf /var/ossec /etc/ossec* /usr/share/wazuh* /etc/wazuh* /var/lib/wazuh* /opt/wazuh*
-sudo rm -rf /etc/filebeat /etc/opensearch* /var/lib/opensearch* /usr/share/opensearch*
-
-# 6. Logs y Registros
-echo "[6/8] Limpiando archivos de log y temporales..."
-sudo rm -rf /var/log/wazuh* /var/log/filebeat* /var/log/opensearch* /tmp/wazuh-*
-
-# 7. Usuarios y Grupos
-echo "[7/8] Eliminando usuarios y grupos del sistema..."
-for u in wazuh wazuh-indexer wazuh-dashboard filebeat; do
-    sudo userdel -f "$u" >/dev/null 2>&1 || true
-    sudo groupdel "$u" >/dev/null 2>&1 || true
-done
-
-# 8. Validación Final
-echo "[8/8] Validación de seguridad (Puertos y Procesos)..."
-FAILED=false
-MY_PID=$$
-
-# BUSQUEDA ULTRA-FILTRADA: 
-# Buscamos procesos que tengan wazuh/filebeat/opensearch 
-# PERO ignoramos: el PID del script ($MY_PID), el proceso 'sudo', el propio 'grep' y el nombre del script 'uninstall'
-PROCESOS_VIVOS=$(pgrep -a -f "wazuh|filebeat|opensearch" | grep -v "$MY_PID" | grep -v "uninstall" | grep -v "grep" | grep -v "sudo" || true)
-
-if [[ -n "$PROCESOS_VIVOS" ]]; then
-    echo "⚠️ ATENCIÓN: Se detectaron estos procesos activos:"
-    echo "$PROCESOS_VIVOS"
-    FAILED=true
-fi
-
-# Revisar puertos
-PUERTOS_VIVOS=$(ss -tunlp | grep -E ":1515|:1514|:55000|:5601|:9200" || true)
-if [[ -n "$PUERTOS_VIVOS" ]]; then
-    echo "⚠️ ATENCIÓN: Hay puertos todavía ocupados:"
-    echo "$PUERTOS_VIVOS"
-    FAILED=true
-fi
-
-if [[ "$FAILED" == false ]]; then
-    echo "--------------------------------------------------"
-    echo "✅ [SUCCESS] LIMPIEZA 8/8 COMPLETADA"
-    echo "--------------------------------------------------"
-    exit 0
-else
-    echo "--------------------------------------------------"
-    echo "❌ [ERROR] EL SISTEMA NO ESTÁ LIMPIO"
-    echo "--------------------------------------------------"
+if [[ -z "$INSTANCE_NAME" || -z "$TARGET_IP" || -z "$SSH_USER" ]]; then
+    echo "ERROR: Argumentos insuficientes recibidos de Python."
     exit 1
 fi
+
+# --- 2. TRABAJO TEMPORAL ---
+CLEAN_NAME="${INSTANCE_NAME// /_}"
+TEMP_WORK_DIR="/tmp/ansible_wazuh_server_cleanup_${CLEAN_NAME}"
+mkdir -p "$TEMP_WORK_DIR"
+
+# --- 3. GENERACION DE INVENTARIO Y PLAYBOOK ---
+cat > "$TEMP_WORK_DIR/hosts.ini" <<EOF
+[wazuh_server]
+$TARGET_IP ansible_user=$SSH_USER ansible_ssh_private_key_file=$SSH_KEY
+EOF
+
+cat > "$TEMP_WORK_DIR/wazuh-cleanup.yml" <<'EOF'
+---
+- name: Desinstalacion completa de Wazuh Stack (Server)
+  hosts: wazuh_server
+  become: true
+  tasks:
+    - name: 1. Detener servicios de Wazuh
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+      loop:
+        - wazuh-dashboard
+        - wazuh-manager
+        - wazuh-indexer
+        - filebeat
+      ignore_errors: true
+
+    - name: 2. Purga de paquetes (apt purge)
+      apt:
+        name:
+          - wazuh-indexer
+          - wazuh-manager
+          - wazuh-dashboard
+          - filebeat
+          - wazuh-agent
+        state: absent
+        purge: true
+
+    - name: 3. Limpieza de dependencias y repositorios
+      apt:
+        autoremove: true
+        purge: true
+
+    - name: 4. Eliminacion de directorios de datos, indices y logs
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/ossec
+        - /var/lib/wazuh-indexer
+        - /etc/wazuh-indexer
+        - /etc/wazuh-dashboard
+        - /etc/wazuh-manager
+        - /etc/filebeat
+        - /var/log/wazuh-indexer
+        - /var/log/wazuh-dashboard
+        - /usr/share/wazuh-indexer
+        - /usr/share/wazuh-dashboard
+
+    - name: 5. Eliminacion del repositorio de Wazuh
+      file:
+        path: "/etc/apt/sources.list.d/wazuh.list"
+        state: absent
+
+    - name: 6. Matar procesos Java/OpenSearch residuales
+      shell: pkill -9 -f "wazuh|opensearch"
+      ignore_errors: true
+      changed_when: false
+
+    - name: 7. Limpiar sudoers de Ansible
+      file:
+        path: /etc/sudoers.d/ansible_nopasswd
+        state: absent
+EOF
+
+# --- 4. EJECUCION DE ANSIBLE ---
+echo "Iniciando desinstalacion profunda de Wazuh Server en $TARGET_IP con usuario $SSH_USER"
+export ANSIBLE_HOST_KEY_CHECKING=False
+
+ansible-playbook -i "$TEMP_WORK_DIR/hosts.ini" "$TEMP_WORK_DIR/wazuh-cleanup.yml" \
+    --ssh-common-args='-o StrictHostKeyChecking=no'
+
+# --- 5. LIMPIEZA FINAL ---
+rm -rf "$TEMP_WORK_DIR"
+
+echo "Proceso de desinstalacion de Wazuh Server finalizado en $INSTANCE_NAME"

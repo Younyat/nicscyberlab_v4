@@ -6,7 +6,7 @@ VM_NAME="${1}"
 IMAGE="ubuntu-22.04"
 FLAVOR="M_4CPU_8GB"          # con 8GB RAM ok, si tienes uno más pequeño, ponlo aquí
 PRIVATE_NET="private-net"
-KEYPAIR="cyberlab-key"
+KEYPAIR="my_key"
 SG_AI="ai_sg"
 SG_ACCESS="allow-ssh-icmp"  # opcional; si no existe, quítalo o créalo
 

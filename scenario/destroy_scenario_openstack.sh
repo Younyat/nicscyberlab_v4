@@ -4,7 +4,7 @@ set -euo pipefail
 ##############################################################
 #      DESTRUCCIÓN COMPLETA DEL ESCENARIO CREADO EN FASE 2  #
 #  - Elimina instancias, FIPs, puertos                       #
-#  - Elimina keypair cyberlab-key                            #
+#  - Elimina keypair my_key                            #
 #  - Elimina claves locales                                  #
 #  - Elimina summary.json y escenario original               #
 #  - Limpia OUTDIR                                           #
@@ -12,8 +12,8 @@ set -euo pipefail
 
 ADMIN_OPENRC="$HOME/Escritorio/cyber-range-v1/admin-openrc.sh"
 
-DEFAULT_KEYPAIR="cyberlab-key"
-LOCAL_KEYFILE="$HOME/.ssh/cyberlab-key"
+DEFAULT_KEYPAIR="my_key"
+LOCAL_KEYFILE="$HOME/.ssh/my_key"
 
 # ============================================================
 # 1. Cargar credenciales OpenStack

@@ -11,8 +11,8 @@ set -euo pipefail
 
 ADMIN_OPENRC="$HOME/Escritorio/cyber-range-v1/admin-openrc.sh"
 
-DEFAULT_KEYPAIR="cyberlab-key"
-LOCAL_KEYFILE="$HOME/.ssh/cyberlab-key"
+DEFAULT_KEYPAIR="my_key"
+LOCAL_KEYFILE="$HOME/.ssh/my_key"
 
 
 # ============================================================

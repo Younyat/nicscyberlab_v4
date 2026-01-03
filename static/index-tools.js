@@ -136,58 +136,68 @@ function showNoScenario() {
     3. PINTAR GRAFO (Versión Completa y Sincronizada)
    ============================================================ */
 /* ============================================================
-    3. PINTAR GRAFO (Respetando tu formato JSON original)
+    3. PINTAR GRAFO (Optimizado para Uninstaller)
    ============================================================ */
 function loadScenarioGraph(scenario) {
-    console.log(" Renderizando grafo con formato original...");
+    console.log(" Renderizando grafo con estados de herramientas...");
 
     if (!ensureCy()) return;
 
-    // 1. Configurar estilos para que el borde indique el estado
+    // 1. Configurar estilos dinámicos según el estado de las herramientas
     cy.style()
         .selector('node[?has_installed]')
         .style({
             'border-width': 4,
-            'border-color': '#10B981', // Verde: "installed"
-            'border-opacity': 1
+            'border-color': '#10B981', // Verde: Al menos una instalada
+            'border-opacity': 1,
+            'border-style': 'solid'
         })
         .selector('node[?has_pending]')
         .style({
             'border-width': 4,
-            'border-color': '#F59E0B', // Naranja: "pending"
+            'border-color': '#F59E0B', // Naranja: Hay instalaciones en curso
             'border-style': 'dashed'
+        })
+        .selector('node[?has_error]')
+        .style({
+            'border-width': 5,
+            'border-color': '#EF4444', // Rojo: Falló la desinstalación/instalación
+            'border-style': 'double'
         })
         .update();
 
     let elements = [];
 
-    // 2. Procesar Nodos según tu esquema: { id, name, tools: { tool: status } }
+    // 2. Procesar Nodos
     scenario.nodes.forEach(n => {
-        const toolValues = Object.values(n.tools || {});
+        // Obtenemos los estados actuales de las herramientas
+        const toolStatuses = Object.values(n.tools || {});
         
-        // Verificamos estados dentro del objeto tools
-        const isInstalled = toolValues.includes("installed");
-        const isPending = toolValues.includes("pending");
+        // Lógica de estados visuales
+        const isInstalled = toolStatuses.some(s => s !== 'pending' && s !== 'error' && s !== 'uninstalling');
+        const isPending = toolStatuses.includes("pending");
+        const hasError = toolStatuses.includes("error");
 
         elements.push({
             data: {
-                id: n.id,           // Tu "id" original
-                label: n.name,      // Tu "name" original
+                id: n.id,
+                label: n.name,
                 type: n.type,
                 ip: n.ip,
                 ip_private: n.ip_private,
                 ip_floating: n.ip_floating,
                 status: n.status,
-                tools: n.tools || {}, // El objeto { "caldera": "installed" }
-                // Marcadores para el estilo visual
+                tools: n.tools || {},
+                // Flags para los selectores de estilo de Cytoscape
                 has_installed: isInstalled,
-                has_pending: isPending && !isInstalled
+                has_pending: isPending && !isInstalled,
+                has_error: hasError
             },
             position: n.position || { x: 100, y: 100 }
         });
     });
 
-    // 3. Procesar Aristas
+    // 3. Procesar Aristas (si existen)
     if (scenario.edges) {
         scenario.edges.forEach(e => {
             elements.push({
@@ -196,15 +206,16 @@ function loadScenarioGraph(scenario) {
         });
     }
 
-    // 4. Actualizar Cy
+    // 4. Limpiar y refrescar el visor
     cy.elements().remove();
     cy.add(elements);
 
-    // 5. Ajustar vista
+    // 5. Layout y ajuste
     cy.layout({ name: 'preset' }).run();
     cy.fit();
 
-    // 6. Evento de click
+    // 6. Listener de selección (Tap)
+    cy.off("tap", "node"); // Evitar duplicar eventos
     cy.on("tap", "node", evt => {
         const nodeData = evt.target.data();
         selectInstanceFromScenario(nodeData);
@@ -496,18 +507,25 @@ async function removeToolFromScenario(tool) {
 }
 
 /* ============================================================
-    Desinstalación REAL via Backend
+    Desinstalación REAL via Backend (MEJORADA)
    ============================================================ */
 async function uninstallTool(tool) {
     if (!selectedInstance) return;
 
+    if (!confirm(`¿Estás seguro de desinstalar completamente ${tool.toUpperCase()}? Esta acción purgará los datos en el servidor.`)) {
+        return;
+    }
+
     const terminal = document.getElementById("tools-terminal");
-    terminal.innerHTML += `\n Desinstalando ${tool} en ${selectedInstance.name}...\n`;
+    terminal.innerHTML += `\n[${new Date().toLocaleTimeString()}] Iniciando purga forense de ${tool}...\n`;
+    terminal.scrollTop = terminal.scrollHeight; // Auto-scroll
+    
+    freezeUI_uninstall(`Desinstalando ${tool.toUpperCase()}...`);
 
     try {
         const payload = {
             instance: selectedInstance.name,
-            instance_id: selectedInstance.id, // Enviamos el UUID
+            instance_id: selectedInstance.id,
             ip_private: selectedInstance.ip_private,
             ip_floating: selectedInstance.ip_floating,
             tool: tool
@@ -522,21 +540,52 @@ async function uninstallTool(tool) {
         const data = await res.json();
 
         if (data.status === "success") {
-            terminal.innerHTML += ` OK: ${tool} desinstalado.\n`;
-            // Quitamos la tool localmente y refrescamos
-            delete selectedInstance.tools[tool];
+            terminal.innerHTML += ` SUCCESS: ${data.msg}\n`;
+            
+            // 1. Sincronizar objeto local
+            selectedInstance.tools = data.tools || {}; 
+            
+            // 2. Actualizar el DATA del nodo en Cytoscape directamente
+            // Esto asegura que el estilo (borde verde/rojo) cambie inmediatamente
+            const node = cy.getElementById(selectedInstance.id);
+            if (node) {
+                const toolStatuses = Object.values(data.tools);
+                const isInstalled = toolStatuses.some(s => s !== 'pending' && s !== 'error');
+                
+                node.data('tools', data.tools);
+                node.data('has_installed', isInstalled);
+            }
+
+            // 3. Refrescar lista de UI y el Grafo completo
             renderToolsList(selectedInstance.tools);
+            loadScenarioGraph({ nodes: cy.nodes().map(n => n.data()), edges: [] }); 
+
         } else {
-            terminal.innerHTML += ` Error: ${data.msg || 'No se pudo desinstalar'}\n`;
+            terminal.innerHTML += ` ERROR: ${data.msg}\n`;
+            if(data.log_file) terminal.innerHTML += ` Ver detalles en: ${data.log_file}\n`;
         }
 
     } catch (err) {
-        terminal.innerHTML += ` Error en petición: ${err}\n`;
+        terminal.innerHTML += ` FATAL ERROR: ${err}\n`;
+    } finally {
+        terminal.scrollTop = terminal.scrollHeight; // Auto-scroll al finalizar
+        unfreezeUI(); 
     }
 }
 
 
-
+function freezeUI_uninstall(mensaje) {
+    const overlay = document.createElement("div");
+    overlay.id = "ui-freeze";
+    overlay.className = "fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50";
+    overlay.innerHTML = `
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-400 mx-auto"></div>
+            <p class="mt-4 text-lg font-bold text-white">${mensaje}</p>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+}
 /* ============================================================
     BLOQUEAR / DESBLOQUEAR FRONTEND
    ============================================================ */

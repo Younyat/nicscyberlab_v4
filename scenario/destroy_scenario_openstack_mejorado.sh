@@ -16,8 +16,8 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # Archivo admin-openrc.sh generado por app.py
 ADMIN_OPENRC="$REPO_ROOT/admin-openrc.sh"
 
-DEFAULT_KEYPAIR="cyberlab-key"
-LOCAL_KEYFILE="$HOME/.ssh/cyberlab-key"
+DEFAULT_KEYPAIR="my_key"
+LOCAL_KEYFILE="$HOME/.ssh/my_key"
 
 echo " SCRIPT_DIR: $SCRIPT_DIR"
 echo " REPO_ROOT : $REPO_ROOT"
