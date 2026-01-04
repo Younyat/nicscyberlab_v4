@@ -1393,14 +1393,6 @@ def get_log_path(component):
     return os.path.join(base, f"deploy_{ts}.log")
 
 
-@api_bp.route("/api/industrial/state", methods=["GET"])
-def get_industrial_state():
-    try:
-        with open(INDUSTRIAL_STATE_FILE) as f:
-            state = json.load(f)
-        return jsonify(state)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 
 

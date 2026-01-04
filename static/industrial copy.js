@@ -27,7 +27,6 @@ const INDUSTRIAL_TOOLS = {
    INIT CYTOSCAPE
 ========================= */
 document.addEventListener("DOMContentLoaded", () => {
-
     cy = cytoscape({
         container: document.getElementById("cy"),
         elements: [],
@@ -46,14 +45,13 @@ document.addEventListener("DOMContentLoaded", () => {
             { selector: 'node[type="monitor"]', style: { "background-color": "#16a34a" } },
             { selector: 'node[type="victim"]',  style: { "background-color": "#2563eb" } },
             { selector: 'node[type="attack"]',  style: { "background-color": "#dc2626" } },
-            {
-                selector: 'node[type^="industrial_"]',
-                style: {
-                    shape: "round-rectangle",
-                    "background-color": "#9333ea",
-                    "border-color": "#c084fc"
-                }
-            },
+
+            { selector: 'node[type^="industrial_"]', style: {
+                shape: "round-rectangle",
+                "background-color": "#9333ea",
+                "border-color": "#c084fc"
+            }},
+
             {
                 selector: "edge",
                 style: {
@@ -68,198 +66,115 @@ document.addEventListener("DOMContentLoaded", () => {
         layout: { name: "preset" }
     });
 
-    /* ===============================
-       UI → SOLO PANEL INDUSTRIAL
-    =============================== */
-    cy.on("tap", "node", evt => {
-        renderIndustrialPanel(evt.target);
-    });
+   cy.on("select", "node", evt => {
 
-    /* ===============================
-       LÓGICA → CREAR / CONECTAR
-    =============================== */
-    cy.on("select", "node", evt => {
+    const node = evt.target;
 
-        const node = evt.target;
+    /* === MODO INDUSTRIAL (CREAR COMPONENTE) === */
+    if (industrialMode) {
+        addIndustrialComponent(industrialMode);
+        industrialMode = null;
+        cy.$(":selected").unselect();
+        return;
+    }
 
-        /* === CREAR COMPONENTE INDUSTRIAL === */
-        if (industrialMode) {
-            addIndustrialComponent(industrialMode);
-            industrialMode = null;
-            cy.$(":selected").unselect();
-            return;
-        }
+    /* === PANEL INDUSTRIAL (PLC / SCADA) === */
+    if (node.data("industrial")) {
+        renderIndustrialPanel(node);
+        return;
+    }
 
-        /* === MODO CONEXIÓN === */
-        if (!connectionMode) return;
+    /* === MODO CONEXIÓN === */
+    if (!connectionMode) return;
 
-        selectedNodes.push(node);
-        if (selectedNodes.length === 2) {
-            connectNodes(selectedNodes[0], selectedNodes[1]);
-            selectedNodes = [];
-            connectionMode = false;
-            toast("Modo conexión desactivado");
-        }
-    });
-
-    updateStats();
+    selectedNodes.push(node);
+    if (selectedNodes.length === 2) {
+        connectNodes(selectedNodes[0], selectedNodes[1]);
+        selectedNodes = [];
+        connectionMode = false;
+        toast("Modo conexión desactivado");
+    }
 });
 
 
-function renderIndustrialOpenButton(component, status, ip) {
-    if (status !== "installed") return "";
-
-    if (!ip) {
-        return `<div class="text-xs text-red-400">IP flotante no disponible</div>`;
-    }
-
-    const url = component === "plc"
-        ? `http://${ip}:8080`
-        : `http://${ip}:1881`;
-
-    const label = component === "plc" ? "OpenPLC" : "FUXA";
-
-    return `
-        <button
-            onclick="window.open('${url}', '_blank')"
-            class="w-full py-2 bg-blue-700 hover:bg-blue-600 rounded text-white font-bold">
-            <i class="fas fa-external-link-alt mr-2"></i>
-            Abrir ${label}
-        </button>
-    `;
-}
-
-
-async function loadIndustrialState() {
-    const res = await fetch("http://127.0.0.1:5001/api/industrial/state");
-    if (!res.ok) return {};
-    return await res.json();
-}
-
-
-async function applyIndustrialStateToNodes() {
-    const state = await loadIndustrialState();
-
-    cy.nodes().forEach(node => {
-        const type = node.data("type");
-
-        if (type === "industrial_plc" && state.plc) {
-            node.data("industrial_state", state.plc);
-
-            if (state.plc.instance?.ip_floating) {
-                node.data("ip_floating", state.plc.instance.ip_floating);
-            }
-        }
-
-        if (type === "industrial_scada" && state.scada) {
-            node.data("industrial_state", state.scada);
-
-            if (state.scada.instance?.ip_floating) {
-                node.data("ip_floating", state.scada.instance.ip_floating);
-            }
-        }
-    });
-}
+    updateStats();
+});
 
 
 
 function renderIndustrialPanel(node) {
     const panel = document.getElementById("industrial-panel");
     const type = node.data("type");
-    const ip = node.data("ip_floating");
 
-    const state = node.data("industrial_state") || {};
-    const tool = state.tool || {};
-    const status = tool.status || "not_installed";
-
+    /* ============================
+       PLC → OpenPLC
+    ============================ */
     if (type === "industrial_plc") {
-        panel.innerHTML = buildIndustrialCard(
-            "PLC – OpenPLC",
-            "microchip",
-            "plc",
-            status,
-            ip
-        );
-        return;
-    }
+        panel.innerHTML = `
+            <h2 class="text-lg font-bold text-gray-200 mb-4 text-center">
+                PLC – Configuración
+            </h2>
 
-    if (type === "industrial_scada") {
-        panel.innerHTML = buildIndustrialCard(
-            "SCADA – FUXA",
-            "desktop",
-            "scada",
-            status,
-            ip
-        );
-        return;
-    }
-
-    panel.innerHTML = `
-        <p class="text-gray-400 text-center">
-            Selecciona un componente industrial para configurarlo
-        </p>
-    `;
-}
-
-
-
-
-
-
-function buildIndustrialCard(title, icon, component, status, ip) {
-    const label = component === "plc" ? "OpenPLC" : "FUXA";
-
-    return `
-        <h2 class="text-lg font-bold text-gray-200 mb-4 text-center">
-            ${title}
-        </h2>
-
-        <div class="bg-gray-800 p-4 rounded-lg space-y-3">
-
-            <div class="flex items-center justify-between">
+            <div class="bg-gray-800 p-4 rounded-lg flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <i class="fas fa-${icon} text-orange-400 text-xl"></i>
+                    <i class="fas fa-microchip text-orange-400 text-xl"></i>
                     <div>
-                        <p class="text-white font-semibold">${label}</p>
-                        <p class="text-xs text-gray-400">Industrial Tool</p>
+                        <p class="text-white font-semibold">OpenPLC</p>
+                        <p class="text-xs text-gray-400">
+                            Runtime PLC IEC 61131-3
+                        </p>
                     </div>
                 </div>
 
-                ${renderIndustrialAction(component, status)}
-            </div>
-
-            ${renderIndustrialOpenButton(component, status, ip)}
-        </div>
-    `;
-}
-
-
-
-function renderIndustrialAction(component, status) {
-    switch (status) {
-        case "installed":
-            return `<span class="text-green-400 font-bold text-xs">INSTALADO</span>`;
-
-        case "installing":
-        case "pending":
-            return `<span class="text-yellow-400 font-bold text-xs animate-pulse">
-                        INSTALANDO…
-                    </span>`;
-
-        case "error":
-            return `<span class="text-red-500 font-bold text-xs">ERROR</span>`;
-
-        default:
-            return `
                 <button
-                    onclick="deployIndustrial('${component}')"
+                    onclick="deployIndustrial('plc')"
                     class="px-4 py-2 bg-green-700 hover:bg-green-600 rounded text-white font-bold">
                     Instalar
                 </button>
-            `;
+            </div>
+        `;
+        return;
     }
-}
 
+    /* ============================
+       SCADA → FUXA
+    ============================ */
+    if (type === "industrial_scada") {
+        panel.innerHTML = `
+            <h2 class="text-lg font-bold text-gray-200 mb-4 text-center">
+                SCADA – Configuración
+            </h2>
+
+            <div class="bg-gray-800 p-4 rounded-lg flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-desktop text-purple-400 text-xl"></i>
+                    <div>
+                        <p class="text-white font-semibold">FUXA</p>
+                        <p class="text-xs text-gray-400">
+                            SCADA / HMI Web
+                        </p>
+                    </div>
+                </div>
+
+                <button
+                    onclick="deployIndustrial('scada')"
+                    class="px-4 py-2 bg-green-700 hover:bg-green-600 rounded text-white font-bold">
+                    Instalar
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    /* ============================
+       DEFAULT
+    ============================ */
+    panel.innerHTML = `
+        <p class="text-gray-400 text-center">
+            Selecciona un componente industrial
+        </p>
+    `;
+}
 
 function freezeUI(freeze) {
     const panel = document.getElementById("controls-panel");
@@ -304,9 +219,6 @@ async function addIndustrialTool(nodeId, toolName) {
 /* =========================
    LOAD BASE SCENARIO
 ========================= */
-/* =====================================================
-   LOAD SCENARIO
-===================================================== */
 async function loadScenario() {
     try {
         const res = await fetch("http://127.0.0.1:5001/api/get_active_scenario");
@@ -320,6 +232,7 @@ async function loadScenario() {
         const scenario = await res.json();
 
         cy.elements().remove();
+
         const elements = [];
 
         scenario.nodes.forEach(n => {
@@ -330,20 +243,22 @@ async function loadScenario() {
                     name: n.name,
                     type: n.type,
                     industrial: n.industrial || false,
-                    ip_floating: n.ip_floating || null
+                    installed: n.installed ?? true,
+                    installable: n.installable ?? false,
+                    linked_to: n.linked_to || null
                 },
                 position: n.position
             });
         });
 
         scenario.edges.forEach(e => {
-            elements.push({ group: "edges", data: e });
+            elements.push({
+                group: "edges",
+                data: e
+            });
         });
 
         cy.add(elements);
-
-        await applyIndustrialStateToNodes();
-
         centerScenarioLeft();
         updateStats();
 
@@ -356,7 +271,6 @@ async function loadScenario() {
         logAction("ERROR", "Error cargando escenario");
     }
 }
-
 
 
 function centerScenarioLeft() {

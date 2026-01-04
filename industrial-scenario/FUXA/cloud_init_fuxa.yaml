@@ -1,0 +1,62 @@
+#cloud-config
+output:
+  all: '| tee -a /var/log/cloud-init-output.log | tee /dev/console'
+
+package_update: true
+package_upgrade: false
+
+packages:
+  - ca-certificates
+  - curl
+  - gnupg
+  - lsb-release
+
+write_files:
+  - path: /opt/install_fuxa.sh
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      set -e
+
+      mkdir -p /etc/apt/keyrings
+      curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+        gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+      echo \
+        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+        https://download.docker.com/linux/ubuntu \
+        $(lsb_release -cs) stable" > \
+        /etc/apt/sources.list.d/docker.list
+
+      apt update -y
+      apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+      systemctl enable docker
+      systemctl start docker
+
+      usermod -aG docker ubuntu
+
+      mkdir -p /opt/fuxa
+      cd /opt/fuxa
+
+      cat << 'EOF' > docker-compose.yml
+      version: "3.8"
+      services:
+        fuxa:
+          image: frangoteam/fuxa:latest
+          container_name: fuxa
+          restart: unless-stopped
+          ports:
+            - "1881:1881"
+          volumes:
+            - ./data:/usr/src/app/FUXA/server/_appdata
+      EOF
+
+      docker compose up -d
+      touch /opt/FUXA_READY
+
+runcmd:
+  - bash /opt/install_fuxa.sh
+
+final_message: |
+  FUXA READY
