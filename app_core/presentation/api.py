@@ -1404,6 +1404,480 @@ def get_industrial_state():
 
 
 
+
+
+
+
+# Directorios existentes (los tuyos)
+TOOLS_TMP_DIR = os.path.join(REPO_ROOT, "tools-installer-tmp")
+INSTALLED_DIR = os.path.join(REPO_ROOT, "tools-installer", "installed")
+
+os.makedirs(TOOLS_TMP_DIR, exist_ok=True)
+os.makedirs(INSTALLED_DIR, exist_ok=True)
+
+# =========================
+# OpenStack Connection
+# =========================
+def get_openstack_connection():
+    """Devuelve una conexión OpenStack usando las variables cargadas desde admin-openrc.sh"""
+    return openstack.connection.Connection(
+        auth_url=os.environ.get("OS_AUTH_URL"),
+        project_name=os.environ.get("OS_PROJECT_NAME"),
+        username=os.environ.get("OS_USERNAME"),
+        password=os.environ.get("OS_PASSWORD"),
+        region_name=os.environ.get("OS_REGION_NAME"),
+        user_domain_name=os.environ.get("OS_USER_DOMAIN_NAME", "Default"),
+        project_domain_name=os.environ.get("OS_PROJECT_DOMAIN_NAME", "Default"),
+        compute_api_version="2",
+        identity_interface="public",
+    )
+
+def safe_instance_filename(instance_name: str) -> str:
+    safe_name = re.sub(r"[^a-zA-Z0-9_-]", "_", (instance_name or "").lower())
+    return f"{safe_name}_tools.json"
+
+def load_tools_tmp(instance_name: str) -> dict:
+    """Lee tools-installer-tmp/<instance>_tools.json (pending/error/...)"""
+    path = os.path.join(TOOLS_TMP_DIR, safe_instance_filename(instance_name))
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, "r") as f:
+            data = json.load(f)
+        tools = data.get("tools", {})
+        if isinstance(tools, list):
+            # Si por algún motivo alguien guardó lista antigua, la convertimos
+            tools = {t: "pending" for t in tools}
+        if not isinstance(tools, dict):
+            return {}
+        return tools
+    except Exception as e:
+        logger.error(f"Error leyendo tools tmp de {instance_name}: {e}")
+        return {}
+
+def load_tools_installed(instance_id: str) -> dict:
+    """Lee tools-installer/installed/<instance_id>.json (fecha instalada)"""
+    if not instance_id:
+        return {}
+    path = os.path.join(INSTALLED_DIR, f"{instance_id}.json")
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, "r") as f:
+            data = json.load(f)
+        tools = data.get("installed_tools", {})
+        if not isinstance(tools, dict):
+            return {}
+        return tools
+    except Exception as e:
+        logger.error(f"Error leyendo installed tools de {instance_id}: {e}")
+        return {}
+
+def merge_tools_state(instance_id: str, instance_name: str) -> dict:
+    """
+    Devuelve el estado FINAL por herramienta.
+
+    Prioridad CORRECTA (forense):
+      1) Estado ACTUAL (tools-installer-tmp): error / pending / uninstalling
+      2) Estado HISTÓRICO (installed): fecha de instalación
+
+    Regla de oro:
+      - Un ERROR actual invalida cualquier instalación pasada
+      - Installed es historia, TMP es el presente
+    """
+
+    tmp = load_tools_tmp(instance_name) or {}
+    installed = load_tools_installed(instance_id) or {}
+
+    merged = {}
+
+    # 1. Primero, el estado ACTUAL manda (TMP)
+    for tool, status in tmp.items():
+        merged[tool] = status
+
+    # 2. Solo añadimos installed SI NO hay estado negativo en TMP
+    for tool, date in installed.items():
+        if tool not in merged:
+            merged[tool] = date
+        else:
+            # Si el estado actual es negativo, NO se pisa
+            if merged[tool] in ("error", "pending", "uninstalling"):
+                continue
+            merged[tool] = date
+
+    return merged
+
+def extract_subnet_cidr(conn, network_id: str):
+    """Obtiene CIDRs de subredes de una network (si existen)."""
+    cidrs = []
+    try:
+        net = conn.network.get_network(network_id)
+        subnet_ids = getattr(net, "subnet_ids", []) or []
+        for sid in subnet_ids:
+            try:
+                sub = conn.network.get_subnet(sid)
+                if getattr(sub, "cidr", None):
+                    cidrs.append(sub.cidr)
+            except Exception:
+                continue
+    except Exception:
+        return []
+    return cidrs
+
+# =========================
+# Endpoint: Full Forensic Snapshot (instancias)
+# =========================
+@api_bp.route("/api/openstack/instances/full", methods=["GET"])
+def api_openstack_instances_full():
+    conn = None
+    try:
+        conn = get_openstack_connection()
+        out = []
+
+        # details=True para más campos
+        for server in conn.compute.servers(details=True):
+            ip_private = None
+            ip_floating = None
+            networks = []
+
+            addresses = server.addresses or {}
+            for net_name, addrs in addresses.items():
+                for a in addrs:
+                    addr = a.get("addr")
+                    ip_type = a.get("OS-EXT-IPS:type")
+                    mac = a.get("OS-EXT-IPS-MAC:mac_addr") or a.get("mac_addr")
+                    networks.append({
+                        "network": net_name,
+                        "ip": addr,
+                        "type": ip_type,
+                        "mac": mac
+                    })
+                    if ip_type == "floating":
+                        ip_floating = addr
+                    else:
+                        ip_private = addr
+
+            # =========================
+            # FLAVOR (UUID o NOMBRE)
+            # =========================
+            flavor_obj = None
+            try:
+                flavor_ref = server.flavor["id"] if server.flavor else None
+
+                if flavor_ref:
+                    f = None
+
+                    # 1) Intentar como UUID
+                    try:
+                        f = conn.compute.get_flavor(flavor_ref)
+                    except Exception:
+                        # 2) Fallback: buscar por NOMBRE
+                        for fl in conn.compute.flavors():
+                            if fl.name == flavor_ref:
+                                f = fl
+                                break
+
+                    if f:
+                        flavor_obj = {
+                            "id": f.id,
+                            "name": f.name,
+                            "vcpus": f.vcpus,
+                            "ram_mb": f.ram,
+                            "disk_gb": f.disk,
+                            "ephemeral_gb": getattr(f, "ephemeral", 0),
+                            "swap_mb": getattr(f, "swap", 0),
+                        }
+
+            except Exception as e:
+                logger.warning(f"No se pudo leer flavor para {server.name}: {e}")
+
+            # =========================
+            # VOLUMES ATTACHED
+            # =========================
+            volumes = []
+            try:
+                attached = getattr(server, "attached_volumes", []) or []
+                for v in attached:
+                    vid = v.get("id")
+                    if not vid:
+                        continue
+                    try:
+                        vol = conn.block_storage.get_volume(vid)
+                        volumes.append({
+                            "id": vol.id,
+                            "name": vol.name,
+                            "size_gb": vol.size,
+                            "status": vol.status,
+                            "bootable": vol.bootable,
+                            "volume_type": getattr(vol, "volume_type", None),
+                        })
+                    except Exception:
+                        volumes.append({
+                            "id": vid,
+                            "name": None,
+                            "size_gb": None,
+                            "status": "unknown",
+                            "bootable": None
+                        })
+            except Exception as e:
+                logger.warning(f"No se pudo leer volúmenes para {server.name}: {e}")
+
+            # =========================
+            # SECURITY GROUPS
+            # =========================
+            try:
+                sgs = [
+                    sg.get("name")
+                    for sg in (server.security_groups or [])
+                    if sg.get("name")
+                ]
+            except Exception:
+                sgs = []
+
+            # =========================
+            # TOOLS STATE (CORREGIDO)
+            # =========================
+            tools_state = merge_tools_state(server.id, server.name)
+
+            # =========================
+            # RESPONSE OBJECT
+            # =========================
+            out.append({
+                "id": server.id,
+                "name": server.name,
+                "status": server.status,
+                "image": server.image["id"] if server.image else None,
+                "created_at": getattr(server, "created_at", None),
+                "updated_at": getattr(server, "updated_at", None),
+
+                "flavor": flavor_obj,
+                "ip_private": ip_private,
+                "ip_floating": ip_floating,
+                "networks": networks,
+                "security_groups": sgs,
+                "volumes": volumes,
+
+                "tools": tools_state,
+
+                # Forensic evidence flags (guía)
+                "evidence": {
+                    "memory": (server.status == "ACTIVE"),
+                    "disk": True,
+                    "network": len(networks) > 0
+                }
+            })
+
+        return jsonify({"instances": out}), 200
+
+    except Exception as e:
+        logger.error(
+            f"Error /api/openstack/instances/full: {e}",
+            exc_info=True
+        )
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+# =========================
+# Endpoint: Flavors
+# =========================
+@api_bp.route("/api/openstack/flavors", methods=["GET"])
+def api_openstack_flavors():
+    conn = None
+    try:
+        conn = get_openstack_connection()
+        flavors = []
+        for f in conn.compute.flavors(details=True):
+            flavors.append({
+                "id": f.id,
+                "name": f.name,
+                "vcpus": f.vcpus,
+                "ram_mb": f.ram,
+                "disk_gb": f.disk,
+                "ephemeral_gb": getattr(f, "ephemeral", 0),
+                "swap_mb": getattr(f, "swap", 0),
+                "is_public": getattr(f, "is_public", None),
+            })
+        flavors.sort(key=lambda x: (x["vcpus"], x["ram_mb"], x["disk_gb"]))
+        return jsonify({"flavors": flavors}), 200
+    except Exception as e:
+        logger.error(f"Error /api/openstack/flavors: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if conn:
+            try: conn.close()
+            except Exception: pass
+
+# =========================
+# Endpoint: Networks (+ CIDRs via subnets)
+# =========================
+@api_bp.route("/api/openstack/networks", methods=["GET"])
+def api_openstack_networks():
+    conn = None
+    try:
+        conn = get_openstack_connection()
+        networks = []
+        for n in conn.network.networks():
+            cidrs = extract_subnet_cidr(conn, n.id)
+            networks.append({
+                "id": n.id,
+                "name": n.name,
+                "status": getattr(n, "status", None),
+                "is_router_external": getattr(n, "is_router_external", None),
+                "provider_network_type": getattr(n, "provider_network_type", None),
+                "provider_segmentation_id": getattr(n, "provider_segmentation_id", None),
+                "cidrs": cidrs
+            })
+        networks.sort(key=lambda x: x["name"] or "")
+        return jsonify({"networks": networks}), 200
+    except Exception as e:
+        logger.error(f"Error /api/openstack/networks: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if conn:
+            try: conn.close()
+            except Exception: pass
+
+# =========================
+# Endpoint: Security Groups (+ rules count)
+# =========================
+@api_bp.route("/api/openstack/security-groups", methods=["GET"])
+def api_openstack_security_groups():
+    conn = None
+    try:
+        conn = get_openstack_connection()
+        sgs = []
+        for sg in conn.network.security_groups():
+            rules = getattr(sg, "security_group_rules", []) or []
+            sgs.append({
+                "id": sg.id,
+                "name": sg.name,
+                "description": getattr(sg, "description", ""),
+                "rules_count": len(rules),
+            })
+        sgs.sort(key=lambda x: x["name"] or "")
+        return jsonify({"security_groups": sgs}), 200
+    except Exception as e:
+        logger.error(f"Error /api/openstack/security-groups: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if conn:
+            try: conn.close()
+            except Exception: pass
+
+# =========================
+# Endpoint: Keypairs
+# =========================
+@api_bp.route("/api/openstack/keypairs", methods=["GET"])
+def api_openstack_keypairs():
+    conn = None
+    try:
+        conn = get_openstack_connection()
+        keys = []
+        for k in conn.compute.keypairs():
+            keys.append({
+                "name": k.name,
+                "fingerprint": getattr(k, "fingerprint", None),
+                "type": getattr(k, "type", None),
+            })
+        keys.sort(key=lambda x: x["name"] or "")
+        return jsonify({"keypairs": keys}), 200
+    except Exception as e:
+        logger.error(f"Error /api/openstack/keypairs: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if conn:
+            try: conn.close()
+            except Exception: pass
+
+# =========================
+# Forensic Host Tools (instalar en el host)
+# =========================
+FORENSIC_HOST_TOOLS = {
+    # tool_name: { "check_cmd": [...], "install_script": "relative/path.sh" }
+    "volatility3": {"check_cmd": ["bash", "-lc", "vol --info >/dev/null 2>&1"], "install_script": "forensic-host/install_volatility3.sh"},
+    "autopsy":     {"check_cmd": ["bash", "-lc", "autopsy --help >/dev/null 2>&1"], "install_script": "forensic-host/install_autopsy.sh"},
+    "tsk":         {"check_cmd": ["bash", "-lc", "tsk_recover -V >/dev/null 2>&1"], "install_script": "forensic-host/install_tsk.sh"},
+    "tcpdump":     {"check_cmd": ["bash", "-lc", "tcpdump --version >/dev/null 2>&1"], "install_script": "forensic-host/install_tcpdump.sh"},
+    "tshark":      {"check_cmd": ["bash", "-lc", "tshark --version >/dev/null 2>&1"], "install_script": "forensic-host/install_tshark.sh"},
+    "termshark":   {"check_cmd": ["bash", "-lc", "termshark --version >/dev/null 2>&1"], "install_script": "forensic-host/install_termshark.sh"},
+}
+
+def host_tool_status(tool_name: str) -> dict:
+    spec = FORENSIC_HOST_TOOLS.get(tool_name)
+    if not spec:
+        return {"name": tool_name, "status": "unknown"}
+
+    try:
+        r = subprocess.run(spec["check_cmd"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if r.returncode == 0:
+            return {"name": tool_name, "status": "installed"}
+        return {"name": tool_name, "status": "not_installed"}
+    except Exception as e:
+        return {"name": tool_name, "status": "error", "error": str(e)}
+
+@api_bp.route("/api/host/forensic/tools", methods=["GET"])
+def api_host_forensic_tools():
+    out = []
+    for t in FORENSIC_HOST_TOOLS.keys():
+        out.append(host_tool_status(t))
+    return jsonify({"tools": out}), 200
+
+@api_bp.route("/api/host/forensic/install", methods=["POST"])
+def api_host_forensic_install():
+    data = request.get_json(force=True, silent=True) or {}
+    tool = data.get("tool")
+
+    if tool not in FORENSIC_HOST_TOOLS:
+        return jsonify({"status": "error", "msg": "Tool no permitida"}), 400
+
+    script_rel = FORENSIC_HOST_TOOLS[tool]["install_script"]
+    script_path = os.path.join(REPO_ROOT, script_rel)
+
+    if not os.path.exists(script_path):
+        return jsonify({"status": "error", "msg": f"Script no encontrado: {script_rel}"}), 404
+
+    try:
+        os.chmod(script_path, 0o755)
+    except Exception:
+        pass
+
+    try:
+        proc = subprocess.run(
+            ["bash", script_path],
+            cwd=REPO_ROOT,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+
+        # Re-check status
+        status = host_tool_status(tool)
+
+        return jsonify({
+            "status": "success" if proc.returncode == 0 else "error",
+            "tool": tool,
+            "exit_code": proc.returncode,
+            "stdout": proc.stdout,
+            "stderr": proc.stderr,
+            "after": status
+        }), 200 if proc.returncode == 0 else 500
+
+    except Exception as e:
+        logger.error(f"Error instalando {tool} en host: {e}", exc_info=True)
+        return jsonify({"status": "error", "msg": str(e)}), 500
+
+# =========================
+# Static (si quieres servir el front desde aquí)
+# =========================
+
+
+
 @api_bp.route('/')
 def index():
     return send_from_directory(os.path.join(REPO_ROOT, 'static'), 'index.html')

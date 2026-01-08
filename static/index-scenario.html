@@ -195,6 +195,13 @@
      Desplegando/Destruyendo escenario... por favor espera unos minutos.
   </div>
 </div>
-
+<script>
+        // Esto ejecuta la función en cuanto la ventana termina de cargar
+        window.addEventListener('load', () => {
+            if (typeof loadScenario === 'function') {
+                loadScenario();
+            }
+        });
+    </script>
 </body>
 </html>

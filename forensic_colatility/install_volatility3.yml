@@ -1,0 +1,92 @@
+---
+- name: Instalar Volatility 3 (modo oficial GitHub)
+  hosts: forensic
+  become: true
+
+  vars:
+    vol_user: ubuntu
+    vol_base: /opt/volatility3
+    vol_venv: /opt/volatility3/venv
+    vol_repo: https://github.com/volatilityfoundation/volatility3.git
+
+  tasks:
+    # -------------------------------------------------
+    # 1. DEPENDENCIAS DEL SISTEMA (ROOT)
+    # -------------------------------------------------
+    - name: Instalar dependencias base
+      apt:
+        update_cache: true
+        name:
+          - git
+          - python3
+          - python3-venv
+          - python3-pip
+          - build-essential
+          - dwarfdump
+        state: present
+
+    # -------------------------------------------------
+    # 2. CREAR DIRECTORIO BASE CON PERMISOS CORRECTOS
+    # -------------------------------------------------
+    - name: Crear directorio base de Volatility
+      file:
+        path: "{{ vol_base }}"
+        state: directory
+        owner: "{{ vol_user }}"
+        group: "{{ vol_user }}"
+        mode: "0755"
+
+    # -------------------------------------------------
+    # 3. CLONAR REPOSITORIO (COMO ubuntu)
+    # -------------------------------------------------
+    - name: Clonar Volatility 3 desde GitHub
+      become_user: "{{ vol_user }}"
+      git:
+        repo: "{{ vol_repo }}"
+        dest: "{{ vol_base }}"
+        update: yes
+
+    # -------------------------------------------------
+    # 4. CREAR VENV (COMO ubuntu, NO ROOT)
+    # -------------------------------------------------
+    - name: Crear entorno virtual Python para Volatility
+      become_user: "{{ vol_user }}"
+      command: python3 -m venv "{{ vol_venv }}"
+      args:
+        creates: "{{ vol_venv }}/bin/activate"
+
+    # -------------------------------------------------
+    # 5. INSTALAR VOLATILITY (COMO ubuntu)
+    # -------------------------------------------------
+    - name: Instalar Volatility 3 en modo editable (-e)
+      become_user: "{{ vol_user }}"
+      shell: |
+        set -e
+        source {{ vol_venv }}/bin/activate
+        pip install --upgrade pip
+        pip install -e .
+      args:
+        chdir: "{{ vol_base }}"
+        executable: /bin/bash
+
+    # -------------------------------------------------
+    # 6. ENLACE GLOBAL DEL BINARIO (ROOT)
+    # -------------------------------------------------
+    - name: Crear enlace global /usr/local/bin/vol
+      file:
+        src: "{{ vol_venv }}/bin/vol"
+        dest: /usr/local/bin/vol
+        state: link
+        force: true
+
+    # -------------------------------------------------
+    # 7. VERIFICACIÓN FINAL
+    # -------------------------------------------------
+    - name: Verificar Volatility 3 (help)
+      command: /usr/local/bin/vol -h
+      register: vol_check
+      changed_when: false
+
+    - name: Mostrar resultado
+      debug:
+        msg: "{{ vol_check.stdout_lines[0:10] }}"

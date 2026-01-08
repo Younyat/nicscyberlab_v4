@@ -155,6 +155,10 @@
                         <div class="flex items-center gap-1"><span>$</span><span class="animate-pulse">_</span></div>
                     </div>
                 </div>
+
+
+
+
             </div>
 
             <!-- NODO VÍCTIMA -->
@@ -564,7 +568,7 @@ async function checkWazuhMonitor() {
 }
 
 function updateMonitorTerminal(text) {
-    const terminal = document.getElementById("terminal-monitor");
+    const terminal = document.getElementById("terminal-monitor-NO-plz");
     if (!terminal) return;
 
     terminal.innerHTML += `<div>$ ${text.replace(/\n/g, "<br>")}</div>`;

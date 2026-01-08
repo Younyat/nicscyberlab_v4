@@ -1,0 +1,226 @@
+const API = "";
+
+/* ======================
+   HELPERS
+====================== */
+const term = document.getElementById("terminal-output");
+
+function log(msg, color = "text-slate-200") {
+  const line = document.createElement("div");
+  line.className = color;
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  term.appendChild(line);
+  term.scrollTop = term.scrollHeight;
+}
+
+function setStatus(text, sub, type) {
+  document.getElementById("status-text").textContent = text;
+  document.getElementById("status-subtext").textContent = sub;
+
+  const dot = document.getElementById("status-dot");
+  dot.className =
+    "w-3 h-3 rounded-full animate-pulse " +
+    (type === "ok"
+      ? "bg-emerald-400"
+      : type === "error"
+      ? "bg-red-500"
+      : "bg-amber-400");
+}
+
+function setProgress(p) {
+  document.getElementById("progress-bar-inner").style.width = `${p}%`;
+}
+
+function overlay(show) {
+  document.getElementById("overlay").classList.toggle("hidden", !show);
+}
+
+/* ======================
+   SAFE FETCH (CLAVE)
+====================== */
+async function fetchJSON(url, label) {
+  try {
+    const res = await fetch(url);
+
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      const text = await res.text();
+      throw new Error(
+        `${label}: respuesta NO JSON (status ${res.status})`
+      );
+    }
+
+    return await res.json();
+  } catch (err) {
+    log(`❌ ${label} falló`, "text-red-400");
+    console.error(err);
+    return null;
+  }
+}
+
+/* ======================
+   TOOLS RENDER
+====================== */
+function renderToolsInline(tools) {
+  if (!tools || Object.keys(tools).length === 0) {
+    return "<span class='text-slate-500'>-</span>";
+  }
+
+  return Object.entries(tools)
+    .map(([tool, status]) => {
+      if (status === "pending")
+        return `<span class="text-amber-400">${tool} (pending)</span>`;
+      if (status === "error")
+        return `<span class="text-red-500">${tool} (error)</span>`;
+      return `<span class="text-emerald-400">${tool} (installed)</span>`;
+    })
+    .join("<br>");
+}
+
+/* ======================
+   LOADERS
+====================== */
+async function loadInstances() {
+  const data = await fetchJSON(
+    "/api/openstack/instances/full",
+    "Instancias"
+  );
+  if (!data) return;
+
+  const tbody = document.getElementById("instances-table");
+  tbody.innerHTML = "";
+
+  data.instances.forEach(vm => {
+    tbody.innerHTML += `
+      <tr>
+        <td class="p-2">${vm.name}</td>
+        <td class="p-2">${vm.status}</td>
+        <td class="p-2">${vm.ip_private || "-"}</td>
+        <td class="p-2">${vm.ip_floating || "-"}</td>
+        <td class="p-2">${renderToolsInline(vm.tools)}</td>
+      </tr>`;
+  });
+
+  log(`✔ ${data.instances.length} instancias cargadas`, "text-emerald-300");
+}
+
+async function loadRoles() {
+  const data = await fetchJSON("/api/instance_roles", "Roles");
+  if (!data) return;
+
+  document.getElementById("roles-box").textContent =
+    JSON.stringify(data, null, 2);
+}
+
+async function loadFlavors() {
+  const data = await fetchJSON("/api/openstack/flavors", "Flavors");
+  if (!data) return;
+
+  const tbody = document.getElementById("flavors-table");
+  tbody.innerHTML = "";
+
+  data.flavors.forEach(f => {
+    tbody.innerHTML += `
+      <tr>
+        <td class="p-2">${f.name}</td>
+        <td class="p-2">${f.vcpus}</td>
+        <td class="p-2">${f.ram_mb}</td>
+        <td class="p-2">${f.disk_gb}</td>
+      </tr>`;
+  });
+}
+
+async function loadNetworks() {
+  const data = await fetchJSON("/api/openstack/networks", "Redes");
+  if (!data) return;
+
+  const tbody = document.getElementById("networks-table");
+  tbody.innerHTML = "";
+
+  data.networks.forEach(n => {
+    tbody.innerHTML += `
+      <tr>
+        <td class="p-2">${n.name}</td>
+        <td class="p-2">${(n.cidrs || []).join(", ") || "-"}</td>
+      </tr>`;
+  });
+}
+
+async function loadSecurityGroups() {
+  const data = await fetchJSON(
+    "/api/openstack/security-groups",
+    "Security Groups"
+  );
+  if (!data) return;
+
+  const tbody = document.getElementById("secgroups-table");
+  tbody.innerHTML = "";
+
+  data.security_groups.forEach(sg => {
+    tbody.innerHTML += `
+      <tr>
+        <td class="p-2">${sg.name}</td>
+      </tr>`;
+  });
+}
+
+async function loadKeypairs() {
+  const data = await fetchJSON("/api/openstack/keypairs", "Keypairs");
+  if (!data) return;
+
+  const tbody = document.getElementById("keypairs-table");
+  tbody.innerHTML = "";
+
+  data.keypairs.forEach(k => {
+    tbody.innerHTML += `
+      <tr>
+        <td class="p-2">${k.name}</td>
+      </tr>`;
+  });
+}
+
+/* ======================
+   LOAD INVENTORY
+====================== */
+async function loadInventory() {
+  overlay(true);
+  setProgress(10);
+  setStatus("Cargando inventario", "Consultando OpenStack…", "warn");
+
+  try {
+    await loadInstances();
+    setProgress(40);
+
+    await loadRoles();
+    setProgress(55);
+
+    await loadFlavors();
+    setProgress(65);
+
+    await loadNetworks();
+    setProgress(75);
+
+    await loadSecurityGroups();
+    setProgress(85);
+
+    await loadKeypairs();
+    setProgress(100);
+
+    setStatus("Inventario actualizado", "Snapshot consistente", "ok");
+    log("Inventario completo cargado", "text-emerald-300");
+
+  } catch (e) {
+    log(`Error general: ${e}`, "text-red-400");
+    setStatus("Error", "Inventario inconsistente", "error");
+  } finally {
+    overlay(false);
+  }
+}
+
+/* ======================
+   EVENTS
+====================== */
+document.getElementById("refresh-inventory").onclick = loadInventory;
+document.getElementById("clear-terminal").onclick = () => (term.innerHTML = "");
+
+log("Terminal listo. Esperando acción.");

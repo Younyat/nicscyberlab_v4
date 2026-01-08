@@ -169,6 +169,15 @@
 
 <!-- JS -->
 <script src="industrial.js"></script>
-
+<script>
+    // Ejecuta loadScenario cuando la página se ha cargado por completo
+    window.addEventListener('load', () => {
+        // Verificamos si la función existe en industrial.js para evitar errores
+        if (typeof loadScenario === 'function') {
+            console.log("Cargando escenario industrial automáticamente...");
+            loadScenario();
+        }
+    });
+</script>
 </body>
 </html>

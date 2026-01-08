@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NICS CyberLab – Security Experimentation Platform</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style-index.css"> 
+</head>
+
+<body>
+
+    <!-- ===== HEADER ===== -->
+    <header class="header-bg fixed top-0 left-0 w-full h-16 shadow-2xl z-30 flex items-center justify-between px-4 lg:px-8 backdrop-blur-sm">
+        <div class="text-2xl font-mono text-cyan-400 font-semibold tracking-wider">
+            NICS | CyberLab
+        </div>
+
+        <nav class="space-x-4">
+            <a href="#" class="text-gray-300 hover:text-indigo-400 transition duration-150">
+                Home
+            </a>
+            <a href="#" class="text-gray-300 hover:text-indigo-400 transition duration-150">
+                Profile
+            </a>
+            <a href="#" class="text-gray-300 hover:text-indigo-400 transition duration-150">
+                Sign Out
+            </a>
+        </nav>
+    </header>
+
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="sidebar fixed top-16 left-0 w-64 h-[calc(100vh-64px)] bg-gray-800 text-white p-4 space-y-2 z-20 lg:block hidden">
+
+        <h2 class="text-lg font-mono text-cyan-400 font-semibold">
+            Control Panel
+        </h2>
+        
+        <a href="javascript:void(0)"
+           class="sidebar-link block p-2 rounded-lg hover:bg-indigo-700 transition duration-150"
+           data-url="/initial.html">
+            Environment Initialization
+        </a>
+            
+        <a href="javascript:void(0)"
+           class="sidebar-link block p-2 rounded-lg bg-indigo-600"
+           data-url="/index-scenario.html">
+            Scenario Configuration
+        </a>
+
+        <a href="javascript:void(0)"
+           class="sidebar-link block p-2 rounded-lg hover:bg-indigo-700 transition duration-150"
+           data-url="/index-tools.html">
+            Security Tools Management
+        </a>
+
+        <a href="javascript:void(0)"
+           class="sidebar-link block p-2 rounded-lg hover:bg-indigo-700 transition duration-150"
+           data-url="/dashboard.html">
+            Monitoring Dashboard
+        </a>
+
+        <a href="javascript:void(0)"
+           class="sidebar-link block p-2 rounded-lg hover:bg-indigo-700 transition duration-150"
+           data-url="/industrial.html">
+            Industrial / OT Scenarios
+        </a>
+
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+   <main class="min-h-screen pt-20 pb-8 pl-4 pr-4 lg:pl-72 lg:pr-8">
+    <div class="iframe-container w-full h-[95vh] bg-gray-900 rounded-xl shadow-inner overflow-hidden border border-gray-700">
+        <iframe 
+            id="mainIframe"
+            src="/index-scenario.html"
+            class="w-full h-full"
+            frameborder="0"
+            allowfullscreen
+            title="Embedded Content">
+        </iframe>
+    </div>
+</main>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="text-center text-gray-400 text-sm border-t border-gray-700 py-3 bg-gray-800">
+        2025 NICS Lab | University of Málaga
+    </footer>
+
+    <!-- ===== JS ===== -->
+    <script src="script-index.js"></script> 
+
+</body>
+</html>

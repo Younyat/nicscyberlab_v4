@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpenStack Inventory | NICS CyberLab</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="initial.css">
+</head>
+
+<body class="bg-slate-950 text-slate-100 min-h-screen flex">
+
+<!-- ASIDE -->
+<aside class="w-72 bg-slate-900/90 p-6 flex flex-col space-y-6 border-r border-slate-800 shadow-lg">
+
+  <h1 class="text-xl font-semibold text-sky-400 border-b border-slate-700 pb-3 mb-3">
+     OpenStack Inventory
+  </h1>
+
+  <!-- STATUS CARD -->
+  <div id="status-card"
+       class="bg-slate-800/80 border border-slate-700 rounded-lg p-4 flex flex-col space-y-2 shadow-sm">
+
+    <div class="flex items-center space-x-3">
+      <div id="status-dot" class="w-3 h-3 rounded-full bg-amber-400 animate-pulse"></div>
+      <div>
+        <p id="status-text" class="text-slate-300 text-sm font-medium">
+          Inventario no cargado
+        </p>
+        <p id="status-subtext" class="text-slate-500 text-xs">
+          Esperando acción…
+        </p>
+      </div>
+    </div>
+
+    <div class="mt-2">
+      <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden">
+        <div id="progress-bar-inner"
+             class="h-2 w-0 bg-emerald-500 transition-all duration-500"></div>
+      </div>
+    </div>
+
+    <div class="mt-2 text-xs text-slate-400 space-y-1">
+      <p>1⃣ Conectar con OpenStack</p>
+      <p>2⃣ Leer recursos reales</p>
+      <p>3⃣ Mostrar inventario</p>
+    </div>
+  </div>
+
+  <button id="refresh-inventory"
+    class="py-3 rounded-lg text-white font-semibold shadow-md bg-sky-600 hover:bg-sky-500 transition">
+     Refrescar Inventario
+  </button>
+
+</aside>
+
+<!-- MAIN -->
+<main class="flex-1 overflow-y-auto p-10 space-y-8">
+
+  <!-- INSTANCIAS -->
+  <section class="bg-slate-900/80 p-6 rounded-xl border border-slate-800 shadow-md">
+    <h2 class="text-xl font-semibold text-sky-400 mb-4">Instancias</h2>
+    <table class="w-full text-sm border border-slate-800">
+      <thead class="bg-slate-800 text-slate-300">
+        <tr>
+          <th class="p-2">Nombre</th>
+          <th class="p-2">Estado</th>
+          <th class="p-2">IP Privada</th>
+          <th class="p-2">IP Floating</th>
+          <th class="p-2">Tools</th>
+        </tr>
+      </thead>
+      <tbody id="instances-table"
+             class="divide-y divide-slate-800 text-slate-200"></tbody>
+    </table>
+  </section>
+
+  <!-- ROLES -->
+  <section class="bg-slate-900/80 p-6 rounded-xl border border-slate-800 shadow-md">
+    <h2 class="text-xl font-semibold text-sky-400 mb-4">Roles detectados</h2>
+    <pre id="roles-box"
+         class="bg-black rounded-lg p-4 text-xs text-slate-200 overflow-auto"></pre>
+  </section>
+
+  <!-- FLAVORS -->
+  <section class="bg-slate-900/80 p-6 rounded-xl border border-slate-800 shadow-md">
+    <h2 class="text-xl font-semibold text-sky-400 mb-4">Flavors</h2>
+    <table class="w-full text-sm border border-slate-800">
+      <thead class="bg-slate-800 text-slate-300">
+        <tr>
+          <th class="p-2">Nombre</th>
+          <th class="p-2">vCPU</th>
+          <th class="p-2">RAM (MB)</th>
+          <th class="p-2">Disco (GB)</th>
+        </tr>
+      </thead>
+      <tbody id="flavors-table"
+             class="divide-y divide-slate-800 text-slate-200"></tbody>
+    </table>
+  </section>
+
+  <!-- REDES -->
+  <section class="bg-slate-900/80 p-6 rounded-xl border border-slate-800 shadow-md">
+    <h2 class="text-xl font-semibold text-sky-400 mb-4">Redes</h2>
+    <table class="w-full text-sm border border-slate-800">
+      <thead class="bg-slate-800 text-slate-300">
+        <tr>
+          <th class="p-2">Nombre</th>
+          <th class="p-2">CIDR</th>
+        </tr>
+      </thead>
+      <tbody id="networks-table"
+             class="divide-y divide-slate-800 text-slate-200"></tbody>
+    </table>
+  </section>
+
+  <!-- SECURITY GROUPS -->
+  <section class="bg-slate-900/80 p-6 rounded-xl border border-slate-800 shadow-md">
+    <h2 class="text-xl font-semibold text-sky-400 mb-4">Grupos de Seguridad</h2>
+    <table class="w-full text-sm border border-slate-800">
+      <thead class="bg-slate-800 text-slate-300">
+        <tr>
+          <th class="p-2">Nombre</th>
+        </tr>
+      </thead>
+      <tbody id="secgroups-table"
+             class="divide-y divide-slate-800 text-slate-200"></tbody>
+    </table>
+  </section>
+
+  <!-- KEYPAIRS -->
+  <section class="bg-slate-900/80 p-6 rounded-xl border border-slate-800 shadow-md">
+    <h2 class="text-xl font-semibold text-sky-400 mb-4">Keypairs</h2>
+    <table class="w-full text-sm border border-slate-800">
+      <thead class="bg-slate-800 text-slate-300">
+        <tr>
+          <th class="p-2">Nombre</th>
+        </tr>
+      </thead>
+      <tbody id="keypairs-table"
+             class="divide-y divide-slate-800 text-slate-200"></tbody>
+    </table>
+  </section>
+
+  <!-- TERMINAL -->
+  <section class="bg-slate-900/80 p-6 rounded-xl border border-slate-800 shadow-md mb-20">
+    <h2 class="text-xl font-semibold text-emerald-400 mb-4">Terminal</h2>
+
+    <div class="bg-black rounded-xl p-4">
+      <div id="terminal-output"
+           class="bg-gray-900 rounded-lg p-3 h-[300px] overflow-y-auto font-mono text-xs text-white shadow-inner space-y-1"></div>
+    </div>
+
+    <div class="flex justify-end mt-3">
+      <button id="clear-terminal"
+              class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg shadow">
+         Limpiar Terminal
+      </button>
+    </div>
+  </section>
+
+</main>
+
+<!-- OVERLAY -->
+<div id="overlay"
+     class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+  <div class="text-white text-xl font-semibold animate-pulse">
+    Consultando OpenStack…
+  </div>
+</div>
+
+<script src="inventory.js"></script>
+</body>
+</html>
