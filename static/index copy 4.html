@@ -7,24 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-
-        /* =========================
-   COPILOT ERROR MODE
-========================= */
-#copilotPopup.error {
-    border-color: #dc2626;
-    box-shadow:
-        0 0 0 2px rgba(220,38,38,0.4),
-        0 25px 60px -15px rgba(220,38,38,0.6);
-}
-
-#copilotPopup.error > div:first-child {
-    background: #7f1d1d !important;
-}
-
-
-
-
         body { 
             overflow: hidden; 
             margin: 0;
@@ -113,6 +95,33 @@
             color: #475569;
             white-space: nowrap;
         }
+
+        /* =========================
+   COPILOT ERROR MODE
+   ========================= */
+#copilotPopup.error {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 2px rgba(220,38,38,0.4),
+                0 25px 60px -15px rgba(220,38,38,0.6);
+}
+
+#copilotPopup.error .copilot-header {
+    background: #7f1d1d;
+}
+
+#copilotPopup.error #copilotMessages {
+    background: #fee2e2;
+}
+
+#copilotPopup.error textarea,
+#copilotPopup.error button {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+
+
+
     </style>
 </head>
 
@@ -212,8 +221,7 @@
     
     <script>
 
-      let COPILOT_PENDING = false;
-
+      
         const wrapper = document.getElementById('sliderWrapper');
         const overlay = document.getElementById('contentOverlay');
         const iframe = document.getElementById('contentIframe');
@@ -274,9 +282,36 @@
 
 
 
-async function sendCopilot() {
-    if (COPILOT_PENDING) return;
 
+function toggleCopilot() {
+    const popup = document.getElementById("copilotPopup");
+
+    popup.style.display =
+        popup.style.display === "block" ? "none" : "block";
+
+    if (popup.style.display === "block") {
+        popup.classList.remove("error"); // reset visual
+
+        setTimeout(() => {
+            document.getElementById("copilotInput")?.focus();
+        }, 50);
+    }
+}
+
+function setCopilotUnavailable(message) {
+    const popup = document.getElementById("copilotPopup");
+    const messages = document.getElementById("copilotMessages");
+
+    popup.classList.add("error");
+    messages.innerHTML = "";
+
+    addMessage(
+        message || "El módulo Copilot todavía no ha sido creado.",
+        "error"
+    );
+}
+
+async function sendCopilot() {
     const input = document.getElementById("copilotInput");
     const messages = document.getElementById("copilotMessages");
 
@@ -285,23 +320,9 @@ async function sendCopilot() {
     const text = input.value.trim();
     if (!text) return;
 
-    COPILOT_PENDING = true;
-    input.disabled = true;          // 🔒 DESACTIVAR INPUT
+    addMessage(text, "user");
     input.value = "";
     autoResize(input);
-
-    addMessage(text, "user");
-
-    // Mensaje temporal "pensando…"
-    const thinkingMsg = document.createElement("div");
-    thinkingMsg.className =
-        "bg-slate-200 text-slate-600 p-3 rounded-xl max-w-[80%]";
-    thinkingMsg.innerText = "La IA está pensando…";
-    messages.appendChild(thinkingMsg);
-
-    requestAnimationFrame(() => {
-        messages.scrollTop = messages.scrollHeight;
-    });
 
     try {
         const res = await fetch("/api/ai/ask", {
@@ -312,117 +333,24 @@ async function sendCopilot() {
 
         const data = await res.json();
 
-        // Quitar “pensando…”
-        thinkingMsg.remove();
-
-        // 🚨 IA no disponible REAL
-        if (
-            data.status === "success" &&
-            typeof data.response === "string" &&
-            data.response.trim() === "IA_NO_DISPONIBLE"
-        ) {
-            forceCopilotUnavailable(
-                "El módulo Copilot no está disponible."
-            );
-            return;
-        }
-
         if (data.status === "success") {
             addMessage(data.response, "ai");
 
         } else if (data.status === "busy") {
-            addMessage("La IA está procesando otra petición.", "ai");
+            addMessage("La IA está pensando…", "ai");
+
+        } else if (data.status === "unavailable") {
+            setCopilotUnavailable(
+                "El módulo Copilot todavía no ha sido creado."
+            );
 
         } else {
-            addMessage("Error al obtener respuesta de la IA.", "error");
+            addMessage("Estado desconocido de la IA", "error");
         }
 
     } catch (e) {
         console.error(e);
-        thinkingMsg.remove();
-        addMessage("Error de comunicación con la IA.", "error");
-
-    } finally {
-        // 🔓 REACTIVAR INPUT
-        COPILOT_PENDING = false;
-        input.disabled = false;
-        input.focus();
-    }
-}
-
-
-async function handleCopilotClick() {
-    let d;
-
-    try {
-        const res = await fetch("/api/ai/status");
-        d = await res.json();
-    } catch {
-        forceCopilotUnavailable();
-        return;
-    }
-
-    // NO INSTALADO
-    if (!d.installed) {
-        forceCopilotUnavailable();
-        return;
-    }
-
-    // DESPLEGANDO / ARRANCANDO -> no abrir chat
-    if (d.deploying) {
-        forceCopilotUnavailable("El módulo de IA se está desplegando. Ve a Instalaciones IA.");
-        return;
-    }
-
-    // INSTALADO -> abrir copilot normal
-    toggleCopilot();
-}
-
-
-
-function forceCopilotUnavailable(msg) {
-    const popup = document.getElementById("copilotPopup");
-
-    popup.style.display = "block";
-    popup.classList.add("error");
-
-    
-
-    addMessage(
-        msg || "El módulo Copilot todavía no ha sido creado.",
-        "error"
-    );
-
-    setTimeout(() => {
-        popup.style.display = "none";
-        popup.classList.remove("error");
-        openView("ai_module");
-    }, 1200);
-}
-
-
-
-
-
-
-function toggleCopilot() {
-    const popup = document.getElementById("copilotPopup");
-    const messages = document.getElementById("copilotMessages");
-
-    const opening = popup.style.display !== "block";
-
-    if (opening) {
-        popup.classList.remove("error");
-        popup.style.display = "block";
-
-        // 🔧 FORZAR recalculo de layout
-        messages.scrollTop = messages.scrollHeight;
-
-        setTimeout(() => {
-            document.getElementById("copilotInput")?.focus();
-        }, 50);
-    } else {
-        popup.style.display = "none";
+        addMessage("Error de conexión con IA", "error");
     }
 }
 
@@ -442,10 +370,9 @@ function addMessage(text, type) {
     messages.appendChild(msg);
 
     // FORZAR repaint + scroll (robusto en Chrome/Firefox)
-   requestAnimationFrame(() => {
-    messages.scrollTop = messages.scrollHeight;
-});
-
+    requestAnimationFrame(() => {
+        messages.scrollTop = messages.scrollHeight;
+    });
 }
 
 // ------------------------------
@@ -487,7 +414,7 @@ document.addEventListener("input", function (e) {
 
 <!-- COPILOT BUTTON -->
 <div id="copilotBtn"
-     onclick="handleCopilotClick()"
+     onclick="toggleCopilot()"
      style="z-index:9999"
      class="fixed bottom-6 right-6 w-14 h-14 rounded-full
             bg-blue-600 hover:bg-blue-700
@@ -501,29 +428,27 @@ document.addEventListener("input", function (e) {
 <!-- COPILOT POPUP -->
 <!-- COPILOT POPUP -->
 <div id="copilotPopup"
-     style="display:none; overflow:hidden;"
      class="fixed bottom-24 right-6 w-[420px] h-[520px]
             bg-white rounded-3xl shadow-2xl border border-slate-200
-            flex flex-col">
-
+            flex flex-col"
+     style="overflow: hidden;">
 
 
     <!-- HEADER -->
-    <div class="h-12 bg-slate-900 text-white flex items-center justify-between px-4">
+    <div class="h-12 text-white flex items-center justify-between px-4 copilot-header bg-slate-900">
+
         <span class="text-xs font-black tracking-widest uppercase">NICS Copilot</span>
         <button onclick="toggleCopilot()" class="text-slate-400 hover:text-white">✕</button>
     </div>
 
     <!-- CHAT (SCROLLABLE) -->
-  <div id="copilotMessages"
-     class="p-4 space-y-3 bg-slate-50 text-sm overflow-y-auto"
+    <div id="copilotMessages"
+     class="flex-1 p-4 space-y-3 bg-slate-50 text-sm"
      style="
-        height: calc(100% - 48px - 72px);
+        overflow-y: auto;
         overscroll-behavior: contain;
         scroll-behavior: smooth;
      ">
-
-
 
         <div class="bg-slate-200 p-3 rounded-xl text-slate-700">
             Soy tu copiloto IA. Pregunta sobre escenarios, forense, OT o el sistema.

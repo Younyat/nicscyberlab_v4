@@ -2046,6 +2046,70 @@ def get_hypervisor_stats():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+
+
+@api_bp.route("/api/ai/ask", methods=["POST"])
+def ask_ai():
+    user_prompt = request.json.get("prompt", "").strip()
+
+    if not user_prompt:
+        return jsonify({
+            "status": "error",
+            "response": "Prompt vacío"
+        }), 200
+
+    script_path = os.path.join(
+        os.getcwd(),
+        "ai_bootstrap_bundle",
+        "preguntarLLM.sh"
+    )
+
+    try:
+        process = subprocess.run(
+            ["/usr/bin/bash", script_path, user_prompt],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,   # ⬅️ NUNCA mostrar errores
+            text=True,
+            timeout=70
+        )
+
+        # ================================
+        # LIMPIEZA TOTAL DE STDOUT
+        # ================================
+        raw_output = process.stdout.strip()
+
+        # Nos quedamos SOLO con la última línea no vacía
+        lines = [l.strip() for l in raw_output.splitlines() if l.strip()]
+        clean_output = lines[-1] if lines else ""
+
+        
+        
+
+
+
+        if clean_output == "IA_OCUPADA":
+            return jsonify({
+                "status": "busy",
+                "response": "La IA está pensando. Inténtalo de nuevo en unos segundos."
+            }), 200
+
+
+
+
+        return jsonify({
+            "status": "success",
+            "response": clean_output
+        }), 200
+
+    except Exception:
+        return jsonify({
+            "status": "unavailable",
+            "response": "Fallo controlado del backend"
+        }), 200
+
+
+        
 @api_bp.route('/')
 def index():
     return send_from_directory(os.path.join(REPO_ROOT, 'static'), 'index.html')
