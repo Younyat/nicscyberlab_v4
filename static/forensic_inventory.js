@@ -19,6 +19,16 @@ const UI = {
 
   hostTools: document.getElementById("host-tools"),
   hostLog: document.getElementById("host-log"),
+
+  cpuBar: document.getElementById("cpu-bar"),
+  cpuUsage: document.getElementById("cpu-usage"),
+  cpuPercent: document.getElementById("cpu-percent"),
+  ramBar: document.getElementById("ram-bar"),
+  ramUsage: document.getElementById("ram-usage"),
+  ramPercent: document.getElementById("ram-percent"),
+  diskBar: document.getElementById("disk-bar"),
+  diskUsage: document.getElementById("disk-usage"),
+  diskPercent: document.getElementById("disk-percent"),
 };
 
 let STATE = {
@@ -350,17 +360,27 @@ async function loadInstancesFull() {
 
 async function refreshAll() {
   setOverlay(true);
-  setProgress(10);
+  setProgress(5); // Inicio rápido
   setStatus("Cargando snapshot", "Consultando OpenStack…", "warn");
 
   try {
-    setProgress(25);
+    // 1. Recursos de Hardware (Hypervisor)
+    setStatus("Analizando recursos", "Leyendo cuotas de hardware…", "warn");
+    await loadHypervisorResources(); 
+    setProgress(20);
+
+    // 2. Inventario Global (Flavors, Redes, SGs)
+    setStatus("Cargando inventario", "Obteniendo objetos globales…", "warn");
     await loadGlobalInventory();
+    setProgress(45);
 
-    setProgress(55);
+    // 3. Instancias (Cuerpo principal)
+    setStatus("Mapeando instancias", "Extrayendo detalle de VMs…", "warn");
     await loadInstancesFull();
-
     setProgress(75);
+
+    // 4. Herramientas del Host
+    setStatus("Verificando herramientas", "Chequeando Forensic Tools…", "warn");
     await loadHostTools();
 
     setProgress(100);
@@ -373,6 +393,81 @@ async function refreshAll() {
     setTimeout(() => setProgress(0), 600);
   }
 }
+
+
+/**
+ * Actualiza los medidores de recursos desde la API
+ */
+async function loadHypervisorResources() {
+  try {
+    // Usamos el endpoint del backend que creamos anteriormente
+    const stats = await fetchJSON("/api/openstack/hypervisor-stats", "Hypervisor Resources");
+    if (!stats) return;
+
+    // vCPU
+    updateUIComponent('cpu', stats.vcpus_used, stats.vcpus);
+    
+    // RAM (Convertimos MB a GB para mejor lectura forense)
+    const ramUsed = (stats.memory_mb_used / 1024).toFixed(1);
+    const ramTotal = (stats.memory_mb / 1024).toFixed(1);
+    updateUIComponent('ram', ramUsed, ramTotal);
+
+    // Disk
+    updateUIComponent('disk', stats.local_gb_used, stats.local_gb);
+
+  } catch (err) {
+    console.error("Error cargando recursos:", err);
+  }
+}
+
+/**
+ * Helper para manipular el DOM de las barras y textos
+ */
+
+
+
+function updateUIComponent(id, used, total) {
+  const percent = total > 0 ? Math.min((used / total) * 100, 100).toFixed(1) : 0;
+  
+  // Buscamos los elementos directamente por ID si no están en UI
+  const barEl = document.getElementById(`${id}-bar`);
+  const textEl = document.getElementById(`${id}-usage`);
+  const percentEl = document.getElementById(`${id}-percent`);
+
+  if (barEl) barEl.style.width = `${percent}%`;
+  
+  // Añadimos unidad según el tipo
+  let unit = "";
+  if (id === "ram" || id === "disk") unit = " GB";
+  
+  if (textEl) textEl.textContent = `${used}${unit} / ${total}${unit}`;
+  if (percentEl) {
+    percentEl.textContent = `${percent}%`;
+    
+    // Alerta visual forense
+    if (percent > 90) {
+      percentEl.classList.add('text-red-500');
+      barEl?.classList.add('bg-red-600');
+    }
+  }
+}
+
+
+
+
+
+
+async function fetchJSON(url, label) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Error HTTP: ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error(`❌ ${label} falló:`, err);
+    return null;
+  }
+}
+
 
 document.getElementById("btn-refresh").addEventListener("click", refreshAll);
 document.getElementById("btn-refresh-host").addEventListener("click", loadHostTools);

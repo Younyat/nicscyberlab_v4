@@ -1,10 +1,7 @@
-/* ======================
-   CONFIG
-====================== */
 const API = "";
 
 /* ======================
-   UI HELPERS
+   HELPERS
 ====================== */
 const term = document.getElementById("terminal-output");
 
@@ -21,11 +18,13 @@ function setStatus(text, sub, type) {
   document.getElementById("status-subtext").textContent = sub;
 
   const dot = document.getElementById("status-dot");
-  dot.className = "w-3 h-3 rounded-full animate-pulse " + (
-    type === "ok" ? "bg-emerald-400" :
-    type === "error" ? "bg-red-500" :
-    "bg-amber-400"
-  );
+  dot.className =
+    "w-3 h-3 rounded-full animate-pulse " +
+    (type === "ok"
+      ? "bg-emerald-400"
+      : type === "error"
+      ? "bg-red-500"
+      : "bg-amber-400");
 }
 
 function setProgress(p) {
@@ -36,152 +35,228 @@ function overlay(show) {
   document.getElementById("overlay").classList.toggle("hidden", !show);
 }
 
-
-
-async function getToolsForInstance(instanceName) {
+/* ======================
+   SAFE FETCH (CLAVE)
+====================== */
+async function fetchJSON(url, label) {
   try {
-    const res = await fetch(
-      `/api/get_tools_for_instance?instance=${encodeURIComponent(instanceName)}`
-    );
-    const data = await res.json();
-    return data.tools || {};
-  } catch (e) {
-    console.error("Error obteniendo tools:", e);
-    return {};
+    const res = await fetch(url);
+
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      const text = await res.text();
+      throw new Error(
+        `${label}: respuesta NO JSON (status ${res.status})`
+      );
+    }
+
+    return await res.json();
+  } catch (err) {
+    log(`❌ ${label} falló`, "text-red-400");
+    console.error(err);
+    return null;
   }
 }
 
-
+/* ======================
+   TOOLS RENDER
+====================== */
 function renderToolsInline(tools) {
-  if (!tools || Object.keys(tools).length === 0) {
+  // Caso 0: no hay tools
+  if (!tools || typeof tools !== "object" || Object.keys(tools).length === 0) {
     return "<span class='text-slate-500'>-</span>";
   }
 
   return Object.entries(tools)
-    .map(([tool, status]) => {
-      let cls = "text-slate-400";
-      let label = status;
+    .map(([tool, rawStatus]) => {
 
-      if (status === "pending") {
-        cls = "text-amber-400";
-      } else if (status === "error") {
-        cls = "text-red-500";
+      // =========================
+      // NORMALIZACIÓN (MISMA que en el segundo código)
+      // =========================
+      let status;
+
+      if (!rawStatus) {
+        status = "not_installed";
+      } else if (rawStatus === "pending") {
+        status = "pending";
+      } else if (rawStatus === "error") {
+        status = "error";
+      } else if (rawStatus === "uninstalling") {
+        status = "uninstalling";
       } else {
-        // INSTALADO (fecha)
-        cls = "text-emerald-400";
-        label = "installed";
+        // TODO lo demás (incluida FECHA → Zeek)
+        status = "installed";
       }
 
-      return `<span class="${cls}">${tool} (${label})</span>`;
+      // =========================
+      // RENDER SEGÚN ESTADO
+      // =========================
+      switch (status) {
+        case "installed":
+          return `
+            <span class="text-emerald-400">
+              ${tool} ✔ installed
+              ${
+                typeof rawStatus === "string"
+                  ? `<br><span class="text-xs text-slate-400">${rawStatus}</span>`
+                  : ""
+              }
+            </span>
+          `;
+
+        case "pending":
+          return `<span class="text-amber-400">${tool} ⏳ pending</span>`;
+
+        case "uninstalling":
+          return `<span class="text-amber-400 animate-pulse">${tool} uninstalling…</span>`;
+
+        case "error":
+          return `<span class="text-red-500">${tool} ❌ error</span>`;
+
+        default:
+          return `<span class="text-slate-400">${tool} -</span>`;
+      }
     })
     .join("<br>");
 }
 
-async function loadFlavors() {
-  log("Consultando flavors…", "text-sky-300");
-  const res = await fetch("/api/openstack/flavors");
-  const data = await res.json();
 
-  data.flavors.forEach(f =>
-    log(`FLAVOR  ${f.name} | vCPU=${f.vcpus} RAM=${f.ram}MB DISK=${f.disk}GB`, "text-slate-300")
+
+/* ======================
+   LOADERS
+====================== */
+async function loadInstances() {
+  const data = await fetchJSON(
+    "/api/openstack/instances/full",
+    "Instancias"
   );
+  if (!data) return;
+
+  const tbody = document.getElementById("instances-table");
+  tbody.innerHTML = "";
+
+  data.instances.forEach(vm => {
+    tbody.innerHTML += `
+      <tr>
+        <td class="p-2">${vm.name}</td>
+        <td class="p-2">${vm.status}</td>
+        <td class="p-2">${vm.ip_private || "-"}</td>
+        <td class="p-2">${vm.ip_floating || "-"}</td>
+        <td class="p-2">${renderToolsInline(vm.tools)}</td>
+      </tr>`;
+  });
+
+  log(`✔ ${data.instances.length} instancias cargadas`, "text-emerald-300");
+}
+
+async function loadRoles() {
+  const data = await fetchJSON("/api/instance_roles", "Roles");
+  if (!data) return;
+
+  document.getElementById("roles-box").textContent =
+    JSON.stringify(data, null, 2);
+}
+
+async function loadFlavors() {
+  const data = await fetchJSON("/api/openstack/flavors", "Flavors");
+  if (!data) return;
+
+  const tbody = document.getElementById("flavors-table");
+  tbody.innerHTML = "";
+
+  data.flavors.forEach(f => {
+    tbody.innerHTML += `
+      <tr>
+        <td class="p-2">${f.name}</td>
+        <td class="p-2">${f.vcpus}</td>
+        <td class="p-2">${f.ram_mb}</td>
+        <td class="p-2">${f.disk_gb}</td>
+      </tr>`;
+  });
 }
 
 async function loadNetworks() {
-  log("Consultando redes…", "text-sky-300");
-  const res = await fetch("/api/openstack/networks");
-  const data = await res.json();
+  const data = await fetchJSON("/api/openstack/networks", "Redes");
+  if (!data) return;
 
-  data.networks.forEach(n =>
-    log(`NETWORK ${n.name} (${n.cidr || "sin CIDR"})`, "text-slate-300")
-  );
+  const tbody = document.getElementById("networks-table");
+  tbody.innerHTML = "";
+
+  data.networks.forEach(n => {
+    tbody.innerHTML += `
+      <tr>
+        <td class="p-2">${n.name}</td>
+        <td class="p-2">${(n.cidrs || []).join(", ") || "-"}</td>
+      </tr>`;
+  });
 }
 
 async function loadSecurityGroups() {
-  log("Consultando grupos de seguridad…", "text-sky-300");
-  const res = await fetch("/api/openstack/security-groups");
-  const data = await res.json();
-
-  data.security_groups.forEach(sg =>
-    log(`SEC-GROUP ${sg.name}`, "text-slate-300")
+  const data = await fetchJSON(
+    "/api/openstack/security-groups",
+    "Security Groups"
   );
+  if (!data) return;
+
+  const tbody = document.getElementById("secgroups-table");
+  tbody.innerHTML = "";
+
+  data.security_groups.forEach(sg => {
+    tbody.innerHTML += `
+      <tr>
+        <td class="p-2">${sg.name}</td>
+      </tr>`;
+  });
 }
 
 async function loadKeypairs() {
-  log("Consultando keypairs…", "text-sky-300");
-  const res = await fetch("/api/openstack/keypairs");
-  const data = await res.json();
+  const data = await fetchJSON("/api/openstack/keypairs", "Keypairs");
+  if (!data) return;
 
-  data.keypairs.forEach(k =>
-    log(`KEYPAIR ${k.name}`, "text-slate-300")
-  );
+  const tbody = document.getElementById("keypairs-table");
+  tbody.innerHTML = "";
+
+  data.keypairs.forEach(k => {
+    tbody.innerHTML += `
+      <tr>
+        <td class="p-2">${k.name}</td>
+      </tr>`;
+  });
 }
-
-
 
 /* ======================
    LOAD INVENTORY
 ====================== */
 async function loadInventory() {
   overlay(true);
-  setProgress(20);
+  setProgress(10);
   setStatus("Cargando inventario", "Consultando OpenStack…", "warn");
 
   try {
-    log("Consultando instancias…", "text-sky-300");
-    const instRes = await fetch(`${API}/api/openstack/instances`);
-    const instData = await instRes.json();
+    await loadInstances();
+    setProgress(40);
 
-    const tbody = document.getElementById("instances-table");
-    tbody.innerHTML = "";
-
-    for (const vm of instData.instances) {
-      // 🔹 AQUÍ ESTÁ LA CLAVE: reutilizamos tu backend de tools
-      const tools = await getToolsForInstance(vm.name);
-
-      tbody.innerHTML += `
-        <tr>
-          <td class="p-2">${vm.name}</td>
-          <td class="p-2">${vm.status}</td>
-          <td class="p-2">${vm.ip_private || "-"}</td>
-          <td class="p-2">${vm.ip_floating || "-"}</td>
-          <td class="p-2">${renderToolsInline(tools)}</td>
-        </tr>`;
-    }
-
-    setProgress(60);
-
-    log("Consultando roles detectados…", "text-sky-300");
-    const roleRes = await fetch(`${API}/api/instance_roles`);
-    const roles = await roleRes.json();
-
-    document.getElementById("roles-box").textContent =
-      JSON.stringify(roles, null, 2);
-
-
-    setProgress(70);
+    await loadRoles();
+    setProgress(55);
 
     await loadFlavors();
-    setProgress(75);
+    setProgress(65);
 
     await loadNetworks();
-    setProgress(80);
+    setProgress(75);
 
     await loadSecurityGroups();
-    setProgress(90);
+    setProgress(85);
 
     await loadKeypairs();
-
-
-
     setProgress(100);
-    setStatus("Inventario actualizado", "Estado real del laboratorio", "ok");
-    log("Inventario cargado correctamente", "text-emerald-300");
+
+    setStatus("Inventario actualizado", "Snapshot consistente", "ok");
+    log("Inventario completo cargado", "text-emerald-300");
 
   } catch (e) {
-    log(`Error: ${e}`, "text-red-400");
-    setStatus("Error", "No se pudo cargar el inventario", "error");
-    setProgress(30);
+    log(`Error general: ${e}`, "text-red-400");
+    setStatus("Error", "Inventario inconsistente", "error");
   } finally {
     overlay(false);
   }
@@ -191,6 +266,6 @@ async function loadInventory() {
    EVENTS
 ====================== */
 document.getElementById("refresh-inventory").onclick = loadInventory;
-document.getElementById("clear-terminal").onclick = () => term.innerHTML = "";
+document.getElementById("clear-terminal").onclick = () => (term.innerHTML = "");
 
 log("Terminal listo. Esperando acción.");

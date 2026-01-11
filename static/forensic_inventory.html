@@ -169,6 +169,54 @@
       </div>
     </section>
 
+
+
+
+
+
+
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+  <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-5 shadow">
+    <div class="flex justify-between items-center mb-3">
+      <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">vCPUs en Uso</h3>
+      <span id="cpu-percent" class="text-xs font-mono text-sky-400 bg-sky-400/10 px-2 py-1 rounded">0%</span>
+    </div>
+    <div id="cpu-usage" class="text-2xl font-bold mb-3 text-slate-100">0 / 0</div>
+    <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+      <div id="cpu-bar" class="h-full bg-sky-500 transition-all duration-1000" style="width: 0%"></div>
+    </div>
+  </div>
+
+  <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-5 shadow">
+    <div class="flex justify-between items-center mb-3">
+      <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Memoria RAM (GB)</h3>
+      <span id="ram-percent" class="text-xs font-mono text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded">0%</span>
+    </div>
+    <div id="ram-usage" class="text-2xl font-bold mb-3 text-slate-100">0 / 0</div>
+    <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+      <div id="ram-bar" class="h-full bg-emerald-500 transition-all duration-1000" style="width: 0%"></div>
+    </div>
+  </div>
+
+  <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-5 shadow">
+    <div class="flex justify-between items-center mb-3">
+      <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Almacenamiento Local (GB)</h3>
+      <span id="disk-percent" class="text-xs font-mono text-amber-400 bg-amber-400/10 px-2 py-1 rounded">0%</span>
+    </div>
+    <div id="disk-usage" class="text-2xl font-bold mb-3 text-slate-100">0 / 0</div>
+    <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+      <div id="disk-bar" class="h-full bg-amber-500 transition-all duration-1000" style="width: 0%"></div>
+    </div>
+  </div>
+</section>
+
+
+
+
+
+
+
+    
     <!-- INSTANCE DETAIL -->
     <section class="bg-slate-900/80 border border-slate-800 rounded-xl p-5 shadow">
       <div class="flex items-center justify-between mb-3">

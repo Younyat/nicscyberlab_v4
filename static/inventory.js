@@ -233,6 +233,10 @@ async function loadInventory() {
   setStatus("Cargando inventario", "Consultando OpenStack…", "warn");
 
   try {
+    
+    await loadHypervisorStats(); 
+    setProgress(20);
+
     await loadInstances();
     setProgress(40);
 
@@ -261,6 +265,42 @@ async function loadInventory() {
     overlay(false);
   }
 }
+
+
+/* ======================
+   RESOURCES LOADER
+====================== */
+async function loadHypervisorStats() {
+    const stats = await fetchJSON("/api/openstack/hypervisor-stats", "Hypervisor Stats");
+    if (!stats) return;
+
+    // Mapeo de datos (OpenStack devuelve los valores según el sabor del CLI)
+    const cpuUsed = stats.vcpus_used || 0;
+    const cpuTotal = stats.vcpus || 1; // Evitar división por cero
+    const ramUsed = stats.memory_mb_used || 0;
+    const ramTotal = stats.memory_mb || 1;
+    const diskUsed = stats.local_gb_used || 0;
+    const diskTotal = stats.local_gb || 1;
+
+    // Actualizar barras y texto
+    updateMetric("cpu", cpuUsed, cpuTotal);
+    updateMetric("ram", (ramUsed / 1024).toFixed(1), (ramTotal / 1024).toFixed(1), true);
+    updateMetric("disk", diskUsed, diskTotal);
+
+    log("📊 Estadísticas de hipervisor actualizadas", "text-sky-300");
+}
+
+function updateMetric(id, used, total, isGB = false) {
+    const percent = Math.min((used / total) * 100, 100).toFixed(1);
+    const unit = isGB ? "GB" : "";
+    
+    document.getElementById(`${id}-usage`).innerText = `${used} / ${total} ${unit}`;
+    document.getElementById(`${id}-percent`).innerText = `${percent}%`;
+    document.getElementById(`${id}-bar`).style.width = `${percent}%`;
+}
+
+
+
 
 /* ======================
    EVENTS

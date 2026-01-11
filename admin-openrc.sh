@@ -12,7 +12,7 @@ unset OS_REGION_NAME
 unset OS_APPLICATION_CREDENTIAL_ID
 unset OS_APPLICATION_CREDENTIAL_SECRET
 unset OS_APPLICATION_CREDENTIAL_NAME
-
+unset HF_TOKEN
 export OS_AUTH_URL=http://192.168.0.10:5000
 export OS_USERNAME=admin
 export OS_PASSWORD=JE6663lP1THXJqP8zVCWz3OQxqyXzu74b7Cd0Z7s
@@ -22,3 +22,7 @@ export OS_USER_DOMAIN_NAME=Default
 export OS_REGION_NAME=RegionOne
 export OS_INTERFACE=public
 echo "Credenciales OpenStack cargadas"
+# =====================================================
+# 🔐 Hugging Face TOKEN (INCLUIDO)
+# =====================================================
+export HF_TOKEN="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"

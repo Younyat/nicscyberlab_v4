@@ -1872,11 +1872,179 @@ def api_host_forensic_install():
         logger.error(f"Error instalando {tool} en host: {e}", exc_info=True)
         return jsonify({"status": "error", "msg": str(e)}), 500
 
-# =========================
-# Static (si quieres servir el front desde aquí)
-# =========================
 
+#-------------------------------------------------------------------------------AI module-----------------------------
 
+# ============================================================
+# AI MODULE BACKEND
+# ============================================================
+
+import os
+import json
+import time
+import threading
+import subprocess
+
+from flask import jsonify, Response
+
+# ------------------------------------------------------------
+# PATHS (FIJOS)
+# ------------------------------------------------------------
+AI_BASE_DIR = os.path.join(REPO_ROOT, "ai_bootstrap_bundle", "ai")
+AI_LOG_DIR = os.path.join(AI_BASE_DIR, "logs")
+
+AI_STATE_FILE = os.path.join(AI_BASE_DIR, "ai_module_state.json")
+AI_LOG_FILE = os.path.join(AI_LOG_DIR, "deploy_ai.log")
+
+AI_VM_NAME = "AI_Server_Qwen2_5_7B"
+
+# ------------------------------------------------------------
+# HELPERS
+# ------------------------------------------------------------
+def read_ai_state():
+    if not os.path.exists(AI_STATE_FILE):
+        return None
+    with open(AI_STATE_FILE, "r") as f:
+        return json.load(f)
+
+# ------------------------------------------------------------
+# STATUS
+# ------------------------------------------------------------
+@api_bp.route("/api/ai/status", methods=["GET"])
+def api_ai_status():
+
+    base = {
+        "installed": False,
+        "deploying": False,
+        "progress": 0,
+        "phase": "not_installed",
+        "message": "El módulo de IA no existe. Requiere despliegue manual.",
+        "status": {
+            "module": "ai",
+            "instance": {
+                "exists": False,
+                "id": None,
+                "name": AI_VM_NAME,
+                "status": None
+            },
+            "network": {
+                "ip_floating": None,
+                "ip_private": None
+            },
+            "gui": {
+                "installed": False,
+                "port": 3000,
+                "status": "not_installed",
+                "url": None
+            },
+            "api": {
+                "port": 8000,
+                "url": None
+            }
+        }
+    }
+
+    if not os.path.exists(AI_STATE_FILE):
+        return jsonify(base), 200
+
+    try:
+        data = read_ai_state()
+        deployment = data.get("deployment", {})
+        gui = data.get("gui", {})
+
+        progress = int(deployment.get("progress", 0))
+        deploying = 0 < progress < 100
+        installed = gui.get("installed", False) and progress == 100
+
+        return jsonify({
+            "installed": installed,
+            "deploying": deploying,
+            "progress": progress,
+            "phase": deployment.get("phase", "unknown"),
+            "message": deployment.get("message", ""),
+            "status": data
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            **base,
+            "message": f"Error leyendo estado IA: {str(e)}"
+        }), 200
+
+# ------------------------------------------------------------
+# DEPLOY
+# ------------------------------------------------------------
+@api_bp.route("/api/ai/deploy", methods=["POST"])
+def api_ai_deploy():
+
+    script = os.path.join(
+        REPO_ROOT,
+        "ai_bootstrap_bundle",
+        "deploy_ai_server.sh"
+    )
+
+    if not os.path.exists(script):
+        return jsonify({
+            "status": "error",
+            "message": "Script de despliegue IA no encontrado",
+            "path": script
+        }), 404
+
+    os.makedirs(AI_BASE_DIR, exist_ok=True)
+    os.makedirs(AI_LOG_DIR, exist_ok=True)
+
+    def run():
+        with open(AI_LOG_FILE, "w") as log:
+            subprocess.run(
+                ["bash", script],
+                cwd=os.path.join(REPO_ROOT, "ai_bootstrap_bundle"),
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                text=True
+            )
+
+    threading.Thread(target=run, daemon=True).start()
+
+    return jsonify({
+        "status": "deploying",
+        "message": "Despliegue del módulo IA iniciado"
+    }), 202
+
+# ------------------------------------------------------------
+# LOG STREAM (SSE)
+# ------------------------------------------------------------
+@api_bp.route("/api/ai/logs")
+def api_ai_logs():
+
+    def generate():
+        while not os.path.exists(AI_LOG_FILE):
+            yield "data: [INFO] Esperando logs...\n\n"
+            time.sleep(0.5)
+
+        with open(AI_LOG_FILE, "r") as f:
+            f.seek(0, os.SEEK_END)
+            while True:
+                line = f.readline()
+                if line:
+                    yield f"data: {line.rstrip()}\n\n"
+                else:
+                    time.sleep(0.5)
+
+    return Response(generate(), mimetype="text/event-stream")
+
+@api_bp.route('/api/openstack/hypervisor-stats')
+def get_hypervisor_stats():
+    try:
+        # Ejecutamos el comando directamente para obtener el snapshot de recursos
+        cmd = ["openstack", "hypervisor", "stats", "show", "-f", "json"]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            return jsonify({"error": result.stderr}), 500
+            
+        return jsonify(json.loads(result.stdout))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @api_bp.route('/')
 def index():

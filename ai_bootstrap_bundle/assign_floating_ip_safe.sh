@@ -2,7 +2,7 @@
 set -e
 
 VM_NAME="$1"
-EXT_NET="external-net"
+EXT_NET="net_external_01"
 
 if [[ -z "${VM_NAME:-}" ]]; then
   echo "[✗] Usage: $0 <vm-name>"

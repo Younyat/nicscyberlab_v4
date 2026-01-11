@@ -104,7 +104,7 @@ unset OS_REGION_NAME
 unset OS_APPLICATION_CREDENTIAL_ID
 unset OS_APPLICATION_CREDENTIAL_SECRET
 unset OS_APPLICATION_CREDENTIAL_NAME
-
+unset HF_TOKEN
 # ------------------------------------------------------
 # Configuración de credenciales
 # ------------------------------------------------------
@@ -117,7 +117,7 @@ export OS_PASSWORD=$PASSWORD
 export OS_INTERFACE=$INTERFACE
 export OS_IDENTITY_API_VERSION=3
 export OS_REGION_NAME=${REGION_NAME:-RegionOne}
-
+export HF_TOKEN="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"
 echo "[✔] Credenciales OpenStack cargadas para \$OS_PROJECT_NAME (\$OS_USERNAME)"
 EOF
 

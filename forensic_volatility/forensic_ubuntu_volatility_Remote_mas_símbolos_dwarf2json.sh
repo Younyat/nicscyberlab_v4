@@ -83,7 +83,7 @@ log "Iniciando despliegue de infraestructura para: $VM_FORENSIC_NAME"
 
 # Verificar o crear Flavor
 openstack flavor show "$FLAVOR_FORENSIC" >/dev/null 2>&1 || \
-  openstack flavor create "$FLAVOR_FORENSIC" --vcpus 2 --ram 8192 --disk 40 --public
+openstack flavor create "$FLAVOR_FORENSIC" --vcpus 2 --ram 8192 --disk 20 --public
 
 # Verificar o crear Security Group
 openstack security group show "$SG_NAME" >/dev/null 2>&1 || \
