@@ -1139,9 +1139,7 @@ def remove_from_installed(instance_id, tool_name):
             logger.error(f"Error al actualizar JSON en desinstalación: {e}")
     return False
 
-import os
-import json
-from datetime import datetime
+
 
 # Definir la ruta permanente
 INSTALLED_DIR = os.path.join(REPO_ROOT, "tools-installer", "installed")
@@ -1383,7 +1381,7 @@ def deploy_industrial_component():
 
     return Response(generate(), mimetype="text/plain")
 
-import datetime
+
 
 def get_log_path(component):
     base = os.path.join(REPO_ROOT, "industrial-scenario", "logs", component)
@@ -2107,6 +2105,255 @@ def ask_ai():
             "status": "unavailable",
             "response": "Fallo controlado del backend"
         }), 200
+
+
+
+
+
+#---------------------------------------------------------------------------------------- analizar terafico 
+
+
+
+
+
+
+import subprocess
+import shutil
+import os
+from flask import jsonify, Response
+
+# Configuración de las herramientas específicas que solicitaste
+# Asegúrate de que en tu TOOLS_INVENTORY el binario sea 'vol'
+
+
+
+
+# 1. Definir la ruta base absoluta
+SCRIPTS_DIR = os.path.join(REPO_ROOT, "tools-installer", "scripts-host")
+
+# Definimos la ruta de desinstaladores según tu estructura
+UNINSTALL_SCRIPTS_DIR = os.path.join(REPO_ROOT, "tools_uninstall_manager", "uninstall_scripts-host")
+
+LOG_FILE = os.path.join(REPO_ROOT, "tools-installer","logs", "host_manage.log")
+
+# Añadimos la ruta del script de desinstalación al inventario
+TOOLS_INVENTORY = {
+    "tsk": {
+        "name": "The Sleuth Kit (TSK)", 
+        "binary": "fls", 
+        "script": os.path.join(SCRIPTS_DIR, "install_tsk.sh"),
+        "uninstall": os.path.join(UNINSTALL_SCRIPTS_DIR, "uninstall_tsk.sh")
+    },
+    "tcpdump": {
+        "name": "Tcpdump", 
+        "binary": "tcpdump", 
+        "script": os.path.join(SCRIPTS_DIR, "install_tcpdump.sh"),
+        "uninstall": os.path.join(UNINSTALL_SCRIPTS_DIR, "uninstall_tcpdump.sh")
+    },
+    "tshark": {
+        "name": "Tshark", 
+        "binary": "tshark", 
+        "script": os.path.join(SCRIPTS_DIR, "install_tshark.sh"),
+        "uninstall": os.path.join(UNINSTALL_SCRIPTS_DIR, "uninstall_tshark.sh")
+    },
+    "termshark": {
+        "name": "Termshark", 
+        "binary": "termshark", 
+        "script": os.path.join(SCRIPTS_DIR, "install_termshark.sh"),
+        "uninstall": os.path.join(UNINSTALL_SCRIPTS_DIR, "uninstall_termshark.sh")
+    },
+    "volatility": {
+        "name": "Volatility 3", 
+        "binary": "vol", 
+        "script": os.path.join(SCRIPTS_DIR, "install_volatility.sh"),
+        "uninstall": os.path.join(UNINSTALL_SCRIPTS_DIR, "uninstall_volatility.sh")
+    }
+}
+
+@api_bp.route('/api/host/uninstall/<tool_id>', methods=['GET'])
+def uninstall_tool(tool_id):
+    tool = TOOLS_INVENTORY.get(tool_id)
+    if not tool:
+        return Response("Error: Herramienta no encontrada", status=404)
+
+    def generate():
+        script_path = tool["uninstall"]
+        process = subprocess.Popen(
+            ["bash", script_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+        for line in process.stdout:
+            yield f"data: {line.strip()}\n\n"
+        process.wait()
+        yield "data: [FIN]\n\n"
+
+    return Response(generate(), mimetype='text/event-stream')
+
+@api_bp.route('/api/host/inventory', methods=['GET'])
+def get_host_inventory():
+    """
+    Escanea el host para ver qué herramientas están instaladas realmente.
+    """
+    inventory = []
+    for key, info in TOOLS_INVENTORY.items():
+        # shutil.which busca el ejecutable en el sistema
+        is_installed = shutil.which(info["binary"]) is not None
+        
+        inventory.append({
+            "id": key,
+            "name": info["name"],
+            "status": "installed" if is_installed else "not_installed",
+            "path": shutil.which(info["binary"]) or "N/A"
+        })
+    
+    return jsonify({"tools": inventory})
+
+
+
+
+
+
+
+
+
+
+
+
+@api_bp.route('/api/host/version/<tool_id>', methods=['GET'])
+def get_tool_version(tool_id):
+    tool = TOOLS_INVENTORY.get(tool_id)
+    if not tool:
+        return jsonify({"output": "Error: Herramienta no encontrada."}), 404
+
+    binary = tool["binary"]
+    
+    cmd_map = {
+        "tcpdump": [binary, "--version"],
+        "tsk": ["fls", "-V"],
+        "tshark": [binary, "--version"],
+        "termshark": [binary, "--version"],
+        # CAMBIO CLAVE: Usamos '-v' porque 'vol.py --version' suele fallar en Vol3
+        "volatility": [binary, "-v"] 
+    }
+    
+    try:
+        cmd = cmd_map.get(tool_id, [binary, "--version"])
+        
+        # Agregamos shell=True solo si es necesario, o aseguramos el PATH
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+        
+        # Volatility 3 a veces envía la info de versión a stderr junto con los avisos de YARA
+        stdout = result.stdout.strip()
+        stderr = result.stderr.strip()
+        
+        full_output = f"$ { ' '.join(cmd) }\n"
+        
+        # Combinamos ambas salidas porque Volatility es muy ruidoso con los logs en stderr
+        if stdout and stderr:
+            full_output += f"{stderr}\n{stdout}"
+        else:
+            full_output += stdout if stdout else stderr
+        
+        return jsonify({"output": full_output})
+    except Exception as e:
+        return jsonify({"output": f"Error ejecutando el comando: {str(e)}"}), 500
+    tool = TOOLS_INVENTORY.get(tool_id)
+    if not tool:
+        return jsonify({"output": "Error: Herramienta no encontrada."}), 404
+
+    binary = tool["binary"]
+    # Mapeo de comandos para obtener versión
+    cmd_map = {
+        "tcpdump": [binary, "--version"],
+        "tsk": ["fls", "-V"],
+        "tshark": [binary, "--version"],
+        "termshark": [binary, "--version"],
+        "volatility": [binary, "--version"]
+    }
+    
+    try:
+        cmd = cmd_map.get(tool_id, [binary, "--version"])
+        # Ejecutamos el comando y capturamos todo
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=3)
+        stdout = result.stdout.strip()
+        stderr = result.stderr.strip()
+        
+        # Combinamos las salidas para la terminal
+        full_output = f"$ { ' '.join(cmd) }\n"
+        full_output += stdout if stdout else stderr
+        
+        return jsonify({"output": full_output})
+    except Exception as e:
+        return jsonify({"output": f"Error ejecutando el comando: {str(e)}"}), 500
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+import os
+import datetime
+
+def write_to_log(message):
+    # Aseguramos que la carpeta logs exista
+    log_dir = "/home/younes/nicscyberlab_v3/logs"
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+        
+    log_file = os.path.join(log_dir, "host_manage.log")
+    
+    # Obtenemos el timestamp
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    with open(log_file, "a") as f:
+        f.write(f"[{timestamp}] {message}\n")
+
+
+
+        
+
+# Ejemplo para el endpoint de instalación
+@api_bp.route('/api/host/install/<tool_id>', methods=['GET'])
+def install_host_tool(tool_id):
+    tool = TOOLS_INVENTORY.get(tool_id)
+    write_to_log(f"INICIO_INSTALACION: Herramienta={tool_id}")
+
+    def generate():
+        process = subprocess.Popen(
+            ["bash", tool["script"]],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+        for line in process.stdout:
+            clean_line = line.strip()
+            # Escribimos cada línea del script en el archivo de log
+            write_to_log(f"[{tool_id}-INSTALL] {clean_line}")
+            # Y la enviamos a la pantalla
+            yield f"data: {clean_line}\n\n"
+        
+        process.wait()
+        write_to_log(f"FIN_INSTALACION: Herramienta={tool_id} Codigo={process.returncode}")
+        yield "data: [FIN]\n\n"
+
+    return Response(generate(), mimetype='text/event-stream')
+
+# Deberías hacer lo mismo en el endpoint de desinstalación
+
+
+
+
+
 
 
         
