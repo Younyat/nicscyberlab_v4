@@ -235,7 +235,7 @@ def capture_packets(vm_id, selected_protos):
 
     root = get_project_root()
     capture_dir = os.path.join(
-        root, "app_core", "infrastructure", "ics_traffic", "captures"
+        root, "app_core", "infrastructure", "ics_traffic", "captures" ,"captures"
     )
     os.makedirs(capture_dir, exist_ok=True)
 
