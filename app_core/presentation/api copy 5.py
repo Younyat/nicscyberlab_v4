@@ -2348,19 +2348,104 @@ def install_host_tool(tool_id):
 
     return Response(generate(), mimetype='text/event-stream')
 
+import os
+import sys
+import time
+from scapy.all import sniff, IP, TCP, UDP, Raw, wrpcap, conf
+from flask import Response, request, Blueprint
+from threading import Thread
+from queue import Queue, Empty
 
 
+# --- 1. CONFIGURACIÓN DE MOTOR ---
+try:
+    conf.use_pcap = True 
+    conf.sniff_promisc = 1
+except Exception as e:
+    print(f"[ERROR] Scapy Config: {e}")
 
+# --- 2. LÓGICA DE CAPTURA CON PUERTOS ---
 
-#-------------------------------------------------------analisis de trafico
+def capture_packets(vm_id, selected_protos):
+    packet_queue = Queue()
+    
+    base_path = os.path.join("app_core", "infrastructure", "ics_traffic", "captures", "captures")
+    os.makedirs(base_path, exist_ok=True)
+    pcap_file = os.path.join(base_path, f"traffic_{vm_id}_{int(time.time())}.pcap")
 
+    # Capturamos todo el tráfico IP para procesar los puertos manualmente
+    final_filter = "ip" 
 
+    def packet_callback(pkt):
+        if not pkt.haslayer(IP) and pkt.haslayer(Raw):
+            try:
+                new_pkt = IP(pkt[Raw].load)
+                if new_pkt.haslayer(IP): pkt = new_pkt
+            except: pass
 
-# Carga endpoints de tráfico ICS (registra rutas en api_bp)
-import app_core.infrastructure.ics_traffic.traffic_api
+        label = "IP"
+        src_ip = "UNKNOWN"
+        dst_ip = "UNKNOWN"
+        port_info = "" # Aquí guardaremos los puertos
 
+        if pkt.haslayer(IP):
+            src_ip = pkt[IP].src
+            dst_ip = pkt[IP].dst
+            
+            if pkt.haslayer(TCP):
+                sport = pkt[TCP].sport
+                dport = pkt[TCP].dport
+                port_info = f"[{sport}->{dport}]" # Formato de puertos
+                
+                if sport == 502 or dport == 502:
+                    label = "MODBUS TCP"
+                elif sport == 22 or dport == 22:
+                    label = "SSH MGMT"
+                else:
+                    label = "TCP"
+                    
+            elif pkt.haslayer(UDP):
+                sport = pkt[UDP].sport
+                dport = pkt[UDP].dport
+                port_info = f"[{sport}->{dport}]"
+                label = "PROFINET" if (sport == 34964 or dport == 34964) else "UDP"
 
+        # Guardado en PCAP
+        try: wrpcap(pcap_file, pkt, append=True)
+        except: pass
 
+        # --- FORMATEO DE SALIDA CON PUERTOS ---
+        # Ejemplo: [17:45:01]  MODBUS TCP   | 10.0.2.15:502 -> 192.168.100.10:45632
+        ts = time.strftime("%H:%M:%S")
+        
+        # Construimos una dirección con IP:Puerto
+        src_full = f"{src_ip}:{pkt[TCP].sport if pkt.haslayer(TCP) else (pkt[UDP].sport if pkt.haslayer(UDP) else '')}"
+        dst_full = f"{dst_ip}:{pkt[TCP].dport if pkt.haslayer(TCP) else (pkt[UDP].dport if pkt.haslayer(UDP) else '')}"
+        
+        log_line = f"[{ts}] {label.center(12)} | {src_full.rjust(22)} -> {dst_full.ljust(22)}"
+        packet_queue.put(f"data: {log_line}\n\n")
+
+    # Iniciar Sniffer
+    sniffer = Thread(
+        target=sniff, 
+        kwargs={"filter": final_filter, "prn": packet_callback, "store": 0, "iface": None, "promisc": True},
+        daemon=True
+    )
+    sniffer.start()
+
+    try:
+        yield f"data: [SISTEMA] Monitor de Puertos Activo. Escuchando tráfico IP...\n\n"
+        while True:
+            try:
+                yield packet_queue.get(timeout=2.0)
+            except Empty:
+                yield ": keep-alive\n\n"
+    except GeneratorExit:
+        print(f"Captura cerrada.")
+
+@api_bp.route('/api/openstack/traffic/<vm_id>')
+def stream_traffic(vm_id):
+    return Response(capture_packets(vm_id, []), mimetype='text/event-stream')
 
 
 

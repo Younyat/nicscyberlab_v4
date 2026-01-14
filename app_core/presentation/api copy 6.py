@@ -2352,12 +2352,117 @@ def install_host_tool(tool_id):
 
 
 
-#-------------------------------------------------------analisis de trafico
 
 
 
-# Carga endpoints de tráfico ICS (registra rutas en api_bp)
-import app_core.infrastructure.ics_traffic.traffic_api
+
+
+
+
+
+
+
+
+import os
+import time
+from scapy.all import sniff, IP, TCP, UDP, Raw, wrpcap, conf
+from flask import Response, request
+from threading import Thread
+from queue import Queue, Empty
+
+# --- 1. MOTOR DE CAPTURA PROFESIONAL ---
+
+def capture_packets(vm_id, selected_protos):
+    packet_queue = Queue()
+    
+    # Construcción dinámica del filtro BPF
+    # Si no hay filtros, por defecto escuchamos tráfico IP general
+    bpf_filters = []
+    if 'modbus' in selected_protos: bpf_filters.append("tcp port 502")
+    if 'profinet' in selected_protos: bpf_filters.append("udp port 34964 or udp port 34962")
+    if 'tcp' in selected_protos: bpf_filters.append("tcp")
+    if 'udp' in selected_protos: bpf_filters.append("udp")
+    
+    # Unimos los filtros con 'or'. Si la lista está vacía, usamos 'ip'
+    final_filter = " or ".join(bpf_filters) if bpf_filters else "ip"
+
+    # Ruta forense
+    base_path = os.path.join("app_core", "infrastructure", "ics_traffic", "captures")
+    os.makedirs(base_path, exist_ok=True)
+    pcap_path = os.path.join(base_path, f"forensic_{vm_id}_{int(time.time())}.pcap")
+
+    def packet_callback(pkt):
+        if not pkt.haslayer(IP): return
+
+        label = "IP"
+        src_ip, dst_ip = pkt[IP].src, pkt[IP].dst
+        sport, dport = "", ""
+
+        if pkt.haslayer(TCP):
+            sport, dport = str(pkt[TCP].sport), str(pkt[TCP].dport)
+            if "502" in [sport, dport]: label = "MODBUS TCP"
+            elif "22" in [sport, dport]: label = "SSH MGMT"
+            else: label = "TCP"
+        
+        elif pkt.haslayer(UDP):
+            sport, dport = str(pkt[UDP].sport), str(pkt[UDP].dport)
+            if dport in ["34964", "34962"]: label = "PROFINET"
+            else: label = "UDP"
+
+        # Guardar en PCAP
+        try: wrpcap(pcap_path, pkt, append=True)
+        except: pass
+
+        # Formateo profesional para la terminal
+        ts = time.strftime("%H:%M:%S")
+        src_final = f"{src_ip}:{sport}" if sport else src_ip
+        dst_final = f"{dst_ip}:{dport}" if dport else dst_ip
+        
+        log_line = f"[{ts}] {label.ljust(15)} | {src_final.rjust(25)} -> {dst_final.ljust(25)}"
+        packet_queue.put(f"data: {log_line}\n\n")
+
+    # Ejecutar sniffer con el filtro dinámico
+    sniffer = Thread(
+        target=sniff, 
+        kwargs={
+            "filter": final_filter, 
+            "prn": packet_callback, 
+            "store": 0,
+            "promisc": True
+        },
+        daemon=True
+    )
+    sniffer.start()
+
+    yield f"data: [SISTEMA] Filtro aplicado: {final_filter.upper()}\n\n"
+
+    try:
+        while True:
+            try:
+                line = packet_queue.get(timeout=2.0)
+                yield line
+            except Empty:
+                yield ": keep-alive\n\n"
+    except GeneratorExit:
+        print(f"Cierre de auditoría para {vm_id}")
+
+# --- 2. RUTA API ACTUALIZADA ---
+
+@api_bp.route('/api/openstack/traffic/<vm_id>')
+def stream_traffic(vm_id):
+    # Recibimos los protocolos desde los checkboxes del frontend
+    protos = request.args.get('protos', '').split(',')
+    # Limpiamos strings vacíos
+    protos = [p for p in protos if p]
+    
+    return Response(
+        capture_packets(vm_id, protos), 
+        mimetype='text/event-stream'
+    )
+
+
+
+
 
 
 

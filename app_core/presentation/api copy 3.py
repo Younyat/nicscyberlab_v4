@@ -2348,22 +2348,83 @@ def install_host_tool(tool_id):
 
     return Response(generate(), mimetype='text/event-stream')
 
-
-
-
-
-#-------------------------------------------------------analisis de trafico
-
-
-
-# Carga endpoints de tráfico ICS (registra rutas en api_bp)
-import app_core.infrastructure.ics_traffic.traffic_api
+# Deberías hacer lo mismo en el endpoint de desinstalación
 
 
 
 
 
+import os
+import time
+from queue import Queue, Empty
+from threading import Thread
+from flask import Response
+from scapy.all import sniff, IP, TCP, UDP, Raw, wrpcap
 
+def capture_packets(vm_id):
+    packet_queue = Queue()
+    
+    # RUTA EXACTA: app_core/infrastructure/ics_traffic/captures/captures
+    base_path = os.path.join("app_core", "infrastructure", "ics_traffic", "captures", "captures")
+    
+    try:
+        if not os.path.exists(base_path):
+            os.makedirs(base_path, exist_ok=True)
+    except Exception as e:
+        yield f"data: [ERROR] No se pudo crear la carpeta: {str(e)}\n\n"
+        return
+
+    # Nombre del archivo con timestamp para no sobrescribir
+    filename = f"traffic_{vm_id}_{int(time.time())}.pcap"
+    pcap_file = os.path.join(base_path, filename)
+
+    def packet_callback(pkt):
+        if IP in pkt:
+            try:
+                # 1. ALMACENAMIENTO: Guardar paquete completo en disco
+                wrpcap(pcap_file, pkt, append=True)
+            except Exception:
+                pass # Evita que errores de disco detengan el análisis en vivo
+
+            # 2. ANÁLISIS EN VIVO: Resumen para la web
+            timestamp = time.strftime("%H:%M:%S")
+            proto = "TCP" if TCP in pkt else ("UDP" if UDP in pkt else "IP")
+            log_line = f"[{timestamp}] {proto} | {pkt[IP].src} -> {pkt[IP].dst}"
+            
+            if pkt.haslayer(Raw):
+                log_line += f" | DATA: {pkt[Raw].load.hex()[:20]}..."
+            
+            packet_queue.put(f"data: {log_line}\n\n")
+
+    # Iniciar sniffer (Ahora funcionará sin sudo gracias al setcap)
+    sniffer_thread = Thread(
+        target=sniff, 
+        kwargs={"filter": "ip", "prn": packet_callback, "store": 0},
+        daemon=True
+    )
+    sniffer_thread.start()
+
+    # Generador para el streaming de Flask
+    try:
+        yield f"data: [SISTEMA] Archivo: {pcap_file}\n\n"
+        yield "data: [SISTEMA] Análisis en vivo y grabación iniciados...\n\n"
+        
+        while True:
+            try:
+                message = packet_queue.get(timeout=1.0)
+                yield message
+            except Empty:
+                yield ": keep-alive\n\n"
+    except GeneratorExit:
+        print(f"Captura cerrada para {vm_id}. Archivo en {pcap_file}")
+
+@api_bp.route('/api/openstack/traffic/<vm_id>')
+def stream_traffic(vm_id):
+    return Response(
+        capture_packets(vm_id), 
+        mimetype='text/event-stream',
+        headers={'Cache-Control': 'no-cache', 'Connection': 'keep-alive'}
+    )
         
 @api_bp.route('/')
 def index():

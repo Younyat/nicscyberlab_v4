@@ -2352,17 +2352,109 @@ def install_host_tool(tool_id):
 
 
 
-#-------------------------------------------------------analisis de trafico
-
-
-
-# Carga endpoints de tráfico ICS (registra rutas en api_bp)
-import app_core.infrastructure.ics_traffic.traffic_api
 
 
 
 
 
+
+
+
+
+import os
+import sys
+import time
+import subprocess
+from queue import Queue, Empty
+from threading import Thread
+from flask import Response, request
+
+# --- AUTO-INSTALACIÓN INICIAL ---
+try:
+    import scapy
+except ImportError:
+    print("[SISTEMA] Scapy no encontrado. Instalando...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "scapy"])
+
+# IMPORTACIÓN SELECTIVA: Evitamos importar 'all' si da problemas
+from scapy.all import sniff, IP, TCP, UDP, Raw, wrpcap
+
+# --- CARGA SEGURA DE PROTOCOLOS ---
+# Eliminamos 'load_contrib' porque es lo que genera tu error de Profinet
+# La detección de Modbus y Profinet la haremos por puerto/ethertype abajo
+
+def capture_packets(vm_id, selected_protos):
+    packet_queue = Queue()
+    
+    base_path = os.path.join("app_core", "infrastructure", "ics_traffic", "captures", "captures")
+    os.makedirs(base_path, exist_ok=True)
+    pcap_file = os.path.join(base_path, f"traffic_{vm_id}_{int(time.time())}.pcap")
+
+    # Filtros BPF (Esto lo entiende el Kernel directamente, no Scapy)
+    proto_map = {
+        "modbus": "tcp port 502",
+        "profinet": "ether proto 0x8892 or udp port 34964",
+        "tcp": "tcp",
+        "udp": "udp"
+    }
+    
+    active_filters = [proto_map[p] for p in selected_protos if p in proto_map]
+    final_filter = " or ".join(active_filters) if active_filters else "ip"
+
+    def packet_callback(pkt):
+        label = "IP"
+        
+        # DETECCIÓN MANUAL: Esto no falla aunque no carguen los módulos de Scapy
+        if pkt.haslayer(TCP):
+            if pkt[TCP].dport == 502 or pkt[TCP].sport == 502:
+                label = "MODBUS TCP"
+            else:
+                label = "TCP"
+        elif pkt.haslayer(UDP):
+            if pkt[UDP].dport == 34964 or pkt[UDP].sport == 34964:
+                label = "PROFINET"
+            else:
+                label = "UDP"
+        elif hasattr(pkt, 'type') and pkt.type == 0x8892:
+            label = "PROFINET RT"
+
+        # Guardado en PCAP
+        try:
+            wrpcap(pcap_file, pkt, append=True)
+        except:
+            pass
+
+        # Formateo para la terminal web
+        ts = time.strftime("%H:%M:%S")
+        src = pkt[IP].src if IP in pkt else "Captura_L2"
+        dst = pkt[IP].dst if IP in pkt else "Captura_L2"
+        
+        log_line = f"[{ts}] {label.center(12)} | {src.rjust(15)} -> {dst.ljust(15)}"
+        packet_queue.put(f"data: {log_line}\n\n")
+
+    # Sniffer: Escuchando en todas las interfaces (iface=None)
+    sniffer = Thread(
+        target=sniff, 
+        kwargs={"filter": final_filter, "prn": packet_callback, "store": 0, "iface": None},
+        daemon=True
+    )
+    sniffer.start()
+
+    try:
+        yield f"data: [SISTEMA] Terminal Forense Activa en {vm_id}\n\n"
+        while True:
+            try:
+                yield packet_queue.get(timeout=2.0)
+            except Empty:
+                yield ": keep-alive\n\n"
+    except GeneratorExit:
+        print(f"Conexión cerrada para VM: {vm_id}")
+
+@api_bp.route('/api/openstack/traffic/<vm_id>')
+def stream_traffic(vm_id):
+    protos = request.args.get('protos', '')
+    selected = [p.strip() for p in protos.split(',')] if protos else []
+    return Response(capture_packets(vm_id, selected), mimetype='text/event-stream')
 
         
 @api_bp.route('/')

@@ -472,8 +472,8 @@ async function fetchJSON(url, label) {
 document.getElementById("btn-refresh").addEventListener("click", refreshAll);
 document.getElementById("btn-refresh-host").addEventListener("click", loadHostTools);
 
-
-
-
-
 refreshAll();
+
+
+
+

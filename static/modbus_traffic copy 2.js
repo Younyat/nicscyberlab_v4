@@ -1,4 +1,4 @@
-// 1. Elementos UI
+// 1. Elementos UI ajustados a tu HTML actual
 const UI = {
     overlay: document.getElementById("overlay"),
     terminal: document.getElementById("ics-log-terminal"),
@@ -7,7 +7,7 @@ const UI = {
     title: document.getElementById("overlay-title"),
     dot: document.getElementById("status-dot"),
     tblInstances: document.getElementById("tbl-instances"),
-    detailTitle: document.getElementById("detail-title")
+    detailTitle: document.getElementById("detail-title") // Único que mantenemos para feedback visual
 };
 
 let STATE = {
@@ -15,9 +15,7 @@ let STATE = {
     selected: null,
 };
 
-let trafficSource = null;
-
-// --- LÓGICA DE OVERLAY Y TERMINAL (SISTEMA) ---
+// --- LÓGICA DE OVERLAY Y TERMINAL ---
 
 function setOverlay(show, mode = 'install') {
     UI.overlay.classList.toggle("hidden", !show);
@@ -41,7 +39,7 @@ function setOverlay(show, mode = 'install') {
     }
 }
 
-// --- GESTIÓN DE INVENTARIO DE HERRAMIENTAS ---
+// --- GESTIÓN DE INVENTARIO DE HOST (HERRAMIENTAS) ---
 
 async function loadHostInventory() {
     try {
@@ -49,8 +47,7 @@ async function loadHostInventory() {
         const data = await res.json();
         
         UI.grid.innerHTML = "";
-        const lastUpdateEl = document.getElementById("last-update");
-        if (lastUpdateEl) lastUpdateEl.textContent = `LAST SYNC: ${new Date().toLocaleTimeString()}`;
+        document.getElementById("last-update").textContent = `LAST SYNC: ${new Date().toLocaleTimeString()}`;
 
         data.tools.forEach(tool => {
             const isInstalled = tool.status === "installed";
@@ -93,10 +90,14 @@ async function loadHostInventory() {
     }
 }
 
-// --- GESTIÓN DE INSTANCIAS (TABLA Y TRÁFICO) ---
+// --- GESTIÓN DE INSTANCIAS (TABLA) ---
 
 function escapeHtml(s) {
     return String(s ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+
+function badge(text, cls) {
+    return `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold ${cls}">${escapeHtml(text)}</span>`;
 }
 
 function renderInstanceRow(vm) {
@@ -110,72 +111,27 @@ function renderInstanceRow(vm) {
             <td class="py-3 pr-3 text-slate-400 text-xs">${escapeHtml(vm.flavor?.name || "-")}</td>
             <td class="py-3 pr-3 text-slate-400 text-xs">${(vm.volumes || []).length} vol</td>
             <td class="py-3 pr-3">${Object.keys(vm.tools || {}).length} tools</td>
-            <td class="py-3 pr-3 text-sky-500 font-bold text-[10px] uppercase">Capturar Tráfico</td>
+            <td class="py-3 pr-3">Ver evidencia</td>
         </tr>`;
 }
 
+// 4. Detalle de Instancia simplificado (Solo cambia el título)
 function showInstanceDetail(vm) {
     STATE.selected = vm;
     if (UI.detailTitle) {
         UI.detailTitle.textContent = `Seleccionada: ${vm.name} (${vm.id})`;
     }
+    console.log("Instancia seleccionada internamente:", vm.id);
 }
 
-// ESTA FUNCIÓN AHORA ACTIVA AMBAS COSAS: DETALLE Y TRÁFICO
 function bindInstanceRowClicks() {
     UI.tblInstances.querySelectorAll("tr[data-id]").forEach(tr => {
         tr.addEventListener("click", () => {
-            const id = tr.getAttribute("data-id");
-            const vm = STATE.instances.find(x => x.id === id);
-            if (vm) {
-                showInstanceDetail(vm);   // Actualiza el texto de la UI
-                openTrafficCapture(vm);   // Abre la ventana de captura de tráfico
-            }
+            const vm = STATE.instances.find(x => x.id === tr.getAttribute("data-id"));
+            if (vm) showInstanceDetail(vm);
         });
     });
 }
-
-// --- CAPTURA DE TRÁFICO (SSE) ---
-
-function openTrafficCapture(vm) {
-    const overlay = document.getElementById('traffic-overlay');
-    const terminal = document.getElementById('traffic-terminal');
-    const title = document.getElementById('traffic-vm-name');
-
-    overlay.classList.remove('hidden');
-    overlay.classList.add('flex');
-    title.textContent = `TARGET: ${vm.name} (${vm.ip_private})`;
-    terminal.textContent = `[INFO] Iniciando captura de paquetes en ${vm.name}...\n`;
-
-    if (trafficSource) trafficSource.close();
-
-    trafficSource = new EventSource(`/api/openstack/traffic/${vm.id}`);
-    
-    trafficSource.onmessage = (e) => {
-        const line = document.createElement('div');
-        line.className = "border-b border-white/5 py-0.5 hover:bg-white/5";
-        line.textContent = e.data;
-        terminal.appendChild(line);
-        terminal.scrollTop = terminal.scrollHeight;
-    };
-
-    trafficSource.onerror = () => {
-        const err = document.createElement('div');
-        err.className = "text-red-500 font-bold";
-        err.textContent = "[ERROR] Interrupción en el flujo de datos forenses.";
-        terminal.appendChild(err);
-        trafficSource.close();
-    };
-}
-
-function closeTraffic() {
-    if (trafficSource) trafficSource.close();
-    const trafficOverlay = document.getElementById('traffic-overlay');
-    trafficOverlay.classList.add('hidden');
-    trafficOverlay.classList.remove('flex');
-}
-
-// --- CARGA INICIAL ---
 
 async function loadInstancesFull() {
     try {
@@ -185,11 +141,40 @@ async function loadInstancesFull() {
         STATE.instances = data.instances || [];
         UI.tblInstances.innerHTML = STATE.instances.map(renderInstanceRow).join("");
         bindInstanceRowClicks();
+        if (STATE.instances.length > 0) showInstanceDetail(STATE.instances[0]);
     } catch (err) {
         UI.tblInstances.innerHTML = `<tr><td colspan="8" class="py-4 text-center text-red-400 font-mono">ERROR_CARGA_API</td></tr>`;
     }
 }
 
+// --- COMANDOS TERMINAL (Instalación / Versión) ---
+
+async function fetchVersion(toolId) {
+    setOverlay(true, 'version');
+    UI.terminal.textContent = `[NICS-SHELL] Iniciando auditoría de binario...\n----------------------------------------------------------------\n\n`;
+    try {
+        const res = await fetch(`/api/host/version/${toolId}`);
+        const data = await res.json();
+        UI.terminal.textContent += data.output;
+    } catch (e) {
+        UI.terminal.textContent += `\n[ERROR] Fallo en la comunicación.`;
+    }
+}
+
+function runInstallation(toolId) {
+    setOverlay(true, 'install');
+    const eventSource = new EventSource(`/api/host/install/${toolId}`);
+    eventSource.onmessage = (e) => {
+        if (e.data.includes("[FIN]")) {
+            eventSource.close();
+            setTimeout(() => { setOverlay(false); loadHostInventory(); }, 2000);
+        }
+        UI.terminal.textContent += e.data + "\n";
+        UI.terminal.scrollTop = UI.terminal.scrollHeight;
+    };
+}
+
+// Ejecución inicial
 document.addEventListener('DOMContentLoaded', () => {
     loadHostInventory();
     loadInstancesFull();
