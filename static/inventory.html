@@ -6,6 +6,53 @@
   <title>OpenStack Inventory | NICS CyberLab</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="initial.css">
+
+
+
+
+
+  <style>
+    .terminal-scroll::-webkit-scrollbar { width: 6px; }
+    .terminal-scroll::-webkit-scrollbar-track { background: #020617; }
+    .terminal-scroll::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+    .terminal-scroll::-webkit-scrollbar-thumb:hover { background: #334155; }
+    
+    .scanline {
+      width: 100%;
+      height: 2px;
+      background: rgba(16, 185, 129, 0.1);
+      position: absolute;
+      animation: scan 4s linear infinite;
+      z-index: 5;
+    }
+    @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+
+
+
+    #traffic-terminal {
+    white-space: pre; /* Mantiene los espacios en blanco del backend */
+    font-variant-ligatures: none;
+    line-height: 1.6;
+    letter-spacing: 0.05em;
+}
+
+/* Efecto de parpadeo suave para el cursor */
+.terminal-entry::before {
+    content: ">> ";
+    color: #10b981;
+    font-weight: bold;
+}
+
+
+
+  </style>
+
+
+
+
+
+
+
 </head>
 
 <body class="bg-slate-950 text-slate-100 min-h-screen flex">
@@ -76,6 +123,19 @@
   </section>
 
   
+
+
+ <section class="bg-slate-900/80 p-6 rounded-xl border border-slate-800 shadow-md">
+
+   <div class="space-y-4">
+      <h2 class="text-lg font-semibold text-sky-300">Host</h2>
+      <div id="tools-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+    </div>
+
+ </section>
+
+
+
 <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
   <div class="bg-slate-900/80 p-5 rounded-xl border border-slate-800 shadow-md">
     <div class="flex items-center justify-between mb-2">
@@ -112,6 +172,8 @@
 </section>
 
 
+
+    
   <!-- ROLES -->
   <section class="bg-slate-900/80 p-6 rounded-xl border border-slate-800 shadow-md">
     <h2 class="text-xl font-semibold text-sky-400 mb-4">Roles detectados</h2>
@@ -196,6 +258,8 @@
     </div>
   </section>
 
+  
+
 </main>
 
 
@@ -208,6 +272,15 @@
     Consultando OpenStack…
   </div>
 </div>
+
+
+
+
+  
+
+
+
+
 
 <script src="inventory.js"></script>
 </body>

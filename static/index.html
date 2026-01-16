@@ -32,7 +32,7 @@
             font-family: 'Inter', sans-serif; 
             /* Gradiente negro suave para oscurecer la imagen y ganar contraste técnico */
             background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), 
-                        url('image.png');
+                        url('images/image.png');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -65,7 +65,7 @@
         }
 
         .card-option:hover {
-            transform: scale(1.08) translateY(-25px) !important;
+            transform: scale(1.2) translateY(-25px) !important;
             z-index: 10;
             box-shadow: 0 45px 90px -20px rgba(0, 0, 0, 0.4);
             border-color: #232528;
@@ -185,7 +185,13 @@
                 <span class="text-lg font-bold text-slate-800 text-center uppercase leading-tight text-content" data-es="Trafico Modbus TCP" data-en="Modbus Traffic">Modbus Traffic</span>
             </div>
 
-            
+
+            <div onclick="openView('nicscyberlab_dashboard')" class="card-option flex flex-col items-center justify-center p-10 shadow-sm">
+                <div class="w-20 h-20 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center font-black text-2xl mb-8">09</div>
+                <span class="text-xs font-black text-rose-400 tracking-[0.2em] mb-2 uppercase text-content" data-es="Dashboard" data-en="Dashboard">Dashboard</span>
+                <span class="text-lg font-bold text-slate-800 text-center uppercase leading-tight text-content" data-es="Dashboard" data-en="Dashboard">Dashboard</span>
+            </div>
+    
         </div>
     </div>
 
@@ -555,6 +561,12 @@ document.addEventListener("input", function (e) {
 </div>
 
 
+
+
+
+<footer class="fixed bottom-0 left-0 w-full text-center text-gray-400 text-[15px] py-2 bg-black/20 backdrop-blur-md z-50">
+    2026 NICS Lab | University of Málaga
+</footer>
 
 </body>
 </html>
