@@ -28,8 +28,18 @@ def create_app():
         from app_core.infrastructure.ics_traffic.traffic_api import traffic_bp
         app.register_blueprint(traffic_bp)
 
-
+       
          
+
+
+        from app_core.infrastructure.host_tools_installer.host_tools_endpoints import host_tools_bp
+        # Lo registramos con el prefijo /api/host
+        app.register_blueprint(host_tools_bp, url_prefix='/api/host')
+        print("[OK] Host Tools Blueprint cargado correctamente")
+
+
+
+
         from app_core.presentation.api import api_bp
 
         app.register_blueprint(api_bp, url_prefix='/api')

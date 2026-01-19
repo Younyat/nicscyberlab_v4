@@ -137,69 +137,37 @@ function bindInstanceRowClicks() {
 
 // --- CAPTURA DE TRÁFICO (SSE) ---
 
-// Función para iniciar o reiniciar la captura con filtros
 function openTrafficCapture(vm) {
-    STATE.selected = vm;
-    
     const overlay = document.getElementById('traffic-overlay');
     const terminal = document.getElementById('traffic-terminal');
-    
+    const title = document.getElementById('traffic-vm-name');
+
     overlay.classList.remove('hidden');
     overlay.classList.add('flex');
-    
-    // 1. Obtener protocolos de los checkboxes
-    // IMPORTANTE: Asegúrate que tus <input> tengan la clase "proto-filter"
-    const checkboxes = document.querySelectorAll('.proto-filter:checked');
-    let protos = Array.from(checkboxes).map(cb => cb.value).join(',');
-
-    // Fallback: Si no hay nada marcado, por defecto mostramos modbus y tcp
-    if (!protos) protos = "modbus,tcp";
+    title.textContent = `TARGET: ${vm.name} (${vm.ip_private})`;
+    terminal.textContent = `[INFO] Iniciando captura de paquetes en ${vm.name}...\n`;
 
     if (trafficSource) trafficSource.close();
 
-    terminal.innerHTML = `<div class="text-sky-400 font-bold">[SISTEMA] Conectando a flujo de red para ${vm.ip_private}...</div>`;
-
-    // 2. Construir URL con parámetros
-    const url = `/api/openstack/traffic/${vm.id}?protos=${encodeURIComponent(protos)}`;
-    trafficSource = new EventSource(url);
+    trafficSource = new EventSource(`/api/openstack/traffic/${vm.id}`);
     
     trafficSource.onmessage = (e) => {
-        if (e.data.trim() === ":" || e.data.includes("keep-alive")) return;
-
         const line = document.createElement('div');
-        line.className = "font-mono text-[11px] py-0.5 border-b border-white/5";
-        
-        // Coloreado de Modbus
-        if (e.data.includes("MODBUS")) {
-            line.className += " text-emerald-400 font-bold";
-        }
-        
+        line.className = "border-b border-white/5 py-0.5 hover:bg-white/5";
         line.textContent = e.data;
         terminal.appendChild(line);
-        
-        // Auto-scroll
         terminal.scrollTop = terminal.scrollHeight;
     };
 
-    trafficSource.onerror = (err) => {
-        console.error("Error en SSE:", err);
+    trafficSource.onerror = () => {
+        const err = document.createElement('div');
+        err.className = "text-red-500 font-bold";
+        err.textContent = "[ERROR] Interrupción en el flujo de datos forenses.";
+        terminal.appendChild(err);
         trafficSource.close();
     };
 }
 
-// Vincula esta función al botón "Refrescar"
-function applyTrafficFilters() {
-    if (STATE.selected) {
-        openTrafficCapture(STATE.selected);
-    }
-}
-
-// ESTA FUNCIÓN DEBE SER LLAMADA POR EL BOTÓN "REFRESCAR CAPTURA"
-function applyTrafficFilters() {
-    if (STATE.selected) {
-        openTrafficCapture(STATE.selected);
-    }
-}
 function closeTraffic() {
     if (trafficSource) trafficSource.close();
     const trafficOverlay = document.getElementById('traffic-overlay');
