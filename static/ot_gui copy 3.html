@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F-35 Tactical HUD</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.0/cytoscape.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        body { 
+            font-family: 'Orbitron', sans-serif; 
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #00ff88;
+        }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        #cy {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, rgba(10,14,39,0.8) 0%, rgba(10,14,39,0.95) 100%),
+                        repeating-linear-gradient(0deg, rgba(0,255,136,0.03) 0px, transparent 1px, transparent 40px, rgba(0,255,136,0.03) 41px),
+                        repeating-linear-gradient(90deg, rgba(0,255,136,0.03) 0px, transparent 1px, transparent 40px, rgba(0,255,136,0.03) 41px);
+        }
+
+        .hud-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            background: 
+                linear-gradient(to right, rgba(0,255,136,0.1) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0,255,136,0.1) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+
+        .targeting-hud {
+            position: absolute;
+            display: none;
+            pointer-events: none;
+            z-index: 1000;
+            transform: translate(-50%, -50%);
+        }
+        
+        .targeting-hud.active {
+            display: block;
+            animation: targetLock 0.3s ease-out;
+        }
+
+        @keyframes targetLock {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .reticle {
+            width: 200px;
+            height: 200px;
+            border: 2px solid #00ff88;
+            border-radius: 50%;
+            position: relative;
+            box-shadow: 0 0 30px rgba(0,255,136,0.4), inset 0 0 30px rgba(0,255,136,0.2);
+        }
+
+        .reticle::before, .reticle::after {
+            content: '';
+            position: absolute;
+            background: #00ff88;
+        }
+        
+        .reticle::before { width: 40px; height: 2px; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+        .reticle::after { width: 2px; height: 40px; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+
+        .context-menu {
+            position: absolute;
+            display: none;
+            background: rgba(10, 14, 39, 0.98);
+            border: 2px solid #00ff88;
+            border-radius: 12px;
+            padding: 8px;
+            min-width: 280px;
+            box-shadow: 0 0 40px rgba(0,255,136,0.6);
+            z-index: 10000;
+            backdrop-filter: blur(10px);
+        }
+
+        .context-menu.active { display: block; }
+
+        .context-menu-section { margin-bottom: 12px; }
+
+        .context-menu-title {
+            font-size: 9px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            color: #00ff88;
+            margin-bottom: 6px;
+            padding-left: 8px;
+            border-left: 3px solid #00ff88;
+        }
+
+        .context-menu-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0,255,136,0.05);
+            border: 1px solid rgba(0,255,136,0.2);
+            margin-bottom: 4px;
+        }
+
+        .context-menu-item:hover {
+            background: rgba(0,255,136,0.2);
+            border-color: #00ff88;
+            transform: translateX(4px);
+        }
+
+        .context-menu-item.attack { color: #ff3366; }
+        .context-menu-item.defense { color: #00aaff; }
+        .context-menu-item.prevention { color: #ffaa00; }
+
+        #combat-log::-webkit-scrollbar { width: 6px; }
+        #combat-log::-webkit-scrollbar-track { background: rgba(0,255,136,0.1); }
+        #combat-log::-webkit-scrollbar-thumb { background: #00ff88; border-radius: 10px; }
+
+        .hud-corner {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 2px solid #00ff88;
+        }
+
+        .hud-corner.tl { top: 20px; left: 20px; border-right: none; border-bottom: none; }
+        .hud-corner.tr { top: 20px; right: 20px; border-left: none; border-bottom: none; }
+        .hud-corner.bl { bottom: 20px; left: 20px; border-right: none; border-top: none; }
+        .hud-corner.br { bottom: 20px; right: 20px; border-left: none; border-top: none; }
+
+        .scan-line {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ff88, transparent);
+            animation: scanMove 4s linear infinite;
+            opacity: 0.3;
+        }
+
+        @keyframes scanMove { 0% { top: 0; } 100% { top: 100%; } }
+
+        .status-indicator { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        .status-online { background: #00ff88; box-shadow: 0 0 8px #00ff88; }
+        .status-offline { background: #ff3366; box-shadow: 0 0 8px #ff3366; }
+        .status-unknown { background: #ffaa00; box-shadow: 0 0 8px #ffaa00; }
+    </style>
+</head>
+<body class="h-screen overflow-hidden">
+
+    <div class="hud-corner tl"></div>
+    <div class="hud-corner tr"></div>
+    <div class="hud-corner bl"></div>
+    <div class="hud-corner br"></div>
+
+    <header class="absolute top-0 left-0 right-0 z-50 p-6 flex justify-between items-start">
+        <div>
+            <div class="text-xs font-black tracking-widest text-[#00ff88] mb-1">TACTICAL CYBER OPS</div>
+            <h1 class="text-3xl font-black tracking-tight text-white flex items-center gap-3">
+                <span class="w-10 h-10 bg-gradient-to-br from-[#00ff88] to-[#00aa66] rounded-lg flex items-center justify-center">
+                    <i class="fas fa-crosshairs text-[#0a0e27] text-lg"></i>
+                </span>
+                F-35 COMMAND HUD
+            </h1>
+            <div class="text-xs font-mono text-[#00ff88]/60 mt-1">OPENSTACK BATTLEFIELD - LIVE FEED</div>
+        </div>
+
+        <div class="flex gap-3">
+            <button onclick="refreshBattlefield()" class="px-5 py-3 bg-[#00ff88]/10 border-2 border-[#00ff88] rounded-lg text-xs font-black text-[#00ff88] hover:bg-[#00ff88]/20 transition-all">
+                <i class="fas fa-sync-alt mr-2"></i> REFRESH SCAN
+            </button>
+            <button onclick="toggleAutoRefresh()" class="px-5 py-3 bg-[#0a0e27] border-2 border-[#00aaff] rounded-lg text-xs font-black text-[#00aaff] hover:bg-[#00aaff]/10 transition-all">
+                <i class="fas fa-satellite-dish mr-2"></i> AUTO-SCAN: <span id="auto-status">OFF</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="h-screen flex pt-24 pb-6 px-6 gap-6">
+        <div class="flex-1 relative">
+            <div class="h-full bg-[#0a0e27]/60 border-2 border-[#00ff88]/30 rounded-2xl overflow-hidden relative backdrop-blur-sm">
+                <div class="hud-overlay"></div>
+                <div class="scan-line"></div>
+                <div id="cy"></div>
+                
+                <div class="absolute bottom-8 left-8 flex gap-2">
+                    <button onclick="cy.zoom(cy.zoom()+0.15)" class="w-12 h-12 bg-[#00ff88]/20 border-2 border-[#00ff88] rounded-lg flex items-center justify-center text-[#00ff88] hover:bg-[#00ff88]/40 transition-all"><i class="fas fa-plus"></i></button>
+                    <button onclick="cy.zoom(cy.zoom()-0.15)" class="w-12 h-12 bg-[#00ff88]/20 border-2 border-[#00ff88] rounded-lg flex items-center justify-center text-[#00ff88] hover:bg-[#00ff88]/40 transition-all"><i class="fas fa-minus"></i></button>
+                    <button onclick="cy.fit(cy.nodes(), 80)" class="w-12 h-12 bg-[#00ff88] rounded-lg flex items-center justify-center text-[#0a0e27] font-black hover:bg-[#00dd77] transition-all"><i class="fas fa-expand"></i></button>
+                </div>
+
+                <div class="absolute top-6 left-6 bg-[#0a0e27]/90 border-2 border-[#00ff88] rounded-xl p-4 backdrop-blur-sm">
+                    <div class="text-[9px] font-black text-[#00ff88] mb-3 tracking-widest">THEATER STATUS</div>
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div><div id="target-count" class="text-2xl font-black text-white">0</div><div class="text-[8px] text-[#00ff88]/60 font-bold">TARGETS</div></div>
+                        <div><div id="link-count" class="text-2xl font-black text-white">0</div><div class="text-[8px] text-[#00ff88]/60 font-bold">LINKS</div></div>
+                        <div><div id="threat-level" class="text-2xl font-black text-[#ff3366]">LOW</div><div class="text-[8px] text-[#00ff88]/60 font-bold">THREAT</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <aside class="w-[420px] flex flex-col gap-6">
+            <div class="bg-[#0a0e27]/90 border-2 border-[#00ff88] rounded-2xl p-6 flex-1 backdrop-blur-sm">
+                <div class="flex items-center gap-4 mb-6 pb-4 border-b-2 border-[#00ff88]/20">
+                    <div id="target-icon-container" class="w-14 h-14 bg-[#00ff88]/10 border-2 border-[#00ff88] rounded-xl flex items-center justify-center text-2xl text-[#00ff88]">
+                        <i id="target-icon" class="fas fa-bullseye"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h3 id="target-name" class="text-lg font-black text-white truncate">NO TARGET SELECTED</h3>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span id="target-status-indicator" class="status-indicator status-unknown"></span>
+                            <p id="target-role" class="text-[10px] font-bold text-[#00ff88]/60 uppercase tracking-widest">AWAITING LOCK</p>
+                        </div>
+                    </div>
+                </div>
+                <div id="target-details" class="space-y-4">
+                    <div class="text-center py-20">
+                        <i class="fas fa-crosshairs text-[#00ff88]/20 text-5xl mb-4"></i>
+                        <p class="text-sm text-[#00ff88]/60">HOVER OVER TARGET FOR RETICLE LOCK</p>
+                        <p class="text-xs text-[#00ff88]/40 mt-2">RIGHT-CLICK FOR TACTICAL OPTIONS</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="h-56 bg-[#0a0e27]/90 border-2 border-[#00ff88] rounded-2xl p-5 backdrop-blur-sm">
+                <div class="flex justify-between items-center mb-3 pb-2 border-b border-[#00ff88]/20">
+                    <span class="text-[9px] font-black text-[#00ff88] tracking-widest">COMBAT LOG</span>
+                    <button onclick="clearLog()" class="text-[8px] text-[#00ff88]/60 hover:text-[#00ff88] uppercase font-bold">CLEAR</button>
+                </div>
+                <div id="combat-log" class="h-40 overflow-y-auto font-mono text-[10px] text-[#00ff88]/80 space-y-1"></div>
+            </div>
+        </aside>
+    </div>
+
+    <div id="targeting-hud" class="targeting-hud">
+        <div class="reticle"></div>
+        <div class="absolute top-full left-1/2 transform -translate-x-1/2 mt-4 bg-[#0a0e27]/95 border-2 border-[#00ff88] rounded-lg p-3 min-w-[200px] backdrop-blur-sm">
+            <div id="hover-name" class="text-xs font-black text-white mb-2"></div>
+            <div class="space-y-1 text-[10px] font-mono">
+                <div class="flex justify-between"><span class="text-[#00ff88]/60">IP:</span><span id="hover-ip" class="text-[#00ff88]">-</span></div>
+                <div class="flex justify-between"><span class="text-[#00ff88]/60">ROLE:</span><span id="hover-role" class="text-[#00ff88]">-</span></div>
+                <div class="flex justify-between"><span class="text-[#00ff88]/60">STATUS:</span><span id="hover-status" class="text-[#00ff88]">-</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="context-menu" class="context-menu">
+        <div id="context-attack" class="context-menu-section">
+            <div class="context-menu-title">⚔️ OFFENSIVE OPS</div>
+            <div id="attack-actions"></div>
+        </div>
+        <div id="context-defense" class="context-menu-section">
+            <div class="context-menu-title">🛡️ DEFENSIVE OPS</div>
+            <div id="defense-actions"></div>
+        </div>
+        <div id="context-prevention" class="context-menu-section">
+            <div class="context-menu-title">🔒 PREVENTIVE OPS</div>
+            <div id="prevention-actions"></div>
+        </div>
+    </div>
+
+    <script>
+        let cy;
+        let autoRefresh = false;
+        let autoRefreshInterval;
+        const API_BASE = "http://127.0.0.1:5001/api";
+
+        const ROLE_CONFIG = {
+            plc: {
+                icon: "fa-microchip", color: "#00aaff", label: "PLC CONTROLLER",
+                attack: [{ id: "modbus_scan", label: "Modbus Port Scan", icon: "fa-radar" }, { id: "plc_dos", label: "PLC DoS Attack", icon: "fa-bomb" }],
+                defense: [{ id: "fw_enable", label: "Enable Firewall", icon: "fa-shield" }],
+                prevention: [{ id: "patch", label: "Apply Patches", icon: "fa-download" }]
+            },
+            scada: {
+                icon: "fa-desktop", color: "#ff6600", label: "SCADA SYSTEM",
+                attack: [{ id: "web_scan", label: "Web Vuln Scan", icon: "fa-spider" }],
+                defense: [{ id: "ids_deploy", label: "Deploy IDS", icon: "fa-eye" }],
+                prevention: [{ id: "backup", label: "Create Backup", icon: "fa-save" }]
+            },
+            attacker: {
+                icon: "fa-user-ninja", color: "#ff3366", label: "ATTACKER NODE",
+                attack: [{ id: "c2_open", label: "Open C2 Console", icon: "fa-satellite-dish" }],
+                defense: [], prevention: [{ id: "honeypot", label: "Deploy Honeypot", icon: "fa-spider" }]
+            },
+            monitor: {
+                icon: "fa-radar", color: "#00ff88", label: "MONITOR STATION",
+                attack: [], defense: [{ id: "ids_reload", label: "Reload Rules", icon: "fa-sync" }],
+                prevention: [{ id: "baseline", label: "Create Baseline", icon: "fa-chart-line" }]
+            },
+            victim: {
+                icon: "fa-server", color: "#ffaa00", label: "VICTIM HOST",
+                attack: [{ id: "recon", label: "Recon Scan", icon: "fa-search" }],
+                defense: [{ id: "quarantine", label: "Quarantine", icon: "fa-ban" }],
+                prevention: [{ id: "vuln_scan", label: "Vuln Scan", icon: "fa-bug" }]
+            },
+            unknown: { icon: "fa-question-circle", color: "#888888", label: "UNKNOWN", attack: [], defense: [], prevention: [] }
+        };
+
+        document.addEventListener("DOMContentLoaded", () => {
+            cy = cytoscape({
+                container: document.getElementById("cy"),
+                style: [
+                    { selector: "node", style: { 'label': 'data(name)', 'text-valign': 'bottom', 'text-margin-y': 10, 'color': '#00ff88', 'font-family': 'Orbitron', 'background-color': d => ROLE_CONFIG[d.data('role')]?.color || '#888888', 'border-width': 2, 'border-color': '#00ff88', 'width': 50, 'height': 50 }},
+                    { selector: "edge", style: { 'width': 2, 'line-color': '#00ff88', 'opacity': 0.2, 'curve-style': 'bezier' }},
+                    { selector: ':selected', style: { 'border-width': 4, 'border-color': '#ffaa00' }}
+                ],
+                layout: { name: "preset" }
+            });
+
+            cy.on("tap", "node", e => renderTargetDetails(e.target));
+            cy.on("mouseover", "node", handleNodeHover);
+            cy.on("mouseout", "node", () => document.getElementById("targeting-hud").classList.remove("active"));
+            cy.on("cxttap", "node", handleRightClick);
+            
+            document.addEventListener("click", () => document.getElementById("context-menu").classList.remove("active"));
+            refreshBattlefield();
+        });
+async function refreshBattlefield() {
+    logCombat("SCAN", "Iniciando escaneo táctico de red...");
+    
+    try {
+        // Petición al endpoint que unifica OpenStack + JSON
+        const res = await fetch(`${API_BASE}/hud/instances`);
+        
+        if (!res.ok) {
+            throw new Error(`Error en el servidor: ${res.status}`);
+        }
+
+        const data = await res.json();
+        
+        // Limpiamos el mapa actual
+        cy.elements().remove();
+
+        const instances = data.instances || [];
+
+        if (instances.length === 0) {
+            logCombat("WARN", "No se detectaron objetivos en el sector.");
+        } else {
+            instances.forEach((inst, i) => {
+                let nodePosition;
+
+                // Verificamos si el backend nos envió la posición del archivo JSON
+                if (inst.position && typeof inst.position.x === 'number') {
+                    nodePosition = {
+                        x: inst.position.x,
+                        y: inst.position.y
+                    };
+                } else {
+                    // Si no hay posición, creamos una disposición circular automática
+                    const angle = (i / instances.length) * 2 * Math.PI;
+                    nodePosition = {
+                        x: 500 + Math.cos(angle) * 300,
+                        y: 400 + Math.sin(angle) * 300
+                    };
+                }
+
+                // Añadimos el nodo al mapa de Cytoscape
+                cy.add({
+                    group: "nodes",
+                    data: {
+                        id: inst.id,
+                        name: inst.name,
+                        status: inst.status,
+                        role: inst.role,
+                        ip: inst.ip,
+                        os: inst.os,
+                        strategies: inst.strategies
+                    },
+                    position: nodePosition
+                });
+            });
+
+            // Ajustar el zoom automáticamente para ver todos los nodos
+            cy.fit(null, 50); 
+            
+            // Si hay conexiones (edges) en tu JSON y las envías, podrías añadirlas aquí:
+            if (data.edges) {
+                cy.add(data.edges.map(e => ({ group: "edges", data: e })));
+            }
+
+            updateStats();
+            logCombat("SUCCESS", `Detección completa: ${instances.length} activos identificados.`);
+        }
+    } catch (error) {
+        console.error("Error en refreshBattlefield:", error);
+        logCombat("ERROR", `Fallo en el enlace de datos: ${error.message}`);
+    }
+}
+        function handleNodeHover(e) {
+            const node = e.target;
+            const pos = node.renderedPosition();
+            const hud = document.getElementById("targeting-hud");
+            hud.style.left = pos.x + "px"; hud.style.top = pos.y + "px";
+            hud.classList.add("active");
+            document.getElementById("hover-name").textContent = node.data('name');
+            document.getElementById("hover-ip").textContent = node.data('ip') || "N/A";
+            document.getElementById("hover-role").textContent = node.data('role').toUpperCase();
+            document.getElementById("hover-status").textContent = node.data('status');
+        }
+
+        function handleRightClick(e) {
+            e.preventDefault();
+            const menu = document.getElementById("context-menu");
+            const pos = e.renderedPosition;
+            menu.style.left = pos.x + "px"; menu.style.top = pos.y + "px";
+            menu.classList.add("active");
+            const config = ROLE_CONFIG[e.target.data('role')] || ROLE_CONFIG.unknown;
+            populateContextActions("attack-actions", config.attack, e.target.id());
+            populateContextActions("defense-actions", config.defense, e.target.id());
+            populateContextActions("prevention-actions", config.prevention, e.target.id());
+        }
+
+        function populateContextActions(id, actions, targetId) {
+            const container = document.getElementById(id);
+            container.innerHTML = actions.length ? "" : '<div class="text-[9px] opacity-40 p-2">No disp.</div>';
+            actions.forEach(a => {
+                const div = document.createElement("div");
+                div.className = `context-menu-item ${id.split('-')[0]}`;
+                div.innerHTML = `<i class="fas ${a.icon}"></i> ${a.label}`;
+                div.onclick = () => executeAction(targetId, a.id, a.label);
+                container.appendChild(div);
+            });
+        }
+
+        async function executeAction(targetId, actionId, label) {
+            logCombat("ACTION", `Ejecutando ${label}...`);
+            try {
+                const res = await fetch(`${API_BASE}/hud/action`, {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ target_id: targetId, action: actionId })
+                });
+                const result = await res.json();
+                logCombat("RESULT", result.message || "Acción confirmada");
+            } catch (e) { logCombat("ERROR", "Acción fallida"); }
+        }
+
+        function renderTargetDetails(node) {
+            const data = node.data();
+            const config = ROLE_CONFIG[data.role] || ROLE_CONFIG.unknown;
+            document.getElementById("target-name").textContent = data.name;
+            document.getElementById("target-role").textContent = config.label;
+            document.getElementById("target-icon").className = `fas ${config.icon}`;
+            document.getElementById("target-status-indicator").className = `status-indicator ${data.status === 'ACTIVE' ? 'status-online' : 'status-offline'}`;
+            document.getElementById("target-details").innerHTML = `
+                <div class="grid grid-cols-2 gap-4 text-[11px] font-mono">
+                    <div><span class="opacity-50">IP</span><br>${data.ip || "N/A"}</div>
+                    <div><span class="opacity-50">STATUS</span><br>${data.status}</div>
+                    <div><span class="opacity-50">OS</span><br>${data.os || "LINUX"}</div>
+                </div>`;
+        }
+
+        function updateStats() {
+            document.getElementById("target-count").textContent = cy.nodes().length;
+            document.getElementById("link-count").textContent = cy.edges().length;
+        }
+
+        function logCombat(type, msg) {
+            const log = document.getElementById("combat-log");
+            const div = document.createElement("div");
+            div.innerHTML = `<span class="opacity-40">[${new Date().toLocaleTimeString()}]</span> <span class="font-bold text-white">${type}:</span> ${msg}`;
+            log.appendChild(div);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function toggleAutoRefresh() {
+            autoRefresh = !autoRefresh;
+            document.getElementById("auto-status").textContent = autoRefresh ? "ON" : "OFF";
+            if (autoRefresh) autoRefreshInterval = setInterval(refreshBattlefield, 5000);
+            else clearInterval(autoRefreshInterval);
+        }
+
+        function clearLog() { document.getElementById("combat-log").innerHTML = ""; }
+    </script>
+</body>
+</html>

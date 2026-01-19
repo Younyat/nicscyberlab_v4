@@ -2577,42 +2577,265 @@ def api_host_inventory():
 
     return jsonify({"tools": out})
 
-# ===========================================-------------------------------------------------------TRAFFIC begin--------------------------------------------------------------------------------------------------- =================
+# ============================================================
 # 4) LIVE TRAFFIC – CORE LOGIC
 # ============================================================
 
+def get_vm_ips_live(vm_id):
+    """
+    Extrae IPs IPv4 del campo 'addresses' (TODOS los formatos).
+    """
+    try:
+        data = run_openstack_json(["server", "show", vm_id])
+        addresses = data.get("addresses")
+        ips = []
+
+        if isinstance(addresses, dict):
+            for entries in addresses.values():
+                if isinstance(entries, list):
+                    for item in entries:
+                        if isinstance(item, dict) and "addr" in item:
+                            ips.append(item["addr"])
+                        elif isinstance(item, str):
+                            ips.extend(re.findall(r"[0-9]+(?:\.[0-9]+){3}", item))
+                elif isinstance(entries, str):
+                    ips.extend(re.findall(r"[0-9]+(?:\.[0-9]+){3}", entries))
+
+        elif isinstance(addresses, str):
+            ips.extend(re.findall(r"[0-9]+(?:\.[0-9]+){3}", addresses))
+
+        return list(set(ips))
+
+    except Exception as e:
+        print(f"[ERROR] OpenStack IP discovery fallo: {e}")
+        return []
 
 
+def find_vm_sniff_iface(vm_ips):
+    """
+    Resuelve la interfaz qbr/tap asociada a una VM usando ARP.
+    """
+    try:
+        neigh = subprocess.check_output(
+            ["ip", "neigh", "show"],
+            universal_newlines=True
+        )
+    except Exception:
+        return None
+
+    for line in neigh.splitlines():
+        for ip in vm_ips:
+            if ip in line and "dev" in line:
+                parts = line.split()
+                return parts[parts.index("dev") + 1]
+
+    return None
 
 
+def capture_packets(vm_id, selected_protos):
+    packet_queue = Queue()
 
-from app_core.infrastructure.ics_traffic.traffic_api import traffic_bp
+    vm_ips = get_vm_ips_live(vm_id)
+    if not vm_ips:
+        yield "data: [ERROR] No se pudieron obtener IPs de la VM\n\n"
+        return
 
-# ... (otras configuraciones de tu app) ...
+    sniff_iface = find_vm_sniff_iface(vm_ips)
+    if not sniff_iface:
+        yield "data: [ERROR] No se pudo resolver la interfaz de red de la VM\n\n"
+        return
 
-# Registramos el blueprint de tráfico
-api_bp.register_blueprint(traffic_bp)
+    ip_filter = " or ".join(f"host {ip}" for ip in vm_ips)
 
-# ===========================================-------------------------------------------------------TRAFFIC end--------------------------------------------------------------------------------------------------- =================
+    proto_bits = []
+    if "modbus" in selected_protos:
+        proto_bits.append("tcp port 502")
+    if "profinet" in selected_protos:
+        proto_bits.append("udp port 34964 or udp port 34962")
+    if "tcp" in selected_protos:
+        proto_bits.append("tcp")
+    if "udp" in selected_protos:
+        proto_bits.append("udp")
+
+    proto_filter = " or ".join(proto_bits) if proto_bits else "ip"
+    final_bpf = f"({ip_filter}) and ({proto_filter})"
+
+    root = get_project_root()
+    capture_dir = os.path.join(
+        root, "app_core", "infrastructure", "ics_traffic", "captures" ,"captures"
+    )
+    os.makedirs(capture_dir, exist_ok=True)
+
+    pcap_path = os.path.join(
+        capture_dir, f"audit_{vm_id}_{int(time.time())}.pcap"
+    )
+
+    def packet_callback(pkt):
+        if not pkt.haslayer(IP):
+            return
+
+        label = "IP"
+        src_ip, dst_ip = pkt[IP].src, pkt[IP].dst
+        sport = dport = ""
+
+        if pkt.haslayer(TCP):
+            sport, dport = str(pkt[TCP].sport), str(pkt[TCP].dport)
+            label = "MODBUS TCP" if "502" in (sport, dport) else "TCP"
+
+        elif pkt.haslayer(UDP):
+            sport, dport = str(pkt[UDP].sport), str(pkt[UDP].dport)
+            label = "PROFINET" if dport in ("34964", "34962") else "UDP"
+
+        try:
+            wrpcap(pcap_path, pkt, append=True)
+        except Exception:
+            pass
+
+        ts = time.strftime("%H:%M:%S")
+        src = f"{src_ip}:{sport}" if sport else src_ip
+        dst = f"{dst_ip}:{dport}" if dport else dst_ip
+        packet_queue.put(
+            f"data: [{ts}] {label:<12} | {src:>22} -> {dst:<22}\n\n"
+        )
+
+    Thread(
+        target=sniff,
+        kwargs={
+            "iface": sniff_iface,
+            "filter": final_bpf,
+            "prn": packet_callback,
+            "store": 0,
+            "promisc": True
+        },
+        daemon=True
+    ).start()
+
+    yield f"data: [SISTEMA] Interfaz: {sniff_iface}\n\n"
+    yield f"data: [SISTEMA] IPs: {', '.join(vm_ips)}\n\n"
+    yield f"data: [SISTEMA] BPF: {final_bpf}\n\n"
+
+    try:
+        while True:
+            try:
+                yield packet_queue.get(timeout=2)
+            except Empty:
+                yield ": keep-alive\n\n"
+    except GeneratorExit:
+        pass
+
+# ============================================================
+# 5) SSE ENDPOINT
+# ============================================================
+
+@api_bp.route("/api/openstack/traffic/<vm_id>", methods=["GET"])
+def stream_traffic(vm_id):
+    protos = [
+        p.strip().lower()
+        for p in request.args.get("protos", "").split(",")
+        if p.strip()
+    ]
+
+    return Response(
+        capture_packets(vm_id, protos),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
+
 
 
 
 #---------------------------------------------------------------------------------------------------------------------------------------------------------- analizar terafico end-------
 #-------------------------------------Dashboard f35 begin------------------------------------------------------
 
-
-
-
+#from app_core.infrastructure.dashboard.dashboard_F35 import dashboard_f35
+#api_bp.register_blueprint(dashboard_f35)
 
 from app_core.infrastructure.dashboard.dashboard_F35 import hud_bp
 api_bp.register_blueprint(hud_bp, url_prefix='/api/hud')
 
 
 
-from app_core.infrastructure.attack.ssh_launcher import attack_infra_bp
+#from app_core.infrastructure.attack.launcher import attack_bp
+#api_bp.register_blueprint(attack_bp, url_prefix='/api/hud')
 
-api_bp.register_blueprint(attack_infra_bp, url_prefix='/api/hud/attack')
 
+
+# En lugar de from app_core.presentation.attack.launcher ...
+
+
+
+# Tus registros actuales
+# api_bp.register_blueprint(hud_bp, url_prefix='/hud')
+
+
+import os
+import sys
+import time
+import subprocess
+from flask import Response, stream_with_context, request
+
+# --- MANAGER SSH TACTICAL ---
+try:
+    import paramiko
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "paramiko"])
+    import paramiko
+
+class SSHTacticalManager:
+    def __init__(self, key_path="~/.ssh/my_key"): # Asegúrate de que esta ruta sea correcta
+        self.key_path = os.path.expanduser(key_path)
+        self.client = paramiko.SSHClient()
+        self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    def execute_remote_stream(self, host, user, local_script_path, args=[]):
+        try:
+            self.client.connect(host, username=user, key_filename=self.key_path, timeout=15)
+            
+            sftp = self.client.open_sftp()
+            remote_path = f"/tmp/exec_{int(time.time())}.sh"
+            sftp.put(local_script_path, remote_path)
+            sftp.chmod(remote_path, 0o755)
+            sftp.close()
+
+            transport = self.client.get_transport()
+            channel = transport.open_session()
+            channel.get_pty()
+            channel.exec_command(f"{remote_path} {' '.join(args)}")
+
+            while True:
+                if channel.recv_ready():
+                    data = channel.recv(1024).decode('utf-8', errors='ignore')
+                    if not data: break
+                    yield f"data: {data}\n\n" # Formato SSE para estabilidad
+                if channel.exit_status_ready():
+                    break
+
+            self.client.exec_command(f"rm {remote_path}")
+            self.client.close()
+        except Exception as e:
+            yield f"data: [MANAGER ERROR] {str(e)}\n\n"
+
+# --- INSTANCIA GLOBAL (Esto resuelve el NameError) ---
+manager = SSHTacticalManager(key_path="/home/younes/nicscyberlab_v3/admin-openrc.sh") 
+# NOTA: Asegúrate de que key_path apunte a tu clave PRIVADA SSH (.pem o id_rsa), no al script openrc.
+
+@api_bp.route('/api/hud/attack/launch')
+def launch_attack():
+    attacker_ip = request.args.get('ip')
+    target_ip = request.args.get('target')
+    script_name = request.args.get('script') # 'ping_target.sh'
+    
+    user = "debian" # O el usuario SSH de la máquina remota
+    local_script = f"/home/younes/nicscyberlab_v3/attack/scripts/{script_name}"
+
+    return Response(
+        stream_with_context(manager.execute_remote_stream(attacker_ip, user, local_script, [target_ip])),
+        mimetype='text/event-stream'
+    )
 
 
 
