@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ============================================================
-#  WAZUH AGENT UNINSTALLER (INTEGRATED WITH PYTHON MANAGER)
+#  WAZUH AGENT UNINSTALLER (IMPROVED & ROBUST)
 # ============================================================
 
 # --- 1. CONFIGURACION DE RUTAS RELATIVAS ---
@@ -11,7 +11,6 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../" && pwd)"
 ADMIN_OPENRC="$PROJECT_ROOT/admin-openrc.sh"
 
 # --- 2. PARAMETROS RECIBIDOS DESDE EL MANAGER (Python) ---
-# $1: instance | $2: ssh_key | $3: target_ip | $4: ssh_user
 VICTIM_NAME="${1:-}"
 SSH_KEY="${2:-}"
 TARGET_IP="${3:-}"
@@ -24,16 +23,18 @@ fi
 
 # --- 3. CARGAR ENTORNO OPENSTACK ---
 if [[ -f "$ADMIN_OPENRC" ]]; then 
+    # shellcheck disable=SC1090
     source "$ADMIN_OPENRC"
     if ! openstack token issue &>/dev/null; then
         echo "ERROR: Credenciales de OpenStack expiradas."
         exit 1
     fi
 else 
-    echo "ERROR: No se encontro admin-openrc.sh"; exit 1
+    echo "ERROR: No se encontro admin-openrc.sh en $ADMIN_OPENRC"; exit 1
 fi
 
 # --- 4. DESCUBRIMIENTO DEL MONITOR (MANAGER) ---
+echo " [INFO] Localizando Manager en OpenStack..."
 MANAGER_NAME=$(openstack server list --name monitor -f value -c Name | head -n 1)
 
 if [[ -z "$MANAGER_NAME" ]]; then
@@ -62,6 +63,12 @@ cat > "$TEMP_WORK_DIR/purgar_wazuh.yml" <<'EOF'
   hosts: victim
   become: true
   tasks:
+    - name: Detener servicio wazuh-agent
+      systemd:
+        name: wazuh-agent
+        state: stopped
+      ignore_errors: true
+
     - name: Purga de paquete wazuh-agent
       apt:
         name: wazuh-agent
@@ -78,17 +85,25 @@ cat > "$TEMP_WORK_DIR/purgar_wazuh.yml" <<'EOF'
 - name: Limpieza en Manager (Monitor)
   hosts: manager
   become: true
+  vars:
+    # Pasamos la IP de la victima para buscar por IP si el nombre falla
+    v_ip: "{{ groups['victim'][0] }}"
   tasks:
-    - name: Busqueda de ID de agente
+    - name: Busqueda de ID de agente (por Nombre o IP)
       shell: |
-        /var/ossec/bin/manage_agents -l | grep -i "{{ victim_name }}" | cut -d',' -f1 | awk '{print $2}' | head -n 1
+        /var/ossec/bin/manage_agents -l | grep -E "{{ victim_name }}|{{ v_ip }}" | awk -F'[, ]+' '{for(i=1;i<=NF;i++) if($i ~ /^ID:/) print $(i+1)}' | head -n 1
       register: agent_id
       changed_when: false
 
-    - name: Eliminacion de registro de agente
-      shell: "/var/ossec/bin/manage_agents -r {{ agent_id.stdout }}"
+    - name: Mostrar ID encontrado para depuracion
+      debug:
+        msg: "ID detectado en Manager: {{ agent_id.stdout }}"
       when: agent_id.stdout != ""
-      notify: Restart Wazuh
+
+    - name: Eliminacion de registro de agente
+      command: "/var/ossec/bin/manage_agents -r {{ agent_id.stdout }}"
+      when: agent_id.stdout != ""
+      register: removal
 
     - name: Borrado de base de datos de agente
       file:
@@ -96,14 +111,20 @@ cat > "$TEMP_WORK_DIR/purgar_wazuh.yml" <<'EOF'
         state: absent
       when: agent_id.stdout != ""
 
-  handlers:
-    - name: Restart Wazuh
+    - name: Reiniciar Wazuh Manager para aplicar cambios
       systemd:
         name: wazuh-manager
         state: restarted
+      when: agent_id.stdout != ""
+
+    - name: Mensaje si no se encontro el agente
+      debug:
+        msg: "No se encontro registro del agente en el Manager. No se requiere limpieza extra."
+      when: agent_id.stdout == ""
 EOF
 
 # --- 7. EJECUCION ---
+echo " [INFO] Iniciando purga remota con Ansible..."
 export ANSIBLE_HOST_KEY_CHECKING=False
 
 ansible-playbook -i "$TEMP_WORK_DIR/hosts.ini" "$TEMP_WORK_DIR/purgar_wazuh.yml" \
@@ -111,4 +132,6 @@ ansible-playbook -i "$TEMP_WORK_DIR/hosts.ini" "$TEMP_WORK_DIR/purgar_wazuh.yml"
 
 # --- 8. LIMPIEZA ---
 rm -rf "$TEMP_WORK_DIR"
-echo "Desinstalacion de Wazuh Agent finalizada en $VICTIM_NAME"
+echo "===================================================="
+echo " [SUCCESS] Desinstalacion finalizada en $VICTIM_NAME"
+echo "===================================================="

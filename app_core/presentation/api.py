@@ -2195,6 +2195,14 @@ api_bp.register_blueprint(attack_infra_bp, url_prefix='/api/hud/attack')
 
 
 
+from app_core.infrastructure.victim.ssh_launcher import victim_infra_bp
+
+api_bp.register_blueprint(victim_infra_bp, url_prefix='/api/hud/victim')
+
+
+
+from app_core.infrastructure.monitor.ssh_launcher import monitor_infra_bp
+api_bp.register_blueprint(monitor_infra_bp, url_prefix="/api/hud/monitor")
 
 
 #-------------------------------------------Dashboard f35 end----------------------------------------------------

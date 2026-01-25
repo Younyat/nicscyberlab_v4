@@ -1,0 +1,32 @@
+{
+  "case_id": "CASE-20260120-104246-0c412b79",
+  "experiment_id": "EXP-PLC-01",
+  "scenario_id": "SCADA-PLC-DEBIAN",
+  "trigger_type": "manual",
+  "trigger_ref": "operator_request",
+  "created_utc": "2026-01-20T10:42:46.673890+00:00",
+  "items": [
+    {
+      "eid": "6404a6a643d34dccb3364a9d2dbe73ea",
+      "category": "system",
+      "source": "host-forensic-node",
+      "path": "system/snapshot_host-forensic-node_1768905766.json",
+      "created_utc": "2026-01-20T10:42:47.755626+00:00",
+      "sha256": "705cce81effd589b3aba6dfd26e344046dc7247eed0ed2e78376599dae5a3b9e",
+      "size_bytes": 70516,
+      "tool": "journalctl/ps/ss/ip/iptables",
+      "notes": "system snapshot bundle"
+    },
+    {
+      "eid": "9d019c8d0fb54214a9022d9c6a6b1ada",
+      "category": "industrial",
+      "source": "host-forensic-node",
+      "path": "industrial/modbus_host-forensic-node_1768905767.txt",
+      "created_utc": "2026-01-20T10:42:47.758344+00:00",
+      "sha256": "9ebb6eff55581f364c1d941cb82a8fad46bd3bfad973f792a3abc3052a27e0ba",
+      "size_bytes": 120,
+      "tool": "mbpoll",
+      "notes": "mbpoll not found; Modbus snapshot skipped"
+    }
+  ]
+}

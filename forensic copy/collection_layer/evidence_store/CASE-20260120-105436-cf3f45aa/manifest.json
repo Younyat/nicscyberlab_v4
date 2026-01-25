@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-20260120-105436-cf3f45aa",
+  "experiment_id": "EXP-PLC-01",
+  "scenario_id": "SCADA-PLC-DEBIAN",
+  "trigger_type": "manual",
+  "trigger_ref": "operator_request",
+  "created_utc": "2026-01-20T10:54:36.581961+00:00",
+  "items": [
+    {
+      "eid": "01f57b6e3a0947efa617358d1dba3830",
+      "category": "network",
+      "source": "host-forensic-node",
+      "path": "network/pcap_host-forensic-node_1768906476.pcap",
+      "created_utc": "2026-01-20T10:54:59.640765+00:00",
+      "sha256": "6d9d2fd518486efe9b6ad65740615034ac75deda46881ae24039ce8e5717cac2",
+      "size_bytes": 36249,
+      "tool": "tcpdump",
+      "notes": "iface=any seconds=20 rc=0"
+    },
+    {
+      "eid": "95b9d72a91a54fd4ab92cfe4b057fc1a",
+      "category": "system",
+      "source": "host-forensic-node",
+      "path": "system/snapshot_host-forensic-node_1768906499.json",
+      "created_utc": "2026-01-20T10:55:00.036048+00:00",
+      "sha256": "a99fefde210d735051546e62ad2ca5fe34531caed729aea106e12f40767a7b6e",
+      "size_bytes": 70505,
+      "tool": "journalctl/ps/ss/ip/iptables",
+      "notes": "system snapshot bundle"
+    },
+    {
+      "eid": "ebb3518673564723a123d293caa158bb",
+      "category": "industrial",
+      "source": "host-forensic-node",
+      "path": "industrial/modbus_host-forensic-node_1768906500.txt",
+      "created_utc": "2026-01-20T10:55:00.037619+00:00",
+      "sha256": "3305693624074916a707e5b8b0d877ffa6a540063c8d0154cd5bda5b2b5e7831",
+      "size_bytes": 120,
+      "tool": "mbpoll",
+      "notes": "mbpoll not found; Modbus snapshot skipped"
+    }
+  ]
+}

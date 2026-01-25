@@ -1,85 +1,143 @@
 #!/usr/bin/env bash
 # =================================================================
-# Iniciador Maestro: Gunicorn + Scapy + Libpcap + Port Management
+# NICS CyberLab – Professional Starter
+# Gunicorn + tcpdump (capabilities) + libpcap + Port Management
+# =================================================================
+# Design principles:
+# - Python and Gunicorn run UNPRIVILEGED
+# - Network capture delegated ONLY to tcpdump with minimal capabilities
+# - Safe & idempotent startup
+# - No hard failures if optional components are missing
 # =================================================================
 
+set -euo pipefail
+
+# -----------------------------
+# CONFIG
+# -----------------------------
 PORT=5001
 TIMEOUT=20000
-APP_PATH="$(dirname "$(realpath "$0")")"
+
+APP_PATH="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
 VENV_PYTHON="/home/younes/Desktop/Openstack/myenv/bin/python3.12"
 
-echo "============================================="
-echo " [1/6] Preparando entorno y dependencias..."
-echo "============================================="
+# -----------------------------
+# UTILS
+# -----------------------------
+section () {
+    echo
+    echo "============================================="
+    echo " $1"
+    echo "============================================="
+}
+
+ok ()   { echo " [OK]   $1"; }
+warn () { echo " [WARN] $1"; }
+info () { echo " [INFO] $1"; }
+err ()  { echo " [ERR]  $1"; }
+
+# -----------------------------
+# [1/6] PREPARATION
+# -----------------------------
+section "[1/6] Preparando entorno y scripts auxiliares"
 
 if [ -f "$APP_PATH/free_port.sh" ]; then
     chmod +x "$APP_PATH/free_port.sh"
-    echo " OK: Script de limpieza de puertos listo."
+    ok "Script de limpieza de puertos listo."
 else
-    echo " Error: No se encuentra $APP_PATH/free_port.sh"
+    err "No se encuentra $APP_PATH/free_port.sh"
     exit 1
 fi
 
-echo
-echo "============================================="
-echo " [2/6] Verificando dependencias del sistema..."
-echo "============================================="
+if [ ! -f "$VENV_PYTHON" ]; then
+    err "No se encuentra el Python del venv: $VENV_PYTHON"
+    exit 1
+else
+    ok "VENV Python detectado: $VENV_PYTHON"
+fi
 
-# Instalación automática de libpcap para evitar el error de 'interface any'
+# -----------------------------
+# [2/6] SYSTEM DEPENDENCIES
+# -----------------------------
+section "[2/6] Verificando dependencias del sistema"
+
 if ! dpkg -s libpcap-dev >/dev/null 2>&1; then
-    echo " libpcap-dev no detectado. Instalando (requiere sudo)..."
+    warn "libpcap-dev no detectado."
+    info "Instalando libpcap-dev (requiere sudo)..."
     sudo apt-get update && sudo apt-get install -y libpcap-dev
+    ok "libpcap-dev instalado."
 else
-    echo " [OK] libpcap-dev ya está instalado."
+    ok "libpcap-dev ya está instalado."
 fi
 
-echo
-echo "============================================="
-echo " [3/6] Configurando privilegios de red (Scapy)..."
-echo "============================================="
+if ! command -v getcap >/dev/null 2>&1; then
+    warn "getcap no disponible (paquete libcap2-bin)."
+    info "Instálalo si quieres ver capacidades: sudo apt install libcap2-bin"
+else
+    ok "getcap disponible."
+fi
 
-if [ -f "$VENV_PYTHON" ]; then
-    REAL_PYTHON=$(readlink -f "$VENV_PYTHON")
-    echo " Binario detectado: $REAL_PYTHON"
-    
-    HAS_CAPS=$(getcap "$REAL_PYTHON" | grep "cap_net_admin,cap_net_raw=eip")
-    
-    if [ -z "$HAS_CAPS" ]; then
-        echo " Aplicando capacidades de red (requiere sudo)..."
-        sudo setcap cap_net_raw,cap_net_admin=eip "$REAL_PYTHON"
-        
-        if getcap "$REAL_PYTHON" | grep -q "cap_net_admin,cap_net_raw=eip"; then
-            echo " [OK] Capacidades aplicadas con éxito."
-        else
-            echo " [ERROR] Falló la aplicación de capacidades."
-        fi
+# -----------------------------
+# [3/6] TCPDUMP CAPABILITIES
+# -----------------------------
+section "[3/6] Configurando capacidades de red (tcpdump)"
+
+TCPDUMP_BIN="$(command -v tcpdump || true)"
+
+if [ -z "$TCPDUMP_BIN" ]; then
+    warn "tcpdump no está instalado. La captura de red estará deshabilitada."
+else
+    ok "tcpdump detectado en: $TCPDUMP_BIN"
+
+    TCPDUMP_CAPS="$(getcap "$TCPDUMP_BIN" 2>/dev/null || true)"
+
+    if echo "$TCPDUMP_CAPS" | grep -q "cap_net_admin,cap_net_raw=eip"; then
+        ok "tcpdump ya tiene capacidades de red."
     else
-        echo " [OK] Las capacidades ya estaban configuradas."
+        info "tcpdump sin capacidades. Intentando aplicar (requiere sudo)..."
+
+        if sudo -n true 2>/dev/null; then
+            sudo setcap cap_net_raw,cap_net_admin=eip "$TCPDUMP_BIN" || true
+
+            if getcap "$TCPDUMP_BIN" | grep -q "cap_net_admin,cap_net_raw=eip"; then
+                ok "Capacidades aplicadas correctamente a tcpdump."
+            else
+                warn "No se pudieron aplicar capacidades a tcpdump."
+                warn "La captura de red fallará si no se ejecuta como root."
+            fi
+        else
+            warn "No hay sudo sin contraseña."
+            warn "Ejecuta manualmente:"
+            warn "sudo setcap cap_net_raw,cap_net_admin=eip $TCPDUMP_BIN"
+        fi
     fi
-else
-    echo " [ALERTA] No se encontró el binario en $VENV_PYTHON"
 fi
 
-echo
-echo "============================================="
-echo " [4/6] Liberando el puerto $PORT..."
-echo "============================================="
-bash "$APP_PATH/free_port.sh" $PORT
+# -----------------------------
+# [4/6] FREE PORT
+# -----------------------------
+section "[4/6] Liberando el puerto $PORT"
 
-echo
-echo "============================================="
-echo " [5/6] Verificando Gunicorn y Scapy en VENV..."
-echo "============================================="
-# Aseguramos que scapy también esté en el venv
-"$VENV_PYTHON" -m pip install gunicorn scapy --upgrade
+bash "$APP_PATH/free_port.sh" "$PORT"
+ok "Puerto $PORT liberado o ya estaba libre."
 
-echo
-echo "============================================="
-echo " [6/6] Lanzando Servidor Forense..."
-echo "============================================="
+# -----------------------------
+# [5/6] PYTHON RUNTIME
+# -----------------------------
+section "[5/6] Verificando Gunicorn y Scapy en el VENV"
+
+"$VENV_PYTHON" -m pip install --upgrade pip >/dev/null 2>&1 || true
+"$VENV_PYTHON" -m pip install --upgrade gunicorn scapy
+ok "Gunicorn y Scapy disponibles en el venv."
+
+# -----------------------------
+# [6/6] START SERVER
+# -----------------------------
+section "[6/6] Lanzando Servidor Forense (Gunicorn)"
+
 cd "$APP_PATH" || exit 1
 
-"$VENV_PYTHON" -m gunicorn \
+exec "$VENV_PYTHON" -m gunicorn \
     -w 4 \
     -b "0.0.0.0:$PORT" \
     --timeout "$TIMEOUT" \

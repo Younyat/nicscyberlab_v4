@@ -17,7 +17,8 @@
             background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
             color: #00ff88;
             margin: 0;
-            overflow: hidden;
+            overflow-y: auto;   
+            overflow-x: hidden;
         }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         #cy {
@@ -164,7 +165,7 @@ aside {
 
     </style>
 </head>
-<body class="h-screen overflow-hidden">
+<body class="min-h-screen">
     <div class="hud-corner tl"></div>
     <div class="hud-corner tr"></div>
     <div class="hud-corner bl"></div>
@@ -216,6 +217,21 @@ aside {
                     </div>
                 </div>
             </div>
+
+
+
+
+               <div class="h-[650px] bg-[#0a0e27]/90 border-2 border-[#00ff88] rounded-2xl p-5 backdrop-blur-sm flex flex-col">
+        <div class="flex justify-between items-center mb-3 pb-2 border-b border-[#00ff88]/20">
+            <span class="text-[9px] font-black text-[#00ff88] tracking-widest">COMBAT LOG / LIVE TELEMETRY</span>
+            <button onclick="clearLog()" class="text-[8px] text-[#00ff88]/60 hover:text-[#00ff88] uppercase font-bold">CLEAR</button>
+        </div>
+        <div id="combat-log" class="flex-1 overflow-y-auto font-mono text-[11px] text-[#00ff88]/90 space-y-1 scroll-smooth"></div>
+    </div>
+
+
+
+    
         </div>
 
    
@@ -239,13 +255,12 @@ aside {
             </div>
     </div>
 
-    <div class="h-[650px] bg-[#0a0e27]/90 border-2 border-[#00ff88] rounded-2xl p-5 backdrop-blur-sm flex flex-col">
-        <div class="flex justify-between items-center mb-3 pb-2 border-b border-[#00ff88]/20">
-            <span class="text-[9px] font-black text-[#00ff88] tracking-widest">COMBAT LOG / LIVE TELEMETRY</span>
-            <button onclick="clearLog()" class="text-[8px] text-[#00ff88]/60 hover:text-[#00ff88] uppercase font-bold">CLEAR</button>
-        </div>
-        <div id="combat-log" class="flex-1 overflow-y-auto font-mono text-[11px] text-[#00ff88]/90 space-y-1 scroll-smooth"></div>
-    </div>
+ 
+
+
+
+
+
 </aside>
 
 
@@ -553,7 +568,7 @@ function toggleConnectionMode() {
 
 
 async function runAttack(attackerIp, targetIp, scriptName) {
-    terminalWrite(`建立连接... ESTABLISHING SECURE SSH TUNNEL...`, 'text-sky-300 animate-pulse');
+    terminalWrite(`ESTABLISHING SECURE SSH TUNNEL...`, 'text-sky-300 animate-pulse');
     
     try {
         // Nota: El backend ahora buscará la máquina 'attack...' automáticamente, 
@@ -597,7 +612,7 @@ async function runAttack(attackerIp, targetIp, scriptName) {
     }
 }
 
-
+let activeTerminalContext = null;
 
 function initiateTacticalPing(targetIp) {
     // 1. VALIDACIÓN DE SEGURIDAD INMEDIATA
@@ -627,8 +642,8 @@ function initiateTacticalPing(targetIp) {
 
     // 4. PREPARACIÓN DE LA TERMINAL TÁCTICA
     // Limpiamos el log para mostrar la nueva misión de forma clara
-    const log = document.getElementById("combat-log");
-    log.innerHTML = ""; 
+    // const log = document.getElementById("combat-log");
+   //  log.innerHTML = ""; 
     
     terminalWrite(`╔══════════════════════════════════════════════════════╗`, 'text-sky-400');
     terminalWrite(`║ MISSION: TACTICAL NETWORK DIAGNOSTIC (PING)          ║`, 'text-sky-400');
@@ -641,42 +656,111 @@ function initiateTacticalPing(targetIp) {
     logCombat("ACTION", `Iniciando túnel táctico hacia ${targetIp}`);
     runAttack(attackerIp, targetIp, 'ping_target.sh');
 }
-function renderTargetDetails(node) {
-    const data = node.data();
-    const config = ROLE_CONFIG[data.role] || ROLE_CONFIG.unknown;
-    
-    const portsHtml = data.allowed_ports?.length > 0
-        ? data.allowed_ports.map(p => `<span class="bg-[#00ff88]/10 border border-[#00ff88]/30 px-1 rounded text-[10px]">${p}</span>`).join(' ')
-        : '<span class="opacity-30">NONE</span>';
 
-    document.getElementById("target-name").textContent = data.name;
+
+
+function renderTargetDetails(node) {
+    if (!node || !node.data) return;
+
+    const data = node.data() || {};
+    const role = (data.role || "").toLowerCase();
+    const config = ROLE_CONFIG[role] || ROLE_CONFIG.unknown;
+
+    const portsHtml =
+        Array.isArray(data.allowed_ports) && data.allowed_ports.length > 0
+            ? data.allowed_ports
+                  .map(p =>
+                      `<span class="bg-[#00ff88]/10 border border-[#00ff88]/30 px-1 rounded text-[10px]">${p}</span>`
+                  )
+                  .join(" ")
+            : '<span class="opacity-30">NONE</span>';
+
+    document.getElementById("target-name").textContent = data.name || "UNKNOWN";
     document.getElementById("target-role").textContent = config.label;
     document.getElementById("target-icon").className = `fas ${config.icon}`;
-    document.getElementById("target-status-indicator").className = `status-indicator ${data.status === 'ACTIVE' ? 'status-online' : 'status-offline'}`;
-    
-    // Contenido de la columna derecha
+    document.getElementById("target-status-indicator").className =
+        `status-indicator ${
+            data.status === "ACTIVE" ? "status-online" : "status-offline"
+        }`;
+
     document.getElementById("target-details").innerHTML = `
         <div class="grid grid-cols-2 gap-4 text-[11px] font-mono mb-4">
-            <div><span class="opacity-50">IP</span><br>${data.ip || "N/A"}</div>
-            <div><span class="opacity-50">STATUS</span><br>${data.status || "UNKNOWN"}</div>
-            <div><span class="opacity-50">OS</span><br>${data.os || "LINUX"}</div>
+            <div><span class="opacity-50">IP</span><br>${data.ip ?? "N/A"}</div>
+            <div><span class="opacity-50">STATUS</span><br>${data.status ?? "UNKNOWN"}</div>
+            <div><span class="opacity-50">OS</span><br>${data.os ?? "LINUX"}</div>
         </div>
 
         <div class="border-t border-[#00ff88]/20 pt-3 mb-4">
-            <span class="text-[9px] font-black text-[#00ff88] tracking-widest block mb-2">FIREWALL RULES</span>
-            <div class="flex flex-wrap gap-1 font-mono">${portsHtml}</div>
+            <span class="text-[9px] font-black text-[#00ff88] tracking-widest block mb-2">
+                FIREWALL RULES
+            </span>
+            <div class="flex flex-wrap gap-1 font-mono">
+                ${portsHtml}
+            </div>
         </div>
 
+        <!-- INSTALAR DETECTOR (CUALQUIER NODO) -->
+        <div class="border-t border-[#00aaff]/20 pt-3 mb-4">
+            <button onclick="installIcmpDetector('${data.ip}')"
+                class="w-full py-3 bg-[#00aaff]/10 border border-[#00aaff]
+                       rounded-lg text-[10px] font-black text-[#00aaff]
+                       hover:bg-[#00aaff]/20 transition-all
+                       flex items-center justify-center gap-2">
+                <i class="fas fa-shield-alt"></i> INSTALL ICMP DETECTOR
+            </button>
+            <p class="text-[8px] text-[#00aaff]/40 mt-2 text-center uppercase">
+                Detector ICMP pasivo (root requerido)
+            </p>
+        </div>
+
+        ${
+            role === "monitor"
+                ? `
+        <!-- MONITOR CONTROL -->
+        <div class="border-t border-[#00ff88]/20 pt-3 mb-4">
+            <button onclick="startMonitorListener('${data.ip}')"
+                class="w-full py-3 bg-[#00ff88]/10 border border-[#00ff88]
+                       rounded-lg text-[10px] font-black text-[#00ff88]
+                       hover:bg-[#00ff88]/20 transition-all
+                       flex items-center justify-center gap-2">
+                <i class="fas fa-play"></i> START ICMP LISTENER
+            </button>
+
+            <button onclick="stopMonitorListener('${data.ip}')"
+                class="w-full mt-2 py-3 bg-[#ff3366]/10 border border-[#ff3366]
+                       rounded-lg text-[10px] font-black text-[#ff3366]
+                       hover:bg-[#ff3366]/20 transition-all
+                       flex items-center justify-center gap-2">
+                <i class="fas fa-stop"></i> STOP ICMP LISTENER
+            </button>
+
+            <p class="text-[8px] text-[#00ff88]/40 mt-2 text-center uppercase">
+                ICMP event collector
+            </p>
+        </div>
+        `
+                : ""
+        }
+
+        <!-- ATAQUE -->
         <div class="border-t border-[#00ff88]/20 pt-4">
-            <button onclick="initiateTacticalPing('${data.ip}')" 
-                    class="w-full py-3 bg-[#00ff88]/10 border border-[#00ff88] rounded-lg text-[10px] font-black text-[#00ff88] hover:bg-[#00ff88]/20 transition-all flex items-center justify-center gap-2">
+            <button onclick="initiateTacticalPing('${data.ip}')"
+                class="w-full py-3 bg-[#00ff88]/10 border border-[#00ff88]
+                       rounded-lg text-[10px] font-black text-[#00ff88]
+                       hover:bg-[#00ff88]/20 transition-all
+                       flex items-center justify-center gap-2">
                 <i class="fas fa-satellite-dish"></i> LAUNCH TACTICAL PING
             </button>
-            <p class="text-[8px] text-[#00ff88]/40 mt-2 text-center uppercase">Requiere instancia Atacante activa</p>
+            <p class="text-[8px] text-[#00ff88]/40 mt-2 text-center uppercase">
+                Requiere instancia atacante activa
+            </p>
         </div>
     `;
 }
-        function updateStats() {
+
+
+
+function updateStats() {
             document.getElementById("target-count").textContent = cy.nodes().length;
             document.getElementById("link-count").textContent = cy.edges().length;
         }
@@ -743,6 +827,162 @@ function showOverlay(show) {
     // Si no tienes un div "overlay", al menos logueamos el estado
     console.log("Overlay:", show ? "MOSTRANDO" : "OCULTANDO");
 }
-    </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+async function installIcmpDetector(targetIp) {
+    if (!targetIp || targetIp === "N/A") {
+        terminalWrite(
+            "!! NO SE PUEDE INSTALAR DETECTOR: IP inválida",
+            "text-red-500 font-black"
+        );
+        return;
+    }
+
+    // 🔍 localizar nodo monitor automáticamente
+    const monitorNode = cy.nodes('[role = "monitor"]')[0];
+
+    if (!monitorNode) {
+        terminalWrite(
+            "!! NO SE PUEDE INSTALAR DETECTOR: no hay nodo MONITOR",
+            "text-red-500 font-black"
+        );
+        return;
+    }
+
+    const monitorIp = monitorNode.data('ip');
+
+    if (!monitorIp || monitorIp === "N/A") {
+        terminalWrite(
+            "!! IP del MONITOR inválida",
+            "text-red-500 font-black"
+        );
+        return;
+    }
+
+    terminalWrite(
+        `[SETUP] Instalando detector ICMP en ${targetIp} → monitor ${monitorIp}`,
+        "text-sky-400"
+    );
+
+    const url =
+        `${API_BASE}/hud/victim/install_detector` +
+        `?ip=${targetIp}` +
+        `&monitor_ip=${monitorIp}` +
+        `&script=ping_target_detecter.sh`;
+
+    console.log("[DETECTOR][FRONT] URL =", url);
+
+    try {
+        const res = await fetch(url);
+
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            chunk.split('\n').forEach(line => {
+                if (line.startsWith("data:")) {
+                    terminalWrite(
+                        line.replace("data:", "").trim(),
+                        "text-[#00ff88]"
+                    );
+                }
+            });
+        }
+
+        terminalWrite(
+            "[OK] Detector ICMP activo en el nodo",
+            "text-emerald-400"
+        );
+        markDetectorInstalled();
+
+    } catch (err) {
+        terminalWrite(
+            `[ERROR] Fallo al instalar detector: ${err.message}`,
+            "text-red-500"
+        );
+    }
+}
+
+
+let icmpDetectorInstalled = false;
+function markDetectorInstalled() {
+    icmpDetectorInstalled = true;
+    logCombat("DETECTOR", "ICMP detector instalado en la víctima");
+}
+
+
+
+async function startMonitorListener(monitorIp) {
+    terminalWrite(
+        `[MONITOR] Starting ICMP listener on ${monitorIp}...`,
+        "text-sky-400"
+    );
+
+    const url = `${API_BASE}/hud/monitor/start_listener?ip=${monitorIp}`;
+
+    try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const text = await res.text();
+        terminalWrite(text.replace("data:", "").trim(), "text-emerald-400");
+
+        logCombat("MONITOR", "ICMP listener started");
+
+    } catch (err) {
+        terminalWrite(
+            `[ERROR] Cannot start listener: ${err.message}`,
+            "text-red-500"
+        );
+    }
+}
+
+async function stopMonitorListener(monitorIp) {
+    terminalWrite(
+        `[MONITOR] Stopping ICMP listener on ${monitorIp}...`,
+        "text-yellow-400"
+    );
+
+    const url = `${API_BASE}/hud/monitor/stop_listener?ip=${monitorIp}`;
+
+    try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const text = await res.text();
+        terminalWrite(text.replace("data:", "").trim(), "text-emerald-400");
+
+        logCombat("MONITOR", "ICMP listener stopped");
+
+    } catch (err) {
+        terminalWrite(
+            `[ERROR] Cannot stop listener: ${err.message}`,
+            "text-red-500"
+        );
+    }
+}
+
+
+
+</script>
 </body>
 </html>

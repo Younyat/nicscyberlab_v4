@@ -88,10 +88,12 @@ manager = SSHTacticalManager(key_path="~/.ssh/my_key")
 def launch_attack():
     target_ip = request.args.get('target') # IP de la víctima desde el front
     script_name = request.args.get('script', 'ping_target.sh')
-    
+    print(f"[ATTACK] Target IP recibida desde el frontend: {target_ip}")
+    print(f"[script_name : {script_name}")
     # BUSQUEDA DINÁMICA DE LA MÁQUINA ATACANTE EN OPENSTACK
     attacker_ip, user = manager.discover_attacker_instance()
-    
+    print(f"[attacker_ip : {attacker_ip}")
+    print(f"[attacker user : {user}")
     if not attacker_ip:
         return Response("data: [ERROR] No se encontró ninguna instancia 'attack' con IP flotante\n\n", 
                         mimetype='text/event-stream')

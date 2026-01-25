@@ -95,17 +95,40 @@ def strategies_for(role: str) -> Dict[str, List[str]]:
 
 def get_os_from_server(conn, server) -> str:
     try:
-        image_id = server.image.id if server.image else None
+        # 1. Extracción segura del ID (Maneja si 'image' es dict, objeto o None)
+        image_id = None
+        img_prop = getattr(server, "image", None)
+        
+        if img_prop:
+            if isinstance(img_prop, dict):
+                image_id = img_prop.get("id")
+            else:
+                image_id = getattr(img_prop, "id", None)
+
+        # 2. Si no hay ID de imagen, mirar metadata
         if not image_id:
             return server.metadata.get("os_distro", "Linux").capitalize()
 
+        # 3. Buscar la imagen en Glance
         image = conn.get_image(image_id)
         if image:
+            # Obtener nombre de varias fuentes
             os_name = image.get("os_distro") or image.get("display_name") or image.name
+            
+            if not os_name:
+                return "Linux"
+
             low = os_name.lower()
+            
+            # --- REGLAS DE DETECCIÓN ---
+            if "kali" in low: return "Kali Linux"      # <--- NUEVA LÍNEA
             if "ubuntu" in low: return "Ubuntu Linux"
             if "windows" in low: return "Windows Server"
+            if "debian" in low: return "Debian Linux"
+            if "centos" in low: return "CentOS Linux"
+            
             return os_name
+            
     except Exception as e:
         logger.debug(f"OS detection failed: {e}")
 
@@ -283,6 +306,8 @@ def hud_instances():
 
         # OT: PLC -> SCADA (modbus)
         add_edge("plc1", "scada1", "modbus", "edge_plc1_scada1")
+         
+      
 
         return jsonify({"instances": items, "edges": edges}), 200
 
@@ -331,3 +356,5 @@ def hud_action():
         "status": "accepted",
         "message": f"Acción {action_id} enviada a {instance_id}"
     }), 202
+
+

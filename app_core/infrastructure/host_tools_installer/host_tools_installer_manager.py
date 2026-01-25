@@ -51,7 +51,14 @@ TOOLS_INVENTORY = {
         "binary": "scapy", 
         "script": os.path.join(INSTALL_SCRIPTS_DIR, "install_scapy.sh"),
         "uninstall": os.path.join(UNINSTALL_SCRIPTS_DIR, "uninstall_scapy.sh")
-    }
+    },
+    "mbpoll": {
+    "name": "mbpoll",
+    "binary": "mbpoll",
+    "script": os.path.join(INSTALL_SCRIPTS_DIR, "install_mbpoll.sh"),
+    "uninstall": os.path.join(UNINSTALL_SCRIPTS_DIR, "uninstall_mbpoll.sh")
+}
+
 }
 
 def write_to_log(message):
@@ -77,20 +84,43 @@ def get_version(tool_id):
     tool = TOOLS_INVENTORY.get(tool_id)
     if not tool:
         return jsonify({"output": "Error: Herramienta no encontrada."}), 404
-    
+
     binary = tool["binary"]
+
     cmd_map = {
         "tsk": ["fls", "-V"],
-        "scapy": ["python3", "-c", "import scapy; print(scapy.__version__)"]
+        "scapy": ["python3", "-c", "import scapy; print(scapy.__version__)"],
+        "mbpoll": ["mbpoll", "-h"],  # mbpoll no soporta --version
     }
+
     cmd = cmd_map.get(tool_id, [binary, "--version"])
-    
+
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
         output = result.stdout.strip() if result.stdout else result.stderr.strip()
-        return jsonify({"output": f"$ {' '.join(cmd)}\n{output}"})
+
+        if not output:
+            output = "No output returned"
+
+        return jsonify({
+            "output": f"$ {' '.join(cmd)}\n{output.splitlines()[0]}"
+        })
+
+    except FileNotFoundError:
+        return jsonify({
+            "output": f"Error: binario '{binary}' no encontrado en el sistema."
+        }), 404
+
     except Exception as e:
-        return jsonify({"output": f"Error: {str(e)}"}), 500
+        return jsonify({
+            "output": f"Error ejecutando comando: {str(e)}"
+        }), 500
 
 def run_action_sse(tool_id, action="install"):
     tool = TOOLS_INVENTORY.get(tool_id)

@@ -1,0 +1,14 @@
+{
+  "pcap_count": 1,
+  "files": [
+    {
+      "pcap_file": "pcap_host-forensic-node_1768907771.pcap",
+      "size_bytes": 29349,
+      "analysis_utc": "2026-01-20T11:49:40.003315+00:00",
+      "packet_statistics": "===================================\n| IO Statistics                   |\n|                                 |\n| Duration: 18.1 secs             |\n| Interval: 18.1 secs             |\n|                                 |\n| Col 1: Frames and bytes         |\n|---------------------------------|\n|              |1               | |\n| Interval     | Frames | Bytes | |\n|-------------------------------| |\n|  0.0 <> 18.1 |    306 | 24429 | |\n===================================",
+      "protocol_hierarchy": "===================================================================\nProtocol Hierarchy Statistics\nFilter: \n\nsll                                      frames:306 bytes:24429\n  ip                                     frames:306 bytes:24429\n    tcp                                  frames:306 bytes:24429\n      mbtcp                              frames:134 bytes:11203\n        modbus                           frames:134 bytes:11203\n===================================================================",
+      "modbus_frames_detected": 134
+    }
+  ],
+  "analysis_utc": "2026-01-20T11:49:40.003297+00:00"
+}
