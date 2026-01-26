@@ -243,6 +243,15 @@ aside {
 .custom-scrollbar::-webkit-scrollbar-thumb {
     background: rgba(0, 255, 136, 0.2);
 }
+
+
+#attack-stack {
+    border-top: 1px solid rgba(255, 51, 102, 0.2);
+    padding-top: 1rem;
+}
+
+
+
     </style>
 </head>
 <body class="min-h-screen">
@@ -276,35 +285,32 @@ aside {
     </header>
 
     <div class="h-screen flex pt-24 pb-6 px-6 gap-6">
-
-      <aside class="w-[420px] flex flex-col gap-6">
+<aside class="w-[420px] flex flex-col gap-6">
     <div class="bg-[#0a0e27]/90 border-2 border-[#ff3366] rounded-2xl p-6 backdrop-blur-sm h-full flex flex-col">
-
-        <!-- HEADER -->
         <div class="flex items-center gap-4 mb-4 pb-4 border-b-2 border-[#ff3366]/30">
             <div class="w-14 h-14 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl flex items-center justify-center text-2xl text-[#ff3366]">
                 <i class="fas fa-skull-crossbones"></i>
             </div>
             <div class="flex-1">
-                <h3 class="text-lg font-black text-white truncate">
-                    ATTACK STACK
-                </h3>
-                <p class="text-[10px] font-bold text-[#ff3366]/70 uppercase tracking-widest">
-                    OFFENSIVE ARSENAL
-                </p>
+                <h3 class="text-lg font-black text-white truncate">ATTACK STACK</h3>
+                <p class="text-[10px] font-bold text-[#ff3366]/70 uppercase tracking-widest">OFFENSIVE ARSENAL</p>
             </div>
         </div>
 
-        <!-- ATTACK LIST -->
-        <div id="attack-stack"
-             class="flex-1 overflow-y-auto space-y-3 font-mono text-[11px]">
+        <div class="mb-6">
+            <button onclick="launchFromSidebar()" 
+                    class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
+                <i class="fas fa-satellite-dish animate-pulse"></i>
+                LAUNCH TACTICAL PING
+                <i class="fas fa-chevron-right opacity-0 group-hover:opacity-100 transition-all"></i>
+            </button>
+        </div>
 
+        <div id="attack-stack" class="flex-1 overflow-y-auto space-y-3 font-mono text-[11px]">
             <div class="opacity-40 text-center text-[10px] uppercase tracking-widest">
-                No target selected
+                Select a node to see available exploits
             </div>
-
         </div>
-
     </div>
 </aside>
 
@@ -411,12 +417,8 @@ aside {
     
     <div class="flex flex-1 gap-4 overflow-hidden">
         
-        <div class="flex-1 flex flex-col min-w-0 border-r border-[#00ff88]/10 pr-2">
-            <div class="text-[8px] font-black text-[#00aaff] mb-2 uppercase opacity-70">Live Monitoring</div>
-            <div id="terminal-monitoring" class="flex-1 overflow-y-auto font-mono text-[10px] text-[#00aaff]/90 space-y-1 scroll-smooth custom-scrollbar">
-                <div class="opacity-30 italic">[SYSTEM] Monitoring link established...</div>
-            </div>
-        </div>
+
+
 
         <div class="flex-1 flex flex-col min-w-0 pl-2">
             <div class="text-[8px] font-black text-[#ff3366] mb-2 uppercase opacity-70">Victim Telemetry</div>
@@ -424,6 +426,15 @@ aside {
                 <div class="opacity-30 italic">[SYSTEM] Victim data stream idle...</div>
             </div>
         </div>
+
+        
+        <div class="flex-1 flex flex-col min-w-0 border-r border-[#00ff88]/10 pr-2">
+            <div class="text-[8px] font-black text-[#00aaff] mb-2 uppercase opacity-70">Live Monitoring</div>
+            <div id="terminal-monitoring" class="flex-1 overflow-y-auto font-mono text-[10px] text-[#00aaff]/90 space-y-1 scroll-smooth custom-scrollbar">
+                <div class="opacity-30 italic">[SYSTEM] Monitoring link established...</div>
+            </div>
+        </div>
+
 
     </div>
 </div>
@@ -509,6 +520,45 @@ aside {
             victim:    { icon: "fa-server",    color: "#ffaa00", label: "VICTIM HOST" },
             unknown:   { icon: "fa-question-circle", color: "#888888", label: "UNKNOWN" }
         };
+let monitorStream = null;
+
+function startLiveMonitoring(ip) {
+    // Evitar duplicados
+    if (monitorStream) monitorStream.close();
+
+    const terminal = document.getElementById("terminal-monitoring");
+    terminal.innerHTML = '<div class="text-sky-400">[SYSTEM] Estableciendo enlace con el Manager...</div>';
+
+    // Conexión al endpoint de streaming
+    monitorStream = new EventSource(`${API_BASE}/hud/live_wazuh_stream?ip=${ip}`);
+
+    monitorStream.onmessage = (event) => {
+        const msg = event.data;
+        let colorClass = "text-[#00aaff]/90"; // Color por defecto (cian suave)
+
+        // Lógica de colores basada en el contenido de tu script .sh
+        if (msg.includes("NIVEL:")) {
+            const level = parseInt(msg.match(/NIVEL:\s*(\d+)/)?.[1] || 0);
+            if (level >= 10) colorClass = "text-red-500 font-bold animate-pulse";
+            else if (level >= 5) colorClass = "text-yellow-500";
+        } 
+        else if (msg.includes("[IDS/SURICATA]")) colorClass = "text-orange-400 font-bold";
+        else if (msg.includes("---")) colorClass = "text-[#00ff88]/20"; // Separadores tenues
+        else if (msg.includes("[ERROR]")) colorClass = "text-red-600";
+
+        writeDualTerminal('monitoring', msg, colorClass);
+    };
+
+    monitorStream.onerror = () => {
+        writeDualTerminal('monitoring', "!! CONEXIÓN PERDIDA CON EL MONITOR", "text-red-500");
+        monitorStream.close();
+    };
+}
+
+
+
+
+
 
         document.addEventListener("DOMContentLoaded", () => {
             cy = cytoscape({
@@ -550,10 +600,32 @@ aside {
                 layout: { name: "preset" }
             });
 
-            cy.on("tap", "node", e => {
+     // Dentro del document.addEventListener("DOMContentLoaded", () => { ... })
+// UNIFICACIÓN DE EVENTO TAP: Selección de Objetivo + Monitor Live
+cy.on("tap", "node", e => {
+    const data = e.target.data();
+    
+    // 1. ASIGNACIÓN GLOBAL: Bloqueamos el objetivo para el botón lateral (Attack)
+    currentLockedTarget = data; 
+    
+    // 2. UI UPDATE: Actualizamos los paneles de la derecha
     renderTargetDetails(e.target);
     renderAttackStack(e.target);
+    
+    // 3. LOG DE SISTEMA: Registro de actividad en la terminal de monitoreo
+    logCombat("INTERACT", `Nodo fijado: ${data.name} [${data.ip}]`);
+
+    // 4. LÓGICA AUTOMÁTICA DE MONITOREO
+    // Si el nodo tiene rol de monitor y una IP válida, arrancamos el stream de Wazuh
+    if (data.role === "monitor" && data.ip && data.ip !== "N/A") {
+        startLiveMonitoring(data.ip);
+    } else {
+        // Opcional: Si tocas otro nodo que no es monitor, 
+        // podrías decidir si quieres mantener el stream anterior o cerrarlo.
+        // logCombat("SYSTEM", `Visualizando detalles de ${data.name}`);
+    }
 });
+
 
             cy.on("mouseover", "node", handleNodeHover);
             cy.on("mouseout", "node", () => document.getElementById("targeting-hud").classList.remove("active"));
@@ -915,10 +987,9 @@ function renderTargetDetails(node) {
             </p>
         </div>
 
-        ${
-            role === "monitor"
-                ? `
-        <!-- MONITOR CONTROL -->
+${
+    role === "monitor"
+        ? `
         <div class="border-t border-[#00ff88]/20 pt-3 mb-4">
             <button onclick="startMonitorListener('${data.ip}')"
                 class="w-full py-3 bg-[#00ff88]/10 border border-[#00ff88]
@@ -935,14 +1006,24 @@ function renderTargetDetails(node) {
                        flex items-center justify-center gap-2">
                 <i class="fas fa-stop"></i> STOP ICMP LISTENER
             </button>
+        </div>
 
-            <p class="text-[8px] text-[#00ff88]/40 mt-2 text-center uppercase">
-                ICMP event collector
+        <div class="border-t border-[#00aaff]/20 pt-3 mb-4">
+            <button onclick="startLiveWazuhMonitoring('${data.ip}')"
+                class="w-full py-3 bg-[#00aaff]/10 border border-[#00aaff]
+                       rounded-lg text-[10px] font-black text-[#00aaff]
+                       hover:bg-[#00aaff]/20 transition-all
+                       flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(0,170,255,0.1)]">
+                <i class="fas fa-satellite-dish"></i> LAUNCH WAZUH LIVE MONITOR
+            </button>
+            
+            <p class="text-[8px] text-[#00aaff]/40 mt-2 text-center uppercase">
+                SIEM Global Alert Stream
             </p>
         </div>
         `
-                : ""
-        }
+        : ""
+}
 
         <!-- ATAQUE -->
         <div class="border-t border-[#00ff88]/20 pt-4">
@@ -1283,6 +1364,72 @@ function clearTerminal(type) {
 function logCombat(type, message) {
     // Esto enviará los logs de sistema a la terminal de Monitoring
     writeDualTerminal('monitoring', `[${type}] ${message}`, 'text-[#00ff88]');
+}
+
+
+// Variable para recordar qué nodo tenemos fijado
+let currentLockedTarget = null;
+
+
+// Función que dispara el botón del menú lateral
+function launchFromSidebar() {
+    // Verificamos si hay un objetivo en memoria
+    if (!currentLockedTarget || !currentLockedTarget.ip || currentLockedTarget.ip === "N/A") {
+        logCombat("ERROR", "No target locked in HUD. Select a node first.");
+        writeDualTerminal('victim', "!! TARGET ACQUISITION FAILED: SELECT A NODE ON THE MAP", "text-red-500 font-bold");
+        return;
+    }
+
+    logCombat("LAUNCH", `Manual trigger: Tactical Ping -> ${currentLockedTarget.ip}`);
+    
+    // Limpiamos la terminal de la derecha (donde sale el output del ping)
+    clearTerminal('victim');
+    
+    // Ejecutamos tu lógica existente
+    initiateTacticalPing(currentLockedTarget.ip);
+}
+
+
+
+let wazuhEventSource = null;
+let reconnectTimeout = null;
+
+// Capturador de clics del Dashboard
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (btn) {
+        const text = btn.innerText.trim().split('\n')[0] || "Acción";
+        const ts = new Date().toLocaleTimeString();
+        // Escribimos en la terminal de monitoreo
+        writeDualTerminal('monitoring', `[CLICK] ${ts} - ${text}`, "text-yellow-500/50 italic text-[9px]");
+    }
+}, true);
+
+// Función de Monitoreo con gestión de errores real
+function startLiveWazuhMonitoring(ip) {
+    if (wazuhEventSource) wazuhEventSource.close();
+    
+    clearTerminal('monitoring');
+    writeDualTerminal('monitoring', `[SYSTEM] Conectando a Manager ${ip}...`, "text-[#00aaff] animate-pulse");
+
+   wazuhEventSource = new EventSource(
+  `${API_BASE}/hud/monitor/live_wazuh_stream?ip=${ip}`
+);
+
+    wazuhEventSource.onmessage = (e) => {
+        const msg = e.data;
+        let color = "text-[#00aaff]/80";
+        
+        if (msg.includes("NIVEL:")) color = "text-red-500 font-bold";
+        if (msg.includes("[SYSTEM]")) color = "text-yellow-400 opacity-70";
+        
+        writeDualTerminal('monitoring', msg, color);
+    };
+
+    wazuhEventSource.onerror = () => {
+        writeDualTerminal('monitoring', "[!!] Error de enlace. Verifica la llave SSH y la IP.", "text-red-600 font-bold");
+        wazuhEventSource.close();
+    };
 }
 </script>
 </body>

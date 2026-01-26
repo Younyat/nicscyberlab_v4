@@ -3,15 +3,80 @@ import time
 import openstack
 import paramiko
 import logging
+import subprocess
 
 from flask import Blueprint, Response, request
 
-logger = logging.getLogger("app_logger")
+from flask import Blueprint, Response, request
 
 # ============================================================
-# Blueprint
+# Configuración y Blueprint
 # ============================================================
 monitor_infra_bp = Blueprint("monitor_infra", __name__)
+logger = logging.getLogger("app_logger")
+
+# Rutas absolutas
+SCRIPT_PATH = os.path.abspath("app_core/infrastructure/monitor/scripts/monitor_ataques.sh")
+SSH_KEY_PATH = os.path.expanduser("~/.ssh/my_key")
+
+
+@monitor_infra_bp.route("/live_wazuh_stream")
+def live_wazuh_stream():
+    monitor_ip = request.args.get("ip")
+
+    if not monitor_ip:
+        return Response(
+            "data: [ERROR] IP ausente\n\n",
+            mimetype="text/event-stream"
+        )
+
+    def generate():
+        # 🔑 Heartbeat inmediato (obligatorio en SSE)
+        yield "data: [SYSTEM] STREAM OPENED\n\n"
+        yield f"data: [SYSTEM] Lanzando monitor Wazuh para {monitor_ip}\n\n"
+
+        # 📌 Script SH que YA gestiona SSH internamente
+        cmd = [
+            "bash",
+            SCRIPT_PATH,
+            monitor_ip,
+            "ubuntu",
+            SSH_KEY_PATH
+        ]
+
+        try:
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+                universal_newlines=True
+            )
+
+            # 🔁 Stream continuo hacia el frontend
+            for line in iter(process.stdout.readline, ""):
+                if line:
+                    # SSE requiere "data: ... \n\n"
+                    yield f"data: {line.rstrip()}\n\n"
+
+        except Exception as e:
+            yield f"data: [ERROR] {str(e)}\n\n"
+
+        # ⚠️ NO cerrar proceso aquí
+        # ⚠️ NO terminate
+        # ⚠️ NO finally
+
+    return Response(
+        generate(),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
 
 # ============================================================
 # SSH + OpenStack Manager
@@ -250,3 +315,5 @@ def stop_monitor_listener():
             f"data: [ERROR] {e}\n\n",
             mimetype="text/event-stream"
         )
+
+
