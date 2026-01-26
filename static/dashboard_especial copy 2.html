@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NICS CyberLab | Special Dashboard</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.0/cytoscape.min.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    body{
+      background:#0f172a;
+      color:#f8fafc;
+      font-family:'Inter',sans-serif;
+      height:100vh;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .label-header{
+      font-size:.65rem;
+      font-weight:900;
+      letter-spacing:.3em;
+      color:#64748b;
+      margin-bottom:12px;
+      text-transform:uppercase;
+    }
+
+    .dynamic-list{
+      display:flex;
+      flex-direction:column;
+      gap:15px;
+      overflow-y:auto;
+      padding:20px;
+      height:calc(100vh - 120px);
+      scrollbar-width:thin;
+      scrollbar-color:#334155 #0f172a;
+    }
+
+    .strategy-card{
+      background:rgba(255,255,255,.05);
+      backdrop-filter:blur(10px);
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:1.5rem;
+      padding:1.2rem;
+      transition:all .25s ease;
+      cursor:pointer;
+      text-align:center;
+      user-select:none;
+    }
+    .strategy-card:hover{
+      transform:translateX(10px);
+      background:rgba(255,255,255,.12);
+      border-color:#60a5fa;
+      box-shadow:0 10px 30px -10px rgba(96,165,250,.35);
+    }
+    .strategy-card.active{
+      border-color:#93c5fd;
+      background:rgba(96,165,250,.18);
+      box-shadow:0 0 18px rgba(96,165,250,.25);
+    }
+
+    .tools-menu-center{
+      display:flex;
+      gap:12px;
+      justify-content:center;
+      background:rgba(30,41,59,.5);
+      padding:12px;
+      border-radius:2rem;
+      border:1px solid rgba(255,255,255,.1);
+      backdrop-filter:blur(8px);
+      margin-bottom:10px;
+    }
+    .tool-btn{
+      background:rgba(30,41,59,.7);
+      border:1px solid #475569;
+      padding:.6rem 1.5rem;
+      border-radius:9999px;
+      font-size:.75rem;
+      font-weight:800;
+      text-transform:uppercase;
+      transition:all .2s ease;
+      letter-spacing:.05em;
+    }
+    .tool-btn:hover{
+      border-color:#60a5fa;
+      color:#60a5fa;
+      background:rgba(15,23,42,.9);
+      box-shadow:0 0 20px rgba(96,165,250,.25);
+    }
+
+    #terminal-output{
+      font-family:'Fira Code',monospace;
+      font-size:.85rem;
+      background:rgba(0,0,0,.85);
+      border-radius:1.5rem;
+      padding:16px 18px;
+      height:220px;
+      overflow-y:auto;
+      color:#10b981;
+      border:1px solid rgba(255,255,255,.05);
+      white-space:pre-wrap;
+    }
+
+    /* Cytoscape panel */
+    #cy-wrap{
+      position:relative;
+      overflow:hidden;
+      border-radius:3.5rem;
+      border:1px solid rgba(255,255,255,.05);
+      background:rgba(15,23,42,.25);
+    }
+    #cy{
+      width:100%;
+      height:100%;
+      background:
+        radial-gradient(ellipse at center, rgba(15,23,42,.70) 0%, rgba(15,23,42,.95) 100%),
+        repeating-linear-gradient(0deg, rgba(96,165,250,0.03) 0px, transparent 1px, transparent 40px, rgba(96,165,250,0.03) 41px),
+        repeating-linear-gradient(90deg, rgba(96,165,250,0.03) 0px, transparent 1px, transparent 40px, rgba(96,165,250,0.03) 41px);
+    }
+    .cy-top-badge{
+      position:absolute;
+      top:22px;
+      left:50%;
+      transform:translateX(-50%);
+      padding:8px 14px;
+      border-radius:9999px;
+      background:rgba(2,6,23,.55);
+      border:1px solid rgba(255,255,255,.06);
+      font-size:10px;
+      letter-spacing:.25em;
+      text-transform:uppercase;
+      color:#94a3b8;
+      font-weight:900;
+    }
+
+    .hint{
+      font-size:10px;
+      color:#94a3b8;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="flex flex-1 overflow-hidden pt-6">
+
+    <!-- LEFT: ATTACK -->
+    <aside class="w-80 border-r border-white/5 bg-black/10">
+      <div class="p-4 text-center">
+        <div class="label-header">Attack Strategies</div>
+        <div class="hint mb-2">Selecciona estrategia, luego nodo objetivo</div>
+        <div class="dynamic-list" id="attack-list"></div>
+      </div>
+    </aside>
+
+    <!-- CENTER -->
+    <main class="flex-1 flex flex-col px-6 gap-4">
+
+      <div class="tools-menu-center">
+        <button class="tool-btn" onclick="refreshBattlefield()">Refresh</button>
+        <button class="tool-btn">Suricata</button>
+        <button class="tool-btn">Caldera</button>
+        <button class="tool-btn">Wazuh</button>
+        <button class="tool-btn">Snort</button>
+        <button class="tool-btn">Nmap</button>
+      </div>
+
+      <div id="cy-wrap" class="flex-1 relative flex items-stretch justify-stretch">
+        <div class="cy-top-badge">Active Scenario View</div>
+        <div id="cy"></div>
+      </div>
+
+      <div class="w-full pb-6">
+        <div class="label-header ml-6">Live Execution Terminal</div>
+        <div id="terminal-output">[SYSTEM] Special Dashboard listo. Sincronizando escenario...</div>
+      </div>
+    </main>
+
+    <!-- RIGHT: DEFENSE -->
+    <aside class="w-80 border-l border-white/5 bg-black/10">
+      <div class="p-4 text-center">
+        <div class="label-header">Defense Strategies</div>
+        <div class="hint mb-2">Selecciona estrategia, luego nodo objetivo</div>
+        <div class="dynamic-list" id="defense-list"></div>
+      </div>
+    </aside>
+
+  </div>
+
+  <footer class="p-2 text-center text-[9px] text-slate-600 uppercase tracking-[0.5em] bg-black/20">
+    2026 NICS Lab | University of Málaga
+  </footer>
+
+  <script>
+    // =========================================
+    // CONFIG
+    // =========================================
+    const API_BASE = "http://127.0.0.1:5001/api";
+
+    const terminal = document.getElementById("terminal-output");
+    const attackListEl = document.getElementById("attack-list");
+    const defenseListEl = document.getElementById("defense-list");
+
+    let cy = null;
+
+    // Estado UI
+    let selectedTargetNodeId = null;
+    let selectedStrategy = null; // { type: "attack"|"defense", action: "string" }
+
+    // Colores por rol (misma idea que tu HUD)
+    const ROLE_CONFIG = {
+      plc:      { color: "#00aaff" },
+      scada:    { color: "#ff6600" },
+      attacker: { color: "#ff3366" },
+      monitor:  { color: "#00ff88" },
+      victim:   { color: "#ffaa00" },
+      unknown:  { color: "#888888" }
+    };
+
+    // =========================================
+    // TERMINAL
+    // =========================================
+    function logToTerminal(msg, type = "info") {
+      const time = new Date().toLocaleTimeString();
+      let color = "#60a5fa";
+      if (type === "error") color = "#f87171";
+      if (type === "success") color = "#34d399";
+      if (type === "warn") color = "#fbbf24";
+
+      terminal.innerHTML += `\n[${time}] ${msg}`;
+      terminal.scrollTop = terminal.scrollHeight;
+
+      // Colorear "a mano" sin spans complejos: simple, robusto
+      // (si quieres color real por línea, dímelo y lo hago con divs como tu HUD)
+    }
+
+    function clearTerminal() {
+      terminal.textContent = "";
+    }
+
+    // =========================================
+    // CYTOSCAPE INIT
+    // =========================================
+    function initCy() {
+      cy = cytoscape({
+        container: document.getElementById("cy"),
+        elements: [],
+        style: [
+          {
+            selector: "node",
+            style: {
+              "label": "data(name)",
+              "text-valign": "bottom",
+              "text-margin-y": 10,
+              "color": "#cbd5e1",
+              "font-family": "Inter",
+              "font-size": "10px",
+              "background-color": (d) => {
+                const role = (d.data("role") || "unknown").toLowerCase();
+                return (ROLE_CONFIG[role] || ROLE_CONFIG.unknown).color;
+              },
+              "border-width": 2,
+              "border-color": "rgba(255,255,255,0.18)",
+              "width": 44,
+              "height": 44
+            }
+          },
+          {
+            selector: "edge",
+            style: {
+              "width": 2,
+              "curve-style": "bezier",
+              "target-arrow-shape": "triangle",
+              "opacity": 0.75,
+              "line-color": "rgba(148,163,184,0.35)",
+              "target-arrow-color": "rgba(148,163,184,0.35)"
+            }
+          },
+          { selector: 'edge[type="network"]', style: { "line-color": "#60a5fa", "target-arrow-color": "#60a5fa" } },
+          { selector: 'edge[type="modbus"]',  style: { "line-color": "#fbbf24", "target-arrow-color": "#fbbf24", "width": 3 } },
+          { selector: 'edge[type="attack"]',  style: { "line-color": "#fb7185", "target-arrow-color": "#fb7185", "line-style": "dashed" } },
+          { selector: 'edge[type="monitor"]', style: { "line-color": "#22c55e", "target-arrow-color": "#22c55e" } },
+          { selector: 'edge[type="c2"]',      style: { "line-color": "#f97316", "target-arrow-color": "#f97316" } },
+          { selector: 'edge[type="manual"]',  style: { "line-color": "#fbbf24", "target-arrow-color": "#fbbf24", "opacity": 1 } },
+          { selector: ":selected", style: { "border-width": 4, "border-color": "#93c5fd" } }
+        ],
+        layout: { name: "preset" }
+      });
+
+      // Click nodo = seleccionar objetivo + si hay estrategia seleccionada -> ejecutar
+      cy.on("tap", "node", (e) => {
+        const node = e.target;
+        selectedTargetNodeId = node.id();
+        logToTerminal(`[TARGET] Seleccionado: ${node.data("name")} (${node.data("ip") || "N/A"})`);
+
+        // Si ya hay estrategia seleccionada, ejecutamos sobre este nodo
+        if (selectedStrategy) {
+          executeActionOnTarget(selectedTargetNodeId, selectedStrategy.action, selectedStrategy.type);
+        }
+      });
+    }
+
+    // =========================================
+    // SCENARIO LOAD (MISMA IDEA QUE TU HUD)
+    // =========================================
+    async function refreshBattlefield() {
+      logToTerminal("[SCAN] Sincronizando escenario desde /api/hud/instances ...");
+
+      try {
+        const res = await fetch(`${API_BASE}/hud/instances`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
+
+        const instances = data.instances || [];
+        const edges = data.edges || [];
+
+        // limpiar
+        cy.elements().remove();
+
+        // NODOS
+        instances.forEach((inst, i) => {
+          const pos = inst.position || {
+            x: 500 + Math.cos((i / Math.max(instances.length, 1)) * 2 * Math.PI) * 250,
+            y: 350 + Math.sin((i / Math.max(instances.length, 1)) * 2 * Math.PI) * 220
+          };
+
+          cy.add({
+            group: "nodes",
+            data: {
+              id: inst.id,
+              name: inst.name,
+              role: inst.role || "unknown",
+              status: inst.status,
+              ip: inst.ip,
+              os: inst.os,
+              allowed_ports: inst.allowed_ports,
+              strategies: inst.strategies || { attack: [], defense: [], prevention: [] }
+            },
+            position: pos
+          });
+        });
+
+        // EDGES
+        if (Array.isArray(edges) && edges.length > 0) {
+          cy.add(edges.map((e, i) => ({
+            group: "edges",
+            data: {
+              id: e.id || `edge-${i}-${e.source}-${e.target}`,
+              source: e.source,
+              target: e.target,
+              type: e.type || "network"
+            }
+          })));
+          logToTerminal(`[EDGES] ${edges.length} enlaces cargados`);
+        } else {
+          logToTerminal("[WARN] No se recibieron enlaces");
+        }
+
+        cy.fit(null, 60);
+
+        // Construir listas Attack/Defense desde estrategias reales
+        buildStrategyPanelsFromScenario(instances);
+
+        logToTerminal("[OK] Escenario cargado correctamente", "success");
+      } catch (err) {
+        logToTerminal(`[ERROR] ${err.message}`, "error");
+      }
+    }
+
+    // =========================================
+    // STRATEGIES PANELS (DINÁMICO)
+    // =========================================
+    function buildStrategyPanelsFromScenario(instances) {
+      // Unir estrategias de todos los nodos (sin duplicados)
+      const atk = new Set();
+      const def = new Set();
+
+      instances.forEach((inst) => {
+        const s = inst.strategies || {};
+        (s.attack || []).forEach(x => atk.add(String(x)));
+        (s.defense || []).forEach(x => def.add(String(x)));
+      });
+
+      // fallback si el backend no trae strategies
+      if (atk.size === 0) {
+        // Mantener el dashboard usable aunque no existan estrategias
+        atk.add("ping_target.sh");
+      }
+      if (def.size === 0) {
+        def.add("install_suricata.sh");
+      }
+
+      renderStrategyList(attackListEl, Array.from(atk), "attack");
+      renderStrategyList(defenseListEl, Array.from(def), "defense");
+
+      logToTerminal(`[STRATEGIES] ATK=${atk.size} DEF=${def.size}`);
+    }
+
+    function renderStrategyList(container, actions, type) {
+      container.innerHTML = "";
+
+      actions.forEach((action, idx) => {
+        const card = document.createElement("div");
+        card.className = "strategy-card";
+        const code = `${type === "attack" ? "ATK" : "DEF"}_${String(idx + 1).padStart(2, "0")}`;
+        const color = type === "attack" ? "text-red-400" : "text-emerald-400";
+
+        card.innerHTML = `
+          <div class="${color} font-black mb-1">${code}</div>
+          <div class="text-[10px] uppercase font-bold opacity-70">${escapeHtml(action)}</div>
+        `;
+
+        card.onclick = () => {
+          // activar UI
+          document.querySelectorAll(".strategy-card").forEach(x => x.classList.remove("active"));
+          card.classList.add("active");
+
+          selectedStrategy = { type, action };
+
+          logToTerminal(`[STRATEGY] Seleccionada (${type}): ${action}`);
+          logToTerminal(`[HINT] Ahora haz click en un nodo objetivo`);
+        };
+
+        container.appendChild(card);
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    // =========================================
+    // EXECUTION (REUTILIZA TU BACKEND /api/hud/action)
+    // - Si el backend responde SSE -> streamea
+    // - Si responde JSON -> imprime message
+    // =========================================
+    async function executeActionOnTarget(targetId, action, type) {
+      if (!targetId) {
+        logToTerminal("[ERROR] No hay nodo objetivo seleccionado", "error");
+        return;
+      }
+
+      logToTerminal(`[ACTION] Ejecutando (${type}) '${action}' en target_id=${targetId} ...`);
+
+      try {
+        const res = await fetch(`${API_BASE}/hud/action`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ target_id: targetId, action })
+        });
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        // Intentar streaming (SSE-like por fetch)
+        const contentType = res.headers.get("content-type") || "";
+
+        // Si tu backend usa "text/event-stream" o manda "data:" líneas
+        if (contentType.includes("text/event-stream") || contentType.includes("text/plain")) {
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            chunk.split("\n").forEach(line => {
+              if (!line) return;
+              if (line.startsWith("data:")) {
+                logToTerminal(line.replace("data:", "").trim());
+              } else {
+                // por si tu backend no antepone "data:"
+                logToTerminal(line.trim());
+              }
+            });
+          }
+
+          logToTerminal("[OK] Operación finalizada", "success");
+          return;
+        }
+
+        // Si es JSON normal
+        const data = await res.json();
+        logToTerminal(`[RESULT] ${data.message || "Operación confirmada."}`, "success");
+
+      } catch (e) {
+        logToTerminal(`[ERROR] Fallo en ejecución: ${e.message}`, "error");
+      }
+    }
+
+    // =========================================
+    // BOOT
+    // =========================================
+    document.addEventListener("DOMContentLoaded", () => {
+      initCy();
+      refreshBattlefield();
+    });
+  </script>
+</body>
+</html>

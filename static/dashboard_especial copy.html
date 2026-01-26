@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NICS CyberLab | Special Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: #0f172a;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dynamic-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+            padding: 20px;
+            height: calc(100vh - 100px);
+            scrollbar-width: thin;
+            scrollbar-color: #334155 #0f172a;
+        }
+
+        .strategy-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .strategy-card:hover {
+            transform: scale(1.05) translateX(10px);
+            background: rgba(255, 255, 255, 0.15);
+            border-color: #60a5fa;
+            box-shadow: 0 10px 30px -10px rgba(96, 165, 250, 0.5);
+        }
+
+        .tools-menu-center {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            background: rgba(30, 41, 59, 0.5);
+            padding: 12px;
+            border-radius: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+            margin-bottom: 10px;
+        }
+
+        .tool-btn {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid #475569;
+            padding: 0.6rem 1.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            letter-spacing: 0.05em;
+        }
+
+        .tool-btn:hover {
+            border-color: #60a5fa;
+            color: #60a5fa;
+            background: rgba(15, 23, 42, 0.9);
+            box-shadow: 0 0 20px rgba(96, 165, 250, 0.3);
+        }
+
+        #terminal-output {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            background: rgba(0, 0, 0, 0.85);
+            border-radius: 1.5rem;
+            padding: 20px;
+            height: 220px;
+            overflow-y: auto;
+            color: #10b981;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .label-header {
+            font-size: 0.65rem;
+            font-weight: 900;
+            letter-spacing: 0.3em;
+            color: #64748b;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="flex flex-1 overflow-hidden pt-6">
+        
+        <aside class="w-80 border-r border-white/5 bg-black/10">
+            <div class="p-4 text-center">
+                <div class="label-header">Attack Strategies</div>
+                <div class="dynamic-list" id="attack-list">
+                    <div onclick="executeScript('ransomware.sh', 'attack')" class="strategy-card">
+                        <div class="text-red-500 font-black mb-1">ATK_01</div>
+                        <div class="text-[10px] uppercase font-bold opacity-60">Ransomware Sim</div>
+                    </div>
+                    <div onclick="executeScript('bruteforce.sh', 'attack')" class="strategy-card">
+                        <div class="text-red-500 font-black mb-1">ATK_02</div>
+                        <div class="text-[10px] uppercase font-bold opacity-60">SSH Brute Force</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col px-6 gap-4">
+            
+            <div class="tools-menu-center">
+                <button class="tool-btn">Suricata</button>
+                <button class="tool-btn">Caldera</button>
+                <button class="tool-btn">Wazuh</button>
+                <button class="tool-btn">Snort</button>
+                <button class="tool-btn">Nmap</button>
+            </div>
+
+            <div class="flex-1 bg-slate-900/40 rounded-[3.5rem] border border-white/5 relative flex items-center justify-center overflow-hidden">
+                <div class="absolute top-8 label-header">Active Scenario View</div>
+                
+                <div class="text-slate-700 flex flex-col items-center">
+                    <div class="w-24 h-24 border-4 border-slate-800 rounded-full mb-4 animate-pulse"></div>
+                    <span class="italic text-sm">System Map Ready</span>
+                </div>
+            </div>
+
+            <div class="w-full pb-6">
+                <div class="label-header ml-6">Live Execution Terminal</div>
+                <div id="terminal-output">
+                    [SYSTEM] NICS CyberLab Dashboard Active. Ready for instructions...
+                </div>
+            </div>
+        </main>
+
+        <aside class="w-80 border-l border-white/5 bg-black/10">
+            <div class="p-4 text-center">
+                <div class="label-header">Defense Strategies</div>
+                <div class="dynamic-list" id="defense-list">
+                    <div onclick="executeScript('block_ip.sh', 'defense')" class="strategy-card">
+                        <div class="text-emerald-500 font-black mb-1">DEF_01</div>
+                        <div class="text-[10px] uppercase font-bold opacity-60">IP Blocking</div>
+                    </div>
+                    <div onclick="executeScript('isolate_host.sh', 'defense')" class="strategy-card">
+                        <div class="text-emerald-500 font-black mb-1">DEF_02</div>
+                        <div class="text-[10px] uppercase font-bold opacity-60">VLAN Isolation</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <footer class="p-2 text-center text-[9px] text-slate-600 uppercase tracking-[0.5em] bg-black/20">
+        2026 NICS Lab | University of Málaga
+    </footer>
+
+    <script>
+        const terminal = document.getElementById('terminal-output');
+
+        function logToTerminal(msg, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            const color = type === 'error' ? 'text-red-400' : (type === 'success' ? 'text-emerald-400' : 'text-blue-400');
+            terminal.innerHTML += `<div class="${color} mb-1">[${time}] ${msg}</div>`;
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        async function executeScript(scriptName, type) {
+            logToTerminal(`Initiating ${type} sequence: ${scriptName}...`);
+            // Simulación de respuesta de backend
+            setTimeout(() => {
+                logToTerminal(`Script ${scriptName} executed on target.`, 'success');
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
