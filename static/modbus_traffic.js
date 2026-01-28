@@ -188,11 +188,7 @@ function openTrafficCapture(vm) {
 }
 
 // Vincula esta función al botón "Refrescar"
-function applyTrafficFilters() {
-    if (STATE.selected) {
-        openTrafficCapture(STATE.selected);
-    }
-}
+
 
 // ESTA FUNCIÓN DEBE SER LLAMADA POR EL BOTÓN "REFRESCAR CAPTURA"
 function applyTrafficFilters() {
@@ -200,12 +196,26 @@ function applyTrafficFilters() {
         openTrafficCapture(STATE.selected);
     }
 }
+// function closeTraffic() {
+   //  if (trafficSource) trafficSource.close();
+    // const trafficOverlay = document.getElementById('traffic-overlay');
+    // trafficOverlay.classList.add('hidden');
+   //  trafficOverlay.classList.remove('flex');
+// }
+
+
+
 function closeTraffic() {
-    if (trafficSource) trafficSource.close();
-    const trafficOverlay = document.getElementById('traffic-overlay');
-    trafficOverlay.classList.add('hidden');
-    trafficOverlay.classList.remove('flex');
+    if (STATE.trafficSource) {
+        STATE.trafficSource.close(); // Detiene el sniffer en el server
+    }
+    // Dispara la descarga del archivo que se acaba de crear
+    const filename = `${STATE.selected.id}.pcap`;
+    window.location.href = `/api/openstack/traffic/download/${filename}`;
+    
+    UI.trafficOverlay.classList.replace("flex", "hidden");
 }
+
 
 // --- CARGA INICIAL ---
 

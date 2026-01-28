@@ -284,9 +284,7 @@ aside {
         </div>
     </header>
 
-
-      <div class="h-screen flex pt-24 pb-6 px-4 gap-4">
-
+    <div class="h-screen flex pt-24 pb-6 px-6 gap-6">
 <aside class="w-[420px] flex flex-col gap-6">
     <div class="bg-[#0a0e27]/90 border-2 border-[#ff3366] rounded-2xl p-6 backdrop-blur-sm h-full flex flex-col">
         <div class="flex items-center gap-4 mb-4 pb-4 border-b-2 border-[#ff3366]/30">
@@ -408,12 +406,12 @@ aside {
 
 
 
-         <div class="h-[650px] w-full bg-[#0a0e27]/90 border-2 border-[#00ff88] rounded-2xl p-6 backdrop-blur-sm flex flex-col">
+           <div class="h-[650px] bg-[#0a0e27]/90 border-2 border-[#00ff88] rounded-2xl p-5 backdrop-blur-sm flex flex-col">
     <div class="flex justify-between items-center mb-3 pb-2 border-b border-[#00ff88]/20">
-        <span class="text-xl font-black text-[#00ff88] tracking-widest uppercase">Tactical Terminal System</span>
+        <span class="text-[9px] font-black text-[#00ff88] tracking-widest uppercase">Tactical Terminal System</span>
         <div class="flex gap-4">
-            <button onclick="clearTerminal('monitoring')" class="text-xl text-[#00aaff]/60 hover:text-[#00aaff] uppercase font-bold">Clear Monitoring</button>
-            <button onclick="clearTerminal('victim')" class=" text-xl text-[#ff3366]/60 hover:text-[#ff3366] uppercase font-bold">Clear Victim</button>
+            <button onclick="clearTerminal('monitoring')" class="text-[8px] text-[#00aaff]/60 hover:text-[#00aaff] uppercase font-bold">Clear Monitoring</button>
+            <button onclick="clearTerminal('victim')" class="text-[8px] text-[#ff3366]/60 hover:text-[#ff3366] uppercase font-bold">Clear Victim</button>
         </div>
     </div>
     
@@ -423,16 +421,16 @@ aside {
 
 
         <div class="flex-1 flex flex-col min-w-0 pl-2">
-            <div class="text-xl font-black text-[#ff3366] mb-2 uppercase opacity-70">Victim Telemetry</div>
-            <div id="terminal-victim" class="flex-1 overflow-y-auto font-mono text-xl text-[#ff3366]/90 space-y-1 scroll-smooth custom-scrollbar">
+            <div class="text-[8px] font-black text-[#ff3366] mb-2 uppercase opacity-70">Victim Telemetry</div>
+            <div id="terminal-victim" class="flex-1 overflow-y-auto font-mono text-[10px] text-[#ff3366]/90 space-y-1 scroll-smooth custom-scrollbar">
                 <div class="opacity-30 italic">[SYSTEM] Victim data stream idle...</div>
             </div>
         </div>
 
         
         <div class="flex-1 flex flex-col min-w-0 border-r border-[#00ff88]/10 pr-2">
-            <div class="text-xl font-black text-[#00aaff] mb-2 uppercase opacity-70">Live Monitoring</div>
-            <div id="terminal-monitoring" class="flex-1 overflow-y-auto font-mono text-xl text-[#00aaff]/90 space-y-1 scroll-smooth custom-scrollbar">
+            <div class="text-[8px] font-black text-[#00aaff] mb-2 uppercase opacity-70">Live Monitoring</div>
+            <div id="terminal-monitoring" class="flex-1 overflow-y-auto font-mono text-[10px] text-[#00aaff]/90 space-y-1 scroll-smooth custom-scrollbar">
                 <div class="opacity-30 italic">[SYSTEM] Monitoring link established...</div>
             </div>
         </div>
