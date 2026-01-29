@@ -14,12 +14,6 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-
-
- 
-
-
-
   <style>
     :root { color-scheme: dark; }
     body { background: #0b1220; }
@@ -106,11 +100,11 @@
       <div class="flex items-start justify-between gap-6">
         <div>
           <div class="flex items-center gap-3">
-            <h2 class="text-sm font-black tracking-widest uppercase text-slate-200">OpenStack IT Scenario Dashboard</h2>
+            <h2 class="text-sm font-black tracking-widest uppercase text-slate-200">OpenStack Industrial Testbed Dashboard</h2>
             <span id="active-scenario-badge" class="badge">Scenario: auto</span>
           </div>
           <p class="text-xs text-slate-400 mt-1 mono">
-            Visualización de instancias IT desplegadas en OpenStack que representan los roles de atacante, víctima y monitorización, utilizadas para la ejecución de escenarios de ataque, detección y análisis forense.
+            Visualización de roles y conectividad lógica para análisis forense y despliegue de herramientas.
           </p>
         </div>
 
@@ -152,7 +146,7 @@
                   <div class="kpi">Victim Instance</div>
                   <div id="victim-name" class="font-extrabold">--</div>
                   <div id="victim-ip" class="mono text-xs text-slate-400 mt-1">IP: --</div>
-                  
+                  <div class="mono text-[10px] text-slate-500 mt-1">PLC, SCADA, IoT</div>
                 </div>
               </div>
               <span id="victim-state" class="badge">status: --</span>
@@ -170,7 +164,7 @@
                   <div class="kpi">Monitor Instance</div>
                   <div id="monitor-name" class="font-extrabold">--</div>
                   <div id="monitor-ip" class="mono text-xs text-slate-400 mt-1">IP: --</div>
-                  
+                  <div class="mono text-[10px] text-slate-500 mt-1">Forensic Tools</div>
                 </div>
               </div>
               <span id="monitor-state" class="badge">status: --</span>
@@ -239,47 +233,6 @@
 
 
 
-<section class="glass softshadow rounded-3xl p-6 mb-6 border-b-2 border-sky-500/20">
-  <div class="flex items-start justify-between gap-5 mb-6">
-    <div>
-      <div class="flex items-center gap-3">
-        <h3 class="text-lg font-black tracking-widest uppercase text-sky-400">Host Forensic Inventory</h3>
-        <span class="badge">Extended View</span>
-      </div>
-      <p class="text-xs text-slate-400 mt-1 mono">
-        Exploración detallada de artefactos y herramientas instaladas en el nodo de monitorización.
-      </p>
-    </div>
-
-    <div class="flex gap-2">
-      <button onclick="document.getElementById('inventory-frame').contentWindow.location.reload();"
-              class="btn px-6 py-2 bg-sky-900/20 hover:bg-sky-500 border border-sky-500/50 text-sky-100 text-xs">
-        <i class="fa-solid fa-arrows-rotate mr-2"></i> Actualizar Reporte
-      </button>
-    </div>
-  </div>
-
-  <div class="rounded-2xl border border-slate-800/80 bg-slate-950/40 overflow-hidden shadow-inner">
-    <iframe 
-      id="inventory-frame"
-      src="forensic_inventory.html" 
-      class="w-full h-[800px] border-none"
-      title="Forensic Inventory">
-    </iframe>
-  </div>
-</section>
-
-<section class="grid grid-cols-1 gap-6 mb-6">
-  <div class="glass softshadow rounded-3xl p-6">
-    <div class="flex items-start justify-between gap-4">
-      <div>
-        <h3 class="text-sm font-black tracking-widest uppercase">Tool Deployment & Action</h3>
-        <p class="text-xs text-slate-400 mt-1 mono">Gestión de ciclo de vida de herramientas.</p>
-      </div>
-      <span class="badge">Host Control</span>
-    </div>
-    </div>
-</section>
 
 
 
@@ -387,32 +340,18 @@
           <span class="badge">Telemetry</span>
         </div>
 
-       <div class="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-4">
-  <div class="rounded-2xl border border-slate-800/80 bg-slate-950/35 p-4 h-[220px]">
+        <div class="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="rounded-2xl border border-slate-800/80 bg-slate-950/35 p-4">
+            <div class="kpi">Health</div>
+            <canvas id="healthChart" class="mt-3" height="130"></canvas>
+          </div>
 
-    <div class="kpi">Health (OpenStack Hypervisor)</div>
-   <canvas id="healthChart" class="mt-3 w-full h-full"></canvas>
-
-  </div>
-
-  <div class="rounded-2xl border border-slate-800/80 bg-slate-950/35 p-4 h-[220px]">
-
-    <div class="kpi">Traffic (SSE)</div>
-    <canvas id="trafficChart" class="mt-3" height="130"></canvas>
-    <div class="mt-2 flex items-center justify-between">
-      <span class="mono text-[10px] text-slate-500">Source</span>
-      <span id="traffic-source" class="mono text-[10px] text-slate-300">--</span>
-    </div>
-  </div>
-
- <div class="rounded-2xl border border-slate-800/80 bg-slate-950/35 p-4 h-[220px]">
-
-    <div class="kpi">Operational Log</div>
-    <pre id="ics-log-terminal"
-         class="mt-3 h-[170px] overflow-auto scrollbar bg-slate-950/60 border border-slate-800/60 rounded-2xl p-3 text-[11px] text-slate-200 mono"></pre>
-  </div>
-</div>
-
+          <div class="rounded-2xl border border-slate-800/80 bg-slate-950/35 p-4">
+            <div class="kpi">Operational Log</div>
+            <pre id="ics-log-terminal"
+                 class="mt-3 h-[170px] overflow-auto scrollbar bg-slate-950/60 border border-slate-800/60 rounded-2xl p-3 text-[11px] text-slate-200 mono"></pre>
+          </div>
+        </div>
       </div>
 
       <!-- Alerts & Indicators -->
@@ -495,23 +434,19 @@
          - Host install (SSE):   GET  /api/host/install/<tool>   (si existe)
          - Host uninstall (SSE): GET  /api/host/uninstall/<tool> (si existe)
        ============================================================ */
-const API = {
-  roles: "/api/host/instance_roles",
 
-  hostInventoryPrimary: "/api/host/inventory",
-  hostInventoryFallback: "/api/host/forensic/tools",
+    const API = {
+      roles: "/api/host/instance_roles",
 
-  hostVersion: (tool) => `/api/host/version/${encodeURIComponent(tool)}`,
-  hostInstallSSE: (tool) => `/api/host/install/${encodeURIComponent(tool)}`,
-  hostUninstallSSE: (tool) => `/api/host/uninstall/${encodeURIComponent(tool)}`,
+      // En tu archivo actual existe /api/host/forensic/tools, NO /api/host/inventory.
+      // Priorizo /api/host/inventory y si falla hago fallback al endpoint real.
+      hostInventoryPrimary: "/api/host/inventory",
+      hostInventoryFallback: "/api/host/forensic/tools",
 
-  // NUEVO: OpenStack
-  instancesFull: "/api/openstack/instances/full",
-  hypervisorStats: "/api/openstack/hypervisor-stats",
-  trafficSSE: (vmId, protosCsv) => `/api/openstack/traffic/${encodeURIComponent(vmId)}?protos=${encodeURIComponent(protosCsv || "")}`,
-  
-};
-
+      hostVersion: (tool) => `/api/host/version/${encodeURIComponent(tool)}`,
+      hostInstallSSE: (tool) => `/api/host/install/${encodeURIComponent(tool)}`,
+      hostUninstallSSE: (tool) => `/api/host/uninstall/${encodeURIComponent(tool)}`,
+    };
 
     const UI = {
       backendDot: document.getElementById("backend-dot"),
@@ -561,7 +496,6 @@ scadaState : document.getElementById("scada-state"),
 plcName : document.getElementById("plc-name"),
 plcIp : document.getElementById("plc-ip"),
 plcState : document.getElementById("plc-state"),
-trafficSource: document.getElementById("traffic-source"),
 
 
 
@@ -572,20 +506,6 @@ trafficSource: document.getElementById("traffic-source"),
       health: { cpu: [], mem: [], net: [], t: [] },
       chart: null,
       alerts: [],
-
-        instances: [],             // inventory de instancias
-  traffic: {
-    es: null,                // EventSource activo
-    chart: null,
-    labels: [],
-    total: [],
-    modbus: [],
-    profinet: [],
-    other: [],
-  },
-  timers: {
-    hypervisor: null
-  }
     };
 
     function nowTime() {
@@ -986,258 +906,65 @@ trafficSource: document.getElementById("traffic-source"),
     /* =========================
        7) Health chart (demo)
        ========================= */
-    /* =========================
-   7) Health (REAL) + Traffic (REAL)
-   ========================= */
+    function initChart() {
+      const ctx = document.getElementById("healthChart");
+      State.health = { cpu: [], mem: [], net: [], t: [] };
 
-function toPct(used, total) {
-  const t = Number(total) || 0;
-  const u = Number(used) || 0;
-  if (t <= 0) return 0;
-  return Math.max(0, Math.min(100, (u / t) * 100));
-}
+      const gen = () => {
+        const t = new Date().toLocaleTimeString();
+        const cpu = Math.max(5, Math.min(95, Math.round(20 + Math.random() * 65)));
+        const mem = Math.max(5, Math.min(95, Math.round(30 + Math.random() * 55)));
+        const net = Math.max(1, Math.min(100, Math.round(10 + Math.random() * 80)));
 
-function initHealthChartReal() {
-  const canvas = document.getElementById("healthChart");
-  if (!canvas) return;
+        State.health.t.push(t);
+        State.health.cpu.push(cpu);
+        State.health.mem.push(mem);
+        State.health.net.push(net);
 
-  // CLAVE: destruir chart previo si existe
-  if (State.chart) {
-    State.chart.destroy();
-    State.chart = null;
-  }
-
-  const ctx = canvas.getContext("2d");
-
-  State.chart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: ["CPU", "RAM", "DISK"],
-      datasets: [{
-        label: "Uso (%)",
-        data: [0, 0, 0],
-        backgroundColor: [
-          "rgba(34,211,238,0.55)",   // CPU
-          "rgba(16,185,129,0.55)",   // RAM
-          "rgba(245,158,11,0.55)"    // DISK
-        ],
-        borderRadius: 8
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      resizeDelay: 200,
-      animation: false,
-      scales: {
-        y: {
-          beginAtZero: true,
-          max: 100,
-          ticks: { color: "rgba(148,163,184,0.7)" },
-          grid: { color: "rgba(51,65,85,0.25)" }
-        },
-        x: {
-          ticks: { color: "rgba(148,163,184,0.7)" },
-          grid: { display: false }
+        if (State.health.t.length > 18) {
+          State.health.t.shift();
+          State.health.cpu.shift();
+          State.health.mem.shift();
+          State.health.net.shift();
         }
-      },
-      plugins: {
-        legend: { display: false }
-      }
+
+        if (State.chart) {
+          State.chart.data.labels = State.health.t;
+          State.chart.data.datasets[0].data = State.health.cpu;
+          State.chart.data.datasets[1].data = State.health.mem;
+          State.chart.data.datasets[2].data = State.health.net;
+          State.chart.update();
+        }
+      };
+
+      State.chart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [
+            { label: "CPU", data: [], tension: 0.35 },
+            { label: "MEM", data: [], tension: 0.35 },
+            { label: "NET", data: [], tension: 0.35 },
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { ticks: { color: "rgba(148,163,184,0.7)" }, grid: { color: "rgba(51,65,85,0.25)" } },
+            y: { ticks: { color: "rgba(148,163,184,0.7)" }, grid: { color: "rgba(51,65,85,0.25)" }, min: 0, max: 100 }
+          },
+          plugins: {
+            legend: { labels: { color: "rgba(226,232,240,0.8)" } },
+            tooltip: { enabled: true }
+          }
+        }
+      });
+
+      // start
+      for (let i = 0; i < 6; i++) gen();
+      setInterval(gen, 2500);
     }
-  });
-}
-
-async function fetchHypervisorStatsOnce() {
-  const stats = await safeFetchJson(API.hypervisorStats);
-
-  const cpuUsed  = stats.vcpus_used || 0;
-  const cpuTotal = stats.vcpus || 0;
-
-  const ramUsed  = stats.memory_mb_used || 0;
-  const ramTotal = stats.memory_mb || 0;
-
-  const diskUsed  = stats.local_gb_used || 0;
-  const diskTotal = stats.local_gb || 0;
-
-  const cpuPct  = Number(toPct(cpuUsed, cpuTotal).toFixed(1));
-  const ramPct  = Number(toPct(ramUsed, ramTotal).toFixed(1));
-  const diskPct = Number(toPct(diskUsed, diskTotal).toFixed(1));
-
-  if (State.chart) {
-    State.chart.data.datasets[0].data = [cpuPct, ramPct, diskPct];
-    State.chart.update();
-  }
-
-  logLine(`Hypervisor stats: CPU ${cpuPct}% | RAM ${ramPct}% | DISK ${diskPct}%`);
-}
-
-function startHypervisorPolling(intervalMs = 5000) {
-  if (State.timers.hypervisor) clearInterval(State.timers.hypervisor);
-
-  const tick = async () => {
-    try {
-      await fetchHypervisorStatsOnce();
-    } catch (e) {
-      logLine(`ERROR hypervisor-stats: ${e.message}`);
-    }
-  };
-
-  tick();
-  State.timers.hypervisor = setInterval(tick, intervalMs);
-}
-
-function initTrafficChartReal() {
-  const canvas = document.getElementById("trafficChart");
-  if (!canvas) return;
-
-  const ctx = canvas.getContext("2d");
-
-  State.traffic.chart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: [],
-      datasets: [
-        { label: "TOTAL", data: [], tension: 0.35, borderWidth: 2 },
-        { label: "MODBUS", data: [], tension: 0.35, borderWidth: 2 },
-        { label: "PROFINET", data: [], tension: 0.35, borderWidth: 2 },
-        { label: "OTHER", data: [], tension: 0.35, borderWidth: 2 },
-      ]
-    },
-    options: {
-      responsive: true,
-      animation: false,
-      maintainAspectRatio: false,
-      scales: {
-        x: { ticks: { color: "rgba(148,163,184,0.7)" }, grid: { color: "rgba(51,65,85,0.25)" } },
-        y: { ticks: { color: "rgba(148,163,184,0.7)" }, grid: { color: "rgba(51,65,85,0.25)" }, min: 0 }
-      },
-      plugins: { legend: { labels: { color: "rgba(226,232,240,0.8)" } } }
-    }
-  });
-}
-
-function resetTrafficSeries() {
-  State.traffic.labels = [];
-  State.traffic.total = [];
-  State.traffic.modbus = [];
-  State.traffic.profinet = [];
-  State.traffic.other = [];
-
-  if (State.traffic.chart) {
-    State.traffic.chart.data.labels = [];
-    State.traffic.chart.data.datasets[0].data = [];
-    State.traffic.chart.data.datasets[1].data = [];
-    State.traffic.chart.data.datasets[2].data = [];
-    State.traffic.chart.data.datasets[3].data = [];
-    State.traffic.chart.update();
-  }
-}
-
-function classifyProto(rawLine) {
-  const s = String(rawLine || "");
-  if (s.includes("MODBUS TCP")) return "MODBUS";
-  if (s.includes("PROFINET")) return "PROFINET";
-  return "OTHER";
-}
-
-function pushTrafficPoint(proto) {
-  const t = nowTime();
-
-  // Mantener ventana corta (ej. 20 puntos)
-  const MAX = 20;
-
-  const lastTotal = State.traffic.total.length ? State.traffic.total[State.traffic.total.length - 1] : 0;
-  const lastMod   = State.traffic.modbus.length ? State.traffic.modbus[State.traffic.modbus.length - 1] : 0;
-  const lastProf  = State.traffic.profinet.length ? State.traffic.profinet[State.traffic.profinet.length - 1] : 0;
-  const lastOther = State.traffic.other.length ? State.traffic.other[State.traffic.other.length - 1] : 0;
-
-  const nextTotal = lastTotal + 1;
-  const nextMod   = lastMod + (proto === "MODBUS" ? 1 : 0);
-  const nextProf  = lastProf + (proto === "PROFINET" ? 1 : 0);
-  const nextOther = lastOther + (proto === "OTHER" ? 1 : 0);
-
-  State.traffic.labels.push(t);
-  State.traffic.total.push(nextTotal);
-  State.traffic.modbus.push(nextMod);
-  State.traffic.profinet.push(nextProf);
-  State.traffic.other.push(nextOther);
-
-  if (State.traffic.labels.length > MAX) {
-    State.traffic.labels.shift();
-    State.traffic.total.shift();
-    State.traffic.modbus.shift();
-    State.traffic.profinet.shift();
-    State.traffic.other.shift();
-  }
-
-  if (State.traffic.chart) {
-    State.traffic.chart.data.labels = State.traffic.labels;
-    State.traffic.chart.data.datasets[0].data = State.traffic.total;
-    State.traffic.chart.data.datasets[1].data = State.traffic.modbus;
-    State.traffic.chart.data.datasets[2].data = State.traffic.profinet;
-    State.traffic.chart.data.datasets[3].data = State.traffic.other;
-    State.traffic.chart.update();
-  }
-}
-
-function stopTrafficStream() {
-  if (State.traffic.es) {
-    try { State.traffic.es.close(); } catch {}
-    State.traffic.es = null;
-  }
-}
-
-async function loadInstancesFull() {
-  const data = await safeFetchJson(API.instancesFull);
-  State.instances = data.instances || [];
-  return State.instances;
-}
-
-function findVmIdByName(name) {
-  const n = String(name || "").toLowerCase().trim();
-  if (!n) return null;
-
-  const vm = State.instances.find(x => String(x.name || "").toLowerCase().trim() === n);
-  return vm ? vm.id : null;
-}
-
-function startTrafficStreamForRole(roleObj, roleLabel, protosCsv = "modbus,profinet,tcp,udp,icmp") {
-  stopTrafficStream();
-  resetTrafficSeries();
-
-  const vmName = roleObj?.name || "";
-  const vmId = findVmIdByName(vmName);
-
-  UI.trafficSource.textContent = vmId ? `${roleLabel}: ${vmName}` : `${roleLabel}: ${vmName} (id no resuelto)`;
-
-  if (!vmId) {
-    logLine(`ERROR traffic: no se pudo resolver ID para VM "${vmName}". Necesito /api/openstack/instances/full con nombres consistentes.`);
-    return;
-  }
-
-  const url = API.trafficSSE(vmId, protosCsv);
-  logLine(`Traffic SSE conectado: ${roleLabel} -> ${vmName} (${vmId.slice(0,8)})`);
-
-  State.traffic.es = new EventSource(url);
-
-  State.traffic.es.onmessage = (e) => {
-    const line = String(e.data || "").trim();
-    if (!line || line === ":") return;
-
-    // Log operacional existente
-    logLine(line);
-
-    // Gráfica
-    const proto = classifyProto(line);
-    pushTrafficPoint(proto);
-  };
-
-  State.traffic.es.onerror = () => {
-    logLine("ERROR traffic SSE: pérdida de conexión / endpoint no disponible.");
-    stopTrafficStream();
-  };
-}
 
     function escapeHtml(str) {
       return String(str ?? "")
@@ -1252,53 +979,28 @@ function startTrafficStreamForRole(roleObj, roleLabel, protosCsv = "modbus,profi
        Boot
        ========================= */
     document.addEventListener("DOMContentLoaded", async () => {
-  UI.logTerminal.textContent = "";
-  logLine("JS cargado correctamente.");
+      UI.logTerminal.textContent = "";
+      logLine("JS cargado correctamente.");
 
-  // Charts reales
-  initHealthChartReal();
-  initTrafficChartReal();
+      initChart();
+      refreshAlerts();
 
-  // Alerts demo (puedes mantenerlo)
-  refreshAlerts();
+      await loadRoles();
+      await loadHostInventory();
 
-  // Carga base
-  await loadRoles();
-  await loadHostInventory();
-
-  // Necesario para resolver IDs a partir de nombres (sin tocar backend)
-  try {
-    await loadInstancesFull();
-  } catch (e) {
-    logLine(`ERROR instances/full: ${e.message}`);
-  }
-
-  // Inicia health real (OpenStack hypervisor)
-  startHypervisorPolling(5000);
-
-  // Inicia tráfico real por defecto: VICTIM (si existe)
-  // Usa lo que ya te devuelve tu endpoint de roles: data.victim
-  try {
-    const roles = await safeFetchJson(API.roles);
-    const victim = roles.victim || {};
-    startTrafficStreamForRole(victim, "VICTIM");
-  } catch (e) {
-    logLine(`ERROR start traffic (roles): ${e.message}`);
-  }
-
-  // Auto refresh alerts demo (igual que tenías)
-  setInterval(() => {
-    const sev = (Math.random() > 0.7) ? "active" : "baseline";
-    State.alerts.unshift({
-      time: new Date().toISOString().replace("T", " ").slice(0, 19),
-      desc: sev === "active" ? "Security Alert: New indicator ingested" : "System: Heartbeat OK",
-      sev
+      // Auto refresh alerts demo
+      setInterval(() => {
+        // rotate a demo alert
+        const sev = (Math.random() > 0.7) ? "active" : "baseline";
+        State.alerts.unshift({
+          time: new Date().toISOString().replace("T", " ").slice(0, 19),
+          desc: sev === "active" ? "Security Alert: New indicator ingested" : "System: Heartbeat OK",
+          sev
+        });
+        State.alerts = State.alerts.slice(0, 10);
+        refreshAlerts();
+      }, 12000);
     });
-    State.alerts = State.alerts.slice(0, 10);
-    refreshAlerts();
-  }, 12000);
-});
-
   </script>
 </body>
 </html>

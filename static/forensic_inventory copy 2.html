@@ -10,7 +10,7 @@
 <body class="bg-slate-950 text-slate-100 min-h-screen">
 
   <header class="sticky top-0 z-40 bg-slate-950/80 backdrop-blur border-b border-slate-800">
-    <div class="w-full px-6 py-4 flex items-center justify-between">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
       <div>
         <h1 class="text-xl font-semibold text-sky-400">Forensic Inventory & Readiness</h1>
         <p class="text-xs text-slate-400">Snapshot completo de OpenStack + herramientas forenses en host</p>
@@ -31,7 +31,7 @@
     </div>
   </header>
 
-<main class="w-full max-w-[1800px] mx-auto px-6 py-6 space-y-6">
+  <main class="max-w-7xl mx-auto px-6 py-6 space-y-6">
 
     <!-- OVERLAY -->
     <div id="overlay" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 items-center justify-center">
@@ -53,19 +53,22 @@
     <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
       <!-- HOST FORENSIC TOOLS -->
-     <!-- HOST INVENTORY (PASSIVE) -->
-<div class="bg-slate-900/80 border border-slate-800 rounded-xl p-5 shadow">
+      <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-5 shadow">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-lg font-semibold text-emerald-300">Forensic Host Tools</h2>
+          <button id="btn-refresh-host"
+            class="text-xs px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700">
+            Recargar
+          </button>
+        </div>
 
-  <div class="mb-3">
-    <h2 class="text-lg font-semibold text-sky-300">Host</h2>
-    <p class="text-xs text-slate-400">
-      Inventario pasivo de herramientas forenses detectadas en el host
-    </p>
-  </div>
+        <div id="host-tools" class="space-y-2"></div>
 
-  <div id="tools-grid" class="grid grid-cols-1 gap-3"></div>
-
-</div>
+        <div class="mt-4 p-3 bg-black/50 border border-slate-800 rounded-lg">
+          <div class="text-xs text-slate-400 mb-1">Log de instalación (host)</div>
+          <pre id="host-log" class="text-xs text-emerald-300 font-mono max-h-40 overflow-auto"></pre>
+        </div>
+      </div>
 
       <!-- GLOBAL INVENTORY -->
       <div class="lg:col-span-2 bg-slate-900/80 border border-slate-800 rounded-xl p-5 shadow">

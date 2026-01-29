@@ -17,8 +17,8 @@ const UI = {
   detailTools: document.getElementById("detail-tools"),
   detailJson: document.getElementById("detail-json"),
 
-  toolsGrid: document.getElementById("tools-grid"),
-
+  hostTools: document.getElementById("host-tools"),
+  hostLog: document.getElementById("host-log"),
 
   cpuBar: document.getElementById("cpu-bar"),
   cpuUsage: document.getElementById("cpu-usage"),
@@ -286,7 +286,7 @@ async function installHostTool(tool) {
   UI.hostLog.textContent += `--- STDERR ---\n${data.stderr || ""}\n`;
   UI.hostLog.textContent += `[${new Date().toLocaleTimeString()}] ExitCode=${data.exit_code}\n\n`;
 
-  await loadHostInventory();
+  await loadHostTools();
 }
 
 async function loadGlobalInventory() {
@@ -381,7 +381,7 @@ async function refreshAll() {
 
     // 4. Herramientas del Host
     setStatus("Verificando herramientas", "Chequeando Forensic Tools…", "warn");
-    await loadHostInventory();
+    await loadHostTools();
 
     setProgress(100);
     setStatus("Inventario actualizado", "Snapshot forense listo", "ok");
@@ -470,47 +470,9 @@ async function fetchJSON(url, label) {
 
 
 document.getElementById("btn-refresh").addEventListener("click", refreshAll);
+document.getElementById("btn-refresh-host").addEventListener("click", loadHostTools);
 
 
-
-async function loadHostInventory() {
-  try {
-    const res = await fetch("/api/host/inventory");
-    if (!res.ok) throw new Error("HTTP error");
-
-    const data = await res.json();
-    const tools = data.tools || [];
-
-    UI.toolsGrid.innerHTML = tools.map(tool => `
-      <div class="flex items-center justify-between p-4 rounded-lg border border-slate-800 bg-slate-950/40">
-
-        <div>
-          <div class="font-semibold text-slate-100 text-xs uppercase">
-            ${escapeHtml(tool.name)}
-          </div>
-          <div class="text-[10px] font-mono
-            ${tool.status === 'installed' ? 'text-emerald-400' : 'text-slate-500'}">
-            ${tool.status === 'installed' ? 'INSTALLED' : 'NOT INSTALLED'}
-          </div>
-        </div>
-
-        <div class="px-3 py-1 rounded-md text-[10px] font-black uppercase border
-          ${tool.status === 'installed'
-            ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10'
-            : 'border-slate-600/30 text-slate-400 bg-slate-700/20'}">
-          ${tool.status === 'installed' ? 'READY' : 'UNAVAILABLE'}
-        </div>
-
-      </div>
-    `).join("");
-
-  } catch (e) {
-    UI.toolsGrid.innerHTML = `
-      <div class="text-xs text-red-500 font-mono">
-        ERROR LOADING HOST INVENTORY
-      </div>`;
-  }
-}
 
 
 
