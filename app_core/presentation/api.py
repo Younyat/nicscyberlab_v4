@@ -2208,6 +2208,16 @@ api_bp.register_blueprint(monitor_infra_bp, url_prefix="/api/hud/monitor")
 #-------------------------------------------Dashboard f35 end----------------------------------------------------
 
 
+
+#-------------------------------------------Forensics new one begin----------------------------------------------------
+
+from app_core.infrastructure.forensics.forensics_api import forensics_bp
+api_bp.register_blueprint(forensics_bp)
+
+
+
+#-------------------------------------------Forensics new one  end----------------------------------------------------
+
         
 @api_bp.route('/')
 def index():

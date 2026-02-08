@@ -12,6 +12,9 @@ echo "============================================="
 echo " Preparando entorno y scripts..."
 echo "============================================="
 
+
+
+
 # --- Asegurar permisos de ejecución para free_port.sh ---
 if [ -f "$APP_PATH/free_port.sh" ]; then
   chmod +x "$APP_PATH/free_port.sh"

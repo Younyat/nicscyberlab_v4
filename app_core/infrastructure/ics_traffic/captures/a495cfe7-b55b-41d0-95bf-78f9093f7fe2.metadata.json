@@ -1,0 +1,24 @@
+{
+  "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+  "port_id": "0deb35ad-2163-471f-90f9-b6be76969039",
+  "vm_ips": [
+    "10.0.2.9",
+    "192.168.100.28"
+  ],
+  "iface": "tap0deb35ad-21",
+  "bpf": "(host 10.0.2.9 or host 192.168.100.28) and (tcp port 502 or udp port 34964 or udp port 34962 or tcp or udp)",
+  "protos": [
+    "modbus",
+    "profinet",
+    "tcp",
+    "udp"
+  ],
+  "start_epoch": 1770370696.8072932,
+  "start_local": "2026-02-06 10:38:20",
+  "pcap_file": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2.pcap",
+  "end_epoch": 1770370834.7752655,
+  "end_local": "2026-02-06 10:40:34",
+  "duration_s": 137.968,
+  "packets_written": 1912,
+  "termination_reason": "client_disconnect"
+}

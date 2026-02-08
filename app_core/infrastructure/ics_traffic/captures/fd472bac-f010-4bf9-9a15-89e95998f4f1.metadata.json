@@ -1,0 +1,23 @@
+{
+  "vm_id": "fd472bac-f010-4bf9-9a15-89e95998f4f1",
+  "vm_ips": [
+    "10.0.2.214",
+    "192.168.100.5"
+  ],
+  "iface": "uplinkbridge",
+  "bpf": "(host 10.0.2.214 or host 192.168.100.5) and (tcp port 502 or udp port 34964 or udp port 34962 or tcp or udp)",
+  "protos": [
+    "modbus",
+    "profinet",
+    "tcp",
+    "udp"
+  ],
+  "start_epoch": 1770293893.0692747,
+  "start_local": "2026-02-05 13:18:14",
+  "pcap_file": "fd472bac-f010-4bf9-9a15-89e95998f4f1.pcap",
+  "end_epoch": 1770293910.4728062,
+  "end_local": "2026-02-05 13:18:30",
+  "duration_s": 17.404,
+  "packets_written": 0,
+  "termination_reason": "client_disconnect"
+}

@@ -56,6 +56,16 @@ else
     ok "VENV Python detectado: $VENV_PYTHON"
 fi
 
+# --- Asegurar permisos correctos en SSH (evita Permission denied / bad permissions) ---
+
+
+section "[2.5/6] Ajustando permisos SSH..."
+chmod 700 "$HOME/.ssh" 2>/dev/null || true
+chmod 600 "$HOME/.ssh/my_key" 2>/dev/null || true
+chmod 644 "$HOME/.ssh/my_key.pub" 2>/dev/null || true
+
+
+
 # -----------------------------
 # [2/6] SYSTEM DEPENDENCIES
 # -----------------------------
