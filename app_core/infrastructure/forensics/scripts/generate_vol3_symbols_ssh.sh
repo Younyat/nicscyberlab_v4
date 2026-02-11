@@ -161,11 +161,38 @@ cd "$TMPDIR"
 # 5) Resolver URL del paquete debug desde pool (filtrando arquitectura)
 # ------------------------------------------------------------
 if [[ "$REPO_TYPE" == "debian" ]]; then
-  BASE="https://security.debian.org/debian-security/pool/updates/main/l/linux/"
-  echo "[*] Buscando paquete dbg en: $BASE (arch=$ARCH_DEB)"
-  PKG="$(curl -fsSL "$BASE" | grep -oP "linux-image-${KVER}-dbg_[^\" ]+_${ARCH_DEB}\\.deb" | head -1 || true)"
-  [[ -n "$PKG" ]] || { echo "ERROR: No encontré linux-image-${KVER}-dbg_..._${ARCH_DEB}.deb en el pool"; exit 1; }
-  URL="${BASE}${PKG}"
+  # Debian: los símbolos suelen estar en debian-debug como -dbgsym.
+  # Algunos casos antiguos usan -dbg. Y el kernel puede estar en debian (no en security).
+  BASES=(
+    "https://deb.debian.org/debian-debug/pool/main/l/linux/"
+    "https://deb.debian.org/debian/pool/main/l/linux/"
+    "https://security.debian.org/debian-security/pool/updates/main/l/linux/"
+  )
+
+  URL=""
+  for BASE in "${BASES[@]}"; do
+    echo "[*] Buscando paquete debug en: $BASE (arch=$ARCH_DEB)"
+
+    # 1) intentar dbgsym
+    PKG="$(curl -fsSL "$BASE" | grep -oP "linux-image-${KVER}-dbgsym_[^\" ]+_${ARCH_DEB}\\.deb" | head -1 || true)"
+    if [[ -n "$PKG" ]]; then
+      URL="${BASE}${PKG}"
+      break
+    fi
+
+    # 2) fallback dbg
+    PKG="$(curl -fsSL "$BASE" | grep -oP "linux-image-${KVER}-dbg_[^\" ]+_${ARCH_DEB}\\.deb" | head -1 || true)"
+    if [[ -n "$PKG" ]]; then
+      URL="${BASE}${PKG}"
+      break
+    fi
+  done
+
+  [[ -n "$URL" ]] || {
+    echo "ERROR: No encontré paquete debug para linux-image-${KVER} (arch=${ARCH_DEB}) en debian-debug/debian/security pools"
+    exit 1
+  }
+
 else
   BASE="https://ddebs.ubuntu.com/pool/main/l/linux/"
   echo "[*] Buscando paquete dbgsym en: $BASE (arch=$ARCH_DEB)"
@@ -173,6 +200,7 @@ else
   [[ -n "$PKG" ]] || { echo "ERROR: No encontré linux-image-${KVER}-dbgsym_..._${ARCH_DEB}.deb en el pool"; exit 1; }
   URL="${BASE}${PKG}"
 fi
+
 
 echo "[*] Descargando: $URL"
 wget -N "$URL"

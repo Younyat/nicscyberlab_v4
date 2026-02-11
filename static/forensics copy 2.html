@@ -94,22 +94,10 @@
       </table>
 
       <div class="mut" style="margin-top:10px;">
-        
-        Click on a row to select it. The DFIR module will automatically use that vm_id.
-        
+        Click en una fila para seleccionar. El módulo DFIR usará automáticamente ese vm_id.
       </div>
-
-      <div class="row" style="margin-top:10px;">
-  <button id="btn_open_traffic" class="primary">Open/Capture Traffic</button>
-  <span class="mut">Requiere Case activo.</span>
-</div>
-
     </div>
 
-
-
-
-    
     <div class="row" style="margin:14px 0;">
       <span class="pill">Case: <span id="case_dir" class="kv">—</span></span>
       <button id="btn_create_case" class="primary">Create Case</button>
@@ -277,75 +265,6 @@
     </div>
   </div>
 </div>
-
-
-
-
-
-
-
-
-
-<!-- TRAFFIC OVERLAY (SSE) -->
-<div id="traffic-overlay"
-     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:10000; align-items:center; justify-content:center;">
-
-  <div style="width:min(1100px,92vw); height:85vh; background:#0c1420; border:1px solid #16304a; border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:10px;">
-
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
-      <div style="min-width:0;">
-        <div style="font-weight:700; letter-spacing:.8px; font-size:13px; color:#cfe2ff; text-transform:uppercase;">
-          Live Traffic Analyzer
-        </div>
-        <div id="traffic-vm-info" class="mut" style="margin-top:4px; font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-          —
-        </div>
-      </div>
-
-      <button id="traffic-close"
-              style="background:#2a0f14; border:1px solid #5a1b26; color:#ffb4b4; padding:10px 12px; border-radius:10px; cursor:pointer;">
-        Close
-      </button>
-    </div>
-
-    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; padding:10px; background:#060b12; border:1px solid #16304a; border-radius:10px;">
-      <span class="mut" style="font-size:12px;">Filters:</span>
-
-      <label class="mut" style="display:flex; gap:6px; align-items:center;">
-        <input type="checkbox" class="proto-filter" value="modbus" checked>
-        modbus
-      </label>
-
-      <label class="mut" style="display:flex; gap:6px; align-items:center;">
-        <input type="checkbox" class="proto-filter" value="profinet" checked>
-        profinet
-      </label>
-
-      <label class="mut" style="display:flex; gap:6px; align-items:center;">
-        <input type="checkbox" class="proto-filter" value="tcp">
-        tcp
-      </label>
-
-      <label class="mut" style="display:flex; gap:6px; align-items:center;">
-        <input type="checkbox" class="proto-filter" value="udp">
-        udp
-      </label>
-
-      <button id="traffic-refresh" class="primary" style="margin-left:auto;">
-        Refresh Capture
-      </button>
-    </div>
-
-    <div style="flex:1; background:#060b12; border:1px solid #16304a; border-radius:10px; padding:10px; overflow:auto;">
-      <pre id="traffic-terminal"
-           style="margin:0; white-space:pre; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace; font-size:12px; line-height:1.45; color:#38d39f;"></pre>
-    </div>
-
-    <div id="traffic-status" class="mut" style="font-size:12px;">Status: idle</div>
-  </div>
-</div>
-
-
 
 
 

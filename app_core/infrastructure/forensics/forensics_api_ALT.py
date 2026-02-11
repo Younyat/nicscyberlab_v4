@@ -39,7 +39,7 @@ SCENARIO_FILE = os.path.join(SCENARIO_DIR, "scenario_file.json")
 TOOLS_TMP_DIR = os.path.join(REPO_ROOT, "tools-installer-tmp")
 INSTALLED_DIR = os.path.join(REPO_ROOT, "tools-installer", "installed")
 
-EVIDENCE_ROOT = os.path.join(REPO_ROOT, "app_core", "infrastructure", "forensics", "evidence_store")
+EVIDENCE_ROOT = os.path.join(REPO_ROOT, "app_core", "evidence_store")
 
 
 os.makedirs(EVIDENCE_ROOT, exist_ok=True)
@@ -717,28 +717,6 @@ def api_forensics_acquire_disk():
         "stderr": err,
         "disk_raw": rel_guess if os.path.exists(abs_guess) else None
     }), 200 if rc == 0 else 500
-
-
-
-
-@forensics_bp.route("/api/forensics/acquire/disk_kolla/stream", methods=["GET"])
-def api_forensics_acquire_disk_stream():
-    case_dir = request.args.get("case_dir", "")
-    vm_id = request.args.get("vm_id", "")
-    container_name = request.args.get("container_name", "nova_libvirt")
-
-    if not _is_safe_case_dir(case_dir):
-        return jsonify({"error": "case_dir inválido"}), 400
-    if not vm_id:
-        return jsonify({"error": "vm_id requerido"}), 400
-
-    script = os.path.join(FORENSICS_SCRIPTS_DIR, "acquire_disk_kolla_libvirt.sh")
-    return _run_script_sse(script, [case_dir, vm_id, container_name], cwd=REPO_ROOT, timeout=60 * 60)
-
-
-
-
-
 
 @forensics_bp.route("/api/forensics/acquire/memory_lime", methods=["POST"])
 def api_forensics_acquire_memory():

@@ -11,75 +11,21 @@ from scapy.all import IP, TCP, UDP, PcapWriter, AsyncSniffer
 # Definición del Blueprint
 traffic_bp = Blueprint('traffic_api', __name__)
 
+# Configuración de rutas absolutas para evitar problemas de directorios
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Repo root (igual criterio que forensics_api.py)
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+# Ruta solicitada: app_core/infrastructure/ics_traffic/captures
+# OJO: tu código tenía "captures/captures". Mantengo la intención, pero lo normal es solo "captures".
+# Si realmente quieres doble carpeta, deja esto como estaba.
+CAPTURE_DIR = os.path.join(BASE_DIR, "captures")
 
-# Evidence root (debe coincidir con forensics_api.py)
-EVIDENCE_ROOT = os.path.join(REPO_ROOT, "app_core", "infrastructure", "forensics", "evidence_store")
-os.makedirs(EVIDENCE_ROOT, exist_ok=True)
-
-# Fallback legacy cuando NO hay case_dir
-CAPTURE_DIR_LEGACY = os.path.join(BASE_DIR, "captures")
-os.makedirs(CAPTURE_DIR_LEGACY, mode=0o777, exist_ok=True)
-
+if not os.path.exists(CAPTURE_DIR):
+    os.makedirs(CAPTURE_DIR, mode=0o777, exist_ok=True)
 
 # Evitar capturas duplicadas por vm_id (causa del doble "Captura finalizada...")
 _ACTIVE_CAPTURES = set()
 _ACTIVE_LOCK = Lock()
 
-def _is_safe_case_dir(case_dir: str) -> bool:
-    if not case_dir:
-        return False
-    case_dir = os.path.normpath(case_dir)
-    return case_dir.startswith(os.path.normpath(EVIDENCE_ROOT) + os.sep)
-
-def _manifest_path(case_dir: str) -> str:
-    return os.path.join(case_dir, "manifest.json")
-
-def _read_manifest(case_dir: str) -> dict:
-    mp = _manifest_path(case_dir)
-    if not os.path.exists(mp):
-        return {"case_dir": case_dir, "created_at": None, "artifacts": []}
-    with open(mp, "r") as f:
-        return json.load(f)
-
-def _write_manifest(case_dir: str, manifest: dict):
-    mp = _manifest_path(case_dir)
-    with open(mp, "w") as f:
-        json.dump(manifest, f, indent=2)
-
-def _sha256_file(path: str) -> str:
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-def _add_artifact(case_dir: str, rel_path: str, a_type: str):
-    abs_path = os.path.join(case_dir, rel_path)
-    if not os.path.exists(abs_path):
-        return
-
-    manifest = _read_manifest(case_dir)
-    artifacts = manifest.setdefault("artifacts", [])
-
-    try:
-        sha = _sha256_file(abs_path)
-        size = os.path.getsize(abs_path)
-    except Exception:
-        sha = None
-        size = None
-
-    artifacts.append({
-        "type": a_type,
-        "rel_path": rel_path,
-        "sha256": sha,
-        "size": size,
-        "ts": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-    })
-    _write_manifest(case_dir, manifest)
 
 
 def get_server_port_ids(vm_id):
@@ -192,7 +138,7 @@ def find_vm_sniff_iface(vm_ips):
 
 
 
-def capture_packets_generator(vm_id, selected_protos, case_dir=None):
+def capture_packets_generator(vm_id, selected_protos):
     """Generador SSE: captura tráfico (Scapy) y escribe PCAP + metadata con cierre limpio."""
     packet_queue = Queue()
     stop_event = Event()
@@ -245,25 +191,11 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None):
     print(f"[TRAFFIC_DEBUG] vm_id={vm_id} port_id={port_id} iface={sniff_iface} ips={vm_ips} bpf={final_bpf}")
 
     # 2) PCAP + metadata
-    # --- OUTPUT DIR: case_dir/network/ o legacy captures/ ---
-    use_case = bool(case_dir) and _is_safe_case_dir(case_dir)
-    if use_case:
-        out_dir = os.path.join(case_dir, "network")
-        os.makedirs(out_dir, exist_ok=True)
-    else:
-        out_dir = CAPTURE_DIR_LEGACY
+    pcap_filename = f"{vm_id}.pcap"
+    pcap_path = os.path.join(CAPTURE_DIR, pcap_filename)
 
-    ts_tag = time.strftime("%Y%m%d_%H%M%SZ", time.gmtime())
-    pcap_filename = f"pcap_{vm_id}_{ts_tag}.pcap"
-    pcap_path = os.path.join(out_dir, pcap_filename)
-
-    meta_filename = f"pcap_{vm_id}_{ts_tag}.metadata.json"
-    meta_path = os.path.join(out_dir, meta_filename)
-
-    # Rel paths para manifest (solo si use_case)
-    pcap_rel = os.path.join("network", pcap_filename) if use_case else None
-    meta_rel = os.path.join("network", meta_filename) if use_case else None
-
+    meta_filename = f"{vm_id}.metadata.json"
+    meta_path = os.path.join(CAPTURE_DIR, meta_filename)
 
     pkts_writer = PcapWriter(pcap_path, append=False, sync=True, linktype=1)
 
@@ -278,7 +210,7 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None):
                     "bpf": final_bpf,
                     "protos": protos,
                     "start_epoch": start_ts,
-                    "start_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    "start_local": time.strftime("%Y-%m-%d %H:%M:%S"),
                     "pcap_file": pcap_filename,
                 },
                 f,
@@ -356,17 +288,11 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None):
     finally:
         # 4) Cierre limpio
         try:
-            # Evita EPERM espurio en cierre rápido / thread no estable
-            if getattr(sniffer, "running", False):
-                sniffer.stop()
+            sniffer.stop()
         except OSError as e:
-            # No machacar una causa real (p.ej., client_disconnect)
-            if termination_reason == "unknown":
-                termination_reason = f"oserror: {e}"
+            termination_reason = f"oserror: {e}"
         except Exception as e:
-            if termination_reason == "unknown":
-                termination_reason = f"sniffer_stop_exception: {e}"
-
+            termination_reason = f"sniffer_stop_exception: {e}"
 
         try:
             with writer_lock:
@@ -401,16 +327,6 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None):
 
         with _ACTIVE_LOCK:
             _ACTIVE_CAPTURES.discard(vm_id)
-        
-                # Registrar artefactos en manifest (solo si estamos en un case)
-        if use_case:
-            try:
-                if pcap_rel:
-                    _add_artifact(case_dir, pcap_rel, "pcap")
-                if meta_rel and os.path.exists(os.path.join(case_dir, meta_rel)):
-                    _add_artifact(case_dir, meta_rel, "pcap_metadata")
-            except Exception:
-                pass
 
         print(f"[TRAFFIC] Captura finalizada y guardada para {vm_id} (reason={termination_reason}, pkts={pkts_written})")
 
@@ -418,11 +334,10 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None):
 
 @traffic_bp.route("/api/openstack/traffic/<vm_id>")
 def stream_traffic(vm_id):
+    """Endpoint para el stream de datos en tiempo real (SSE)."""
     protos_list = request.args.get("protos", "modbus,tcp,udp").split(",")
-    case_dir = request.args.get("case_dir", "").strip() or None
-
     return Response(
-        capture_packets_generator(vm_id, protos_list, case_dir=case_dir),
+        capture_packets_generator(vm_id, protos_list),
         mimetype="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -432,27 +347,7 @@ def stream_traffic(vm_id):
     )
 
 
-
-
-
-
-
 @traffic_bp.route("/api/openstack/traffic/download/<filename>")
 def download_pcap(filename):
-    """
-    Descarga PCAP/metadata.
-    - Si llega case_dir válido: busca en case_dir/network/
-    - Si no: usa legacy captures/
-    """
-    case_dir = request.args.get("case_dir", "").strip() or None
-
-    # anti-traversal básico
-    if not filename or ".." in filename or filename.startswith("/") or filename.startswith("\\"):
-        return ("filename inválido", 400)
-
-    if case_dir and _is_safe_case_dir(case_dir):
-        directory = os.path.join(case_dir, "network")
-    else:
-        directory = CAPTURE_DIR_LEGACY
-
-    return send_from_directory(directory, filename, as_attachment=True)
+    """Permite la descarga del archivo generado."""
+    return send_from_directory(CAPTURE_DIR, filename, as_attachment=True)

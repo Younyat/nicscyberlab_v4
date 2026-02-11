@@ -19,6 +19,8 @@ const UI = {
   caseDir: document.getElementById("case_dir"),
   btnCreateCase: document.getElementById("btn_create_case"),
   btnRefreshManifest: document.getElementById("btn_refresh_manifest"),
+  btnFinalizeCase: document.getElementById("btn_finalize_case"),
+  finalizeResult: document.getElementById("finalize_result"),
 
   // disk
   diskUUID: document.getElementById("disk_instance_uuid"),
@@ -29,7 +31,7 @@ const UI = {
   // memory
   memIP: document.getElementById("mem_vm_ip"),
   memUser: document.getElementById("mem_ssh_user"),
-  memKey: document.getElementById("mem_ssh_key"),
+  memKeyId: document.getElementById("mem_ssh_key_id"), // <- key_id allowlisted
   memMode: document.getElementById("mem_mode"),
   btnAcquireMemory: document.getElementById("btn_acquire_memory"),
   memResult: document.getElementById("mem_result"),
@@ -58,32 +60,8 @@ const UI = {
   liveClose: document.getElementById("dfir-live-close"),
 
   caseSelector: document.getElementById("case_selector"),
- btnGenerateSymbols: document.getElementById("btn_generate_symbols"),
-   // traffic overlay (optional block in HTML)
-   btnOpenTraffic: document.getElementById("btn_open_traffic"),
-
-  // traffic overlay
-  trafficOverlay: document.getElementById("traffic-overlay"),
-  trafficTerminal: document.getElementById("traffic-terminal"),
-  trafficInfo: document.getElementById("traffic-vm-info"),
-  trafficClose: document.getElementById("traffic-close"),
-  trafficRefresh: document.getElementById("traffic-refresh"),
-  trafficStatus: document.getElementById("traffic-status"),
-
-
-
-
-
-  
+  btnGenerateSymbols: document.getElementById("btn_generate_symbols"),
 };
-
-
-console.log("btn_open_traffic =", UI.btnOpenTraffic);
-console.log("traffic overlay =", UI.trafficOverlay);
-
-
-
-
 
 const STATE = {
   instances: [],
@@ -93,11 +71,7 @@ const STATE = {
   live: {
     source: null,
     running: false
-  },
-    traffic: {
-    source: null,
-    running: false
-  },
+  }
 };
 
 function now() {
@@ -129,7 +103,6 @@ function setSelected(vm) {
 
   cwrite(`Selected VM: ${vm.name} (${vm.id}) | priv=${vm.ip_private || "-"} float=${vm.ip_floating || "-"}`);
 }
-
 
 function setCaseDir(caseDir) {
   STATE.case_dir = caseDir;
@@ -170,13 +143,13 @@ async function httpJSON(url, opts = {}) {
 function escapeHtml(s) {
   return String(s ?? "")
     .replaceAll("&", "&amp;").replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;").replaceAll('"', "&quot;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
 
 /* ============================================================
    LIVE OVERLAY (SSE terminal)
-   - Do not modify existing terminal sizes; separate overlay only.
 ============================================================ */
 
 function liveAppend(line) {
@@ -191,7 +164,6 @@ function liveSet(show) {
 }
 
 function freezeUI(disabled) {
-  // Freeze all buttons except close overlay
   const btns = document.querySelectorAll("button");
   btns.forEach(b => {
     if (b === UI.liveClose) return;
@@ -207,8 +179,6 @@ function liveClose() {
   STATE.live.running = false;
   freezeUI(false);
   liveSet(false);
-  closeTraffic();
-
 }
 
 if (UI.liveClose) {
@@ -223,13 +193,11 @@ function startLiveSSE({ title, info, url, onDone }) {
     throw new Error("Overlay terminal no existe en HTML. Añade el bloque dfir-live-overlay.");
   }
 
-  // Close any previous
   if (STATE.live.source) {
     try { STATE.live.source.close(); } catch {}
     STATE.live.source = null;
   }
 
-  // Reset overlay
   UI.liveTerminal.textContent = "";
   if (UI.liveTitle) UI.liveTitle.textContent = title || "DFIR Live Terminal";
   if (UI.liveInfo) UI.liveInfo.textContent = info || "";
@@ -260,13 +228,11 @@ function startLiveSSE({ title, info, url, onDone }) {
 
     if (UI.liveStatus) UI.liveStatus.textContent = `Status: finished (${payload.result || "unknown"})`;
 
-    // release UI
     try { es.close(); } catch {}
     STATE.live.source = null;
     STATE.live.running = false;
     freezeUI(false);
 
-    // callback (update UI/manifest/etc)
     try { if (typeof onDone === "function") onDone(payload); } catch {}
   });
 
@@ -279,162 +245,6 @@ function startLiveSSE({ title, info, url, onDone }) {
     freezeUI(false);
   };
 }
-
-
-
-
-
-/* ============================================================
-   TRAFFIC OVERLAY (SSE traffic)
-   - Uses /api/openstack/traffic/<vm_id>
-   - Passes case_dir to store PCAP under the active case
-============================================================ */
-
-function trafficOverlayExists() {
-  return UI.trafficOverlay && UI.trafficTerminal && UI.trafficInfo;
-}
-
-function trafficSet(show) {
-  if (!trafficOverlayExists()) return;
-  UI.trafficOverlay.style.display = show ? "flex" : "none";
-}
-
-function trafficAppend(htmlOrText, isHtml = false) {
-  if (!trafficOverlayExists()) return;
-
-  const line = document.createElement("div");
-
-  line.className = "terminal-entry";
-  line.style.padding = "2px 6px";
-  line.style.whiteSpace = "pre";
-  line.style.fontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace";
-  line.style.color = "#38d39f"; // para asegurar visibilidad dentro del <pre>
-
-  if (isHtml) line.innerHTML = htmlOrText;
-  else line.innerText = htmlOrText;
-
-  UI.trafficTerminal.appendChild(line);
-  UI.trafficTerminal.scrollTop = UI.trafficTerminal.scrollHeight;
-}
-
-function closeTraffic() {
-  try {
-    if (STATE.traffic.source) STATE.traffic.source.close();
-  } catch {}
-  STATE.traffic.source = null;
-  STATE.traffic.running = false;
-  trafficSet(false);
-}
-
-if (UI.trafficClose) {
-  UI.trafficClose.addEventListener("click", () => {
-    closeTraffic();
-    cwrite("Traffic overlay closed by user.");
-  });
-}
-
-function applyTrafficFilters() {
-  if (STATE.selected?.id && STATE.traffic.running) startTrafficAnalysis(STATE.selected.id);
-}
-
-function startTrafficAnalysis(vmId) {
-  if (!trafficOverlayExists()) {
-    cwrite("Traffic overlay no existe en HTML (ids traffic-overlay/traffic-terminal/traffic-vm-info).");
-    return;
-  }
-
-  const vm = STATE.instances.find(x => x.id === vmId);
-  if (!vm) return;
-
-  // Requiere case para guardar PCAP dentro del caso (tu requisito)
-  let caseDir = null;
-  try {
-    caseDir = requireCase();
-  } catch (e) {
-    cwrite(`ERROR traffic: ${e.message}`);
-    return;
-  }
-
-  // UI
-  trafficSet(true);
-  UI.trafficTerminal.innerHTML = "";
-  UI.trafficInfo.textContent =
-    `AUDITING NODE: ${vm.name} | MGMT_IP: ${vm.ip_floating || vm.ip_private || "N/A"} | CASE: ${caseDir}`;
-
-  trafficAppend(`[${now()}] Conectando al sniffer (SSE)...`);
-
-  // filtros
-  const protos = Array.from(document.querySelectorAll(".proto-filter:checked"))
-    .map(cb => cb.value)
-    .join(",") || "modbus,tcp,udp";
-
-  // cerrar anterior
-  if (STATE.traffic.source) {
-    try { STATE.traffic.source.close(); } catch {}
-    STATE.traffic.source = null;
-  }
-
-  const url =
-    `/api/openstack/traffic/${encodeURIComponent(vm.id)}` +
-    `?protos=${encodeURIComponent(protos)}` +
-    `&case_dir=${encodeURIComponent(caseDir)}`;
-
-  const es = new EventSource(url);
-  STATE.traffic.source = es;
-  STATE.traffic.running = true;
-
-  es.onmessage = (e) => {
-    const raw = String(e.data || "");
-
-    // coloreado (tu backend emite "MODBUS" / "PROFINET" / "[SISTEMA]")
-    if (raw.includes("MODBUS")) {
-      trafficAppend(`<span class="text-yellow-400 font-bold">${escapeHtml(raw)}</span>`, true);
-    } else if (raw.includes("PROFINET")) {
-      trafficAppend(`<span class="text-pink-400 font-bold">${escapeHtml(raw)}</span>`, true);
-    } else if (raw.includes("[SISTEMA]")) {
-      trafficAppend(`<span class="text-sky-400 font-black underline">${escapeHtml(raw)}</span>`, true);
-    } else if (raw.startsWith("[ERROR]") || raw.includes("[ERROR]")) {
-      trafficAppend(`<span class="text-red-400 font-bold">${escapeHtml(raw)}</span>`, true);
-    } else {
-      trafficAppend(raw, false);
-    }
-  };
-
-  es.onerror = () => {
-    trafficAppend("[ERROR] Pérdida de conexión con el sniffer (SSE).");
-    try { es.close(); } catch {}
-    STATE.traffic.source = null;
-    STATE.traffic.running = false;
-  };
-}
-
-
-
-
-if (UI.btnOpenTraffic) {
-  UI.btnOpenTraffic.addEventListener("click", () => {
-    try {
-      const vm = requireSelected();
-      startTrafficAnalysis(vm.id);
-    } catch (e) {
-      cwrite(`ERROR traffic: ${e.message}`);
-    }
-  });
-}
-
-if (UI.trafficRefresh) {
-  UI.trafficRefresh.addEventListener("click", () => {
-    applyTrafficFilters();
-  });
-}
-
-
-
-
-
-
-
-
 
 /* ============================
    Instances
@@ -471,19 +281,6 @@ function renderInstances(instances) {
       }
     });
   });
-
-
-    // Doble click: abre tráfico sin interferir con selección normal
-  tbody.querySelectorAll("tr[data-vm-id]").forEach(tr => {
-    tr.addEventListener("dblclick", () => {
-      const id = tr.getAttribute("data-vm-id");
-      startTrafficAnalysis(id);
-    });
-  });
-
-
-
-
 }
 
 async function loadInstances() {
@@ -573,9 +370,27 @@ async function refreshManifest() {
 }
 
 /* ============================
+   Finalize Case (Anchoring)
+============================ */
+
+async function finalizeCase() {
+  const caseDir = requireCase();
+  UI.finalizeResult.textContent = "Running...";
+  cwrite(`Finalizing case: ${caseDir}`);
+
+  const data = await httpJSON("/api/forensics/case/finalize", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ case_dir: caseDir })
+  });
+
+  const line = `h_case=${data.h_case} h_manifest=${data.h_manifest} h_custody=${data.h_custody}`;
+  UI.finalizeResult.textContent = line;
+  cwrite(`Case finalized OK: ${line}`);
+}
+
+/* ============================
    DFIR Actions
-   - Disk + Memory now run via LIVE SSE overlay
-   - Volatility stays synchronous JSON (ok)
 ============================ */
 
 function buildSSEUrl(base, params) {
@@ -623,26 +438,26 @@ function acquireMemoryLive() {
   if (!vmIp) throw new Error("mem_vm_ip vacío. Selecciona VM o rellena manualmente.");
 
   const sshUser = (UI.memUser.value || "debian").trim() || "debian";
-  const sshKey = (UI.memKey.value || "").trim();
+  const sshKeyId = (UI.memKeyId.value || "").trim();
   const mode = (UI.memMode.value || "build").trim() || "build";
 
-  if (!sshKey) throw new Error("mem_ssh_key vacío.");
+  if (!sshKeyId) throw new Error("mem_ssh_key_id vacío. Selecciona un Key ID.");
 
   UI.memResult.textContent = "Running...";
-  cwrite(`Acquire memory (LIVE): vm_id=${vm.id} ip=${vmIp} user=${sshUser} mode=${mode}`);
+  cwrite(`Acquire memory (LIVE): vm_id=${vm.id} ip=${vmIp} user=${sshUser} key_id=${sshKeyId} mode=${mode}`);
 
   const url = buildSSEUrl("/api/forensics/acquire/memory_lime/stream", {
     case_dir: caseDir,
     vm_id: vm.id,
     vm_ip: vmIp,
     ssh_user: sshUser,
-    ssh_key: sshKey,
+    ssh_key_id: sshKeyId,
     mode
   });
 
   startLiveSSE({
     title: "Acquire Memory (LiME) - Live",
-    info: `vm_id=${vm.id} ip=${vmIp} user=${sshUser} mode=${mode}`,
+    info: `vm_id=${vm.id} ip=${vmIp} user=${sshUser} key_id=${sshKeyId} mode=${mode}`,
     url,
     onDone: async (payload) => {
       if (payload.result === "ok") {
@@ -689,6 +504,70 @@ async function analyzeMemory() {
   try { await refreshManifest(); } catch {}
 }
 
+function generateSymbolsLive() {
+  const vm = requireSelected();
+  const caseDir = requireCase();
+
+  const vmIp = (UI.memIP.value || "").trim();
+  if (!vmIp) throw new Error("mem_vm_ip vacío. Selecciona VM o rellena manualmente.");
+
+  const sshUser = (UI.memUser.value || "ubuntu").trim() || "ubuntu";
+  const sshKeyId = (UI.memKeyId.value || "").trim();
+  if (!sshKeyId) throw new Error("mem_ssh_key_id vacío. Selecciona un Key ID.");
+
+  cwrite(`Generate symbols (LIVE): vm_id=${vm.id} ip=${vmIp} user=${sshUser} key_id=${sshKeyId}`);
+
+  const url = buildSSEUrl("/api/forensics/vol3/symbols/generate/stream", {
+    case_dir: caseDir,
+    vm_id: vm.id,
+    vm_ip: vmIp,
+    ssh_user: sshUser,
+    ssh_key_id: sshKeyId
+  });
+
+  startLiveSSE({
+    title: "Generate Volatility 3 Symbols - Live",
+    info: `vm_id=${vm.id} ip=${vmIp} user=${sshUser} key_id=${sshKeyId}`,
+    url,
+    onDone: async (payload) => {
+      if (payload.result === "ok") {
+        const symbolsDir = (payload.last || "").trim();
+        if (symbolsDir) {
+          UI.volSymbols.value = symbolsDir;
+          cwrite(`Symbols generated OK: ${symbolsDir}`);
+        } else {
+          cwrite("Symbols done OK, pero no recibí directorio (payload.last vacío).");
+        }
+      } else {
+        cwrite(`ERROR symbols: exit_code=${payload.exit_code}`);
+      }
+    }
+  });
+}
+
+/* ============================
+   Cases list
+============================ */
+
+async function loadCases() {
+  const data = await httpJSON("/api/forensics/case/list");
+  const cases = data.cases || [];
+
+  UI.caseSelector.innerHTML = `
+    <option value="">Select existing case...</option>
+    ${cases.map(c => {
+      const label = `${c.name}${c.artifacts_count ? ` (${c.artifacts_count} artifacts)` : ""}`;
+      return `<option value="${escapeHtml(c.case_dir)}">${escapeHtml(label)}</option>`;
+    }).join("")}
+  `;
+
+  if (!STATE.case_dir && cases.length) {
+    setCaseDir(cases[0].case_dir);
+    UI.caseSelector.value = cases[0].case_dir;
+    try { await refreshManifest(); } catch {}
+  }
+}
+
 /* ============================
    Wire events
 ============================ */
@@ -705,19 +584,24 @@ UI.btnRefreshManifest.addEventListener("click", () => {
   refreshManifest().catch(e => cwrite(`ERROR manifest: ${e.message}`));
 });
 
+UI.btnFinalizeCase.addEventListener("click", () => {
+  finalizeCase().catch(e => {
+    UI.finalizeResult.textContent = "ERROR";
+    cwrite(`ERROR finalize: ${e.message}`);
+  });
+});
+
 UI.btnAcquireDisk.addEventListener("click", () => {
-  try {
-    acquireDiskLive();
-  } catch (e) {
+  try { acquireDiskLive(); }
+  catch (e) {
     UI.diskResult.textContent = "ERROR";
     cwrite(`ERROR disk: ${e.message}`);
   }
 });
 
 UI.btnAcquireMemory.addEventListener("click", () => {
-  try {
-    acquireMemoryLive();
-  } catch (e) {
+  try { acquireMemoryLive(); }
+  catch (e) {
     UI.memResult.textContent = "ERROR";
     cwrite(`ERROR memory: ${e.message}`);
   }
@@ -730,11 +614,14 @@ UI.btnAnalyzeMemory.addEventListener("click", () => {
   });
 });
 
+UI.btnGenerateSymbols.addEventListener("click", () => {
+  try { generateSymbolsLive(); }
+  catch (e) { cwrite(`ERROR symbols: ${e.message}`); }
+});
+
 UI.btnClearConsole.addEventListener("click", () => {
   UI.console.value = "";
 });
-
-
 
 UI.caseSelector.addEventListener("change", () => {
   const v = (UI.caseSelector.value || "").trim();
@@ -743,98 +630,9 @@ UI.caseSelector.addEventListener("change", () => {
   refreshManifest().catch(e => cwrite(`ERROR manifest: ${e.message}`));
 });
 
-
-
-UI.btnGenerateSymbols.addEventListener("click", () => {
-  try {
-    generateSymbolsLive();
-  } catch (e) {
-    cwrite(`ERROR symbols: ${e.message}`);
-  }
-});
-
-
-
-
-
-
-async function loadCases() {
-  const data = await httpJSON("/api/forensics/case/list");
-  const cases = data.cases || [];
-
-  // Rellenar selector
-  UI.caseSelector.innerHTML = `
-    <option value="">Select existing case...</option>
-    ${cases.map(c => {
-      const label = `${c.name}${c.artifacts_count ? ` (${c.artifacts_count} artifacts)` : ""}`;
-      return `<option value="${escapeHtml(c.case_dir)}">${escapeHtml(label)}</option>`;
-    }).join("")}
-  `;
-
-  // Si no hay case activo, selecciona el más reciente automáticamente
-  if (!STATE.case_dir && cases.length) {
-    setCaseDir(cases[0].case_dir);
-    UI.caseSelector.value = cases[0].case_dir;
-    try { await refreshManifest(); } catch {}
-  }
-}
-
-
-
-
-function generateSymbolsLive() {
-  const vm = requireSelected();
-  const caseDir = requireCase();
-
-  const vmIp = (UI.memIP.value || "").trim();
-  if (!vmIp) throw new Error("mem_vm_ip vacío. Selecciona VM o rellena manualmente.");
-
-  const sshUser = (UI.memUser.value || "ubuntu").trim() || "ubuntu";
-  const sshKey = (UI.memKey.value || "").trim();
-  if (!sshKey) throw new Error("mem_ssh_key vacío.");
-
-  cwrite(`Generate symbols (LIVE): vm_id=${vm.id} ip=${vmIp} user=${sshUser}`);
-
-  const url = buildSSEUrl("/api/forensics/vol3/symbols/generate/stream", {
-    case_dir: caseDir,
-    vm_id: vm.id,
-    vm_ip: vmIp,
-    ssh_user: sshUser,
-    ssh_key: sshKey
-  });
-
-  startLiveSSE({
-    title: "Generate Volatility 3 Symbols - Live",
-    info: `vm_id=${vm.id} ip=${vmIp} user=${sshUser}`,
-    url,
-    onDone: async (payload) => {
-      if (payload.result === "ok") {
-        // El script imprime al final el directorio ABS, y backend lo mete en payload.last
-        const symbolsDir = (payload.last || "").trim();
-        if (symbolsDir) {
-          UI.volSymbols.value = symbolsDir;
-          cwrite(`Symbols generated OK: ${symbolsDir}`);
-        } else {
-          cwrite("Symbols done OK, pero no recibí directorio (payload.last vacío).");
-        }
-      } else {
-        cwrite(`ERROR symbols: exit_code=${payload.exit_code}`);
-      }
-    }
-  });
-}
-
-
-
-
-
-
-
 /* ============================
    Boot
 ============================ */
 cwrite("DFIR UI booting...");
 loadInstances().catch(e => cwrite(`ERROR boot instances: ${e.message}`));
 loadCases().catch(e => cwrite(`ERROR boot cases: ${e.message}`));
-
-

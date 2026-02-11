@@ -125,45 +125,6 @@ else
 fi
 
 
-# -----------------------------
-# [3.5/6] PYTHON CAPABILITIES (Scapy/AsyncSniffer sin sudo)
-# -----------------------------
-section "[3.5/6] Configurando capacidades de red (python)"
-
-# Resolver el binario REAL (no el symlink del venv)
-REAL_PY="$(readlink -f "$VENV_PYTHON" 2>/dev/null || true)"
-
-if [ -z "$REAL_PY" ] || [ ! -f "$REAL_PY" ]; then
-    warn "No se pudo resolver el python real desde el venv: $VENV_PYTHON"
-    warn "Saltando setcap para python."
-else
-    ok "Python real detectado: $REAL_PY"
-
-    PY_CAPS="$(getcap "$REAL_PY" 2>/dev/null || true)"
-
-    if echo "$PY_CAPS" | grep -q "cap_net_admin,cap_net_raw=eip"; then
-        ok "Python ya tiene capacidades de captura."
-    else
-        info "Python sin capacidades. Intentando aplicar (requiere sudo)..."
-
-        if sudo -n true 2>/dev/null; then
-            sudo setcap cap_net_raw,cap_net_admin=eip "$REAL_PY" || true
-
-            if getcap "$REAL_PY" | grep -q "cap_net_admin,cap_net_raw=eip"; then
-                ok "Capacidades aplicadas correctamente a Python."
-            else
-                warn "No se pudieron aplicar capacidades a Python."
-                warn "Scapy/AsyncSniffer fallará sin sudo/root."
-            fi
-        else
-            warn "No hay sudo sin contraseña."
-            warn "Ejecuta manualmente:"
-            warn "sudo setcap cap_net_raw,cap_net_admin=eip $REAL_PY"
-        fi
-    fi
-
-    info "Estado final python caps: $(getcap "$REAL_PY" 2>/dev/null || echo 'none')"
-fi
 
 
 

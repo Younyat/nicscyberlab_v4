@@ -58,32 +58,13 @@ const UI = {
   liveClose: document.getElementById("dfir-live-close"),
 
   caseSelector: document.getElementById("case_selector"),
- btnGenerateSymbols: document.getElementById("btn_generate_symbols"),
-   // traffic overlay (optional block in HTML)
-   btnOpenTraffic: document.getElementById("btn_open_traffic"),
-
-  // traffic overlay
-  trafficOverlay: document.getElementById("traffic-overlay"),
-  trafficTerminal: document.getElementById("traffic-terminal"),
-  trafficInfo: document.getElementById("traffic-vm-info"),
-  trafficClose: document.getElementById("traffic-close"),
-  trafficRefresh: document.getElementById("traffic-refresh"),
-  trafficStatus: document.getElementById("traffic-status"),
-
+btnGenerateSymbols: document.getElementById("btn_generate_symbols")
 
 
 
 
   
 };
-
-
-console.log("btn_open_traffic =", UI.btnOpenTraffic);
-console.log("traffic overlay =", UI.trafficOverlay);
-
-
-
-
 
 const STATE = {
   instances: [],
@@ -93,11 +74,7 @@ const STATE = {
   live: {
     source: null,
     running: false
-  },
-    traffic: {
-    source: null,
-    running: false
-  },
+  }
 };
 
 function now() {
@@ -207,8 +184,6 @@ function liveClose() {
   STATE.live.running = false;
   freezeUI(false);
   liveSet(false);
-  closeTraffic();
-
 }
 
 if (UI.liveClose) {
@@ -280,162 +255,6 @@ function startLiveSSE({ title, info, url, onDone }) {
   };
 }
 
-
-
-
-
-/* ============================================================
-   TRAFFIC OVERLAY (SSE traffic)
-   - Uses /api/openstack/traffic/<vm_id>
-   - Passes case_dir to store PCAP under the active case
-============================================================ */
-
-function trafficOverlayExists() {
-  return UI.trafficOverlay && UI.trafficTerminal && UI.trafficInfo;
-}
-
-function trafficSet(show) {
-  if (!trafficOverlayExists()) return;
-  UI.trafficOverlay.style.display = show ? "flex" : "none";
-}
-
-function trafficAppend(htmlOrText, isHtml = false) {
-  if (!trafficOverlayExists()) return;
-
-  const line = document.createElement("div");
-
-  line.className = "terminal-entry";
-  line.style.padding = "2px 6px";
-  line.style.whiteSpace = "pre";
-  line.style.fontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace";
-  line.style.color = "#38d39f"; // para asegurar visibilidad dentro del <pre>
-
-  if (isHtml) line.innerHTML = htmlOrText;
-  else line.innerText = htmlOrText;
-
-  UI.trafficTerminal.appendChild(line);
-  UI.trafficTerminal.scrollTop = UI.trafficTerminal.scrollHeight;
-}
-
-function closeTraffic() {
-  try {
-    if (STATE.traffic.source) STATE.traffic.source.close();
-  } catch {}
-  STATE.traffic.source = null;
-  STATE.traffic.running = false;
-  trafficSet(false);
-}
-
-if (UI.trafficClose) {
-  UI.trafficClose.addEventListener("click", () => {
-    closeTraffic();
-    cwrite("Traffic overlay closed by user.");
-  });
-}
-
-function applyTrafficFilters() {
-  if (STATE.selected?.id && STATE.traffic.running) startTrafficAnalysis(STATE.selected.id);
-}
-
-function startTrafficAnalysis(vmId) {
-  if (!trafficOverlayExists()) {
-    cwrite("Traffic overlay no existe en HTML (ids traffic-overlay/traffic-terminal/traffic-vm-info).");
-    return;
-  }
-
-  const vm = STATE.instances.find(x => x.id === vmId);
-  if (!vm) return;
-
-  // Requiere case para guardar PCAP dentro del caso (tu requisito)
-  let caseDir = null;
-  try {
-    caseDir = requireCase();
-  } catch (e) {
-    cwrite(`ERROR traffic: ${e.message}`);
-    return;
-  }
-
-  // UI
-  trafficSet(true);
-  UI.trafficTerminal.innerHTML = "";
-  UI.trafficInfo.textContent =
-    `AUDITING NODE: ${vm.name} | MGMT_IP: ${vm.ip_floating || vm.ip_private || "N/A"} | CASE: ${caseDir}`;
-
-  trafficAppend(`[${now()}] Conectando al sniffer (SSE)...`);
-
-  // filtros
-  const protos = Array.from(document.querySelectorAll(".proto-filter:checked"))
-    .map(cb => cb.value)
-    .join(",") || "modbus,tcp,udp";
-
-  // cerrar anterior
-  if (STATE.traffic.source) {
-    try { STATE.traffic.source.close(); } catch {}
-    STATE.traffic.source = null;
-  }
-
-  const url =
-    `/api/openstack/traffic/${encodeURIComponent(vm.id)}` +
-    `?protos=${encodeURIComponent(protos)}` +
-    `&case_dir=${encodeURIComponent(caseDir)}`;
-
-  const es = new EventSource(url);
-  STATE.traffic.source = es;
-  STATE.traffic.running = true;
-
-  es.onmessage = (e) => {
-    const raw = String(e.data || "");
-
-    // coloreado (tu backend emite "MODBUS" / "PROFINET" / "[SISTEMA]")
-    if (raw.includes("MODBUS")) {
-      trafficAppend(`<span class="text-yellow-400 font-bold">${escapeHtml(raw)}</span>`, true);
-    } else if (raw.includes("PROFINET")) {
-      trafficAppend(`<span class="text-pink-400 font-bold">${escapeHtml(raw)}</span>`, true);
-    } else if (raw.includes("[SISTEMA]")) {
-      trafficAppend(`<span class="text-sky-400 font-black underline">${escapeHtml(raw)}</span>`, true);
-    } else if (raw.startsWith("[ERROR]") || raw.includes("[ERROR]")) {
-      trafficAppend(`<span class="text-red-400 font-bold">${escapeHtml(raw)}</span>`, true);
-    } else {
-      trafficAppend(raw, false);
-    }
-  };
-
-  es.onerror = () => {
-    trafficAppend("[ERROR] Pérdida de conexión con el sniffer (SSE).");
-    try { es.close(); } catch {}
-    STATE.traffic.source = null;
-    STATE.traffic.running = false;
-  };
-}
-
-
-
-
-if (UI.btnOpenTraffic) {
-  UI.btnOpenTraffic.addEventListener("click", () => {
-    try {
-      const vm = requireSelected();
-      startTrafficAnalysis(vm.id);
-    } catch (e) {
-      cwrite(`ERROR traffic: ${e.message}`);
-    }
-  });
-}
-
-if (UI.trafficRefresh) {
-  UI.trafficRefresh.addEventListener("click", () => {
-    applyTrafficFilters();
-  });
-}
-
-
-
-
-
-
-
-
-
 /* ============================
    Instances
 ============================ */
@@ -471,19 +290,6 @@ function renderInstances(instances) {
       }
     });
   });
-
-
-    // Doble click: abre tráfico sin interferir con selección normal
-  tbody.querySelectorAll("tr[data-vm-id]").forEach(tr => {
-    tr.addEventListener("dblclick", () => {
-      const id = tr.getAttribute("data-vm-id");
-      startTrafficAnalysis(id);
-    });
-  });
-
-
-
-
 }
 
 async function loadInstances() {
