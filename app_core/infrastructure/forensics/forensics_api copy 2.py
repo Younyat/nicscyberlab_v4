@@ -11,17 +11,6 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify, Response, send_from_directory
 import openstack
 
-
-
-from pathlib import Path
-
-# plotting (fig_forensic_cost_stacked.pdf)
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-
-
-
 logger = logging.getLogger("app_logger")
 
 forensics_bp = Blueprint("forensics", __name__)
@@ -611,81 +600,6 @@ def _sha256_file(path: str) -> str:
             h.update(chunk)
     return h.hexdigest()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def _utc_now_iso() -> str:
-    return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-
-def _case_meta_dir(case_dir: str) -> str:
-    return os.path.join(case_dir, "metadata")
-
-def _events_path(case_dir: str) -> str:
-    return os.path.join(_case_meta_dir(case_dir), "pipeline_events.jsonl")
-
-def _atomic_write_json(path: str, obj: dict):
-    tmp = f"{path}.tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(obj, f, indent=2)
-    os.replace(tmp, path)
-
-def _append_case_event(case_dir: str, event: str, run_id: str = "R1", meta: dict = None):
-    os.makedirs(_case_meta_dir(case_dir), exist_ok=True)
-    rec = {
-        "ts_utc": _utc_now_iso(),
-        "event": event,
-        "run_id": run_id or "R1",
-        "meta": meta or {}
-    }
-    with open(_events_path(case_dir), "a", encoding="utf-8") as f:
-        f.write(json.dumps(rec) + "\n")
-
-def _get_or_set_alert_ts(case_dir: str, run_id: str = "R1", provided_alert_ts_utc: str = None) -> str:
-    """
-    Devuelve alert_ts_utc (ISO Z). Si no existe, lo fija (provided o now).
-    Se registra como evento 'alert' solo una vez por run_id.
-    """
-    # Si te pasan uno, úsalo.
-    alert_ts = (provided_alert_ts_utc or "").strip()
-    if not alert_ts:
-        alert_ts = _utc_now_iso()
-
-    # Comprobar si ya existe un 'alert' para ese run en events
-    ep = _events_path(case_dir)
-    if os.path.exists(ep):
-        try:
-            with open(ep, "r", encoding="utf-8") as f:
-                for line in f:
-                    if not line.strip():
-                        continue
-                    r = json.loads(line)
-                    if r.get("event") == "alert" and r.get("run_id") == run_id:
-                        return r.get("ts_utc") or alert_ts
-        except Exception:
-            pass
-
-    # No existe: lo registramos
-    _append_case_event(case_dir, "alert", run_id=run_id, meta={"source": "pipeline"})
-    # OJO: queremos que el ts sea el alert_ts, no "now". Reescribimos usando el provided timestamp:
-    # Para evitar inventar lógica compleja, lo dejamos tal cual salvo que provided_alert_ts_utc venga.
-    # Si quieres exactitud 1:1, pásame alert_ts_utc desde el front.
-    return alert_ts
-
-
-
-
-
 def _add_artifact(case_dir: str, rel_path: str, a_type: str):
     abs_path = os.path.join(case_dir, rel_path)
     if not os.path.exists(abs_path):
@@ -716,25 +630,13 @@ def api_forensics_case_create():
     case_dir = os.path.join(EVIDENCE_ROOT, f"CASE-{ts}")
     os.makedirs(case_dir, exist_ok=True)
 
-    # Subdirs estándar
-    for d in ["metadata", "network", "disk", "memory", "industrial", "analysis", "derived"]:
-        os.makedirs(os.path.join(case_dir, d), exist_ok=True)
-
-    # manifest
     manifest = {
         "case_dir": case_dir,
-        "created_at": _utc_now_iso(),
+        "created_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
         "artifacts": []
     }
     _write_manifest(case_dir, manifest)
-
-    # events file (vacío)
-    evp = _events_path(case_dir)
-    if not os.path.exists(evp):
-        Path(evp).touch()
-
     return jsonify({"case_dir": case_dir}), 200
-
 
 @forensics_bp.route("/api/forensics/case/manifest", methods=["GET"])
 def api_forensics_case_manifest():
@@ -783,60 +685,39 @@ def _run_script(script_path: str, args: list, cwd: str = None, timeout: int = 60
     )
     return (proc.returncode, proc.stdout, proc.stderr)
 
-
 @forensics_bp.route("/api/forensics/acquire/disk_kolla", methods=["POST"])
 def api_forensics_acquire_disk():
     data = request.get_json(force=True, silent=True) or {}
     case_dir = data.get("case_dir")
     vm_id = data.get("vm_id")
     container_name = data.get("container_name", "nova_libvirt")
-    run_id = (data.get("run_id") or "R1").strip()
-    alert_ts_utc = (data.get("alert_ts_utc") or "").strip()
 
     if not _is_safe_case_dir(case_dir):
         return jsonify({"error": "case_dir inválido"}), 400
     if not vm_id:
         return jsonify({"error": "vm_id requerido"}), 400
 
-    _get_or_set_alert_ts(case_dir, run_id=run_id, provided_alert_ts_utc=alert_ts_utc)
-
+    # Esperado: tú pones este script (o lo ajustas a tu realidad)
+    # Debe escribir dentro de case_dir (recomendado: disk/<vm_id>.raw)
     script = os.path.join(FORENSICS_SCRIPTS_DIR, "acquire_disk_kolla_libvirt.sh")
 
-    _append_case_event(case_dir, "disk_start", run_id=run_id, meta={"vm_id": vm_id, "container": container_name})
-
-    t0 = time.time()
     rc, out, err = _run_script(script, [case_dir, vm_id, container_name], cwd=REPO_ROOT, timeout=60 * 60)
-    t1 = time.time()
 
-    disk_rel = None
-    disk_size = None
-    sha_value = None
-
-    if rc == 0:
-        disk_rel, disk_size, sha_value = _register_disk_from_metadata(case_dir, vm_id)
-
-    _append_case_event(
-        case_dir,
-        "disk_preserved" if (rc == 0 and disk_rel) else "disk_failed",
-        run_id=run_id,
-        meta={
-            "vm_id": vm_id,
-            "rel": disk_rel,
-            "size": disk_size,
-            "sha256": sha_value,
-            "exit_code": rc,
-            "elapsed_s": round(t1 - t0, 3),
-        }
-    )
+    # Intento: si el script generó un RAW típico, lo registramos
+    # Convención mínima: disk/<vm_id>.raw
+    rel_guess = os.path.join("disk", f"{vm_id}.raw")
+    abs_guess = os.path.join(case_dir, rel_guess)
+    if os.path.exists(abs_guess):
+        _add_artifact(case_dir, rel_guess, "disk_raw")
 
     return jsonify({
         "result": "ok" if rc == 0 else "error",
         "exit_code": rc,
         "stdout": out,
         "stderr": err,
-        "disk_raw": disk_rel,
-        "sha256": sha_value
+        "disk_raw": rel_guess if os.path.exists(abs_guess) else None
     }), 200 if rc == 0 else 500
+
 
 
 
@@ -845,7 +726,6 @@ def api_forensics_acquire_disk_stream():
     case_dir = request.args.get("case_dir", "")
     vm_id = request.args.get("vm_id", "")
     container_name = request.args.get("container_name", "nova_libvirt")
-    run_id = (request.args.get("run_id") or "R1").strip()
 
     if not _is_safe_case_dir(case_dir):
         return jsonify({"error": "case_dir inválido"}), 400
@@ -853,69 +733,92 @@ def api_forensics_acquire_disk_stream():
         return jsonify({"error": "vm_id requerido"}), 400
 
     script = os.path.join(FORENSICS_SCRIPTS_DIR, "acquire_disk_kolla_libvirt.sh")
-    if not os.path.exists(script):
-        return jsonify({"error": f"Script no encontrado: {script}"}), 404
+    return _run_script_sse(script, [case_dir, vm_id, container_name], cwd=REPO_ROOT, timeout=60 * 60)
 
-    def generate():
-        start_ts = time.time()
-        script_name = os.path.basename(script)
 
-        _append_case_event(case_dir, "disk_start", run_id=run_id, meta={"vm_id": vm_id, "container": container_name})
 
-        yield f"data: [START] {script_name} {case_dir} {vm_id} {container_name}\n\n"
 
-        p = subprocess.Popen(
-            ["bash", script, case_dir, vm_id, container_name],
+
+
+@forensics_bp.route("/api/forensics/acquire/memory_lime", methods=["POST"])
+def api_forensics_acquire_memory():
+    data = request.get_json(force=True, silent=True) or {}
+    case_dir = data.get("case_dir")
+    vm_id = data.get("vm_id")
+    vm_ip = data.get("vm_ip")
+    ssh_user = data.get("ssh_user", "debian")
+    ssh_key = data.get("ssh_key", "")
+    mode = data.get("mode", "build")
+
+    if not _is_safe_case_dir(case_dir):
+        return jsonify({"error": "case_dir inválido"}), 400
+    if not vm_id or not vm_ip:
+        return jsonify({"error": "vm_id y vm_ip requeridos"}), 400
+    if not ssh_key:
+        return jsonify({"error": "ssh_key requerido (path en el servidor)"}), 400
+
+    script = os.path.join(FORENSICS_SCRIPTS_DIR, "acquire_memory_lime_ssh.sh")
+
+    def _run_for_user(user: str):
+        return _run_script(
+            script,
+            [case_dir, vm_id, vm_ip, user, ssh_key, mode],
             cwd=REPO_ROOT,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1
+            timeout=60 * 60
         )
 
-        last_line = ""
-        for line in p.stdout:
-            line = (line or "").rstrip("\n")
-            if line.strip():
-                last_line = line.strip()
-            yield f"data: {line}\n\n"
+    # 1) Intento con el usuario recibido
+    attempted_users = [ssh_user] if ssh_user else []
+    rc, out, err = _run_for_user(ssh_user)
 
-        p.wait()
-        rc = p.returncode if p.returncode is not None else 1
+    # 2) Si falla por auth, reintentar con usuarios típicos (ubuntu/debian)
+    auth_fail = (rc == 255) and ("Permission denied (publickey)" in (err or "") or "Permission denied" in (err or ""))
+    if auth_fail:
+        for candidate_user in ["ubuntu", "debian"]:
+            if candidate_user in attempted_users:
+                continue
+            attempted_users.append(candidate_user)
+            rc, out, err = _run_for_user(candidate_user)
+            if rc == 0:
+                ssh_user = candidate_user
+                break
 
-        disk_rel = None
-        disk_size = None
-        sha_value = None
+    # 3) Extraer ruta absoluta del dump (última línea del stdout) SOLO si rc==0
+    produced_abs = ""
+    mem_rel = None
 
-        if rc == 0:
-            disk_rel, disk_size, sha_value = _register_disk_from_metadata(case_dir, vm_id)
+    if rc == 0:
+        try:
+            lines = [ln.strip() for ln in (out or "").splitlines() if ln.strip()]
+            if lines:
+                candidate = lines[-1]
+                if os.path.isabs(candidate) and os.path.exists(candidate):
+                    produced_abs = candidate
+        except Exception:
+            produced_abs = ""
 
-        _append_case_event(
-            case_dir,
-            "disk_preserved" if (rc == 0 and disk_rel) else "disk_failed",
-            run_id=run_id,
-            meta={
-                "vm_id": vm_id,
-                "rel": disk_rel,
-                "size": disk_size,
-                "sha256": sha_value,
-                "exit_code": rc,
-                "elapsed_s": round(time.time() - start_ts, 3),
-            }
-        )
+        if produced_abs:
+            try:
+                mem_rel = os.path.relpath(produced_abs, case_dir)
+            except Exception:
+                mem_rel = None
 
-        payload = {
-            "result": "ok" if rc == 0 else "error",
-            "exit_code": rc,
-            "last": last_line,
-            "disk_raw": disk_rel,
-            "sha256": sha_value,
-            "script": script_name
-        }
-        yield f"event: done\ndata: {json.dumps(payload)}\n\n"
+            # Safety anti-traversal
+            if mem_rel and (mem_rel.startswith("..") or os.path.isabs(mem_rel)):
+                mem_rel = None
 
-    return Response(generate(), mimetype="text/event-stream")
+        if mem_rel:
+            _add_artifact(case_dir, mem_rel, "memory_lime")
 
+    return jsonify({
+        "result": "ok" if rc == 0 else "error",
+        "exit_code": rc,
+        "stdout": out,
+        "stderr": err,
+        "mem_dump": mem_rel,
+        "ssh_user_used": ssh_user,
+        "attempted_users": attempted_users
+    }), 200 if rc == 0 else 500
 
 
 @forensics_bp.route("/api/forensics/analyze/memory_vol3", methods=["POST"])
@@ -968,6 +871,108 @@ def api_forensics_analyze_memory():
         "stderr": err,
         "out_dir": rel_out if os.path.isdir(abs_out) else None
     }), 200 if rc == 0 else 500
+
+
+
+@forensics_bp.route("/api/forensics/acquire/memory_lime/stream", methods=["GET"])
+def api_forensics_acquire_memory_stream():
+    case_dir = request.args.get("case_dir", "")
+    vm_id = request.args.get("vm_id", "")
+    vm_ip = request.args.get("vm_ip", "")
+    ssh_user = request.args.get("ssh_user", "debian")
+    ssh_key = request.args.get("ssh_key", "")
+    mode = request.args.get("mode", "build")
+
+    if not _is_safe_case_dir(case_dir):
+        return jsonify({"error": "case_dir inválido"}), 400
+    if not vm_id or not vm_ip:
+        return jsonify({"error": "vm_id y vm_ip requeridos"}), 400
+    if not ssh_key:
+        return jsonify({"error": "ssh_key requerido"}), 400
+
+    script = os.path.join(FORENSICS_SCRIPTS_DIR, "acquire_memory_lime_ssh.sh")
+    if not os.path.exists(script):
+        return jsonify({"error": f"Script no encontrado: {script}"}), 404
+
+    # Reutiliza tu lógica robusta de usuario (ubuntu/debian) pero en streaming:
+    candidates = [ssh_user] + [u for u in ["ubuntu", "debian"] if u != ssh_user]
+
+    def sse():
+        def emit(line: str):
+            line = (line or "").rstrip("\n")
+            return f"data: {line}\n\n"
+
+        # Cabecera
+        yield emit(f"[SISTEMA] Starting memory acquisition (LiME) vm_id={vm_id} ip={vm_ip} user={ssh_user} mode={mode}")
+
+        last_stdout_line = ""
+        used_user = None
+        final_rc = 1
+        final_out = ""
+        final_err = ""
+
+        for user in candidates:
+            used_user = user
+            yield emit(f"[SISTEMA] Trying ssh_user={user}")
+
+            # Nota: stdbuf ayuda a line-buffering para ver progreso en vivo
+            cmd = ["bash", "-lc", f"stdbuf -oL -eL bash '{script}' '{case_dir}' '{vm_id}' '{vm_ip}' '{user}' '{ssh_key}' '{mode}'"]
+            proc = subprocess.Popen(
+                cmd,
+                cwd=REPO_ROOT,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1
+            )
+
+            # Stream en vivo
+            lines = []
+            for line in proc.stdout:
+                lines.append(line)
+                last_stdout_line = line.strip()
+                yield emit(line.rstrip("\n"))
+
+            proc.wait()
+            final_rc = proc.returncode
+            final_out = "".join(lines)
+            final_err = ""  # stderr va junto con stdout (STDOUT)
+
+            # Si éxito -> parar
+            if final_rc == 0:
+                break
+
+            # Si fallo por permisos, probar siguiente
+            if "Permission denied" in final_out or "Permission denied" in (final_err or ""):
+                yield emit("[SISTEMA] Auth failed, retrying with next user...")
+                continue
+
+            # Fallo no-auth: no tiene sentido reintentar usuarios
+            break
+
+        mem_rel = None
+        if final_rc == 0 and last_stdout_line and os.path.isabs(last_stdout_line) and os.path.exists(last_stdout_line):
+            try:
+                mem_rel = os.path.relpath(last_stdout_line, case_dir)
+                if mem_rel.startswith("..") or os.path.isabs(mem_rel):
+                    mem_rel = None
+            except Exception:
+                mem_rel = None
+
+            if mem_rel:
+                _add_artifact(case_dir, mem_rel, "memory_lime")
+
+        # Evento final (JSON) para que la UI sepa qué pasó y qué archivo bajar/mostrar
+        payload = {
+            "result": "ok" if final_rc == 0 else "error",
+            "exit_code": final_rc,
+            "mem_dump": mem_rel,
+            "ssh_user_used": used_user,
+        }
+        yield f"event: done\ndata: {json.dumps(payload)}\n\n"
+
+    return Response(sse(), mimetype="text/event-stream")
+
 
 
 
@@ -1106,483 +1111,3 @@ def api_vol3_symbols_generate_stream():
 
 
 
-
-@forensics_bp.route("/api/forensics/acquire/memory_lime", methods=["POST"])
-def api_forensics_acquire_memory():
-    data = request.get_json(force=True, silent=True) or {}
-    case_dir = data.get("case_dir")
-    vm_id = data.get("vm_id")
-    vm_ip = data.get("vm_ip")
-    ssh_user = data.get("ssh_user", "debian")
-    ssh_key = data.get("ssh_key", "")
-    mode = data.get("mode", "build")
-
-    run_id = (data.get("run_id") or "R1").strip()
-    alert_ts_utc = (data.get("alert_ts_utc") or "").strip()
-
-    if not _is_safe_case_dir(case_dir):
-        return jsonify({"error": "case_dir inválido"}), 400
-    if not vm_id or not vm_ip:
-        return jsonify({"error": "vm_id y vm_ip requeridos"}), 400
-    if not ssh_key:
-        return jsonify({"error": "ssh_key requerido (path en el servidor)"}), 400
-
-    _get_or_set_alert_ts(case_dir, run_id=run_id, provided_alert_ts_utc=alert_ts_utc)
-
-    script = os.path.join(FORENSICS_SCRIPTS_DIR, "acquire_memory_lime_ssh.sh")
-
-    _append_case_event(case_dir, "memory_start", run_id=run_id, meta={
-        "vm_id": vm_id,
-        "vm_ip": vm_ip,
-        "ssh_user": ssh_user,
-        "mode": mode
-    })
-
-    def _run_for_user(user: str):
-        return _run_script(
-            script,
-            [case_dir, vm_id, vm_ip, user, ssh_key, mode],
-            cwd=REPO_ROOT,
-            timeout=60 * 60
-        )
-
-    attempted_users = [ssh_user] if ssh_user else []
-    t0 = time.time()
-    rc, out, err = _run_for_user(ssh_user)
-
-    auth_fail = (rc == 255) and ("Permission denied (publickey)" in (err or "") or "Permission denied" in (err or ""))
-    if auth_fail:
-        for candidate_user in ["ubuntu", "debian"]:
-            if candidate_user in attempted_users:
-                continue
-            attempted_users.append(candidate_user)
-            rc, out, err = _run_for_user(candidate_user)
-            if rc == 0:
-                ssh_user = candidate_user
-                break
-    t1 = time.time()
-
-    mem_rel = None
-    mem_size = None
-    sha_value = None
-
-    if rc == 0:
-        # Registro robusto desde metadata (igual que disco)
-        mem_rel, mem_size, sha_value = _register_memory_from_metadata(case_dir, vm_ip=vm_ip)
-
-        # Fallback: por si metadata no aparece (rarísimo)
-        if not mem_rel:
-            produced_abs = ""
-            try:
-                lines = [ln.strip() for ln in (out or "").splitlines() if ln.strip()]
-                if lines:
-                    candidate = lines[-1]
-                    if os.path.isabs(candidate) and os.path.exists(candidate):
-                        produced_abs = candidate
-            except Exception:
-                produced_abs = ""
-
-            if produced_abs:
-                try:
-                    mem_rel = os.path.relpath(produced_abs, case_dir)
-                    if mem_rel.startswith("..") or os.path.isabs(mem_rel):
-                        mem_rel = None
-                except Exception:
-                    mem_rel = None
-
-                if mem_rel:
-                    try:
-                        mem_size = os.path.getsize(os.path.join(case_dir, mem_rel))
-                    except Exception:
-                        mem_size = None
-                    _add_artifact(case_dir, mem_rel, "memory_lime")
-
-    _append_case_event(
-        case_dir,
-        "memory_preserved" if (rc == 0 and mem_rel) else "memory_failed",
-        run_id=run_id,
-        meta={
-            "vm_id": vm_id,
-            "vm_ip": vm_ip,
-            "rel": mem_rel,
-            "size": mem_size,
-            "sha256": sha_value,
-            "exit_code": rc,
-            "elapsed_s": round(t1 - t0, 3),
-            "ssh_user_used": ssh_user,
-            "attempted_users": attempted_users,
-            "mode": mode,
-        }
-    )
-
-    return jsonify({
-        "result": "ok" if rc == 0 else "error",
-        "exit_code": rc,
-        "stdout": out,
-        "stderr": err,
-        "mem_dump": mem_rel,
-        "sha256": sha_value,
-        "ssh_user_used": ssh_user,
-        "attempted_users": attempted_users
-    }), 200 if rc == 0 else 500
-
-
-
-
-
-
-@forensics_bp.route("/api/forensics/acquire/memory_lime/stream", methods=["GET"])
-def api_forensics_acquire_memory_stream():
-    case_dir = request.args.get("case_dir", "")
-    vm_id = request.args.get("vm_id", "")
-    vm_ip = request.args.get("vm_ip", "")
-    ssh_user = request.args.get("ssh_user", "debian")
-    ssh_key = request.args.get("ssh_key", "")
-    mode = request.args.get("mode", "build")
-
-    run_id = (request.args.get("run_id") or "R1").strip()
-    alert_ts_utc = (request.args.get("alert_ts_utc") or "").strip()
-
-    if not _is_safe_case_dir(case_dir):
-        return jsonify({"error": "case_dir inválido"}), 400
-    if not vm_id or not vm_ip:
-        return jsonify({"error": "vm_id y vm_ip requeridos"}), 400
-    if not ssh_key:
-        return jsonify({"error": "ssh_key requerido"}), 400
-
-    _get_or_set_alert_ts(case_dir, run_id=run_id, provided_alert_ts_utc=alert_ts_utc)
-
-    script = os.path.join(FORENSICS_SCRIPTS_DIR, "acquire_memory_lime_ssh.sh")
-    if not os.path.exists(script):
-        return jsonify({"error": f"Script no encontrado: {script}"}), 404
-
-    candidates = [ssh_user] + [u for u in ["ubuntu", "debian"] if u != ssh_user]
-
-    def sse():
-        def emit(line: str):
-            line = (line or "").rstrip("\n")
-            return f"data: {line}\n\n"
-
-        start_ts = time.time()
-
-        _append_case_event(case_dir, "memory_start", run_id=run_id, meta={
-            "vm_id": vm_id,
-            "vm_ip": vm_ip,
-            "ssh_user": ssh_user,
-            "mode": mode
-        })
-
-        yield emit(f"[SISTEMA] Starting memory acquisition (LiME) vm_id={vm_id} ip={vm_ip} user={ssh_user} mode={mode} run_id={run_id}")
-
-        used_user = None
-        final_rc = 1
-        final_out = ""
-        last_stdout_line = ""
-
-        for user in candidates:
-            used_user = user
-            yield emit(f"[SISTEMA] Trying ssh_user={user}")
-
-            cmd = ["bash", "-lc", f"stdbuf -oL -eL bash '{script}' '{case_dir}' '{vm_id}' '{vm_ip}' '{user}' '{ssh_key}' '{mode}'"]
-            proc = subprocess.Popen(
-                cmd,
-                cwd=REPO_ROOT,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1
-            )
-
-            lines = []
-            for line in proc.stdout:
-                lines.append(line)
-                if (line or "").strip():
-                    last_stdout_line = line.strip()
-                yield emit(line.rstrip("\n"))
-
-            proc.wait()
-            final_rc = proc.returncode
-            final_out = "".join(lines)
-
-            if final_rc == 0:
-                break
-
-            if "Permission denied" in final_out:
-                yield emit("[SISTEMA] Auth failed, retrying with next user...")
-                continue
-
-            break
-
-        mem_rel = None
-        mem_size = None
-        sha_value = None
-
-        if final_rc == 0:
-            # Registro robusto desde metadata (igual que disco)
-            mem_rel, mem_size, sha_value = _register_memory_from_metadata(case_dir, vm_ip=vm_ip)
-
-            # Fallback al last_stdout_line si metadata no aparece
-            if not mem_rel and last_stdout_line and os.path.isabs(last_stdout_line) and os.path.exists(last_stdout_line):
-                try:
-                    mem_rel = os.path.relpath(last_stdout_line, case_dir)
-                    if mem_rel.startswith("..") or os.path.isabs(mem_rel):
-                        mem_rel = None
-                except Exception:
-                    mem_rel = None
-
-                if mem_rel:
-                    try:
-                        mem_size = os.path.getsize(os.path.join(case_dir, mem_rel))
-                    except Exception:
-                        mem_size = None
-                    _add_artifact(case_dir, mem_rel, "memory_lime")
-
-        _append_case_event(
-            case_dir,
-            "memory_preserved" if (final_rc == 0 and mem_rel) else "memory_failed",
-            run_id=run_id,
-            meta={
-                "vm_id": vm_id,
-                "vm_ip": vm_ip,
-                "rel": mem_rel,
-                "size": mem_size,
-                "sha256": sha_value,
-                "exit_code": final_rc,
-                "elapsed_s": round(time.time() - start_ts, 3),
-                "ssh_user_used": used_user,
-                "mode": mode,
-            }
-        )
-
-        payload = {
-            "result": "ok" if final_rc == 0 else "error",
-            "exit_code": final_rc,
-            "mem_dump": mem_rel,
-            "sha256": sha_value,
-            "ssh_user_used": used_user,
-            "last": last_stdout_line,
-        }
-        yield f"event: done\ndata: {json.dumps(payload)}\n\n"
-
-    return Response(sse(), mimetype="text/event-stream")
-
-
-
-
-def _read_text_first_line(path: str) -> str:
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return (f.readline() or "").strip()
-    except Exception:
-        return ""
-
-def _add_artifact_fast(case_dir: str, rel_path: str, a_type: str, sha256: str = None, size: int = None):
-    abs_path = os.path.join(case_dir, rel_path)
-    if not os.path.exists(abs_path):
-        return
-
-    if size is None:
-        try:
-            size = os.path.getsize(abs_path)
-        except Exception:
-            size = None
-
-    manifest = _read_manifest(case_dir)
-    manifest.setdefault("artifacts", []).append({
-        "type": a_type,
-        "rel_path": rel_path,
-        "sha256": sha256,
-        "size": size,
-        "ts": _utc_now_iso()
-    })
-    _write_manifest(case_dir, manifest)
-
-
-
-
-
-
-
-
-
-
-
-
-
-def _find_latest_disk_metadata(case_dir: str, vm_id: str):
-    meta_dir = os.path.join(case_dir, "metadata")
-    if not os.path.isdir(meta_dir):
-        return (None, None)
-
-    cands = []
-    for fn in os.listdir(meta_dir):
-        if fn.startswith(vm_id) and fn.endswith(".disk.metadata.json"):
-            p = os.path.join(meta_dir, fn)
-            try:
-                cands.append((os.path.getmtime(p), p))
-            except Exception:
-                continue
-
-    if not cands:
-        return (None, None)
-
-    cands.sort(key=lambda x: x[0], reverse=True)
-    meta_path = cands[0][1]
-
-    try:
-        with open(meta_path, "r", encoding="utf-8") as f:
-            meta_obj = json.load(f)
-        if not isinstance(meta_obj, dict):
-            return (None, None)
-        return (meta_path, meta_obj)
-    except Exception:
-        return (None, None)
-
-def _register_disk_from_metadata(case_dir: str, vm_id: str):
-    """
-    Registra en manifest:
-      - disk/<final_raw> como disk_raw usando sha del metadata/.sha256 (sin recalcular SHA del RAW)
-      - metadata/<...>.disk.metadata.json como disk_metadata
-      - metadata/<...>.disk.sha256 como disk_sha256_file (si existe)
-    Devuelve: (disk_rel, disk_size, sha_value)
-    """
-    meta_path, meta_obj = _find_latest_disk_metadata(case_dir, vm_id)
-    if not meta_path or not meta_obj:
-        return (None, None, None)
-
-    final_raw_name = (meta_obj.get("final_raw") or "").strip()
-    if not final_raw_name:
-        return (None, None, None)
-
-    disk_rel = os.path.join("disk", final_raw_name)
-    disk_abs = os.path.join(case_dir, disk_rel)
-    if not os.path.exists(disk_abs):
-        return (None, None, None)
-
-    # base (para localizar el sha file)
-    base = os.path.basename(meta_path).replace(".disk.metadata.json", "")
-    sha_rel = os.path.join("metadata", f"{base}.disk.sha256")
-    sha_abs = os.path.join(case_dir, sha_rel)
-
-    sha_value = (meta_obj.get("sha256") or "").strip() or None
-    if not sha_value and os.path.exists(sha_abs):
-        sha_value = _read_text_first_line(sha_abs) or None
-
-    try:
-        disk_size = os.path.getsize(disk_abs)
-    except Exception:
-        disk_size = None
-
-    # RAW (sin re-hash)
-    _add_artifact_fast(case_dir, disk_rel, "disk_raw", sha256=sha_value, size=disk_size)
-
-    # metadata.json (pequeño -> ok rehash)
-    try:
-        meta_rel = os.path.relpath(meta_path, case_dir)
-        if not meta_rel.startswith("..") and not os.path.isabs(meta_rel):
-            _add_artifact(case_dir, meta_rel, "disk_metadata")
-    except Exception:
-        pass
-
-    # sha file (pequeño -> ok rehash)
-    try:
-        if os.path.exists(sha_abs):
-            _add_artifact(case_dir, sha_rel, "disk_sha256_file")
-    except Exception:
-        pass
-
-    return (disk_rel, disk_size, sha_value)
-
-
-
-
-
-
-
-def _register_memory_from_metadata(case_dir: str, vm_ip: str = None):
-    """
-    Registra en manifest el dump LiME y sus ficheros metadata/sha.
-    NO recalcula SHA del dump (usa metadata.json / .sha256 generados por el script).
-    Devuelve: (mem_rel, mem_size, sha_value)
-    """
-    meta_dir = os.path.join(case_dir, "metadata")
-    mem_dir  = os.path.join(case_dir, "memory")
-
-    if not os.path.isdir(meta_dir):
-        return (None, None, None)
-
-    # Buscar el metadata más reciente de LiME
-    cands = []
-    for fn in os.listdir(meta_dir):
-        # script: memdump_<VM_IP>_<UTC>.lime.metadata.json
-        if not fn.endswith(".lime.metadata.json"):
-            continue
-        if vm_ip and (vm_ip not in fn):
-            continue
-        p = os.path.join(meta_dir, fn)
-        try:
-            cands.append((os.path.getmtime(p), p))
-        except Exception:
-            continue
-
-    if not cands:
-        return (None, None, None)
-
-    cands.sort(key=lambda x: x[0], reverse=True)
-    meta_path = cands[0][1]
-
-    meta_obj = None
-    try:
-        with open(meta_path, "r", encoding="utf-8") as f:
-            meta_obj = json.load(f)
-    except Exception:
-        meta_obj = None
-
-    dump_file = ((meta_obj or {}).get("dump_file") or "").strip()
-    sha_value = ((meta_obj or {}).get("sha256") or "").strip() or None
-
-    if not dump_file:
-        return (None, None, sha_value)
-
-    dump_abs = os.path.join(mem_dir, dump_file)
-    if not os.path.exists(dump_abs):
-        return (None, None, sha_value)
-
-    mem_rel = os.path.join("memory", dump_file)
-
-    # sha fallback: leer el .sha256 si no viene en metadata.json
-    base_sha = os.path.basename(meta_path).replace(".metadata.json", "")
-    sha_rel  = os.path.join("metadata", f"{base_sha}.sha256")
-    sha_abs  = os.path.join(case_dir, sha_rel)
-
-    if not sha_value and os.path.exists(sha_abs):
-        try:
-            with open(sha_abs, "r", encoding="utf-8") as f:
-                sha_value = (f.read() or "").strip() or None
-        except Exception:
-            sha_value = None
-
-    # size
-    try:
-        mem_size = os.path.getsize(dump_abs)
-    except Exception:
-        mem_size = None
-
-    # Registrar dump (rápido)
-    _add_artifact_fast(case_dir, mem_rel, "memory_lime", sha256=sha_value, size=mem_size)
-
-    # Registrar metadata (pequeños)
-    try:
-        rel_mp = os.path.relpath(meta_path, case_dir)
-        if not rel_mp.startswith("..") and not os.path.isabs(rel_mp):
-            _add_artifact(case_dir, rel_mp, "memory_metadata")
-    except Exception:
-        pass
-
-    try:
-        if os.path.exists(sha_abs):
-            _add_artifact(case_dir, sha_rel, "memory_sha256_file")
-    except Exception:
-        pass
-
-    return (mem_rel, mem_size, sha_value)

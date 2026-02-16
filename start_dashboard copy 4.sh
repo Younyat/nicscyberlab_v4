@@ -57,10 +57,14 @@ else
 fi
 
 # --- Asegurar permisos correctos en SSH (evita Permission denied / bad permissions) ---
+
+
 section "[2.5/6] Ajustando permisos SSH..."
 chmod 700 "$HOME/.ssh" 2>/dev/null || true
 chmod 600 "$HOME/.ssh/my_key" 2>/dev/null || true
 chmod 644 "$HOME/.ssh/my_key.pub" 2>/dev/null || true
+
+
 
 # -----------------------------
 # [2/6] SYSTEM DEPENDENCIES
@@ -82,6 +86,7 @@ if ! command -v getcap >/dev/null 2>&1; then
 else
     ok "getcap disponible."
 fi
+
 
 # -----------------------------
 # [3/6] TCPDUMP CAPABILITIES
@@ -118,6 +123,7 @@ else
         fi
     fi
 fi
+
 
 # -----------------------------
 # [3.5/6] PYTHON CAPABILITIES (Scapy/AsyncSniffer sin sudo)
@@ -159,6 +165,9 @@ else
     info "Estado final python caps: $(getcap "$REAL_PY" 2>/dev/null || echo 'none')"
 fi
 
+
+
+
 # -----------------------------
 # [4/6] FREE PORT
 # -----------------------------
@@ -175,34 +184,6 @@ section "[5/6] Verificando Gunicorn y Scapy en el VENV"
 "$VENV_PYTHON" -m pip install --upgrade pip >/dev/null 2>&1 || true
 "$VENV_PYTHON" -m pip install --upgrade gunicorn scapy
 ok "Gunicorn y Scapy disponibles en el venv."
-
-echo "============================================="
-echo " [5/6] Verificando dependencias Python (en el VENV)"
-echo "============================================="
-
-# OJO: con set -e, un exit!=0 aborta el script; por eso capturamos RC.
-set +e
-"$VENV_PYTHON" - <<'PY'
-import sys
-missing=[]
-for m in ("matplotlib",):
-    try:
-        __import__(m)
-    except Exception:
-        missing.append(m)
-if missing:
-    print("FALTAN:", ", ".join(missing))
-    sys.exit(2)
-print("[OK] matplotlib disponible (venv).")
-PY
-RC=$?
-set -e
-
-if [[ $RC -ne 0 ]]; then
-  echo "[WARN] matplotlib no está en el venv. Instalando con pip (venv)..."
-  "$VENV_PYTHON" -m pip install --upgrade matplotlib
-  echo "[OK] matplotlib instalado (pip/venv)."
-fi
 
 # -----------------------------
 # [6/6] START SERVER

@@ -84,26 +84,6 @@ done
 
 sudo rmmod lime || true
 sudo chmod 644 "$REMOTE_DUMP"
-
-# ============================================================
-# Cleanup remoto (justo antes de acabar y salir)
-# OJO: NO borramos el dump remoto ($REMOTE_DUMP) antes del scp.
-# Este bloque replica tus comandos pero de forma segura.
-# ============================================================
-
-sudo apt-get clean || true
-sudo rm -rf /var/lib/apt/lists/* || true
-sudo rm -rf /var/cache/apt/archives/* || true
-
-# "sudo rm -rf /tmp/*" (pero sin cargarnos el dump ni /tmp/LiME si existe)
-if [[ -d /tmp ]]; then
-  sudo find /tmp -mindepth 1 \
-    ! -path "/tmp/LiME" ! -path "/tmp/LiME/*" \
-    ! -path "$REMOTE_DUMP" \
-    -exec rm -rf {} + 2>/dev/null || true
-fi
-
-df -h / || true
 EOF
 
 echo "[*] Descargando dump..."

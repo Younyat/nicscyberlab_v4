@@ -58,10 +58,9 @@ const UI = {
   liveClose: document.getElementById("dfir-live-close"),
 
   caseSelector: document.getElementById("case_selector"),
-  btnGenerateSymbols: document.getElementById("btn_generate_symbols"),
-
-  // traffic overlay (optional block in HTML)
-  btnOpenTraffic: document.getElementById("btn_open_traffic"),
+ btnGenerateSymbols: document.getElementById("btn_generate_symbols"),
+   // traffic overlay (optional block in HTML)
+   btnOpenTraffic: document.getElementById("btn_open_traffic"),
 
   // traffic overlay
   trafficOverlay: document.getElementById("traffic-overlay"),
@@ -70,26 +69,32 @@ const UI = {
   trafficClose: document.getElementById("traffic-close"),
   trafficRefresh: document.getElementById("traffic-refresh"),
   trafficStatus: document.getElementById("traffic-status"),
+
+
+
+
+
+  
 };
+
 
 console.log("btn_open_traffic =", UI.btnOpenTraffic);
 console.log("traffic overlay =", UI.trafficOverlay);
+
+
+
+
 
 const STATE = {
   instances: [],
   selected: null,
   case_dir: null,
   manifest: null,
-
-  // [RUN_ID] No invento UI: valor fijo por defecto.
-  // Si quieres R2/R3, lo cambias aquí o lo automatizamos luego con tu runner.
-  run_id: "R1",
-
   live: {
     source: null,
     running: false
   },
-  traffic: {
+    traffic: {
     source: null,
     running: false
   },
@@ -124,6 +129,7 @@ function setSelected(vm) {
 
   cwrite(`Selected VM: ${vm.name} (${vm.id}) | priv=${vm.ip_private || "-"} float=${vm.ip_floating || "-"}`);
 }
+
 
 function setCaseDir(caseDir) {
   STATE.case_dir = caseDir;
@@ -170,6 +176,7 @@ function escapeHtml(s) {
 
 /* ============================================================
    LIVE OVERLAY (SSE terminal)
+   - Do not modify existing terminal sizes; separate overlay only.
 ============================================================ */
 
 function liveAppend(line) {
@@ -184,6 +191,7 @@ function liveSet(show) {
 }
 
 function freezeUI(disabled) {
+  // Freeze all buttons except close overlay
   const btns = document.querySelectorAll("button");
   btns.forEach(b => {
     if (b === UI.liveClose) return;
@@ -200,6 +208,7 @@ function liveClose() {
   freezeUI(false);
   liveSet(false);
   closeTraffic();
+
 }
 
 if (UI.liveClose) {
@@ -214,11 +223,13 @@ function startLiveSSE({ title, info, url, onDone }) {
     throw new Error("Overlay terminal no existe en HTML. Añade el bloque dfir-live-overlay.");
   }
 
+  // Close any previous
   if (STATE.live.source) {
     try { STATE.live.source.close(); } catch {}
     STATE.live.source = null;
   }
 
+  // Reset overlay
   UI.liveTerminal.textContent = "";
   if (UI.liveTitle) UI.liveTitle.textContent = title || "DFIR Live Terminal";
   if (UI.liveInfo) UI.liveInfo.textContent = info || "";
@@ -249,11 +260,13 @@ function startLiveSSE({ title, info, url, onDone }) {
 
     if (UI.liveStatus) UI.liveStatus.textContent = `Status: finished (${payload.result || "unknown"})`;
 
+    // release UI
     try { es.close(); } catch {}
     STATE.live.source = null;
     STATE.live.running = false;
     freezeUI(false);
 
+    // callback (update UI/manifest/etc)
     try { if (typeof onDone === "function") onDone(payload); } catch {}
   });
 
@@ -266,6 +279,10 @@ function startLiveSSE({ title, info, url, onDone }) {
     freezeUI(false);
   };
 }
+
+
+
+
 
 /* ============================================================
    TRAFFIC OVERLAY (SSE traffic)
@@ -286,11 +303,12 @@ function trafficAppend(htmlOrText, isHtml = false) {
   if (!trafficOverlayExists()) return;
 
   const line = document.createElement("div");
+
   line.className = "terminal-entry";
   line.style.padding = "2px 6px";
   line.style.whiteSpace = "pre";
   line.style.fontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace";
-  line.style.color = "#38d39f";
+  line.style.color = "#38d39f"; // para asegurar visibilidad dentro del <pre>
 
   if (isHtml) line.innerHTML = htmlOrText;
   else line.innerText = htmlOrText;
@@ -328,6 +346,7 @@ function startTrafficAnalysis(vmId) {
   const vm = STATE.instances.find(x => x.id === vmId);
   if (!vm) return;
 
+  // Requiere case para guardar PCAP dentro del caso (tu requisito)
   let caseDir = null;
   try {
     caseDir = requireCase();
@@ -336,41 +355,38 @@ function startTrafficAnalysis(vmId) {
     return;
   }
 
-  // [RUN_ID] Valor fijo desde STATE (sin inventar UI nueva)
-  const runId = (STATE.run_id || "R1").trim() || "R1";
-
+  // UI
   trafficSet(true);
   UI.trafficTerminal.innerHTML = "";
   UI.trafficInfo.textContent =
-    `AUDITING NODE: ${vm.name} | MGMT_IP: ${vm.ip_floating || vm.ip_private || "N/A"} | CASE: ${caseDir} | RUN: ${runId}`;
+    `AUDITING NODE: ${vm.name} | MGMT_IP: ${vm.ip_floating || vm.ip_private || "N/A"} | CASE: ${caseDir}`;
 
   trafficAppend(`[${now()}] Conectando al sniffer (SSE)...`);
 
+  // filtros
   const protos = Array.from(document.querySelectorAll(".proto-filter:checked"))
     .map(cb => cb.value)
     .join(",") || "modbus,tcp,udp";
 
+  // cerrar anterior
   if (STATE.traffic.source) {
     try { STATE.traffic.source.close(); } catch {}
     STATE.traffic.source = null;
   }
 
-  // [RUN_ID] Añadido &run_id=...
   const url =
     `/api/openstack/traffic/${encodeURIComponent(vm.id)}` +
     `?protos=${encodeURIComponent(protos)}` +
-    `&case_dir=${encodeURIComponent(caseDir)}` +
-    `&run_id=${encodeURIComponent(runId)}`;
+    `&case_dir=${encodeURIComponent(caseDir)}`;
 
   const es = new EventSource(url);
   STATE.traffic.source = es;
   STATE.traffic.running = true;
 
-  if (UI.trafficStatus) UI.trafficStatus.textContent = "Status: running...";
-
   es.onmessage = (e) => {
     const raw = String(e.data || "");
 
+    // coloreado (tu backend emite "MODBUS" / "PROFINET" / "[SISTEMA]")
     if (raw.includes("MODBUS")) {
       trafficAppend(`<span class="text-yellow-400 font-bold">${escapeHtml(raw)}</span>`, true);
     } else if (raw.includes("PROFINET")) {
@@ -386,12 +402,14 @@ function startTrafficAnalysis(vmId) {
 
   es.onerror = () => {
     trafficAppend("[ERROR] Pérdida de conexión con el sniffer (SSE).");
-    if (UI.trafficStatus) UI.trafficStatus.textContent = "Status: error (SSE lost)";
     try { es.close(); } catch {}
     STATE.traffic.source = null;
     STATE.traffic.running = false;
   };
 }
+
+
+
 
 if (UI.btnOpenTraffic) {
   UI.btnOpenTraffic.addEventListener("click", () => {
@@ -409,6 +427,14 @@ if (UI.trafficRefresh) {
     applyTrafficFilters();
   });
 }
+
+
+
+
+
+
+
+
 
 /* ============================
    Instances
@@ -446,13 +472,18 @@ function renderInstances(instances) {
     });
   });
 
-  // Doble click: abre tráfico sin interferir con selección normal
+
+    // Doble click: abre tráfico sin interferir con selección normal
   tbody.querySelectorAll("tr[data-vm-id]").forEach(tr => {
     tr.addEventListener("dblclick", () => {
       const id = tr.getAttribute("data-vm-id");
       startTrafficAnalysis(id);
     });
   });
+
+
+
+
 }
 
 async function loadInstances() {
@@ -543,6 +574,8 @@ async function refreshManifest() {
 
 /* ============================
    DFIR Actions
+   - Disk + Memory now run via LIVE SSE overlay
+   - Volatility stays synchronous JSON (ok)
 ============================ */
 
 function buildSSEUrl(base, params) {
@@ -701,12 +734,16 @@ UI.btnClearConsole.addEventListener("click", () => {
   UI.console.value = "";
 });
 
+
+
 UI.caseSelector.addEventListener("change", () => {
   const v = (UI.caseSelector.value || "").trim();
   if (!v) return;
   setCaseDir(v);
   refreshManifest().catch(e => cwrite(`ERROR manifest: ${e.message}`));
 });
+
+
 
 UI.btnGenerateSymbols.addEventListener("click", () => {
   try {
@@ -716,10 +753,16 @@ UI.btnGenerateSymbols.addEventListener("click", () => {
   }
 });
 
+
+
+
+
+
 async function loadCases() {
   const data = await httpJSON("/api/forensics/case/list");
   const cases = data.cases || [];
 
+  // Rellenar selector
   UI.caseSelector.innerHTML = `
     <option value="">Select existing case...</option>
     ${cases.map(c => {
@@ -728,12 +771,16 @@ async function loadCases() {
     }).join("")}
   `;
 
+  // Si no hay case activo, selecciona el más reciente automáticamente
   if (!STATE.case_dir && cases.length) {
     setCaseDir(cases[0].case_dir);
     UI.caseSelector.value = cases[0].case_dir;
     try { await refreshManifest(); } catch {}
   }
 }
+
+
+
 
 function generateSymbolsLive() {
   const vm = requireSelected();
@@ -762,6 +809,7 @@ function generateSymbolsLive() {
     url,
     onDone: async (payload) => {
       if (payload.result === "ok") {
+        // El script imprime al final el directorio ABS, y backend lo mete en payload.last
         const symbolsDir = (payload.last || "").trim();
         if (symbolsDir) {
           UI.volSymbols.value = symbolsDir;
@@ -776,9 +824,17 @@ function generateSymbolsLive() {
   });
 }
 
+
+
+
+
+
+
 /* ============================
    Boot
 ============================ */
 cwrite("DFIR UI booting...");
 loadInstances().catch(e => cwrite(`ERROR boot instances: ${e.message}`));
 loadCases().catch(e => cwrite(`ERROR boot cases: ${e.message}`));
+
+
