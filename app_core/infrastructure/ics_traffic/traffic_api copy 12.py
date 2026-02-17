@@ -534,26 +534,16 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
         except Exception:
             pass
 
-                # 2) SSE line (puertos correctos)
+        # 2) SSE line
         try:
             src, dst = pkt[IP].src, pkt[IP].dst
+            sport = getattr(pkt, "sport", 0) or 0
+            dport = getattr(pkt, "dport", 0) or 0
 
-            sport = 0
-            dport = 0
-            label = "IP"
-
-            if pkt.haslayer(TCP):
-                sport = int(pkt[TCP].sport or 0)
-                dport = int(pkt[TCP].dport or 0)
-                label = "TCP"
-            elif pkt.haslayer(UDP):
-                sport = int(pkt[UDP].sport or 0)
-                dport = int(pkt[UDP].dport or 0)
-                label = "UDP"
-
+            label = "TCP" if pkt.haslayer(TCP) else "UDP"
             if 502 in (sport, dport):
                 label = "MODBUS"
-            elif (sport in (34964, 34962)) or (dport in (34964, 34962)):
+            elif dport in (34964, 34962) or sport in (34964, 34962):
                 label = "PROFINET"
 
             ts = time.strftime("%H:%M:%S")
@@ -966,6 +956,9 @@ def download_pcap(filename):
         directory = CAPTURE_DIR_LEGACY
 
     return send_from_directory(directory, filename, as_attachment=True)
+
+
+
 
 
 

@@ -225,15 +225,9 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
       - Si case_dir es válido (bajo EVIDENCE_ROOT):
           * Registra eventos en metadata/pipeline_events.jsonl
           * Registra artefactos en manifest.json (pcap + pcap_metadata)
-          * Exporta evidencia OT derivada (Modbus/TCP) como JSON DERIVED y trazable
-            en el layer industrial/: industrial/ot_export_<vm>_<run>_<ts>.json
-
-    NOTA IMPORTANTE:
-      Para que el parseo Modbus funcione, asegúrate de tener Raw importado:
-        from scapy.all import IP, TCP, UDP, Raw, PcapWriter, AsyncSniffer
+          * Exporta evidencia OT derivada (Modbus/TCP) a ot/ot_export_<vm>_<run>_<ts>.json
+            (sin tocar el PCAP; el export es DERIVED y trazable).
     """
-    from scapy.all import Raw  # fallback por si no está en imports globales
-
     packet_queue = Queue()
     stop_event = Event()
 
@@ -291,21 +285,16 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
         final_bpf += f" and ({' or '.join(proto_bits)})"
 
     # ============================================================
-    # Output dirs  (OT export -> industrial/)
+    # Output dirs
     # ============================================================
     use_case = bool(case_dir) and _is_safe_case_dir(case_dir)
     if use_case:
         out_dir = os.path.join(case_dir, "network")
         os.makedirs(out_dir, exist_ok=True)
-
-        meta_dir = os.path.join(case_dir, "metadata")
-        os.makedirs(meta_dir, exist_ok=True)
-
-        industrial_dir = os.path.join(case_dir, "industrial")
-        os.makedirs(industrial_dir, exist_ok=True)
+        os.makedirs(os.path.join(case_dir, "metadata"), exist_ok=True)
+        os.makedirs(os.path.join(case_dir, "ot"), exist_ok=True)  # DERIVED OT export
     else:
         out_dir = CAPTURE_DIR_LEGACY
-        industrial_dir = None
 
     # ============================================================
     # Filenames
@@ -322,9 +311,10 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
     pcap_rel = os.path.join("network", pcap_filename) if use_case else None
     meta_rel = os.path.join("network", meta_filename) if use_case else None
 
-    industrial_export_filename = f"ot_export_{vm_id}_{run_id}_{ts_tag}.json"
-    industrial_export_path = os.path.join(industrial_dir, industrial_export_filename) if use_case else None
-    industrial_export_rel = os.path.join("industrial", industrial_export_filename) if use_case else None
+    # OT derived export (solo en case)
+    ot_export_filename = f"ot_export_{vm_id}_{run_id}_{ts_tag}.json"
+    ot_export_path = os.path.join(case_dir, "ot", ot_export_filename) if use_case else None
+    ot_export_rel = os.path.join("ot", ot_export_filename) if use_case else None
 
     # ============================================================
     # Eventos de inicio de sesión
@@ -343,7 +333,7 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
                 "bpf": final_bpf,
                 "pcap_rel": pcap_rel,
                 "meta_rel": meta_rel,
-                "industrial_export_rel": industrial_export_rel,
+                "ot_export_rel": ot_export_rel,
             },
         )
 
@@ -366,10 +356,12 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
                     "iface": sniff_iface,
                     "bpf": final_bpf,
                     "protos": protos,
+                    # compat: start_epoch era sesión
                     "start_epoch": session_start_epoch,
                     "start_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                     "pcap_file": pcap_filename,
-                    "industrial_export_file": industrial_export_filename if use_case else None,
+                    # OT export (solo si case)
+                    "ot_export_file": ot_export_filename if use_case else None,
                 },
                 f,
                 indent=2,
@@ -378,15 +370,11 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
         pass
 
     # ============================================================
-    # OT (Modbus/TCP) parsing (DERIVED, en vivo)
+    # OT (Modbus/TCP) parsing (DERIVED)
     # ============================================================
     ot_ops = []
-    ot_ops_max = 2000
-
-    # Contadores: aquí contamos “paquetes 502 vistos”, no “ops”
-    ot_seen_packets_502 = 0
-    ot_seen_payload_packets = 0
-
+    ot_ops_max = 2000  # evita crecimiento infinito
+    ot_seen_packets = 0
     ot_first_epoch = None
     ot_last_epoch = None
 
@@ -396,64 +384,44 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
         except Exception:
             return default
 
-    def _iter_modbus_adus(payload: bytes):
+    def _decode_modbus_tcp(pdu_bytes: bytes):
         """
-        Extrae 1..N ADUs Modbus/TCP desde un payload TCP (best-effort).
-        ADU: MBAP(7) + PDU, donde LEN en MBAP incluye UnitId(1) + PDU.
-        Si el payload está cortado (segmentación TCP), se detiene.
+        Devuelve dict con operación Modbus (DERIVED) o None.
+        Soporta:
+          - 0x05 write single coil
+          - 0x06 write single register
+          - 0x0F write multiple coils
+          - 0x10 write multiple registers
         """
-        if not payload:
-            return
-        i = 0
-        n = len(payload)
-        while i + 8 <= n:
-            pid = (payload[i + 2] << 8) | payload[i + 3]
-            if pid != 0:
-                i += 1
-                continue
-
-            length = (payload[i + 4] << 8) | payload[i + 5]
-            adu_len = 6 + length  # 6 bytes (TID+PID+LEN) + length
-            if length <= 1 or i + adu_len > n:
-                return
-
-            yield payload[i : i + adu_len]
-            i += adu_len
-
-    def _decode_modbus_adu(adu: bytes):
-        """
-        Decodifica ADU Modbus/TCP. No se limita a writes.
-        Para writes (FC 0x05/0x06/0x0F/0x10) añade campos ricos.
-        Para no-writes, deja FC + preview.
-        """
-        if not adu or len(adu) < 8:
+        if not pdu_bytes or len(pdu_bytes) < 8:
             return None
 
-        tid = (adu[0] << 8) | adu[1]
-        pid = (adu[2] << 8) | adu[3]
-        length = (adu[4] << 8) | adu[5]
-        unit_id = adu[6]
-        if pid != 0 or length <= 1:
+        # MBAP (7 bytes) + UnitId(1) + Function(1) + ...
+        # [TID hi, TID lo, PID hi, PID lo, LEN hi, LEN lo, UnitId, FC, ...]
+        tid = (pdu_bytes[0] << 8) | pdu_bytes[1]
+        pid = (pdu_bytes[2] << 8) | pdu_bytes[3]
+        length = (pdu_bytes[4] << 8) | pdu_bytes[5]
+        unit_id = pdu_bytes[6]
+        if pid != 0:  # Modbus TCP protocol id = 0
+            return None
+        if len(pdu_bytes) < 8:
             return None
 
-        fc = adu[7]
-        data = adu[8:]
+        fc = pdu_bytes[7]
+        # PDU data starts at index 8
+        data = pdu_bytes[8:]
 
-        rec = {
-            "tid": tid,
-            "unit_id": unit_id,
-            "fc": fc,
-            "mbap_len": length,
-            "is_write": fc in (0x05, 0x06, 0x0F, 0x10),
-        }
-
+        # Helpers
         def u16(b0, b1):
             return (b0 << 8) | b1
 
+        op = {"tid": tid, "unit_id": unit_id, "fc": fc, "mbap_len": length}
+
+        # Write Single Coil (0x05): addr(2) + value(2)
         if fc == 0x05 and len(data) >= 4:
             addr = u16(data[0], data[1])
             val = u16(data[2], data[3])
-            rec.update(
+            op.update(
                 {
                     "op": "write_single_coil",
                     "address": addr,
@@ -461,20 +429,22 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
                     "value": True if val == 0xFF00 else False if val == 0x0000 else None,
                 }
             )
-            return rec
+            return op
 
+        # Write Single Register (0x06): addr(2) + value(2)
         if fc == 0x06 and len(data) >= 4:
             addr = u16(data[0], data[1])
             val = u16(data[2], data[3])
-            rec.update({"op": "write_single_register", "address": addr, "value": val})
-            return rec
+            op.update({"op": "write_single_register", "address": addr, "value": val})
+            return op
 
+        # Write Multiple Coils (0x0F): addr(2)+qty(2)+bytecount(1)+values(N)
         if fc == 0x0F and len(data) >= 5:
             addr = u16(data[0], data[1])
             qty = u16(data[2], data[3])
             bytecount = data[4]
             values = data[5 : 5 + bytecount] if len(data) >= 5 + bytecount else b""
-            rec.update(
+            op.update(
                 {
                     "op": "write_multiple_coils",
                     "address": addr,
@@ -483,17 +453,21 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
                     "values_hex": values.hex() if values else None,
                 }
             )
-            return rec
+            return op
 
+        # Write Multiple Registers (0x10): addr(2)+qty(2)+bytecount(1)+values(N)
         if fc == 0x10 and len(data) >= 5:
             addr = u16(data[0], data[1])
             qty = u16(data[2], data[3])
             bytecount = data[4]
             values = data[5 : 5 + bytecount] if len(data) >= 5 + bytecount else b""
+            # Decode registers if aligned
             regs = None
             if values and len(values) % 2 == 0:
-                regs = [u16(values[i], values[i + 1]) for i in range(0, len(values), 2)]
-            rec.update(
+                regs = []
+                for i in range(0, len(values), 2):
+                    regs.append(u16(values[i], values[i + 1]))
+            op.update(
                 {
                     "op": "write_multiple_registers",
                     "address": addr,
@@ -503,23 +477,15 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
                     "values_hex": values.hex() if values else None,
                 }
             )
-            return rec
+            return op
 
-        # no-write: lo registramos igualmente (te evita exports vacíos cuando hay lecturas)
-        rec.update(
-            {
-                "op": "non_write_function",
-                "data_len": len(data),
-                "data_hex_prefix": data[:16].hex() if data else None,
-            }
-        )
-        return rec
+        return None
 
     # ============================================================
-    # Callback: PCAP + SSE + OT derived
+    # Callback de paquetes: PCAP + SSE + OT derived parsing
     # ============================================================
     def packet_callback(pkt):
-        nonlocal pkts_written, ot_seen_packets_502, ot_seen_payload_packets, ot_first_epoch, ot_last_epoch
+        nonlocal pkts_written, ot_seen_packets, ot_first_epoch, ot_last_epoch
 
         if stop_event.is_set():
             return
@@ -534,26 +500,16 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
         except Exception:
             pass
 
-                # 2) SSE line (puertos correctos)
+        # 2) SSE line (best-effort)
         try:
             src, dst = pkt[IP].src, pkt[IP].dst
+            sport = getattr(pkt, "sport", 0) or 0
+            dport = getattr(pkt, "dport", 0) or 0
 
-            sport = 0
-            dport = 0
-            label = "IP"
-
-            if pkt.haslayer(TCP):
-                sport = int(pkt[TCP].sport or 0)
-                dport = int(pkt[TCP].dport or 0)
-                label = "TCP"
-            elif pkt.haslayer(UDP):
-                sport = int(pkt[UDP].sport or 0)
-                dport = int(pkt[UDP].dport or 0)
-                label = "UDP"
-
+            label = "TCP" if pkt.haslayer(TCP) else "UDP"
             if 502 in (sport, dport):
                 label = "MODBUS"
-            elif (sport in (34964, 34962)) or (dport in (34964, 34962)):
+            elif dport in (34964, 34962) or sport in (34964, 34962):
                 label = "PROFINET"
 
             ts = time.strftime("%H:%M:%S")
@@ -561,8 +517,10 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
         except Exception:
             pass
 
-        # 3) OT derived parsing (solo case + modbus seleccionado)
-        if not use_case or "modbus" not in protos:
+        # 3) OT derived: Modbus/TCP operation extraction (only if case + modbus selected)
+        if not use_case:
+            return
+        if "modbus" not in protos:
             return
         if not pkt.haslayer(TCP):
             return
@@ -574,53 +532,40 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
             if 502 not in (sport, dport):
                 return
 
-            # Timestamp defendible: el del paquete (PCAP time), no time.time()
-            pkt_epoch = None
-            try:
-                pkt_epoch = float(getattr(pkt, "time", None))
-            except Exception:
-                pkt_epoch = None
-
-            # Contar “paquete 502 visto” aunque sea ACK vacío
-            ot_seen_packets_502 += 1
-            if pkt_epoch is not None:
-                if ot_first_epoch is None:
-                    ot_first_epoch = pkt_epoch
-                ot_last_epoch = pkt_epoch
-
-            # Payload real: usa Raw.load (si no hay Raw, suele ser ACK/handshake)
-            if not pkt.haslayer(Raw):
-                return
-
-            raw_payload = bytes(pkt[Raw].load or b"")
+            raw_payload = bytes(tcp.payload) if tcp.payload else b""
             if not raw_payload:
                 return
 
-            ot_seen_payload_packets += 1
+            op = _decode_modbus_tcp(raw_payload)
+            if not op:
+                return
 
-            # Extraer 1..N ADUs
-            for adu in _iter_modbus_adus(raw_payload):
-                rec = _decode_modbus_adu(adu)
-                if not rec:
-                    continue
+            now_epoch = time.time()
+            if ot_first_epoch is None:
+                ot_first_epoch = now_epoch
+            ot_last_epoch = now_epoch
+            ot_seen_packets += 1
 
-                rec.update(
-                    {
-                        "ts_epoch": pkt_epoch,
-                        "ts_utc": _utc_now_iso(),
-                        "ts_utc_ms": _utc_now_iso_ms(),
-                        "src_ip": pkt[IP].src,
-                        "dst_ip": pkt[IP].dst,
-                        "src_port": sport,
-                        "dst_port": dport,
-                        "direction": "to_server" if dport == 502 else "from_server" if sport == 502 else None,
-                    }
-                )
+            # Enriquecer con contexto de red + timestamp
+            op.update(
+                {
+                    "ts_utc": _utc_now_iso(),
+                    "ts_utc_ms": _utc_now_iso_ms(),
+                    "ts_epoch": now_epoch,
+                    "src_ip": pkt[IP].src,
+                    "dst_ip": pkt[IP].dst,
+                    "src_port": sport,
+                    "dst_port": dport,
+                    "direction": "to_server" if dport == 502 else "from_server" if sport == 502 else None,
+                }
+            )
 
-                if len(ot_ops) < ot_ops_max:
-                    ot_ops.append(rec)
+            # Guardar (capado)
+            if len(ot_ops) < ot_ops_max:
+                ot_ops.append(op)
 
         except Exception:
+            # OT parsing es best-effort; nunca debe tumbar la captura
             return
 
     # ============================================================
@@ -644,7 +589,7 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
                     "bpf": final_bpf,
                     "pcap_rel": pcap_rel,
                     "meta_rel": meta_rel,
-                    "industrial_export_rel": industrial_export_rel,
+                    "ot_export_rel": ot_export_rel,
                     "capture_start_epoch": capture_start_epoch,
                 },
             )
@@ -746,7 +691,9 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
             {
                 "end_epoch": session_end_epoch,
                 "end_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                # compat: duration_s = sesión
                 "duration_s": session_duration_s,
+                # profesional: sesión vs captura real
                 "session_start_epoch": session_start_epoch,
                 "session_end_epoch": session_end_epoch,
                 "session_duration_s": session_duration_s,
@@ -755,10 +702,9 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
                 "capture_duration_s": capture_duration_s,
                 "packets_written": pkts_written,
                 "termination_reason": termination_reason,
-                # OT summary (distingue 502 vistos vs payloads vistos)
-                "ot_modbus_packets_502_seen": ot_seen_packets_502 if use_case and "modbus" in protos else 0,
-                "ot_modbus_payload_packets_seen": ot_seen_payload_packets if use_case and "modbus" in protos else 0,
-                "ot_modbus_records_exported": len(ot_ops) if use_case and "modbus" in protos else 0,
+                # OT derived summary
+                "ot_modbus_seen_packets": ot_seen_packets if use_case and "modbus" in protos else 0,
+                "ot_modbus_ops_exported": len(ot_ops) if use_case and "modbus" in protos else 0,
             }
         )
 
@@ -775,29 +721,30 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
             _ACTIVE_CAPTURES.discard(vm_id)
 
         # ============================================================
-        # CASE mode: registrar artefactos + export industrial (DERIVED)
+        # CASE mode: registrar artefactos + OT export (DERIVED)
         # ============================================================
         if use_case:
             pcap_size = meta_size = None
             pcap_sha = meta_sha = None
 
+            # ---- PCAP + metadata hashes
             try:
                 pcap_size = os.path.getsize(pcap_path)
             except Exception:
-                pass
+                pcap_size = None
             try:
                 meta_size = os.path.getsize(meta_path)
             except Exception:
-                pass
+                meta_size = None
 
             try:
                 pcap_sha = _sha256_file(pcap_path)
             except Exception:
-                pass
+                pcap_sha = None
             try:
                 meta_sha = _sha256_file(meta_path)
             except Exception:
-                pass
+                meta_sha = None
 
             try:
                 if pcap_rel and os.path.exists(os.path.join(case_dir, pcap_rel)):
@@ -807,13 +754,14 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
             except Exception:
                 pass
 
-            # ---- Export industrial (DERIVED)
-            ind_sha = None
-            ind_size = None
-            ops_exported = 0
+            # ---- OT derived export (Modbus ops)
+            ot_sha = None
+            ot_size = None
+            ot_exported_ops = 0
 
-            if "modbus" in protos and industrial_export_path and industrial_export_rel:
+            if "modbus" in protos and ot_export_path and ot_export_rel:
                 try:
+                    # Evento: inicio export
                     _append_case_event(
                         case_dir,
                         "ot_export_start",
@@ -821,8 +769,8 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
                         meta={
                             "vm_id": vm_id,
                             "protocol": "modbus_tcp",
-                            "industrial_export_rel": industrial_export_rel,
-                            "records_buffered": len(ot_ops),
+                            "ot_export_rel": ot_export_rel,
+                            "ops_buffered": len(ot_ops),
                         },
                     )
 
@@ -840,33 +788,28 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
                             "capture_duration_s": capture_duration_s,
                         },
                         "summary": {
-                            "records_exported": len(ot_ops),
-                            "packets_seen_502": ot_seen_packets_502,
-                            "payload_packets_seen": ot_seen_payload_packets,
+                            "ops_exported": len(ot_ops),
+                            "packets_seen_modbus": ot_seen_packets,
                             "first_epoch": ot_first_epoch,
                             "last_epoch": ot_last_epoch,
-                            "max_records_cap": ot_ops_max,
+                            "max_ops_cap": ot_ops_max,
                             "truncated": True if len(ot_ops) >= ot_ops_max else False,
                         },
-                        "records": ot_ops,
+                        "operations": ot_ops,
                         "generated_at_utc": _utc_now_iso(),
                     }
 
-                    with open(industrial_export_path, "w", encoding="utf-8") as f:
+                    with open(ot_export_path, "w", encoding="utf-8") as f:
                         json.dump(payload, f, indent=2)
 
-                    ind_size = os.path.getsize(industrial_export_path)
-                    ind_sha = _sha256_file(industrial_export_path)
-                    ops_exported = len(ot_ops)
+                    ot_size = os.path.getsize(ot_export_path)
+                    ot_sha = _sha256_file(ot_export_path)
+                    ot_exported_ops = len(ot_ops)
 
-                    _add_artifact_fast(
-                        case_dir,
-                        industrial_export_rel,
-                        "industrial_ot_export_modbus_tcp",
-                        sha256=ind_sha,
-                        size=ind_size,
-                    )
+                    # Registrar como DERIVED (ot_export)
+                    _add_artifact_fast(case_dir, ot_export_rel, "ot_export_modbus_tcp", sha256=ot_sha, size=ot_size)
 
+                    # Evento: fin export
                     _append_case_event(
                         case_dir,
                         "ot_export_preserved",
@@ -874,10 +817,10 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
                         meta={
                             "vm_id": vm_id,
                             "protocol": "modbus_tcp",
-                            "industrial_export_rel": industrial_export_rel,
-                            "industrial_export_sha256": ind_sha,
-                            "industrial_export_size": ind_size,
-                            "records_exported": ops_exported,
+                            "ot_export_rel": ot_export_rel,
+                            "ot_export_sha256": ot_sha,
+                            "ot_export_size": ot_size,
+                            "ops_exported": ot_exported_ops,
                         },
                     )
                 except Exception as e:
@@ -885,12 +828,7 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
                         case_dir,
                         "ot_export_failed",
                         run_id=run_id,
-                        meta={
-                            "vm_id": vm_id,
-                            "protocol": "modbus_tcp",
-                            "reason": str(e),
-                            "industrial_export_rel": industrial_export_rel,
-                        },
+                        meta={"vm_id": vm_id, "protocol": "modbus_tcp", "reason": str(e), "ot_export_rel": ot_export_rel},
                     )
 
             # ---- Evento final de tráfico
@@ -912,10 +850,11 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
                     "duration_s": session_duration_s,
                     "capture_duration_s": capture_duration_s,
                     "termination_reason": termination_reason,
-                    "industrial_export_rel": industrial_export_rel if ("modbus" in protos) else None,
-                    "industrial_export_sha256": ind_sha if ("modbus" in protos) else None,
-                    "industrial_export_size": ind_size if ("modbus" in protos) else None,
-                    "records_exported": ops_exported if ("modbus" in protos) else 0,
+                    # OT derived (si aplica)
+                    "ot_export_rel": ot_export_rel if ("modbus" in protos) else None,
+                    "ot_export_sha256": ot_sha if ("modbus" in protos) else None,
+                    "ot_export_size": ot_size if ("modbus" in protos) else None,
+                    "ot_ops_exported": ot_exported_ops if ("modbus" in protos) else 0,
                 },
             )
 
@@ -923,9 +862,7 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
             f"[TRAFFIC] Captura finalizada para {vm_id} "
             f"(run_id={run_id}, reason={termination_reason}, pkts={pkts_written}, "
             f"session_s={session_duration_s}, capture_s={capture_duration_s}, "
-            f"modbus_502_pkts={ot_seen_packets_502 if use_case and 'modbus' in protos else 0}, "
-            f"modbus_payload_pkts={ot_seen_payload_packets if use_case and 'modbus' in protos else 0}, "
-            f"records={len(ot_ops) if use_case and 'modbus' in protos else 0})"
+            f"ot_ops={len(ot_ops) if use_case and 'modbus' in protos else 0})"
         )
 
 # ============================================================
@@ -969,116 +906,6 @@ def download_pcap(filename):
 
 
 
-    def _iter_modbus_adus(payload: bytes):
-        """
-        Extrae 1..N ADUs Modbus/TCP desde un payload TCP (best-effort).
-        Modbus/TCP ADU: MBAP(7) + PDU (LEN-1 bytes), donde LEN incluye UnitId.
-        """
-        if not payload:
-            return
-        i = 0
-        n = len(payload)
-        while i + 8 <= n:
-            # Busca un header con PID=0
-            pid = (payload[i+2] << 8) | payload[i+3]
-            if pid != 0:
-                i += 1
-                continue
 
-            length = (payload[i+4] << 8) | payload[i+5]
-            # length incluye UnitId(1) + PDU
-            adu_len = 6 + length  # 6 bytes (TID+PID+LEN) + length
-            if length <= 1 or i + adu_len > n:
-                # probablemente segmentado; no podemos reconstruir aquí
-                return
 
-            adu = payload[i:i+adu_len]
-            yield adu
-            i += adu_len
 
-    def _decode_modbus_adu(adu: bytes):
-        """
-        Decodifica un ADU Modbus/TCP (MBAP+PDU) y devuelve un dict.
-        No asume solo writes. Marca is_write=True para FC: 0x05,0x06,0x0F,0x10.
-        """
-        if not adu or len(adu) < 8:
-            return None
-
-        tid = (adu[0] << 8) | adu[1]
-        pid = (adu[2] << 8) | adu[3]
-        length = (adu[4] << 8) | adu[5]
-        unit_id = adu[6]
-        if pid != 0 or length <= 1:
-            return None
-
-        fc = adu[7]
-        data = adu[8:]
-
-        rec = {
-            "tid": tid,
-            "unit_id": unit_id,
-            "fc": fc,
-            "mbap_len": length,
-            "is_write": fc in (0x05, 0x06, 0x0F, 0x10),
-        }
-
-        def u16(b0, b1):
-            return (b0 << 8) | b1
-
-        # Decodificación “rica” solo para writes (como tenías)
-        if fc == 0x05 and len(data) >= 4:
-            addr = u16(data[0], data[1])
-            val = u16(data[2], data[3])
-            rec.update({
-                "op": "write_single_coil",
-                "address": addr,
-                "value_raw": val,
-                "value": True if val == 0xFF00 else False if val == 0x0000 else None,
-            })
-            return rec
-
-        if fc == 0x06 and len(data) >= 4:
-            addr = u16(data[0], data[1])
-            val = u16(data[2], data[3])
-            rec.update({"op": "write_single_register", "address": addr, "value": val})
-            return rec
-
-        if fc == 0x0F and len(data) >= 5:
-            addr = u16(data[0], data[1])
-            qty = u16(data[2], data[3])
-            bytecount = data[4]
-            values = data[5:5+bytecount] if len(data) >= 5+bytecount else b""
-            rec.update({
-                "op": "write_multiple_coils",
-                "address": addr,
-                "quantity": qty,
-                "bytecount": bytecount,
-                "values_hex": values.hex() if values else None,
-            })
-            return rec
-
-        if fc == 0x10 and len(data) >= 5:
-            addr = u16(data[0], data[1])
-            qty = u16(data[2], data[3])
-            bytecount = data[4]
-            values = data[5:5+bytecount] if len(data) >= 5+bytecount else b""
-            regs = None
-            if values and len(values) % 2 == 0:
-                regs = [u16(values[i], values[i+1]) for i in range(0, len(values), 2)]
-            rec.update({
-                "op": "write_multiple_registers",
-                "address": addr,
-                "quantity": qty,
-                "bytecount": bytecount,
-                "registers": regs,
-                "values_hex": values.hex() if values else None,
-            })
-            return rec
-
-        # No-write: al menos deja constancia del FC y un preview del payload
-        rec.update({
-            "op": "non_write_function",
-            "data_len": len(data),
-            "data_hex_prefix": data[:16].hex() if data else None,
-        })
-        return rec

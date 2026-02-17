@@ -336,10 +336,8 @@ function startTrafficAnalysis(vmId) {
     return;
   }
 
-  // RUN selector (ya existe en tu HTML)
-  const runSel = document.getElementById("run_selector");
-  const runId = ((runSel && runSel.value) ? runSel.value : (STATE.run_id || "R1")).trim() || "R1";
-  STATE.run_id = runId;
+  // [RUN_ID] Valor fijo desde STATE (sin inventar UI nueva)
+  const runId = (STATE.run_id || "R1").trim() || "R1";
 
   trafficSet(true);
   UI.trafficTerminal.innerHTML = "";
@@ -357,6 +355,7 @@ function startTrafficAnalysis(vmId) {
     STATE.traffic.source = null;
   }
 
+  // [RUN_ID] Añadido &run_id=...
   const url =
     `/api/openstack/traffic/${encodeURIComponent(vm.id)}` +
     `?protos=${encodeURIComponent(protos)}` +
@@ -393,7 +392,6 @@ function startTrafficAnalysis(vmId) {
     STATE.traffic.running = false;
   };
 }
-
 
 if (UI.btnOpenTraffic) {
   UI.btnOpenTraffic.addEventListener("click", () => {
@@ -774,16 +772,6 @@ function generateSymbolsLive() {
       } else {
         cwrite(`ERROR symbols: exit_code=${payload.exit_code}`);
       }
-    }
-  });
-}
-const runSelector = document.getElementById("run_selector");
-if (runSelector) {
-  runSelector.addEventListener("change", () => {
-    STATE.run_id = (runSelector.value || "R1").trim() || "R1";
-    // Si el overlay está corriendo y hay VM seleccionada, relanza
-    if (STATE.selected?.id && STATE.traffic.running) {
-      startTrafficAnalysis(STATE.selected.id);
     }
   });
 }
