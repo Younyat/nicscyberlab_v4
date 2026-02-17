@@ -2,6 +2,8 @@ import socket
 import json
 import requests
 import logging
+from app_core.infrastructure.monitor.alerts_logger import AlertsLogger
+
 
 BACKEND_URL = "http://127.0.0.1:5001/api/hud/events"
 LISTEN_IP = "0.0.0.0"

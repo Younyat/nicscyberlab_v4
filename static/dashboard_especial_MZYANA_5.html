@@ -1421,9 +1421,7 @@ function startLiveWazuhMonitoring(ip) {
     wazuhEventSource.onmessage = (e) => {
         const msg = e.data;
         let color = "text-[#00aaff]/80";
-        // Si por lo que sea llega JSON, no lo pintes
-        if (msg.startsWith("{") && msg.includes('"__tag":"NICS_ALERT_JSON"')) return;
-
+        
         if (msg.includes("NIVEL:")) color = "text-red-500 font-bold";
         if (msg.includes("[SYSTEM]")) color = "text-yellow-400 opacity-70";
         

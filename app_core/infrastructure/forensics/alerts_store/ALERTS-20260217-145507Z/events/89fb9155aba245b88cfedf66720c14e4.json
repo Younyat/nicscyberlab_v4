@@ -1,0 +1,81 @@
+{
+  "event_id": "89fb9155aba245b88cfedf66720c14e4",
+  "ts_utc": "2026-02-17T14:56:53.982+0000",
+  "ts_epoch": 1771340214.3285298,
+  "source": "wazuh",
+  "alert_type": "[IDS/SURICATA]",
+  "protocol": "ICMP",
+  "rule_id": "86601",
+  "rule_level": 3,
+  "description": "Suricata: Alert - ALERTA: Ping Detectado",
+  "signature": "ALERTA: Ping Detectado",
+  "src": {
+    "ip": "192.168.100.164",
+    "port": "0"
+  },
+  "dst": {
+    "ip": "10.0.2.214",
+    "port": "0"
+  },
+  "agent": {
+    "name": "younes_victim_new",
+    "ip": "192.168.100.164"
+  },
+  "receiver": null,
+  "attacker": null,
+  "raw": {
+    "timestamp": "2026-02-17T14:56:53.982+0000",
+    "rule": {
+      "level": 3,
+      "description": "Suricata: Alert - ALERTA: Ping Detectado",
+      "id": "86601",
+      "firedtimes": 20,
+      "mail": false,
+      "groups": [
+        "ids",
+        "suricata"
+      ]
+    },
+    "agent": {
+      "id": "002",
+      "name": "younes_victim_new",
+      "ip": "192.168.100.164"
+    },
+    "manager": {
+      "name": "monitor-1"
+    },
+    "id": "1771340213.248037",
+    "decoder": {
+      "name": "json"
+    },
+    "data": {
+      "timestamp": "2026-02-17T14:56:53.555724+0000",
+      "flow_id": "1490239863749104.000000",
+      "in_iface": "ens3",
+      "event_type": "alert",
+      "src_ip": "192.168.100.164",
+      "src_port": "0",
+      "dest_ip": "10.0.2.214",
+      "dest_port": "0",
+      "proto": "ICMP",
+      "icmp_type": "0",
+      "icmp_code": "0",
+      "alert": {
+        "action": "allowed",
+        "gid": "1",
+        "signature_id": "1000001",
+        "rev": "1",
+        "signature": "ALERTA: Ping Detectado",
+        "severity": "3"
+      },
+      "flow": {
+        "pkts_toserver": "1",
+        "pkts_toclient": "1",
+        "bytes_toserver": "98",
+        "bytes_toclient": "98",
+        "start": "2026-02-17T14:56:53.555504+0000"
+      }
+    },
+    "location": "/var/log/suricata/eve.json"
+  }
+}

@@ -9,14 +9,6 @@ from flask import Blueprint, Response, request
 
 from flask import Blueprint, Response, request
 
-
-import json
-from app_core.infrastructure.monitor.alerts_logger import AlertsLogger
-
-
-ALERTS_LOGGER = AlertsLogger()
-
-
 # ============================================================
 # Configuración y Blueprint
 # ============================================================
@@ -33,13 +25,24 @@ def live_wazuh_stream():
     monitor_ip = request.args.get("ip")
 
     if not monitor_ip:
-        return Response("data: [ERROR] IP ausente\n\n", mimetype="text/event-stream")
+        return Response(
+            "data: [ERROR] IP ausente\n\n",
+            mimetype="text/event-stream"
+        )
 
     def generate():
+        #  Heartbeat inmediato (obligatorio en SSE)
         yield "data: [SYSTEM] STREAM OPENED\n\n"
         yield f"data: [SYSTEM] Lanzando monitor Wazuh para {monitor_ip}\n\n"
 
-        cmd = ["bash", SCRIPT_PATH, monitor_ip, "ubuntu", SSH_KEY_PATH]
+        #  Script SH que YA gestiona SSH internamente
+        cmd = [
+            "bash",
+            SCRIPT_PATH,
+            monitor_ip,
+            "ubuntu",
+            SSH_KEY_PATH
+        ]
 
         try:
             process = subprocess.Popen(
@@ -51,59 +54,18 @@ def live_wazuh_stream():
                 universal_newlines=True
             )
 
+            # Stream continuo hacia el frontend
             for line in iter(process.stdout.readline, ""):
-                if not line:
-                    continue
-
-                raw_line = line.rstrip()
-
-                # 1) Si el SH emite JSON-tag -> registrar en forensics
-                if raw_line.startswith("{") and "\"__tag\":\"NICS_ALERT_JSON\"" in raw_line:
-                    try:
-                        ev = json.loads(raw_line)
-                        if ev.get("__tag") == "NICS_ALERT_JSON":
-                            normalized = {
-                                "event_id": ev.get("event_id"),
-                                "ts_utc": ev.get("ts_utc"),
-                                "source": ev.get("source", "wazuh"),
-                                "alert_type": ev.get("alert_type", "unknown"),
-                                "protocol": ev.get("protocol", "unknown"),
-                                "rule_id": ev.get("rule_id"),
-                                "rule_level": ev.get("rule_level"),
-                                "description": ev.get("description"),
-                                "signature": ev.get("signature"),
-                                "src": ev.get("src", {}),
-                                "dst": ev.get("dst", {}),
-                                "agent": ev.get("agent"),
-                                "raw": ev.get("raw", ev),
-                            }
-
-                            out = ALERTS_LOGGER.log_event(normalized)
-
-                            # 2) Opcional: manda una línea HUMANA al frontend (sin escupir el JSON)
-                            tri = out.get("triage", {})
-                            sev = tri.get("severity", "UNKNOWN")
-                            score = tri.get("score_0_100", 0)
-                            rec = tri.get("recommend_forensics", False)
-
-                            human = (
-                                f"[DETECTED] severity={sev} score={score} "
-                                f"forensics={'YES' if rec else 'NO'} "
-                                f"sig={normalized.get('signature') or 'N/A'} "
-                                f"src={normalized.get('src', {}).get('ip','?')}:{normalized.get('src', {}).get('port','?')} "
-                                f"dst={normalized.get('dst', {}).get('ip','?')}:{normalized.get('dst', {}).get('port','?')}"
-                            )
-                            yield f"data: {human}\n\n"
-                            continue
-                    except Exception:
-                        # Si falla el parseo, lo dejamos caer como texto normal al frontend
-                        pass
-
-                # 3) Todo lo demás se stream-ea tal cual al frontend
-                yield f"data: {raw_line}\n\n"
+                if line:
+                    # SSE requiere "data: ... \n\n"
+                    yield f"data: {line.rstrip()}\n\n"
 
         except Exception as e:
             yield f"data: [ERROR] {str(e)}\n\n"
+
+        #  NO cerrar proceso aquí
+        #  NO terminate
+        #  NO finally
 
     return Response(
         generate(),
