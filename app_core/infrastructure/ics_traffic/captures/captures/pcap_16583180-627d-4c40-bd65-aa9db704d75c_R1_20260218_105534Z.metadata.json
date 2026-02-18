@@ -1,0 +1,36 @@
+{
+  "vm_id": "16583180-627d-4c40-bd65-aa9db704d75c",
+  "run_id": "R1",
+  "port_id": "64df3304-c22a-4707-867c-c1deea960bca",
+  "vm_ips": [
+    "10.0.2.172",
+    "192.168.100.164"
+  ],
+  "iface": "tap64df3304-c2",
+  "bpf": "(host 10.0.2.172 or host 192.168.100.164) and (tcp port 502 or udp port 34964 or udp port 34962 or tcp or udp)",
+  "protos": [
+    "modbus",
+    "profinet",
+    "tcp",
+    "udp",
+    "icmp"
+  ],
+  "start_epoch": 1771412130.2339175,
+  "start_utc": "2026-02-18T10:55:34Z",
+  "pcap_file": "pcap_16583180-627d-4c40-bd65-aa9db704d75c_R1_20260218_105534Z.pcap",
+  "industrial_export_file": null,
+  "end_epoch": 1771412468.626498,
+  "end_utc": "2026-02-18T11:01:08Z",
+  "duration_s": 338.393,
+  "session_start_epoch": 1771412130.2339175,
+  "session_end_epoch": 1771412468.626498,
+  "session_duration_s": 338.393,
+  "capture_start_epoch": 1771412134.7044933,
+  "capture_end_epoch": 1771412468.6264658,
+  "capture_duration_s": 333.922,
+  "packets_written": 181,
+  "termination_reason": "client_disconnect",
+  "ot_modbus_packets_502_seen": 0,
+  "ot_modbus_payload_packets_seen": 0,
+  "ot_modbus_records_exported": 0
+}

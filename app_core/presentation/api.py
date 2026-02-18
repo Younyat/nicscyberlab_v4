@@ -2217,6 +2217,12 @@ api_bp.register_blueprint(forensics_bp)
 
 
 
+
+from app_core.infrastructure.forensics.alerts_api import ALERTS_API_BP
+api_bp.register_blueprint(ALERTS_API_BP)
+
+
+
 #-------------------------------------------Forensics new one  end----------------------------------------------------
 
         

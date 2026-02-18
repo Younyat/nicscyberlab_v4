@@ -26,7 +26,7 @@ EVIDENCE_ROOT = os.path.join(REPO_ROOT, "app_core", "infrastructure", "forensics
 os.makedirs(EVIDENCE_ROOT, exist_ok=True)
 
 # Fallback legacy cuando NO hay case_dir
-CAPTURE_DIR_LEGACY = os.path.join(BASE_DIR, "captures")
+CAPTURE_DIR_LEGACY = os.path.join(BASE_DIR, "captures", "captures")
 os.makedirs(CAPTURE_DIR_LEGACY, mode=0o777, exist_ok=True)
 
 # Evitar capturas duplicadas por vm_id

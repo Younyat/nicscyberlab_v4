@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from typing import Any, Dict
 
 
-# Carpeta de salida (FORensics), aunque el módulo viva en MONITOR
 FORENSICS_ALERTS_BASE = os.path.abspath("app_core/infrastructure/forensics/alerts_store")
 
 
@@ -30,9 +29,10 @@ def _append_jsonl(path: str, obj: Dict[str, Any]) -> None:
 
 class AlertsLogger:
     """
-    Pre-case detection log:
-      - Primary: alerts.jsonl (normalizado + raw)
-      - Derived: triage.jsonl (score/severity/decision)
+    Pre-case detection log (forensics store):
+      - One JSON per alert: events/<event_id>.json  (PRIMARY)
+      - Index append-only: alerts.jsonl             (PRIMARY)
+      - Derived triage: triage.jsonl               (DERIVED)
     """
 
     def __init__(self, base_dir: str = FORENSICS_ALERTS_BASE):
@@ -44,6 +44,7 @@ class AlertsLogger:
         sid = f"ALERTS-{_utc_now_compact()}"
         sdir = os.path.join(self.base_dir, sid)
         _safe_mkdir(sdir)
+        _safe_mkdir(os.path.join(sdir, "events"))
 
         meta_path = os.path.join(sdir, "session.json")
         if not os.path.exists(meta_path):
@@ -63,6 +64,8 @@ class AlertsLogger:
     def _paths(self) -> Dict[str, str]:
         sdir = os.path.join(self.base_dir, self.session_id)
         return {
+            "session_dir": sdir,
+            "events_dir": os.path.join(sdir, "events"),
             "alerts": os.path.join(sdir, "alerts.jsonl"),
             "triage": os.path.join(sdir, "triage.jsonl"),
         }
@@ -76,8 +79,6 @@ class AlertsLogger:
             score += 25
         elif source == "wazuh":
             score += 20
-        elif source == "icmp_sensor":
-            score += 10
         reasons["source"] = source or "unknown"
 
         level = ev.get("rule_level")
@@ -123,25 +124,49 @@ class AlertsLogger:
             "event_id": event_id,
             "ts_utc": ts_utc,
             "ts_epoch": ts_epoch,
-            "source": ev.get("source", "unknown"),
-            "alert_type": ev.get("alert_type", "unknown"),
-            "protocol": ev.get("protocol", "unknown"),
-            "src": ev.get("src", {}),
-            "dst": ev.get("dst", {}),
+
+            "source": ev.get("source", "unknown"),              # wazuh | suricata | ...
+            "alert_type": ev.get("alert_type", "unknown"),      # IDS/SURICATA | FIM | AUTH | ...
+            "protocol": ev.get("protocol", "unknown"),          # tcp/udp/icmp/... (si existe)
             "rule_id": ev.get("rule_id"),
             "rule_level": ev.get("rule_level"),
+            "description": ev.get("description"),
             "signature": ev.get("signature"),
-            "agent": ev.get("agent"),
+
+            "src": ev.get("src", {}),                           # {ip, port}
+            "dst": ev.get("dst", {}),                           # {ip, port}
+
+            "agent": ev.get("agent"),                           # {name, ip}
+            "receiver": ev.get("receiver"),                     # opcional (victim/host)
+            "attacker": ev.get("attacker"),                     # opcional (si lo infieres en otro módulo)
+
             "raw": ev.get("raw"),
         }
-        _append_jsonl(paths["alerts"], primary)
 
+        # 1) JSON por evento (PRIMARY)
+        event_path = os.path.join(paths["events_dir"], f"{event_id}.json")
+        with open(event_path, "w", encoding="utf-8") as f:
+            json.dump(primary, f, ensure_ascii=False, indent=2)
+
+        # 2) Index append-only (PRIMARY)
+        _append_jsonl(paths["alerts"], {
+            "event_id": event_id,
+            "ts_utc": primary["ts_utc"],
+            "source": primary["source"],
+            "alert_type": primary["alert_type"],
+            "rule_level": primary["rule_level"],
+            "signature": primary["signature"],
+            "src": primary["src"],
+            "dst": primary["dst"],
+            "event_file": os.path.relpath(event_path, paths["session_dir"]),
+        })
+
+        # 3) Derived triage (DERIVED)
         triage = self.compute_severity(primary)
-        derived = {
+        _append_jsonl(paths["triage"], {
             "event_id": event_id,
             "ts_utc": _utc_now_iso(),
             **triage,
-        }
-        _append_jsonl(paths["triage"], derived)
+        })
 
-        return {"primary": primary, "triage": triage}
+        return {"primary": primary, "triage": triage, "event_file": event_path}

@@ -65,6 +65,29 @@
       color: rgba(148,163,184,0.75);
     }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  
+  
+  /* =========================================
+     Alerts table row severity (transparent)
+     - usa rgba para dejar ver el fondo
+     ========================================= */
+  #alerts-body tr { transition: background-color .15s ease, box-shadow .15s ease; }
+  #alerts-body tr:hover { filter: brightness(1.08); }
+
+  .sev-info     { background: rgba(100,116,139,0.06); }  /* slate */
+  .sev-low      { background: rgba(16,185,129,0.10); }   /* emerald */
+  .sev-medium   { background: rgba(245,158,11,0.11); }   /* amber */
+  .sev-high     { background: rgba(249,115,22,0.12); }   /* orange */
+  .sev-critical { background: rgba(239,68,68,0.14); }    /* red */
+
+  /* opcional: borde lateral fino por severidad (muy sutil, transparente) */
+  .sev-info td     { box-shadow: inset 3px 0 0 rgba(100,116,139,0.30); }
+  .sev-low td      { box-shadow: inset 3px 0 0 rgba(16,185,129,0.35); }
+  .sev-medium td   { box-shadow: inset 3px 0 0 rgba(245,158,11,0.40); }
+  .sev-high td     { box-shadow: inset 3px 0 0 rgba(249,115,22,0.42); }
+  .sev-critical td { box-shadow: inset 3px 0 0 rgba(239,68,68,0.45); }
+
+
   </style>
 </head>
 
@@ -428,7 +451,7 @@
         </div>
 
         <div class="mt-5 rounded-2xl border border-slate-800/80 bg-slate-950/35 overflow-hidden">
-          <div class="overflow-auto scrollbar">
+            <div class="max-h-[420px] overflow-y-auto overflow-x-auto scrollbar">
             <table class="w-full text-xs">
               <thead class="bg-slate-950/60 border-b border-slate-800/80">
                 <tr class="text-left text-slate-300 mono">
@@ -485,6 +508,9 @@
   </div>
 
   <script>
+
+
+const API_BASE = "http://127.0.0.1:5001"; // si abres el dashboard en la MISMA VM
     /* ============================================================
        NICS CYBERLAB - DASHBOARD DYNAMIC UI (PRO)
        Endpoints configurables:
@@ -510,6 +536,8 @@ const API = {
   hypervisorStats: "/api/openstack/hypervisor-stats",
   trafficSSE: (vmId, protosCsv) => `/api/openstack/traffic/${encodeURIComponent(vmId)}?protos=${encodeURIComponent(protosCsv || "")}`,
   
+  alertsLatest: (limit) => `${API_BASE}/api/forensics/alerts/latest?limit=${encodeURIComponent(limit || 30)}`
+
 };
 
 
@@ -587,6 +615,28 @@ trafficSource: document.getElementById("traffic-source"),
     hypervisor: null
   }
     };
+
+
+
+    State.timers.alerts = null;
+
+function startAlertsPolling(intervalMs = 10000) {
+  if (State.timers.alerts) clearInterval(State.timers.alerts);
+
+  const tick = async () => {
+    try {
+      await refreshAlertsReal(30);
+    } catch (e) {
+      logLine(`ERROR alerts poll: ${e.message}`);
+    }
+  };
+
+  tick();
+  State.timers.alerts = setInterval(tick, intervalMs);
+  logLine(`Alerts polling enabled: every ${intervalMs/1000}s`);
+}
+
+
 
     function nowTime() {
       return new Date().toLocaleTimeString();
@@ -935,53 +985,103 @@ trafficSource: document.getElementById("traffic-source"),
     UI.btnInvSync.addEventListener("click", loadHostInventory);
     UI.btnRefreshAll.addEventListener("click", async () => {
       await loadRoles();
-      await loadHostInventory();
-      refreshAlerts();
+  await loadHostInventory();
+  await refreshAlertsReal(30);
     });
 
-    /* =========================
-       6) Alerts (demo generator)
-       - Aquí puedes conectar tu SIEM real (Wazuh/Zeek/Suricata)
-       ========================= */
-    function seedAlerts() {
-      const base = [
-        { sev: "active",    desc: "Security Alert: Port scan detected" },
-        { sev: "active",    desc: "Security Alert: Suspicious command execution" },
-        { sev: "baseline",  desc: "System: Services started" },
-        { sev: "active",    desc: "OT: Modbus write attempt observed" },
-        { sev: "active",    desc: "Integrity: File changed in monitored path" },
-      ];
-      const now = new Date();
-      State.alerts = base.map((a, i) => ({
-        time: new Date(now.getTime() - i * 7 * 60000).toISOString().replace("T", " ").slice(0, 19),
-        desc: a.desc,
-        sev: a.sev
-      }));
-    }
+  /* =========================
+   6) Alerts (REAL - last 30)
+   ========================= */
 
-    function severityBadge(sev) {
-      const map = {
-        active:   "bg-red-500/10 border-red-500/25 text-red-200",
-        baseline: "bg-sky-500/10 border-sky-500/25 text-sky-200",
-        info:     "bg-slate-500/10 border-slate-500/25 text-slate-200",
-      };
-      const cls = map[sev] || map.info;
-      return `<span class="px-2 py-1 rounded-lg border ${cls} mono text-[10px] font-black uppercase tracking-widest">${sev}</span>`;
-    }
+function severityBadgeFromTriage(sev, score, recommend) {
+  const s = String(sev || "INFO").toUpperCase();
+  const cls =
+    s === "CRITICAL" ? "bg-red-500/10 border-red-500/25 text-red-200" :
+    s === "HIGH"     ? "bg-orange-500/10 border-orange-500/25 text-orange-200" :
+    s === "MEDIUM"   ? "bg-yellow-500/10 border-yellow-500/25 text-yellow-200" :
+    s === "LOW"      ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-200" :
+                       "bg-slate-500/10 border-slate-500/25 text-slate-200";
 
-    function refreshAlerts() {
-      if (!State.alerts.length) seedAlerts();
+  const rec = recommend ? " · DFIR" : "";
+  const sc = (typeof score === "number") ? ` · ${score}` : "";
+  return `<span class="px-2 py-1 rounded-lg border ${cls} mono text-[10px] font-black uppercase tracking-widest">${s}${sc}${rec}</span>`;
+}
 
-      UI.alertsBody.innerHTML = State.alerts.map(a => `
-        <tr class="hover:bg-slate-900/30 transition-colors">
-          <td class="px-4 py-3 mono text-slate-300 whitespace-nowrap">${escapeHtml(a.time)}</td>
-          <td class="px-4 py-3 text-slate-200">${escapeHtml(a.desc)}</td>
-          <td class="px-4 py-3">${severityBadge(a.sev)}</td>
+function severityRowClass(sev) {
+  const s = String(sev || "INFO").toUpperCase();
+  if (s === "CRITICAL") return "sev-critical";
+  if (s === "HIGH")     return "sev-high";
+  if (s === "MEDIUM")   return "sev-medium";
+  if (s === "LOW")      return "sev-low";
+  return "sev-info";
+}
+
+
+function formatRowDesc(a) {
+  // prioriza firma, luego tipo, luego source
+  const sig = a.signature ? String(a.signature) : "";
+  const typ = a.alert_type ? String(a.alert_type) : "";
+  const src = a.source ? String(a.source).toUpperCase() : "UNKNOWN";
+
+  const proto = a.protocol ? String(a.protocol).toUpperCase() : "";
+
+  const s = a.src || {};
+  const d = a.dst || {};
+
+  const hidePort = (proto === "ICMP" || proto === "IP" || proto === "UNKNOWN");
+
+  const srcPort = hidePort ? "" : (s.port != null ? `:${s.port}` : "");
+  const dstPort = hidePort ? "" : (d.port != null ? `:${d.port}` : "");
+
+  const srcTxt = (s.ip ? `${s.ip}` : "--") + srcPort;
+  const dstTxt = (d.ip ? `${d.ip}` : "--") + dstPort;
+
+  const main = sig || typ || `${src} alert`;
+  const sub = `${src} · ${proto} · ${srcTxt} → ${dstTxt}`.replace(/\s+/g, " ").trim();
+
+  return `
+    <div class="font-bold text-slate-200">${escapeHtml(main)}</div>
+    <div class="mono text-[10px] text-slate-400 mt-1">${escapeHtml(sub)}</div>
+  `;
+}
+
+
+async function refreshAlertsReal(limit = 30) {
+  try {
+    const data = await safeFetchJson(API.alertsLatest(limit));
+    const list = Array.isArray(data.alerts) ? data.alerts : [];
+
+    UI.alertsBody.innerHTML = list.map(a => {
+      const time = a.ts_utc ? String(a.ts_utc).replace("T", " ").replace("Z", "") : "--";
+      return `
+       <tr class="${severityRowClass(a.severity)} hover:bg-slate-900/20 transition-colors">
+          <td class="px-4 py-3 mono text-slate-300 whitespace-nowrap">${escapeHtml(time)}</td>
+          <td class="px-4 py-3">${formatRowDesc(a)}</td>
+          <td class="px-4 py-3">
+            ${severityBadgeFromTriage(a.severity, a.score_0_100, a.recommend_forensics)}
+          </td>
         </tr>
-      `).join("");
+      `;
+    }).join("");
 
-      UI.alertsCount.textContent = String(State.alerts.length);
-    }
+    UI.alertsCount.textContent = String(list.length);
+
+    const sid = data.session_id ? `session=${data.session_id}` : "session=none";
+    logLine(`Alerts updated (${list.length}) · ${sid}`);
+
+  } catch (e) {
+    logLine(`ERROR alerts/latest: ${e.message}`);
+    UI.alertsBody.innerHTML = `
+      <tr>
+        <td class="px-4 py-3 mono text-red-300" colspan="3">
+          Failed to load alerts: ${escapeHtml(e.message)}
+        </td>
+      </tr>
+    `;
+    UI.alertsCount.textContent = "0";
+  }
+}
+
 
     /* =========================
        7) Health chart (demo)
@@ -1260,7 +1360,8 @@ function startTrafficStreamForRole(roleObj, roleLabel, protosCsv = "modbus,profi
   initTrafficChartReal();
 
   // Alerts demo (puedes mantenerlo)
-  refreshAlerts();
+
+
 
   // Carga base
   await loadRoles();
@@ -1285,18 +1386,11 @@ function startTrafficStreamForRole(roleObj, roleLabel, protosCsv = "modbus,profi
   } catch (e) {
     logLine(`ERROR start traffic (roles): ${e.message}`);
   }
+logLine("Alerts polling enabled: every 10s");
 
   // Auto refresh alerts demo (igual que tenías)
-  setInterval(() => {
-    const sev = (Math.random() > 0.7) ? "active" : "baseline";
-    State.alerts.unshift({
-      time: new Date().toISOString().replace("T", " ").slice(0, 19),
-      desc: sev === "active" ? "Security Alert: New indicator ingested" : "System: Heartbeat OK",
-      sev
-    });
-    State.alerts = State.alerts.slice(0, 10);
-    refreshAlerts();
-  }, 12000);
+
+startAlertsPolling(10000);
 });
 
   </script>
