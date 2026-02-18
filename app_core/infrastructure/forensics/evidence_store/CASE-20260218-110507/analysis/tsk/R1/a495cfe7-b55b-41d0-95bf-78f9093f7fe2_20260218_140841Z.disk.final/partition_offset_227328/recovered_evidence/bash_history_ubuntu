@@ -1,0 +1,25 @@
+exit
+uname -a
+cat /proc/version
+uname -r
+dpkg -l | grep -E "linux-image-5.15.0-164|linux-modules-5.15.0-164" || true
+exit
+df -h /
+sudo du -xhd1 / | sort -h
+sudo du -xhd1 /var | sort -h
+sudo du -xhd1 /home | sort -h
+sudo du -xhd1 /tmp | sort -h
+sudo rm -rf /tmp/*
+df -h /
+sudo apt-get clean
+sudo rm -rf /var/lib/apt/lists/*
+sudo rm -rf /var/cache/apt/archives/*
+df -h /
+sudo du -xhd1 /var/lib | sort -h | tail -n 30
+df -h /
+sudo apt-get clean
+sudo rm -rf /var/lib/apt/lists/*
+sudo rm -rf /var/cache/apt/archives/*
+sudo rm -rf /tmp/*
+df -h /
+exit

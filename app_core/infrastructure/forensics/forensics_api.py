@@ -1586,3 +1586,193 @@ def _register_memory_from_metadata(case_dir: str, vm_ip: str = None):
         pass
 
     return (mem_rel, mem_size, sha_value)
+
+
+
+
+
+
+@forensics_bp.route("/api/forensics/analyze/all/stream", methods=["GET"])
+def api_forensics_analyze_all_stream():
+    case_dir = request.args.get("case_dir", "").strip()
+    symbols_dir = request.args.get("symbols_dir", "").strip()  # opcional pero necesario para vol3
+    vol_cmd = (request.args.get("vol_cmd", "vol") or "vol").strip()
+    run_id = (request.args.get("run_id") or "R1").strip()
+
+    if not _is_safe_case_dir(case_dir):
+        return jsonify({"error": "case_dir inválido"}), 400
+
+    script = os.path.join(FORENSICS_SCRIPTS_DIR, "analyze_case_all.sh")
+
+    _append_case_event(case_dir, "analysis_all_start", run_id=run_id, meta={
+        "symbols_dir": symbols_dir or None,
+        "vol_cmd": vol_cmd
+    })
+
+    # SSE: ejecuta el script y al final emite done
+    resp = _run_script_sse(
+        script,
+        [case_dir, symbols_dir, vol_cmd],
+        cwd=REPO_ROOT,
+        timeout=60 * 60
+    )
+
+    return resp
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ============================================================
+# DISK ANALYSIS (TSK) - SSE
+# ============================================================
+
+def _safe_join_case(case_dir: str, rel_path: str) -> str:
+    """
+    Une case_dir + rel_path de forma segura evitando traversal.
+    Devuelve abs_path si es seguro; si no, devuelve "".
+    """
+    if not rel_path:
+        return ""
+    rel_path = rel_path.strip()
+
+    # prohibiciones básicas
+    if rel_path.startswith("/") or rel_path.startswith("\\"):
+        return ""
+    if ".." in rel_path.replace("\\", "/").split("/"):
+        return ""
+
+    abs_path = os.path.normpath(os.path.join(case_dir, rel_path))
+    case_norm = os.path.normpath(case_dir)
+
+    # asegurar que queda dentro del case_dir
+    if not abs_path.startswith(case_norm + os.sep):
+        return ""
+    return abs_path
+
+
+def _register_dir_artifact(case_dir: str, rel_dir: str, a_type: str):
+    """
+    Registra un directorio como artefacto (sin sha/size).
+    """
+    manifest = _read_manifest(case_dir)
+    manifest.setdefault("artifacts", []).append({
+        "type": a_type,
+        "rel_path": rel_dir,
+        "sha256": None,
+        "size": None,
+        "ts": _utc_now_iso()
+    })
+    _write_manifest(case_dir, manifest)
+
+
+@forensics_bp.route("/api/forensics/analyze/disk_tsk/stream", methods=["GET"])
+def api_forensics_analyze_disk_tsk_stream():
+    case_dir = (request.args.get("case_dir") or "").strip()
+    disk_rel = (request.args.get("disk") or "").strip()
+    run_id = (request.args.get("run_id") or "R1").strip() or "R1"
+
+    if not _is_safe_case_dir(case_dir):
+        return jsonify({"error": "case_dir inválido"}), 400
+    if not disk_rel:
+        return jsonify({"error": "disk requerido (rel_path desde manifest)"}), 400
+
+    # Resolver path del disco dentro del caso
+    disk_abs = _safe_join_case(case_dir, disk_rel)
+    if not disk_abs:
+        return jsonify({"error": "disk rel_path inválido"}), 400
+    if not os.path.exists(disk_abs):
+        return jsonify({"error": f"Disk no existe: {disk_rel}"}), 404
+
+    # Output dir: analysis/tsk/<run_id>/<basename-disco-sin-ext>
+    disk_base = os.path.basename(disk_rel)
+    disk_stem = re.sub(r"\.(raw|img|dd|qcow2|vmdk)$", "", disk_base, flags=re.IGNORECASE)
+    out_rel = os.path.join("analysis", "tsk", run_id, disk_stem)
+    out_abs = os.path.join(case_dir, out_rel)
+    os.makedirs(out_abs, exist_ok=True)
+
+    script = os.path.join(FORENSICS_SCRIPTS_DIR, "analyze_disk_tsk.sh")
+    if not os.path.exists(script):
+        return jsonify({"error": f"Script no encontrado: {script}"}), 404
+    try:
+        os.chmod(script, 0o755)
+    except Exception:
+        pass
+
+    def sse():
+        def emit(line: str):
+            line = (line or "").rstrip("\n")
+            return f"data: {line}\n\n"
+
+        start_ts = time.time()
+        script_name = os.path.basename(script)
+
+        _append_case_event(case_dir, "disk_analysis_start", run_id=run_id, meta={
+            "disk_rel": disk_rel,
+            "out_rel": out_rel,
+            "script": script_name
+        })
+
+        yield emit(f"[SISTEMA] Starting TSK analysis run_id={run_id}")
+        yield emit(f"[SISTEMA] disk={disk_rel}")
+        yield emit(f"[SISTEMA] out_dir={out_rel}")
+        yield emit(f"[START] {script_name} {disk_abs} -> {out_abs}")
+
+        # Ejecuta script con salida en vivo
+        p = subprocess.Popen(
+            ["bash", script, case_dir, disk_abs, out_abs],
+            cwd=REPO_ROOT,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1
+        )
+
+        last_line = ""
+        for line in p.stdout:
+            line = (line or "").rstrip("\n")
+            if line.strip():
+                last_line = line.strip()
+            yield emit(line)
+
+        p.wait()
+        rc = p.returncode if p.returncode is not None else 1
+
+        # Registrar artefacto si hay output
+        if rc == 0 and os.path.isdir(out_abs):
+            try:
+                _register_dir_artifact(case_dir, out_rel, "tsk_output_dir")
+            except Exception:
+                pass
+
+        _append_case_event(case_dir, "disk_analysis_done" if rc == 0 else "disk_analysis_failed", run_id=run_id, meta={
+            "disk_rel": disk_rel,
+            "out_rel": out_rel,
+            "exit_code": rc,
+            "elapsed_s": round(time.time() - start_ts, 3),
+            "last": last_line
+        })
+
+        payload = {
+            "result": "ok" if rc == 0 else "error",
+            "exit_code": rc,
+            "out_dir": out_rel if (rc == 0 and os.path.isdir(out_abs)) else None,
+            "last": last_line,
+            "disk": disk_rel,
+            "run_id": run_id,
+            "script": script_name
+        }
+        yield f"event: done\ndata: {json.dumps(payload)}\n\n"
+
+    return Response(sse(), mimetype="text/event-stream")

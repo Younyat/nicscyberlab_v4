@@ -70,7 +70,53 @@ const UI = {
   trafficClose: document.getElementById("traffic-close"),
   trafficRefresh: document.getElementById("traffic-refresh"),
   trafficStatus: document.getElementById("traffic-status"),
+  diskSelector: document.getElementById("disk_selector"),
+btnAnalyzeDisk: document.getElementById("btn_analyze_disk"),
+diskAnalyzeResult: document.getElementById("disk_analyze_result"),
+runSelector: document.getElementById("run_selector"),
+
+
 };
+
+
+function populateDiskSelectorFromManifest(manifest) {
+  if (!UI.diskSelector) return;
+
+  const arts = (manifest && manifest.artifacts) ? manifest.artifacts : [];
+  const disks = arts
+    .filter(a => a && a.type === "disk_raw" && a.rel_path)
+    .map(a => ({ rel: a.rel_path, sha: a.sha256 || "" }));
+
+  // Limpia
+  UI.diskSelector.innerHTML = "";
+
+  if (!disks.length) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "No preserved disks found in manifest.";
+    UI.diskSelector.appendChild(opt);
+    return;
+  }
+
+  // Opciones
+  const opt0 = document.createElement("option");
+  opt0.value = "";
+  opt0.textContent = "Select a disk...";
+  UI.diskSelector.appendChild(opt0);
+
+  for (const d of disks) {
+    const opt = document.createElement("option");
+    opt.value = d.rel;
+    opt.textContent = d.sha ? `${d.rel}  (sha: ${d.sha.slice(0, 12)}...)` : d.rel;
+    UI.diskSelector.appendChild(opt);
+  }
+
+  // Auto-select: primero
+ 
+}
+
+
+
 
 console.log("btn_open_traffic =", UI.btnOpenTraffic);
 console.log("traffic overlay =", UI.trafficOverlay);
@@ -238,24 +284,34 @@ function startLiveSSE({ title, info, url, onDone }) {
     liveAppend(e.data);
   };
 
-  es.addEventListener("done", (e) => {
-    let payload = {};
-    try { payload = JSON.parse(e.data); } catch {}
+  
+es.addEventListener("done", (e) => {
+  let payload = {};
+  try { payload = JSON.parse(e.data); } catch {}
 
-    liveAppend(`[SISTEMA] DONE result=${payload.result} exit_code=${payload.exit_code}`);
-    if (payload.mem_dump) liveAppend(`[SISTEMA] mem_dump=${payload.mem_dump}`);
-    if (payload.disk_raw) liveAppend(`[SISTEMA] disk_raw=${payload.disk_raw}`);
-    if (payload.ssh_user_used) liveAppend(`[SISTEMA] ssh_user_used=${payload.ssh_user_used}`);
+  liveAppend(`[SISTEMA] DONE result=${payload.result} exit_code=${payload.exit_code}`);
 
-    if (UI.liveStatus) UI.liveStatus.textContent = `Status: finished (${payload.result || "unknown"})`;
+  // Campos comunes (ya los tenías)
+  if (payload.mem_dump) liveAppend(`[SISTEMA] mem_dump=${payload.mem_dump}`);
+  if (payload.disk_raw) liveAppend(`[SISTEMA] disk_raw=${payload.disk_raw}`);
+  if (payload.ssh_user_used) liveAppend(`[SISTEMA] ssh_user_used=${payload.ssh_user_used}`);
 
-    try { es.close(); } catch {}
-    STATE.live.source = null;
-    STATE.live.running = false;
-    freezeUI(false);
+  // NUEVO: para TSK (y otros análisis)
+  if (payload.out_dir) liveAppend(`[SISTEMA] out_dir=${payload.out_dir}`);
+  if (payload.disk) liveAppend(`[SISTEMA] disk=${payload.disk}`);
+  if (payload.run_id) liveAppend(`[SISTEMA] run_id=${payload.run_id}`);
+  if (payload.script) liveAppend(`[SISTEMA] script=${payload.script}`);
 
-    try { if (typeof onDone === "function") onDone(payload); } catch {}
-  });
+  if (UI.liveStatus) UI.liveStatus.textContent = `Status: finished (${payload.result || "unknown"})`;
+
+  try { es.close(); } catch {}
+  STATE.live.source = null;
+  STATE.live.running = false;
+  freezeUI(false);
+
+  try { if (typeof onDone === "function") onDone(payload); } catch {}
+});
+
 
   es.onerror = () => {
     liveAppend("[ERROR] SSE connection lost.");
@@ -540,6 +596,8 @@ async function refreshManifest() {
   STATE.manifest = data;
   UI.manifestRaw.value = JSON.stringify(data, null, 2);
   renderArtifacts(data);
+    populateDiskSelectorFromManifest(data);
+
   cwrite("Manifest OK.");
 }
 
@@ -777,16 +835,64 @@ function generateSymbolsLive() {
     }
   });
 }
-const runSelector = document.getElementById("run_selector");
-if (runSelector) {
-  runSelector.addEventListener("change", () => {
-    STATE.run_id = (runSelector.value || "R1").trim() || "R1";
-    // Si el overlay está corriendo y hay VM seleccionada, relanza
+if (UI.runSelector) {
+  UI.runSelector.addEventListener("change", () => {
+    STATE.run_id = (UI.runSelector.value || "R1").trim() || "R1";
     if (STATE.selected?.id && STATE.traffic.running) {
       startTrafficAnalysis(STATE.selected.id);
     }
   });
 }
+
+
+
+
+
+
+if (UI.btnAnalyzeDisk) {
+  UI.btnAnalyzeDisk.addEventListener("click", () => {
+    try {
+      const caseDir = requireCase();
+      const diskRel = (UI.diskSelector && UI.diskSelector.value || "").trim();
+      const runId = ((UI.runSelector && UI.runSelector.value) ? UI.runSelector.value : (STATE.run_id || "R1")).trim() || "R1";
+      STATE.run_id = runId;
+
+      if (!diskRel) {
+        if (UI.diskAnalyzeResult) UI.diskAnalyzeResult.textContent = "ERROR: select a preserved disk (refresh manifest).";
+        return;
+      }
+
+      const url = buildSSEUrl("/api/forensics/analyze/disk_tsk/stream", {
+        case_dir: caseDir,
+        disk: diskRel,
+        run_id: runId
+      });
+
+      startLiveSSE({
+        title: "Disk Analysis (TSK) - Live",
+        info: `case=${caseDir} disk=${diskRel} run=${runId}`,
+        url,
+        onDone: async (payload) => {
+          const ok = payload.result === "ok";
+          if (UI.diskAnalyzeResult) {
+            UI.diskAnalyzeResult.textContent = ok
+              ? `OK (exit=${payload.exit_code}) out_dir=${payload.out_dir || "—"}`
+              : `ERROR (exit=${payload.exit_code})`;
+          }
+          // refresca manifest para registrar out_dir si lo añades en backend
+          try { await refreshManifest(); } catch {}
+        }
+      });
+
+    } catch (e) {
+      if (UI.diskAnalyzeResult) UI.diskAnalyzeResult.textContent = "ERROR";
+      cwrite(`ERROR analyze disk: ${e.message}`);
+    }
+  });
+}
+
+
+
 
 /* ============================
    Boot
@@ -794,3 +900,6 @@ if (runSelector) {
 cwrite("DFIR UI booting...");
 loadInstances().catch(e => cwrite(`ERROR boot instances: ${e.message}`));
 loadCases().catch(e => cwrite(`ERROR boot cases: ${e.message}`));
+
+
+

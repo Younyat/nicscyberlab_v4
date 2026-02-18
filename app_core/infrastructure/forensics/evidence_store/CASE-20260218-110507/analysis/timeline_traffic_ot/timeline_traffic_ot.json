@@ -1,0 +1,485 @@
+[
+  {
+    "source": "pipeline_events",
+    "ts_epoch": 1771419246.3115106,
+    "ts_utc": "2026-02-18T12:54:06.311Z",
+    "run_id": "R1",
+    "event": "traffic_start",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "port_id": "0deb35ad-2163-471f-90f9-b6be76969039",
+      "iface": "tap0deb35ad-21",
+      "vm_ips": [
+        "10.0.2.9",
+        "192.168.100.28"
+      ],
+      "protos": [
+        "modbus",
+        "profinet"
+      ],
+      "bpf": "(host 10.0.2.9 or host 192.168.100.28) and (tcp port 502 or udp port 34964 or udp port 34962)",
+      "pcap_rel": "network/pcap_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260218_125406Z.pcap",
+      "meta_rel": "network/pcap_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260218_125406Z.metadata.json",
+      "industrial_export_rel": "industrial/ot_export_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260218_125406Z.json"
+    }
+  },
+  {
+    "source": "pipeline_events",
+    "ts_epoch": 1771419246.312711,
+    "ts_utc": "2026-02-18T12:54:06.312Z",
+    "run_id": "R1",
+    "event": "traffic_capture_started",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "port_id": "0deb35ad-2163-471f-90f9-b6be76969039",
+      "iface": "tap0deb35ad-21",
+      "bpf": "(host 10.0.2.9 or host 192.168.100.28) and (tcp port 502 or udp port 34964 or udp port 34962)",
+      "pcap_rel": "network/pcap_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260218_125406Z.pcap",
+      "meta_rel": "network/pcap_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260218_125406Z.metadata.json",
+      "industrial_export_rel": "industrial/ot_export_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260218_125406Z.json",
+      "capture_start_epoch": 1771419246.3126285
+    }
+  },
+  {
+    "source": "ot_export",
+    "ts_epoch": 1771419247.0817125,
+    "ts_utc": "2026-02-18T12:54:07.083Z",
+    "run_id": "R1",
+    "event": "ot:non_write_function",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "fc": 3,
+      "address": null,
+      "value": null,
+      "registers": null,
+      "src_ip": "192.168.100.28",
+      "dst_ip": "10.0.2.22",
+      "direction": "to_server"
+    }
+  },
+  {
+    "source": "ot_export",
+    "ts_epoch": 1771419247.0822692,
+    "ts_utc": "2026-02-18T12:54:07.085Z",
+    "run_id": "R1",
+    "event": "ot:non_write_function",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "fc": 3,
+      "address": null,
+      "value": null,
+      "registers": null,
+      "src_ip": "10.0.2.22",
+      "dst_ip": "192.168.100.28",
+      "direction": "from_server"
+    }
+  },
+  {
+    "source": "ot_export",
+    "ts_epoch": 1771419247.093244,
+    "ts_utc": "2026-02-18T12:54:07.094Z",
+    "run_id": "R1",
+    "event": "ot:non_write_function",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "fc": 1,
+      "address": null,
+      "value": null,
+      "registers": null,
+      "src_ip": "192.168.100.28",
+      "dst_ip": "10.0.2.22",
+      "direction": "to_server"
+    }
+  },
+  {
+    "source": "ot_export",
+    "ts_epoch": 1771419247.0937085,
+    "ts_utc": "2026-02-18T12:54:07.095Z",
+    "run_id": "R1",
+    "event": "ot:non_write_function",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "fc": 1,
+      "address": null,
+      "value": null,
+      "registers": null,
+      "src_ip": "10.0.2.22",
+      "dst_ip": "192.168.100.28",
+      "direction": "from_server"
+    }
+  },
+  {
+    "source": "ot_export",
+    "ts_epoch": 1771419247.98829,
+    "ts_utc": "2026-02-18T12:54:07.989Z",
+    "run_id": "R1",
+    "event": "ot:non_write_function",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "fc": 3,
+      "address": null,
+      "value": null,
+      "registers": null,
+      "src_ip": "192.168.100.28",
+      "dst_ip": "10.0.2.22",
+      "direction": "to_server"
+    }
+  },
+  {
+    "source": "ot_export",
+    "ts_epoch": 1771419247.9888458,
+    "ts_utc": "2026-02-18T12:54:07.991Z",
+    "run_id": "R1",
+    "event": "ot:non_write_function",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "fc": 3,
+      "address": null,
+      "value": null,
+      "registers": null,
+      "src_ip": "10.0.2.22",
+      "dst_ip": "192.168.100.28",
+      "direction": "from_server"
+    }
+  },
+  {
+    "source": "ot_export",
+    "ts_epoch": 1771419247.998994,
+    "ts_utc": "2026-02-18T12:54:08.000Z",
+    "run_id": "R1",
+    "event": "ot:non_write_function",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "fc": 1,
+      "address": null,
+      "value": null,
+      "registers": null,
+      "src_ip": "192.168.100.28",
+      "dst_ip": "10.0.2.22",
+      "direction": "to_server"
+    }
+  },
+  {
+    "source": "ot_export",
+    "ts_epoch": 1771419247.9998903,
+    "ts_utc": "2026-02-18T12:54:08.001Z",
+    "run_id": "R1",
+    "event": "ot:non_write_function",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "fc": 1,
+      "address": null,
+      "value": null,
+      "registers": null,
+      "src_ip": "10.0.2.22",
+      "dst_ip": "192.168.100.28",
+      "direction": "from_server"
+    }
+  },
+  {
+    "source": "ot_export",
+    "ts_epoch": 1771419248.9027004,
+    "ts_utc": "2026-02-18T12:54:08.904Z",
+    "run_id": "R1",
+    "event": "ot:non_write_function",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "fc": 3,
+      "address": null,
+      "value": null,
+      "registers": null,
+      "src_ip": "192.168.100.28",
+      "dst_ip": "10.0.2.22",
+      "direction": "to_server"
+    }
+  },
+  {
+    "source": "ot_export",
+    "ts_epoch": 1771419248.9031627,
+    "ts_utc": "2026-02-18T12:54:08.905Z",
+    "run_id": "R1",
+    "event": "ot:non_write_function",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "fc": 3,
+      "address": null,
+      "value": null,
+      "registers": null,
+      "src_ip": "10.0.2.22",
+      "dst_ip": "192.168.100.28",
+      "direction": "from_server"
+    }
+  },
+  {
+    "source": "ot_export",
+    "ts_epoch": 1771419248.9141364,
+    "ts_utc": "2026-02-18T12:54:08.915Z",
+    "run_id": "R1",
+    "event": "ot:non_write_function",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "fc": 1,
+      "address": null,
+      "value": null,
+      "registers": null,
+      "src_ip": "192.168.100.28",
+      "dst_ip": "10.0.2.22",
+      "direction": "to_server"
+    }
+  },
+  {
+    "source": "ot_export",
+    "ts_epoch": 1771419248.9147134,
+    "ts_utc": "2026-02-18T12:54:08.917Z",
+    "run_id": "R1",
+    "event": "ot:non_write_function",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "fc": 1,
+      "address": null,
+      "value": null,
+      "registers": null,
+      "src_ip": "10.0.2.22",
+      "dst_ip": "192.168.100.28",
+      "direction": "from_server"
+    }
+  },
+  {
+    "source": "ot_export",
+    "ts_epoch": 1771419249.803903,
+    "ts_utc": "2026-02-18T12:54:09.805Z",
+    "run_id": "R1",
+    "event": "ot:non_write_function",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "fc": 3,
+      "address": null,
+      "value": null,
+      "registers": null,
+      "src_ip": "192.168.100.28",
+      "dst_ip": "10.0.2.22",
+      "direction": "to_server"
+    }
+  },
+  {
+    "source": "ot_export",
+    "ts_epoch": 1771419249.804261,
+    "ts_utc": "2026-02-18T12:54:09.806Z",
+    "run_id": "R1",
+    "event": "ot:non_write_function",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "fc": 3,
+      "address": null,
+      "value": null,
+      "registers": null,
+      "src_ip": "10.0.2.22",
+      "dst_ip": "192.168.100.28",
+      "direction": "from_server"
+    }
+  },
+  {
+    "source": "ot_export",
+    "ts_epoch": 1771419249.815065,
+    "ts_utc": "2026-02-18T12:54:09.816Z",
+    "run_id": "R1",
+    "event": "ot:non_write_function",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "fc": 1,
+      "address": null,
+      "value": null,
+      "registers": null,
+      "src_ip": "192.168.100.28",
+      "dst_ip": "10.0.2.22",
+      "direction": "to_server"
+    }
+  },
+  {
+    "source": "ot_export",
+    "ts_epoch": 1771419249.8154643,
+    "ts_utc": "2026-02-18T12:54:09.819Z",
+    "run_id": "R1",
+    "event": "ot:non_write_function",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "fc": 1,
+      "address": null,
+      "value": null,
+      "registers": null,
+      "src_ip": "10.0.2.22",
+      "dst_ip": "192.168.100.28",
+      "direction": "from_server"
+    }
+  },
+  {
+    "source": "ot_export",
+    "ts_epoch": 1771419250.7113016,
+    "ts_utc": "2026-02-18T12:54:10.713Z",
+    "run_id": "R1",
+    "event": "ot:non_write_function",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "fc": 3,
+      "address": null,
+      "value": null,
+      "registers": null,
+      "src_ip": "192.168.100.28",
+      "dst_ip": "10.0.2.22",
+      "direction": "to_server"
+    }
+  },
+  {
+    "source": "ot_export",
+    "ts_epoch": 1771419250.7117524,
+    "ts_utc": "2026-02-18T12:54:10.714Z",
+    "run_id": "R1",
+    "event": "ot:non_write_function",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "fc": 3,
+      "address": null,
+      "value": null,
+      "registers": null,
+      "src_ip": "10.0.2.22",
+      "dst_ip": "192.168.100.28",
+      "direction": "from_server"
+    }
+  },
+  {
+    "source": "ot_export",
+    "ts_epoch": 1771419250.722814,
+    "ts_utc": "2026-02-18T12:54:10.723Z",
+    "run_id": "R1",
+    "event": "ot:non_write_function",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "fc": 1,
+      "address": null,
+      "value": null,
+      "registers": null,
+      "src_ip": "192.168.100.28",
+      "dst_ip": "10.0.2.22",
+      "direction": "to_server"
+    }
+  },
+  {
+    "source": "ot_export",
+    "ts_epoch": 1771419250.7231767,
+    "ts_utc": "2026-02-18T12:54:10.725Z",
+    "run_id": "R1",
+    "event": "ot:non_write_function",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "fc": 1,
+      "address": null,
+      "value": null,
+      "registers": null,
+      "src_ip": "10.0.2.22",
+      "dst_ip": "192.168.100.28",
+      "direction": "from_server"
+    }
+  },
+  {
+    "source": "ot_export",
+    "ts_epoch": 1771419251.6151862,
+    "ts_utc": "2026-02-18T12:54:11.616Z",
+    "run_id": "R1",
+    "event": "ot:non_write_function",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "fc": 3,
+      "address": null,
+      "value": null,
+      "registers": null,
+      "src_ip": "192.168.100.28",
+      "dst_ip": "10.0.2.22",
+      "direction": "to_server"
+    }
+  },
+  {
+    "source": "ot_export",
+    "ts_epoch": 1771419251.6156769,
+    "ts_utc": "2026-02-18T12:54:11.617Z",
+    "run_id": "R1",
+    "event": "ot:non_write_function",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "fc": 3,
+      "address": null,
+      "value": null,
+      "registers": null,
+      "src_ip": "10.0.2.22",
+      "dst_ip": "192.168.100.28",
+      "direction": "from_server"
+    }
+  },
+  {
+    "source": "pipeline_events",
+    "ts_epoch": 1771419251.6292098,
+    "ts_utc": "2026-02-18T12:54:11.629Z",
+    "run_id": "R1",
+    "event": "traffic_capture_stopped",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "port_id": "0deb35ad-2163-471f-90f9-b6be76969039",
+      "iface": "tap0deb35ad-21",
+      "capture_end_epoch": 1771419251.6291254,
+      "termination_reason": "client_disconnect"
+    }
+  },
+  {
+    "source": "pipeline_events",
+    "ts_epoch": 1771419251.632131,
+    "ts_utc": "2026-02-18T12:54:11.632Z",
+    "run_id": "R1",
+    "event": "ot_export_start",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "protocol": "modbus_tcp",
+      "industrial_export_rel": "industrial/ot_export_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260218_125406Z.json",
+      "records_buffered": 22
+    }
+  },
+  {
+    "source": "pipeline_events",
+    "ts_epoch": 1771419251.6341307,
+    "ts_utc": "2026-02-18T12:54:11.634Z",
+    "run_id": "R1",
+    "event": "ot_export_preserved",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "protocol": "modbus_tcp",
+      "industrial_export_rel": "industrial/ot_export_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260218_125406Z.json",
+      "industrial_export_sha256": "7adf62493d634877d3b13a131e6317d58a327ce9e6175837a3091ebf7252caec",
+      "industrial_export_size": 11237,
+      "records_exported": 22
+    }
+  },
+  {
+    "source": "pipeline_events",
+    "ts_epoch": 1771419251.634385,
+    "ts_utc": "2026-02-18T12:54:11.634Z",
+    "run_id": "R1",
+    "event": "traffic_stopped",
+    "meta": {
+      "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "port_id": "0deb35ad-2163-471f-90f9-b6be76969039",
+      "iface": "tap0deb35ad-21",
+      "pcap_rel": "network/pcap_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260218_125406Z.pcap",
+      "pcap_sha256": "729dbf83c31a6ec32c3e000340ce69e1375c7ce8bde072f8befd27f1639c1135",
+      "pcap_size": 2908,
+      "meta_rel": "network/pcap_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260218_125406Z.metadata.json",
+      "meta_sha256": "1aed810d9c1c7c33e11faa6d05f3ff806a28e9ed6ddbe8b4913def6e829bf347",
+      "meta_size": 1140,
+      "packets_written": 32,
+      "duration_s": 12.667,
+      "capture_duration_s": 5.316,
+      "termination_reason": "client_disconnect",
+      "industrial_export_rel": "industrial/ot_export_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260218_125406Z.json",
+      "industrial_export_sha256": "7adf62493d634877d3b13a131e6317d58a327ce9e6175837a3091ebf7252caec",
+      "industrial_export_size": 11237,
+      "records_exported": 22
+    }
+  }
+]

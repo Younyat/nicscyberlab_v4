@@ -675,6 +675,7 @@
                         </div>
                         <div class="rt-actions">
                             <button class="rt-btn" data-action="open">OPEN</button>
+                            <button class="rt-btn" data-action="forensics">FORENSICS</button>
                             <button class="rt-btn" data-action="close">CLOSE</button>
                         </div>
                     </div>
@@ -688,7 +689,9 @@
             el.querySelector('[data-action="close"]').addEventListener("click", () => {
                 el.remove();
             });
-
+            el.querySelector('[data-action="forensics"]').addEventListener("click", () => {
+            openView("forensics");
+            });
             // OPEN: abre tu dashboard dentro del overlay (sin borrar nada)
             el.querySelector('[data-action="open"]').addEventListener("click", () => {
                 openView("dashboard");

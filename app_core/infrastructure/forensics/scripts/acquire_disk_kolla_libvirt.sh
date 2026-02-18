@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Debe ejecutarse como root para evitar prompts de sudo en mitad del proceso
+# Auto-elevación: si no soy root, relanzo el script con sudo -E
+if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
+  exec sudo -E "$0" "$@"
+fi
+
 # Uso:
 #  acquire_disk_kolla_libvirt.sh <CASE_DIR> <INSTANCE_UUID> [CONTAINER_NAME]
 #
@@ -17,6 +23,10 @@ CASE_DIR="$1"
 INSTANCE_UUID="$2"
 CONTAINER_NAME="${3:-nova_libvirt}"
 
+# Usuario real que invocó sudo (para devolver ownership del RAW)
+OWNER_USER="${SUDO_USER:-root}"
+OWNER_GROUP="$(id -gn "$OWNER_USER" 2>/dev/null || echo root)"
+
 OUT_DIR="${CASE_DIR}/disk"
 META_DIR="${CASE_DIR}/metadata"
 UTC_TS="$(date -u +%Y%m%d_%H%M%SZ)"
@@ -31,39 +41,35 @@ SHA_FILE="${META_DIR}/${INSTANCE_UUID}_${UTC_TS}.disk.sha256"
 mkdir -p "$OUT_DIR" "$META_DIR"
 
 echo "[1/6] docker cp qcow2 (overlay) desde nova/libvirt..."
-sudo docker cp \
+docker cp \
   "$CONTAINER_NAME:/var/lib/nova/instances/$INSTANCE_UUID/disk" \
   "$ORIG_QCOW"
 
 echo "[2/6] Detectando backing file..."
-BACKING_FILE_INFO="$(sudo qemu-img info "$ORIG_QCOW" | awk -F': ' '/^backing file:/{print $2}' | xargs || true)"
+BACKING_FILE_INFO="$(qemu-img info "$ORIG_QCOW" | awk -F': ' '/^backing file:/{print $2}' | xargs || true)"
 
 if [[ -z "$BACKING_FILE_INFO" ]]; then
   echo "[ERROR] No se detectó backing file. ¿La VM usa Ceph/rbd o ruta distinta?"
   echo "qemu-img info:"
-  sudo qemu-img info "$ORIG_QCOW" || true
+  qemu-img info "$ORIG_QCOW" || true
   exit 1
 fi
 
 echo "[3/6] docker cp backing file..."
-sudo docker cp \
+docker cp \
   "$CONTAINER_NAME:$BACKING_FILE_INFO" \
   "$BACKING_LOCAL"
 
 echo "[4/6] Rebase + convert a RAW (independiente)..."
-# Trabajar en OUT_DIR para rutas relativas consistentes
 pushd "$OUT_DIR" >/dev/null
 
-# rebase hacia backing local (raw)
-sudo qemu-img rebase -u -f qcow2 -b "$(basename "$BACKING_LOCAL")" -F raw "$(basename "$ORIG_QCOW")"
-
-# convertir a RAW fusionando capas
-sudo qemu-img convert -f qcow2 -O raw "$(basename "$ORIG_QCOW")" "$(basename "$FINAL_RAW")"
+qemu-img rebase -u -f qcow2 -b "$(basename "$BACKING_LOCAL")" -F raw "$(basename "$ORIG_QCOW")"
+qemu-img convert -f qcow2 -O raw "$(basename "$ORIG_QCOW")" "$(basename "$FINAL_RAW")"
 
 popd >/dev/null
 
 echo "[5/6] Ajustando permisos..."
-sudo chown "$USER:$USER" "$FINAL_RAW"
+chown "$OWNER_USER:$OWNER_GROUP" "$FINAL_RAW"
 
 echo "[6/6] Hash + metadata..."
 SHA="$(sha256sum "$FINAL_RAW" | awk '{print $1}')"
