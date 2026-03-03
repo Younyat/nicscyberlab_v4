@@ -7,13 +7,13 @@ import subprocess
 
 from flask import Blueprint, Response, request
 
-from flask import Blueprint, Response, request
+
 
 
 import json
-from app_core.infrastructure.monitor.alerts_logger import AlertsLogger
 
 
+from app_core.infrastructure.monitor.alerts_logger import AlertsLogger, attach_alert_to_case, _read_active_case_dir
 ALERTS_LOGGER = AlertsLogger()
 
 
@@ -32,12 +32,27 @@ SSH_KEY_PATH = os.path.expanduser("~/.ssh/my_key")
 def live_wazuh_stream():
     monitor_ip = request.args.get("ip")
 
+    # NUEVO: permitir pasar el case_dir desde el frontend
+    # Ejemplo:
+    #   /api/hud/monitor/live_wazuh_stream?ip=192.168.X.X&case_dir=/home/younes/.../CASE-20260221-180532
+    case_dir = (request.args.get("case_dir") or "").strip()
+
+    # Normaliza a ruta absoluta (si viene)
+    if case_dir:
+        case_dir = os.path.abspath(case_dir)
+
     if not monitor_ip:
         return Response("data: [ERROR] IP ausente\n\n", mimetype="text/event-stream")
 
     def generate():
         yield "data: [SYSTEM] STREAM OPENED\n\n"
         yield f"data: [SYSTEM] Lanzando monitor Wazuh para {monitor_ip}\n\n"
+
+        # INFO útil para depurar desde el frontend sin tocar nada más
+        if case_dir:
+            yield f"data: [SYSTEM] case_dir={case_dir}\n\n"
+        else:
+            yield "data: [SYSTEM] case_dir=(none)\n\n"
 
         cmd = ["bash", SCRIPT_PATH, monitor_ip, "ubuntu", SSH_KEY_PATH]
 
@@ -78,7 +93,35 @@ def live_wazuh_stream():
                                 "raw": ev.get("raw", ev),
                             }
 
+                            # NUEVO: Inyectar case_dir si se proporcionó
+                            # Si el CASE no existe todavía, tu AlertsLogger lo ignorará (case_rel=None) sin fallar.
+                            if case_dir:
+                                normalized["case_dir"] = case_dir
+
                             out = ALERTS_LOGGER.log_event(normalized)
+
+                            # NUEVO (blindaje): si por cualquier motivo no se pudo escribir en CASE en log_event,
+                            # forzamos el attach por event_id usando alerts_store como fuente.
+                            if case_dir and not out.get("case_rel"):
+                                try:
+                                    ev_id = (out.get("primary") or {}).get("event_id") or normalized.get("event_id")
+                                    if ev_id:
+                                        rel = attach_alert_to_case(case_dir, ev_id)
+                                        if rel:
+                                            out["case_rel"] = rel
+                                except Exception:
+                                    pass
+
+                            # Log backend (útil para depurar)
+                            try:
+                                # Si el front no pasa case_dir, intenta resolverlo desde el puntero activo (si existe)
+                                resolved_case_dir = case_dir or _read_active_case_dir() or "(none)"
+                                logger.info(
+                                    f"[MONITOR] log_event case_dir={resolved_case_dir} "
+                                    f"case_rel={out.get('case_rel')}"
+                                )
+                            except Exception:
+                                pass
 
                             # 2) Opcional: manda una línea HUMANA al frontend (sin escupir el JSON)
                             tri = out.get("triage", {})
@@ -86,9 +129,14 @@ def live_wazuh_stream():
                             score = tri.get("score_0_100", 0)
                             rec = tri.get("recommend_forensics", False)
 
+                            # NUEVO: mostrar si se guardó en CASE o no
+                            case_rel = out.get("case_rel")
+                            case_info = f"case_saved={case_rel}" if case_rel else "case_saved=NO"
+
                             human = (
                                 f"[DETECTED] severity={sev} score={score} "
                                 f"forensics={'YES' if rec else 'NO'} "
+                                f"{case_info} "
                                 f"sig={normalized.get('signature') or 'N/A'} "
                                 f"src={normalized.get('src', {}).get('ip','?')}:{normalized.get('src', {}).get('port','?')} "
                                 f"dst={normalized.get('dst', {}).get('ip','?')}:{normalized.get('dst', {}).get('port','?')}"
@@ -114,8 +162,6 @@ def live_wazuh_stream():
             "X-Accel-Buffering": "no"
         }
     )
-
-
 # ============================================================
 # SSH + OpenStack Manager
 # ============================================================

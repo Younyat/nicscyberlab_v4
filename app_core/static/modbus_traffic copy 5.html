@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NICS CyberLab | Host Forensic Inventory</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Scrollbars personalizados estilo Cyberpunk */
+    .terminal-scroll::-webkit-scrollbar { width: 6px; }
+    .terminal-scroll::-webkit-scrollbar-track { background: #020617; }
+    .terminal-scroll::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+    .terminal-scroll::-webkit-scrollbar-thumb:hover { background: #334155; }
+    
+    /* Efecto de línea de escaneo para el tráfico */
+    .scanline {
+      width: 100%;
+      height: 2px;
+      background: rgba(16, 185, 129, 0.1);
+      position: absolute;
+      animation: scan 4s linear infinite;
+      z-index: 5;
+    }
+    @keyframes scan {
+      0% { top: 0; }
+      100% { top: 100%; }
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-emerald-500/30">
+
+  <main class="max-w-7xl mx-auto py-10 px-6 space-y-8">
+    
+    <header class="mb-8 border-b border-slate-800 pb-8 relative">
+      <div class="absolute -top-10 -left-10 w-32 h-32 bg-sky-500/10 rounded-full blur-3xl"></div>
+      <h1 class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-emerald-400 font-mono tracking-tighter">
+        HOST FORENSIC INVENTORY
+      </h1>
+      <p class="text-slate-400 mt-2 text-sm max-w-xl">
+        Gestión de artefactos en nodos OpenStack. Monitorización activa mediante <strong>IP Flotantes</strong>.
+      </p>
+    </header>
+
+    <section class="bg-slate-900/80 border border-slate-800 rounded-xl p-5 shadow-2xl backdrop-blur-sm">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-sky-300 flex items-center gap-2">
+          <span class="w-2 h-2 bg-sky-500 rounded-full animate-pulse"></span>
+          Instancias en Red
+        </h2>
+        <div id="detail-title" class="text-[10px] text-slate-400 font-mono italic px-3 py-1 bg-slate-950 rounded-full border border-slate-800 uppercase tracking-widest">
+          Selecciona una IP Flotante para Auditar
+        </div>
+      </div>
+
+      <div class="overflow-auto max-h-[400px] terminal-scroll border border-slate-800 rounded-lg">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-950 sticky top-0 z-20">
+            <tr class="text-slate-500 border-b border-slate-800 text-left uppercase text-[10px] tracking-wider">
+              <th class="py-4 px-4">Instancia</th>
+              <th class="py-4 px-4">Estado</th>
+              <th class="py-4 px-4 text-emerald-500">Floating IP</th>
+              <th class="py-4 px-4">Flavor</th>
+              <th class="py-4 px-4">Volúmenes</th>
+              <th class="py-4 px-4 text-right">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-instances" class="divide-y divide-slate-800/50">
+            </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="space-y-4">
+      <h2 class="text-lg font-semibold text-sky-300">Management Dashboard</h2>
+      <div id="tools-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        </div>
+    </div>
+
+    <footer class="mt-12 pt-8 border-t border-slate-900 flex justify-between items-center">
+      <button onclick="loadInstancesFull()" class="group flex items-center gap-2 text-[10px] font-bold text-slate-500 hover:text-sky-400 transition-colors uppercase tracking-widest">
+        <svg class="w-4 h-4 group-active:rotate-180 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+        Sincronizar Nodos
+      </button>
+      <div class="flex flex-col items-end">
+        <span class="text-[10px] text-slate-600 font-mono uppercase">NICS CyberLab v2.5 - Professional Suite</span>
+        <span id="last-update" class="text-[8px] text-slate-700 font-mono mt-1 tracking-widest uppercase text-right">LAST SYNC: --:--</span>
+      </div>
+    </footer>
+  </main>
+
+  <div id="overlay" class="hidden fixed inset-0 bg-black/90 z-[100] flex items-center justify-center backdrop-blur-md">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 w-full max-w-2xl shadow-2xl">
+      <div class="flex justify-between items-center mb-6">
+        <div class="flex items-center gap-4">
+          <div id="status-dot" class="w-4 h-4 rounded-full bg-sky-500 animate-pulse"></div>
+          <div>
+            <h2 id="overlay-title" class="text-xl font-bold text-sky-400 font-mono uppercase tracking-wider">System Terminal</h2>
+            <p id="overlay-status" class="text-[10px] text-slate-500 font-mono italic uppercase">Status: Operativo</p>
+          </div>
+        </div>
+        <button onclick="setOverlay(false)" class="p-2 hover:bg-slate-800 rounded-full transition-colors group">
+          <svg class="w-6 h-6 text-slate-500 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <div class="bg-black border border-slate-700 rounded-lg overflow-hidden">
+        <pre id="ics-log-terminal" class="p-6 text-[11px] text-emerald-500 font-mono h-96 overflow-auto terminal-scroll whitespace-pre-wrap leading-relaxed shadow-inner"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div id="traffic-overlay" class="hidden fixed inset-0 bg-black/95 z-[110] flex items-center justify-center backdrop-blur-xl">
+    <div class="bg-slate-900 border border-emerald-500/30 rounded-3xl p-6 w-full max-w-5xl shadow-2xl border-t-4 border-t-emerald-600 relative overflow-hidden h-[85vh] flex flex-col">
+      <div class="scanline"></div>
+      
+      <div class="flex justify-between items-center mb-6 relative z-10">
+        <div class="flex items-center gap-4">
+          <div class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></div>
+          <div>
+            <h2 class="text-lg font-bold text-emerald-400 font-mono uppercase tracking-widest leading-none">Live Traffic Analyzer</h2>
+            <span id="traffic-vm-info" class="text-[10px] text-emerald-500/60 font-mono uppercase mt-1 block"></span>
+          </div>
+        </div>
+        <button onclick="closeTraffic()" class="px-6 py-2 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white transition-all text-[10px] font-black rounded-full uppercase font-mono border border-red-500/20">Cerrar Captura</button>
+      </div>
+
+      <div class="bg-black/80 rounded-2xl border border-slate-800 p-6 relative z-10 flex-1 flex flex-col overflow-hidden">
+        <div class="flex items-center gap-2 mb-4 text-[10px] font-mono text-slate-500 border-b border-slate-800 pb-2">
+            <span class="text-emerald-500">●</span> SOCKET_OPEN 
+            <span class="ml-4">PORT: ALL</span>
+            <span class="ml-4">MODE: PROMISCUOUS</span>
+        </div>
+        <pre id="traffic-terminal" class="flex-1 overflow-auto text-[11px] font-mono text-emerald-400 leading-relaxed terminal-scroll"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let STATE = { instances: [], selected: null, trafficSource: null };
+
+    const UI = {
+      overlay: document.getElementById("overlay"),
+      terminal: document.getElementById("ics-log-terminal"),
+      grid: document.getElementById("tools-grid"),
+      tblInstances: document.getElementById("tbl-instances"),
+      detailTitle: document.getElementById("detail-title"),
+      trafficOverlay: document.getElementById("traffic-overlay"),
+      trafficTerminal: document.getElementById("traffic-terminal"),
+      trafficInfo: document.getElementById("traffic-vm-info")
+    };
+
+    function escapeHtml(s) { return String(s ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;"); }
+
+    // --- CARGA DE INSTANCIAS ---
+    async function loadInstancesFull() {
+      try {
+        const res = await fetch("/api/openstack/instances/full");
+        const data = await res.json();
+        STATE.instances = data.instances || [];
+        renderTable();
+        document.getElementById("last-update").textContent = `LAST SYNC: ${new Date().toLocaleTimeString()}`;
+      } catch (err) {
+        UI.tblInstances.innerHTML = `<tr><td colspan="6" class="py-10 text-center text-red-500 font-mono uppercase text-xs tracking-widest">ERROR_CONNECTION_REFUSED</td></tr>`;
+      }
+    }
+
+    function renderTable() {
+      UI.tblInstances.innerHTML = STATE.instances.map(vm => `
+        <tr class="hover:bg-slate-800/40 cursor-pointer transition-all group" onclick="startTrafficAnalysis('${vm.id}')">
+          <td class="py-4 px-4">
+            <div class="font-bold text-slate-100">${escapeHtml(vm.name)}</div>
+            <div class="text-[9px] text-slate-500 font-mono">${vm.id.substring(0,8)}</div>
+          </td>
+          <td class="py-4 px-4">
+            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] font-black uppercase ${vm.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}">
+              ${vm.status}
+            </span>
+          </td>
+          <td class="py-4 px-4 font-mono text-xs font-bold text-emerald-400">
+            ${escapeHtml(vm.ip_floating || "N/A")}
+          </td>
+          <td class="py-4 px-4 text-slate-500 text-[10px] font-mono">${escapeHtml(vm.flavor?.name || "-")}</td>
+          <td class="py-4 px-4 text-slate-500 text-[10px] font-mono">${(vm.volumes || []).length} Units</td>
+          <td class="py-4 px-4 text-right">
+            <button class="bg-sky-500/10 text-sky-400 group-hover:bg-sky-500 group-hover:text-white px-4 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all border border-sky-500/20">Audit</button>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    // --- LÓGICA DE TRÁFICO (UTILIZA FLOATING IP) ---
+    function startTrafficAnalysis(id) {
+      const vm = STATE.instances.find(x => x.id === id);
+      if (!vm) return;
+
+      STATE.selected = vm;
+      UI.detailTitle.textContent = `Auditando Floating IP: ${vm.ip_floating || 'N/A'}`;
+      
+      UI.trafficOverlay.classList.replace("hidden", "flex");
+      UI.trafficInfo.textContent = `NODE: ${vm.name} | FLOATING_IP: ${vm.ip_floating || 'NO_IP'}`;
+      UI.trafficTerminal.textContent = `[${new Date().toLocaleTimeString()}] INICIANDO CAPTURA FORENSE SOBRE INTERFAZ PÚBLICA...\n`;
+
+      if (STATE.trafficSource) STATE.trafficSource.close();
+
+      // 
+      // Iniciar flujo SSE
+      STATE.trafficSource = new EventSource(`/api/openstack/traffic/${vm.id}`);
+      
+      STATE.trafficSource.onmessage = (e) => {
+        const div = document.createElement("div");
+        div.className = "py-0.5 border-b border-white/5 hover:bg-emerald-500/5 transition-colors";
+        div.innerHTML = `<span class="text-emerald-700 mr-2">>>></span> ${e.data}`;
+        UI.trafficTerminal.appendChild(div);
+        UI.trafficTerminal.scrollTop = UI.trafficTerminal.scrollHeight;
+      };
+
+     STATE.trafficSource.onerror = () => {
+    const div = document.createElement("div");
+    div.className = "text-yellow-500 font-mono text-[10px] py-2";
+    div.textContent = "!! [RETRY] Conexión perdida. Intentando reconectar...";
+    UI.trafficTerminal.appendChild(div);
+    
+    STATE.trafficSource.close();
+    
+    // Intenta reconectar tras 3 segundos
+    setTimeout(() => {
+        startTrafficAnalysis(STATE.selected.id);
+    }, 3000);
+};
+    }
+
+    function closeTraffic() {
+      if (STATE.trafficSource) STATE.trafficSource.close();
+      UI.trafficOverlay.classList.replace("flex", "hidden");
+    }
+
+    // --- GESTIÓN DE HERRAMIENTAS ---
+    async function loadHostInventory() {
+      try {
+        const res = await fetch("/api/host/inventory");
+        const data = await res.json();
+        UI.grid.innerHTML = "";
+        data.tools.forEach(tool => {
+          const isInstalled = tool.status === "installed";
+          const card = document.createElement("div");
+          card.className = "bg-slate-900/40 border border-slate-800 rounded-xl p-5 flex items-center justify-between transition-all hover:border-slate-700";
+          card.innerHTML = `
+            <div class="flex items-center gap-4">
+              <div class="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center text-sky-500">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
+              </div>
+              <div>
+                <h3 class="font-bold text-slate-100 uppercase text-xs tracking-wider">${tool.name}</h3>
+                <p class="text-[9px] font-mono ${isInstalled ? 'text-emerald-500' : 'text-slate-500'}">${isInstalled ? '✓ READY' : '✗ PENDING'}</p>
+              </div>
+            </div>
+            <button onclick="${isInstalled ? `runUninstallation('${tool.id}')` : `runInstallation('${tool.id}')`}" 
+                    class="px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${isInstalled ? 'bg-red-900/20 text-red-500 border border-red-500/30' : 'bg-sky-600 text-white shadow-lg shadow-sky-900/40'}">
+              ${isInstalled ? 'Purge' : 'Deploy'}
+            </button>
+          `;
+          UI.grid.appendChild(card);
+        });
+      } catch (e) { console.error("Inventory error"); }
+    }
+
+    function setOverlay(show, mode = 'install') {
+        UI.overlay.classList.toggle("hidden", !show);
+        UI.overlay.classList.toggle("flex", show);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadHostInventory();
+      loadInstancesFull();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NICS CyberLab | OpenStack Industrial Testbed Forensic Analysis Dashboard</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- FontAwesome (icons) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+
+
+ 
+
+
+
+  <style>
+    :root { color-scheme: dark; }
+    body { background: #0b1220; }
+    .glass {
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(51, 65, 85, 0.55);
+    }
+    .softshadow { box-shadow: 0 20px 70px rgba(0,0,0,.45); }
+    .grid-bg {
+      background-image:
+        radial-gradient(rgba(56,189,248,0.10) 1px, transparent 1px);
+      background-size: 22px 22px;
+      background-position: -10px -10px;
+    }
+    .btn {
+      display: inline-flex; align-items:center; justify-content:center;
+      border-radius: 0.85rem;
+      font-weight: 800; letter-spacing: .06em;
+      text-transform: uppercase;
+      transition: transform .08s ease, background .2s ease, border-color .2s ease, color .2s ease;
+      user-select: none;
+    }
+    .btn:active { transform: scale(0.98); }
+    .scrollbar::-webkit-scrollbar { height: 10px; width: 10px; }
+    .scrollbar::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.35); border-radius: 999px; }
+    .scrollbar::-webkit-scrollbar-track { background: rgba(2,6,23,0.35); border-radius: 999px; }
+    .badge {
+      padding: .15rem .55rem; border-radius: 999px;
+      font-size: 10px; font-weight: 900;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      border: 1px solid rgba(56,189,248,0.22);
+      background: rgba(56,189,248,0.08);
+      color: rgba(56,189,248,0.92);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    .kpi {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 11px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: rgba(148,163,184,0.75);
+    }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  
+  
+  /* =========================================
+     Alerts table row severity (transparent)
+     - usa rgba para dejar ver el fondo
+     ========================================= */
+  #alerts-body tr { transition: background-color .15s ease, box-shadow .15s ease; }
+  #alerts-body tr:hover { filter: brightness(1.08); }
+
+  .sev-info     { background: rgba(100,116,139,0.06); }  /* slate */
+  .sev-low      { background: rgba(16,185,129,0.10); }   /* emerald */
+  .sev-medium   { background: rgba(245,158,11,0.11); }   /* amber */
+  .sev-high     { background: rgba(249,115,22,0.12); }   /* orange */
+  .sev-critical { background: rgba(239,68,68,0.14); }    /* red */
+
+  /* opcional: borde lateral fino por severidad (muy sutil, transparente) */
+  .sev-info td     { box-shadow: inset 3px 0 0 rgba(100,116,139,0.30); }
+  .sev-low td      { box-shadow: inset 3px 0 0 rgba(16,185,129,0.35); }
+  .sev-medium td   { box-shadow: inset 3px 0 0 rgba(245,158,11,0.40); }
+  .sev-high td     { box-shadow: inset 3px 0 0 rgba(249,115,22,0.42); }
+  .sev-critical td { box-shadow: inset 3px 0 0 rgba(239,68,68,0.45); }
+   /* Score >= 50 (más hacia rojo, pero "soft" tipo rose) */
+.sev-score50 { background: rgba(244, 63, 94, 0.10); }   /* rose-500 suave */
+.sev-score50 td { box-shadow: inset 3px 0 0 rgba(244, 63, 94, 0.38); }
+
+  </style>
+</head>
+
+<body class="min-h-screen text-slate-100">
+  <!-- TOP BAR -->
+  <header class="w-full px-8 py-5 border-b border-slate-800/80 bg-slate-950/40">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <div class="w-10 h-10 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-black tracking-tight">OpenStack Industrial Testbed Forensic Analysis Dashboard</h1>
+          <p class="text-xs text-slate-400 mono tracking-widest uppercase opacity-80">
+            NICS CyberLab · IT/OT Convergence · DFIR Telemetry
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-800/80 bg-slate-950/40">
+          <span class="kpi">Backend</span>
+          <span id="backend-dot" class="w-2 h-2 rounded-full bg-slate-500"></span>
+          <span id="backend-status" class="text-xs mono text-slate-300">unknown</span>
+        </div>
+
+        <button id="btn-refresh-all"
+          class="btn px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 text-xs">
+          <i class="fa-solid fa-rotate mr-2"></i> Refresh
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="px-8 py-7">
+    <!-- TOPOLOGY (ATTACKER / VICTIM / MONITOR) -->
+    <section class="glass softshadow grid-bg rounded-3xl p-6 mb-6">
+      <div class="flex items-start justify-between gap-6">
+        <div>
+          <div class="flex items-center gap-3">
+            <h2 class="text-sm font-black tracking-widest uppercase text-slate-200">OpenStack IT Scenario Dashboard</h2>
+            <span id="active-scenario-badge" class="badge">Scenario: auto</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-1 mono">
+              Visualization of IT instances deployed in OpenStack representing the attacker, victim, and monitoring roles, used to execute attack, detection, and forensic analysis scenarios.          </p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <div class="px-3 py-2 rounded-2xl border border-slate-800/70 bg-slate-950/40">
+            <div class="kpi">Last Sync</div>
+            <div id="top-last-sync" class="mono text-xs text-slate-200 mt-1">--:--:--</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <!-- Attacker -->
+          <div class="rounded-3xl border border-slate-800/70 bg-slate-950/30 p-5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400">
+                  <i class="fa-solid fa-user-ninja"></i>
+                </div>
+                <div>
+                  <div class="kpi">Attacker Instance</div>
+                  <div id="attacker-name" class="font-extrabold">--</div>
+                  <div id="attacker-ip" class="mono text-xs text-slate-400 mt-1">IP: --</div>
+                </div>
+              </div>
+              <span id="attacker-state" class="badge">status: --</span>
+            </div>
+          </div>
+
+          <!-- Victim -->
+          <div class="rounded-3xl border border-slate-800/70 bg-slate-950/30 p-5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                  <i class="fa-solid fa-microchip"></i>
+                </div>
+                <div>
+                  <div class="kpi">Victim Instance</div>
+                  <div id="victim-name" class="font-extrabold">--</div>
+                  <div id="victim-ip" class="mono text-xs text-slate-400 mt-1">IP: --</div>
+                  
+                </div>
+              </div>
+              <span id="victim-state" class="badge">status: --</span>
+            </div>
+          </div>
+
+          <!-- Monitor -->
+          <div class="rounded-3xl border border-slate-800/70 bg-slate-950/30 p-5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                  <i class="fa-solid fa-desktop"></i>
+                </div>
+                <div>
+                  <div class="kpi">Monitor Instance</div>
+                  <div id="monitor-name" class="font-extrabold">--</div>
+                  <div id="monitor-ip" class="mono text-xs text-slate-400 mt-1">IP: --</div>
+                  
+                </div>
+              </div>
+              <span id="monitor-state" class="badge">status: --</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+
+   <section class="glass softshadow grid-bg rounded-3xl p-6 mb-6 border-t-2 border-orange-500/20">
+  <div class="flex items-start justify-between gap-6">
+    <div>
+      <div class="flex items-center gap-3">
+        <h2 class="text-sm font-black tracking-widest uppercase text-orange-200">Industrial Control Components</h2>
+        <span class="badge" style="background: rgba(249, 115, 22, 0.1); color: #fb923c; border-color: rgba(249, 115, 22, 0.2);">OT Infrastructure</span>
+      </div>
+      <p class="text-xs text-slate-400 mt-1 mono">
+        Critical components of the industrial network: SCADA supervision and Programmable Logic Control (PLC).
+      </p>
+    </div>
+  </div>
+
+  <div class="mt-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="rounded-3xl border border-orange-500/20 bg-slate-950/30 p-5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400">
+              <i class="fa-solid fa-industry"></i>
+            </div>
+            <div>
+              <div class="kpi">SCADA System (FUXA)</div>
+              <div id="scada-name" class="font-extrabold text-orange-100">--</div>
+              <div id="scada-ip" class="mono text-xs text-slate-400 mt-1">IP: --</div>
+            </div>
+          </div>
+          <span id="scada-state" class="badge">status: --</span>
+        </div>
+      </div>
+
+      <div class="rounded-3xl border border-orange-500/20 bg-slate-950/30 p-5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400">
+              <i class="fa-solid fa-gears"></i>
+            </div>
+            <div>
+              <div class="kpi">PLC Emulation Node</div>
+              <div id="plc-name" class="font-extrabold text-orange-100">--</div>
+              <div id="plc-ip" class="mono text-xs text-slate-400 mt-1">IP: --</div>
+            </div>
+          </div>
+          <span id="plc-state" class="badge">status: --</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+
+
+
+
+
+<section class="glass softshadow rounded-3xl p-6 mb-6 border-b-2 border-sky-500/20">
+  <div class="flex items-start justify-between gap-5 mb-6">
+    <div>
+      <div class="flex items-center gap-3">
+        <h3 class="text-lg font-black tracking-widest uppercase text-sky-400">Host Forensic Inventory</h3>
+        <span class="badge">Extended View</span>
+      </div>
+      <p class="text-xs text-slate-400 mt-1 mono">
+        Detailed exploration of artifacts and tools installed on the monitoring node.
+      </p>
+    </div>
+
+    <div class="flex gap-2">
+      <button onclick="document.getElementById('inventory-frame').contentWindow.location.reload();"
+              class="btn px-6 py-2 bg-sky-900/20 hover:bg-sky-500 border border-sky-500/50 text-sky-100 text-xs">
+        <i class="fa-solid fa-arrows-rotate mr-2"></i> Update report.
+      </button>
+    </div>
+  </div>
+
+  <div class="rounded-2xl border border-slate-800/80 bg-slate-950/40 overflow-hidden shadow-inner">
+    <iframe 
+      id="inventory-frame"
+      src="forensic_inventory.html" 
+      class="w-full h-[800px] border-none"
+      title="Forensic Inventory">
+    </iframe>
+  </div>
+</section>
+
+<section class="grid grid-cols-1 gap-6 mb-6">
+  <div class="glass softshadow rounded-3xl p-6">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h3 class="text-sm font-black tracking-widest uppercase">Tool Deployment & Action</h3>
+        <p class="text-xs text-slate-400 mt-1 mono">Forensic tool lifecycle management.</p>
+      </div>
+      <span class="badge">Host Control</span>
+    </div>
+    </div>
+</section>
+
+
+
+
+
+
+    <!-- MID ROW: INVENTORY + DEPLOY -->
+    <section class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+      <!-- Inventory (2 cols) -->
+      <div class="xl:col-span-2 glass softshadow rounded-3xl p-6">
+        <div class="flex items-start justify-between gap-5">
+          <div>
+            <div class="flex items-center gap-3">
+              <h3 class="text-sm font-black tracking-widest uppercase">Host Forensic Inventory</h3>
+              <span class="badge">Monitor Node</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1 mono">
+              Status of forensic tools installed on the control/monitor node host.
+            </p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button id="btn-inv-sync"
+              class="btn px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 text-xs">
+              <i class="fa-solid fa-arrows-rotate mr-2"></i> Sync
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-5">
+          <div class="flex items-center justify-between text-[11px] mono text-slate-400">
+            <div>Inventory</div>
+            <div id="inv-last-update" class="opacity-80">Last Update: --:--:--</div>
+          </div>
+
+          <div id="tools-grid"
+               class="mt-3 flex flex-col gap-3 max-h-[430px] overflow-auto pr-2 scrollbar">
+            <!-- injected -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Tool Deployment & Action -->
+      <div class="glass softshadow rounded-3xl p-6">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h3 class="text-sm font-black tracking-widest uppercase">Tool Deployment & Action</h3>
+            <p class="text-xs text-slate-400 mt-1 mono">
+              Installation/uninstallation and host auditing via controlled execution.
+            </p>
+          </div>
+          <span class="badge">Host</span>
+        </div>
+
+        <div class="mt-6 space-y-4">
+          <div>
+            <label class="kpi">Select Tool</label>
+            <div class="mt-2">
+              <select id="select-tool"
+                class="w-full bg-slate-950/40 border border-slate-800 rounded-2xl px-4 py-3 text-sm font-bold text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/40">
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-3">
+            <button id="btn-deploy"
+              class="btn px-4 py-3 bg-sky-600 hover:bg-sky-500 text-white text-xs shadow-lg shadow-sky-900/30">
+              Deploy / Install
+            </button>
+
+            <button id="btn-audit"
+              class="btn px-4 py-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 text-xs">
+              Audit Version
+            </button>
+
+            <button id="btn-uninstall"
+              class="btn px-4 py-3 bg-red-900/20 hover:bg-red-600 border border-red-500/50 text-red-200 hover:text-white text-xs">
+              Uninstall / Purge
+            </button>
+          </div>
+
+          <div class="rounded-2xl border border-slate-800/80 bg-slate-950/40 p-4">
+            <div class="kpi">Execution Notes</div>
+            <ul class="mt-2 text-xs text-slate-400 space-y-1 mono">
+              <li>- Inventory refreshes upon completion.</li>
+              <li>- The audit is shown in an overlay.</li>
+              <li>- Uninstallation requests confirmation.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BOTTOM ROW: HEALTH+LOGS + ALERTS -->
+    <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <!-- System Health & Logs -->
+      <div class="glass softshadow rounded-3xl p-6">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h3 class="text-sm font-black tracking-widest uppercase">System Health & Logs</h3>
+            <p class="text-xs text-slate-400 mt-1 mono">
+              Simulated metrics (CPU/Mem/Net) and an operational log (SSE/exec).
+            </p>
+          </div>
+          <span class="badge">Telemetry</span>
+        </div>
+
+       <div class="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-4">
+  <div class="rounded-2xl border border-slate-800/80 bg-slate-950/35 p-4 h-[220px]">
+
+    <div class="kpi">Health (OpenStack Hypervisor)</div>
+   <canvas id="healthChart" class="mt-3 w-full h-full"></canvas>
+
+  </div>
+
+  <div class="rounded-2xl border border-slate-800/80 bg-slate-950/35 p-4 h-[220px]">
+
+    <div class="kpi">Traffic (SSE)</div>
+    <canvas id="trafficChart" class="mt-3" height="130"></canvas>
+    <div class="mt-2 flex items-center justify-between">
+      <span class="mono text-[10px] text-slate-500">Source</span>
+      <span id="traffic-source" class="mono text-[10px] text-slate-300">--</span>
+    </div>
+  </div>
+
+ <div class="rounded-2xl border border-slate-800/80 bg-slate-950/35 p-4 h-[220px]">
+
+    <div class="kpi">Operational Log</div>
+    <pre id="ics-log-terminal"
+         class="mt-3 h-[170px] overflow-auto scrollbar bg-slate-950/60 border border-slate-800/60 rounded-2xl p-3 text-[11px] text-slate-200 mono"></pre>
+  </div>
+</div>
+
+      </div>
+
+      <!-- Alerts & Indicators -->
+      <div class="glass softshadow rounded-3xl p-6">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h3 class="text-sm font-black tracking-widest uppercase">Alerts & Indicators</h3>
+            <p class="text-xs text-slate-400 mt-1 mono">
+              Indicators for correlation with IT/OT activity and DFIR events.
+            </p>
+          </div>
+          <span class="badge">SIEM</span>
+        </div>
+
+        <div class="mt-5 rounded-2xl border border-slate-800/80 bg-slate-950/35 overflow-hidden">
+            <div class="max-h-[420px] overflow-y-auto overflow-x-auto scrollbar">
+            <table class="w-full text-xs">
+              <thead class="bg-slate-950/60 border-b border-slate-800/80">
+                <tr class="text-left text-slate-300 mono">
+                  <th class="px-4 py-3">Time</th>
+                  <th class="px-4 py-3">Description</th>
+                  <th class="px-4 py-3">Severity</th>
+                </tr>
+              </thead>
+              <tbody id="alerts-body" class="divide-y divide-slate-800/60">
+                <!-- injected -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="mt-4 flex items-center justify-between">
+          <div class="kpi">Auto refresh</div>
+          <div class="flex items-center gap-2">
+            <span class="mono text-xs text-slate-400">Alerts</span>
+            <span id="alerts-count" class="badge">0</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- OVERLAY -->
+  <div id="overlay" class="hidden fixed inset-0 z-50 items-center justify-center">
+    <div class="absolute inset-0 bg-black/70"></div>
+
+    <div class="relative w-[92vw] max-w-4xl glass softshadow rounded-3xl border border-slate-800/70 overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-800/80 bg-slate-950/40 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span id="status-dot" class="w-4 h-4 rounded-full bg-slate-500 animate-pulse"></span>
+          <div>
+            <div id="overlay-title" class="font-black tracking-widest uppercase text-sm">Execution</div>
+            <div id="overlay-status" class="mono text-xs text-slate-400 mt-1">Status: --</div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="btn-overlay-close"
+                  class="btn px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 text-xs">
+            Close
+          </button>
+        </div>
+      </div>
+
+      <div class="p-6">
+        <pre id="overlay-terminal"
+             class="h-[420px] overflow-auto scrollbar bg-slate-950/70 border border-slate-800/70 rounded-2xl p-4 text-[11px] mono text-slate-100"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+
+
+const API_BASE = "http://127.0.0.1:5001"; 
+const API = {
+  roles: "/api/host/instance_roles",
+
+  hostInventoryPrimary: "/api/host/inventory",
+  hostInventoryFallback: "/api/host/forensic/tools",
+
+  hostVersion: (tool) => `/api/host/version/${encodeURIComponent(tool)}`,
+  hostInstallSSE: (tool) => `/api/host/install/${encodeURIComponent(tool)}`,
+  hostUninstallSSE: (tool) => `/api/host/uninstall/${encodeURIComponent(tool)}`,
+
+  // NUEVO: OpenStack
+  instancesFull: "/api/openstack/instances/full",
+  hypervisorStats: "/api/openstack/hypervisor-stats",
+  trafficSSE: (vmId, protosCsv) => `/api/openstack/traffic/${encodeURIComponent(vmId)}?protos=${encodeURIComponent(protosCsv || "")}`,
+  
+  alertsLatest: (limit) => `${API_BASE}/api/forensics/alerts/latest?limit=${encodeURIComponent(limit || 30)}`
+
+};
+
+
+    const UI = {
+      backendDot: document.getElementById("backend-dot"),
+      backendStatus: document.getElementById("backend-status"),
+      topLastSync: document.getElementById("top-last-sync"),
+
+      attackerName: document.getElementById("attacker-name"),
+      attackerIp: document.getElementById("attacker-ip"),
+      attackerState: document.getElementById("attacker-state"),
+
+      victimName: document.getElementById("victim-name"),
+      victimIp: document.getElementById("victim-ip"),
+      victimState: document.getElementById("victim-state"),
+
+      monitorName: document.getElementById("monitor-name"),
+      monitorIp: document.getElementById("monitor-ip"),
+      monitorState: document.getElementById("monitor-state"),
+
+      toolsGrid: document.getElementById("tools-grid"),
+      invLastUpdate: document.getElementById("inv-last-update"),
+
+      selectTool: document.getElementById("select-tool"),
+      btnDeploy: document.getElementById("btn-deploy"),
+      btnAudit: document.getElementById("btn-audit"),
+      btnUninstall: document.getElementById("btn-uninstall"),
+
+      logTerminal: document.getElementById("ics-log-terminal"),
+
+      alertsBody: document.getElementById("alerts-body"),
+      alertsCount: document.getElementById("alerts-count"),
+
+      overlay: document.getElementById("overlay"),
+      overlayTitle: document.getElementById("overlay-title"),
+      overlayStatus: document.getElementById("overlay-status"),
+      overlayDot: document.getElementById("status-dot"),
+      overlayTerminal: document.getElementById("overlay-terminal"),
+      btnOverlayClose: document.getElementById("btn-overlay-close"),
+
+      btnInvSync: document.getElementById("btn-inv-sync"),
+      btnRefreshAll: document.getElementById("btn-refresh-all"),
+
+
+      scadaName : document.getElementById("scada-name"),
+scadaIp :document.getElementById("scada-ip"),
+scadaState : document.getElementById("scada-state"),
+
+plcName : document.getElementById("plc-name"),
+plcIp : document.getElementById("plc-ip"),
+plcState : document.getElementById("plc-state"),
+trafficSource: document.getElementById("traffic-source"),
+
+
+
+    };
+
+    const State = {
+      hostTools: [],        // [{id,name,status}]
+      health: { cpu: [], mem: [], net: [], t: [] },
+      chart: null,
+      alerts: [],
+
+        instances: [],             // inventory de instancias
+  traffic: {
+    es: null,                // EventSource activo
+    chart: null,
+    labels: [],
+    total: [],
+    modbus: [],
+    profinet: [],
+    other: [],
+  },
+  timers: {
+    hypervisor: null
+  }
+    };
+
+
+
+    State.timers.alerts = null;
+
+function startAlertsPolling(intervalMs = 10000) {
+  if (State.timers.alerts) clearInterval(State.timers.alerts);
+
+  const tick = async () => {
+    try {
+      await refreshAlertsReal(30);
+    } catch (e) {
+      logLine(`ERROR alerts poll: ${e.message}`);
+    }
+  };
+
+  tick();
+  State.timers.alerts = setInterval(tick, intervalMs);
+  logLine(`Alerts polling enabled: every ${intervalMs/1000}s`);
+}
+
+
+
+    function nowTime() {
+      return new Date().toLocaleTimeString();
+    }
+
+    function setBackendStatus(ok, text) {
+      UI.backendDot.className = "w-2 h-2 rounded-full " + (ok ? "bg-emerald-500" : "bg-red-500");
+      UI.backendStatus.textContent = text;
+    }
+
+    function logLine(msg) {
+      UI.logTerminal.textContent += `[${nowTime()}] ${msg}\n`;
+      UI.logTerminal.scrollTop = UI.logTerminal.scrollHeight;
+    }
+
+    function setOverlay(show, mode = "info") {
+      UI.overlay.classList.toggle("hidden", !show);
+      UI.overlay.classList.toggle("flex", show);
+
+      if (!show) return;
+
+      UI.overlayTerminal.textContent = "";
+      if (mode === "install") {
+        UI.overlayTitle.textContent = "Deploy / Install";
+        UI.overlayDot.className = "w-4 h-4 rounded-full bg-emerald-500 animate-pulse";
+        UI.overlayStatus.textContent = "Status: Ejecutando instalación (SSE)...";
+      } else if (mode === "uninstall") {
+        UI.overlayTitle.textContent = "Uninstall / Purge";
+        UI.overlayDot.className = "w-4 h-4 rounded-full bg-red-500 animate-pulse";
+        UI.overlayStatus.textContent = "Status: Ejecutando desinstalación (SSE)...";
+      } else if (mode === "version") {
+        UI.overlayTitle.textContent = "Audit Version";
+        UI.overlayDot.className = "w-4 h-4 rounded-full bg-sky-500 animate-pulse";
+        UI.overlayStatus.textContent = "Status: Consultando versión...";
+      } else {
+        UI.overlayTitle.textContent = "Execution";
+        UI.overlayDot.className = "w-4 h-4 rounded-full bg-slate-500 animate-pulse";
+        UI.overlayStatus.textContent = "Status: --";
+      }
+    }
+
+    UI.btnOverlayClose.addEventListener("click", () => setOverlay(false));
+
+    async function safeFetchJson(url, options = {}) {
+      const res = await fetch(url, options);
+      if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+      return await res.json();
+    }
+
+    /* =========================
+       1) OpenStack roles
+       ========================= */
+ async function loadRoles() {
+  try {
+    const data = await safeFetchJson(API.roles);
+    setBackendStatus(true, "connected");
+
+    // 1. Roles de Ciberseguridad
+    const a = data.attacker || {};
+    const v = data.victim || {};
+    const m = data.monitor || {};
+
+    UI.attackerName.textContent = a.name || "No detectado";
+    UI.attackerIp.textContent = `IP: ${a.ip || "--"}`;
+    UI.attackerState.textContent = `status: ${a.status || "offline"}`;
+
+    UI.victimName.textContent = v.name || "No detectado";
+    UI.victimIp.textContent = `IP: ${v.ip || "--"}`;
+    UI.victimState.textContent = `status: ${v.status || "offline"}`;
+
+    UI.monitorName.textContent = m.name || "No detectado";
+    UI.monitorIp.textContent = `IP: ${m.ip || "--"}`;
+    UI.monitorState.textContent = `status: ${m.status || "offline"}`;
+
+    // 2. Roles Industriales (Nuevos)
+    const s = data.scada || {};
+    const p = data.plc || {};
+
+    UI.scadaName.textContent = s.name || "FUXA Offline";
+    UI.scadaIp.textContent = `IP: ${s.ip || "--"}`;
+    UI.scadaState.textContent = `status: ${s.status || "offline"}`;
+
+    UI.plcName.textContent = p.name || "PLC Offline";
+    UI.plcIp.textContent = `IP: ${p.ip || "--"}`;
+    UI.plcState.textContent = `status: ${p.status || "offline"}`;
+
+  } catch (e) {
+    setBackendStatus(false, "offline");
+    logLine(`ERROR roles: ${e.message}`);
+  }
+}
+
+    /* =========================
+       2) Host inventory
+       - Primary: /api/host/inventory (si existe)
+       - Fallback: /api/host/forensic/tools (existe en tu backend)
+       ========================= */
+    function normalizeHostTools(payload) {
+      // Soporta:
+      //  A) {tools:[{id,name,status}]}
+      //  B) {tools:[{name,status}]}
+      const list = (payload && payload.tools) ? payload.tools : [];
+      return list.map((t) => ({
+        id: t.id || t.name || "tool",
+        name: t.name || t.id || "tool",
+        status: (t.status || "unknown").toLowerCase()
+      }));
+    }
+
+    function toolCard(tool) {
+      const isInstalled = tool.status === "installed";
+      const statusText = isInstalled ? "READY" : (tool.status || "UNKNOWN").toUpperCase();
+      const statusColor = isInstalled ? "text-emerald-400" : "text-slate-500";
+      const leftIcon = isInstalled ? "fa-check-circle text-emerald-400" : "fa-triangle-exclamation text-slate-500";
+      const border = isInstalled ? "border-emerald-500/20 hover:border-sky-500/50" : "border-slate-800/70";
+
+      const btnRight = isInstalled
+        ? `<button data-action="uninstall" data-tool="${tool.id}"
+             class="btn px-4 py-2 bg-red-900/20 hover:bg-red-600 border border-red-500/50 text-red-200 hover:text-white text-[10px] rounded-xl">
+             Uninstall
+           </button>`
+        : `<button data-action="install" data-tool="${tool.id}"
+             class="btn px-5 py-2 bg-sky-600 hover:bg-sky-500 text-white text-[10px] rounded-xl shadow-lg shadow-sky-900/20">
+             Install
+           </button>`;
+
+      const btnAudit = isInstalled
+        ? `<button data-action="audit" data-tool="${tool.id}"
+             class="btn px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 text-[10px] rounded-xl">
+             Audit
+           </button>`
+        : `<button disabled
+             class="btn px-4 py-2 bg-slate-950/40 border border-slate-800/50 text-slate-500 text-[10px] rounded-xl cursor-not-allowed">
+             Audit
+           </button>`;
+
+      return `
+        <div class="w-full bg-slate-950/35 border ${border} rounded-2xl p-5 flex items-center justify-between transition-all group">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center">
+              <i class="fa-solid ${leftIcon}"></i>
+            </div>
+
+            <div class="min-w-[250px]">
+              <div class="flex items-center gap-3">
+                <h4 class="text-base font-black mono uppercase tracking-tight text-slate-100 group-hover:text-sky-300 transition-colors">
+                  ${escapeHtml(tool.name)}
+                </h4>
+                <span class="badge">${statusText}</span>
+              </div>
+              <div class="mt-1 flex items-center gap-2">
+                <span class="mono text-[10px] ${statusColor} tracking-widest uppercase">
+                  ${isInstalled ? "READY - PULSE PARA AUDITAR SALIDA" : "PENDIENTE DE INSTALACIÓN"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            ${btnAudit}
+            ${btnRight}
+          </div>
+        </div>
+      `;
+    }
+
+    function populateToolSelect(tools) {
+      UI.selectTool.innerHTML = "";
+      tools.forEach(t => {
+        const opt = document.createElement("option");
+        opt.value = t.id;
+        opt.textContent = t.name;
+        UI.selectTool.appendChild(opt);
+      });
+    }
+
+    async function loadHostInventory() {
+      UI.toolsGrid.innerHTML = `
+        <div class="animate-pulse w-full bg-slate-900/30 border border-slate-800/50 rounded-2xl h-24"></div>
+        <div class="animate-pulse w-full bg-slate-900/30 border border-slate-800/50 rounded-2xl h-24"></div>
+      `;
+
+      try {
+        let data;
+        try {
+          data = await safeFetchJson(API.hostInventoryPrimary);
+        } catch {
+          data = await safeFetchJson(API.hostInventoryFallback);
+        }
+
+        const tools = normalizeHostTools(data);
+        State.hostTools = tools;
+
+        UI.invLastUpdate.textContent = `Last Update: ${nowTime()}`;
+        UI.topLastSync.textContent = nowTime();
+
+        populateToolSelect(tools);
+
+        UI.toolsGrid.innerHTML = tools.map(toolCard).join("");
+
+        // Bind actions
+        UI.toolsGrid.querySelectorAll("[data-action]").forEach(btn => {
+          btn.addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            const action = btn.getAttribute("data-action");
+            const toolId = btn.getAttribute("data-tool");
+            if (action === "audit") fetchVersion(toolId);
+            if (action === "install") runInstall(toolId);
+            if (action === "uninstall") runUninstall(toolId);
+          });
+        });
+
+        logLine(`Host inventory actualizado (${tools.length} tools).`);
+
+      } catch (e) {
+        UI.toolsGrid.innerHTML = `
+          <div class="p-4 bg-red-500/10 border border-red-500/20 text-red-200 text-xs rounded-2xl mono">
+            CRITICAL_ERROR: Failed to connect to backend inventory.
+            Details: ${escapeHtml(e.message)}
+          </div>
+        `;
+        logLine(`ERROR inventory: ${e.message}`);
+      }
+    }
+
+    /* =========================
+       3) Host version (audit)
+       ========================= */
+    async function fetchVersion(toolId) {
+      setOverlay(true, "version");
+      UI.overlayTerminal.textContent =
+        `[NICS-SHELL] Iniciando auditoría de binario: ${toolId}\n` +
+        `----------------------------------------------------------------\n\n`;
+
+      try {
+        const data = await safeFetchJson(API.hostVersion(toolId));
+        UI.overlayTerminal.textContent += (data.output || data.stdout || JSON.stringify(data, null, 2));
+        UI.overlayTerminal.textContent += `\n\n----------------------------------------------------------------\n[FIN] Auditoría finalizada.`;
+      } catch (e) {
+        UI.overlayTerminal.textContent += `\n[ERROR] Fallo en auditoría.\nDetails: ${e.message}`;
+      }
+    }
+
+    /* =========================
+       4) Host install/uninstall via SSE
+       - Si tu backend no tiene SSE, esto dará 404.
+       ========================= */
+    function streamSSE(url, onLine, onDone, onError) {
+      const es = new EventSource(url);
+      es.onmessage = (e) => onLine(e.data, es);
+      es.onerror = () => {
+        es.close();
+        onError(new Error("SSE error / endpoint no disponible"));
+      };
+      return es;
+    }
+
+    function appendOverlayLine(line) {
+      UI.overlayTerminal.textContent += line + "\n";
+      UI.overlayTerminal.scrollTop = UI.overlayTerminal.scrollHeight;
+    }
+
+    function runInstall(toolId) {
+      setOverlay(true, "install");
+      appendOverlayLine(`[NICS-SHELL] Preparando instalación: ${toolId.toUpperCase()}`);
+      appendOverlayLine("");
+
+      const url = API.hostInstallSSE(toolId);
+      const es = streamSSE(
+        url,
+        (data, src) => {
+          if (data && data.includes("[FIN]")) {
+            appendOverlayLine("");
+            appendOverlayLine("[OK] Instalación completada. Refrescando inventario...");
+            src.close();
+            setTimeout(async () => {
+              setOverlay(false);
+              await loadHostInventory();
+            }, 1000);
+            return;
+          }
+          appendOverlayLine(data);
+        },
+        () => {},
+        (err) => {
+          appendOverlayLine("");
+          appendOverlayLine(`[ERROR] ${err.message}`);
+        }
+      );
+      return es;
+    }
+
+    function runUninstall(toolId) {
+      if (!confirm(`¿Confirmar desinstalación completa de ${toolId.toUpperCase()}?`)) return;
+
+      setOverlay(true, "uninstall");
+      appendOverlayLine(`[NICS-SHELL] Iniciando desinstalación/purga: ${toolId.toUpperCase()}`);
+      appendOverlayLine("");
+
+      const url = API.hostUninstallSSE(toolId);
+      const es = streamSSE(
+        url,
+        (data, src) => {
+          if (data && data.includes("[FIN]")) {
+            appendOverlayLine("");
+            appendOverlayLine("[OK] Herramienta eliminada. Refrescando inventario...");
+            src.close();
+            setTimeout(async () => {
+              setOverlay(false);
+              await loadHostInventory();
+            }, 1000);
+            return;
+          }
+          appendOverlayLine(data);
+        },
+        () => {},
+        (err) => {
+          appendOverlayLine("");
+          appendOverlayLine(`[ERROR] ${err.message}`);
+        }
+      );
+      return es;
+    }
+
+    /* =========================
+       5) Right panel actions
+       ========================= */
+    UI.btnDeploy.addEventListener("click", () => {
+      const tool = UI.selectTool.value;
+      if (!tool) return alert("Selecciona una herramienta.");
+      runInstall(tool);
+    });
+
+    UI.btnAudit.addEventListener("click", () => {
+      const tool = UI.selectTool.value;
+      if (!tool) return alert("Selecciona una herramienta.");
+      fetchVersion(tool);
+    });
+
+    UI.btnUninstall.addEventListener("click", () => {
+      const tool = UI.selectTool.value;
+      if (!tool) return alert("Selecciona una herramienta.");
+      runUninstall(tool);
+    });
+
+    UI.btnInvSync.addEventListener("click", loadHostInventory);
+    UI.btnRefreshAll.addEventListener("click", async () => {
+      await loadRoles();
+  await loadHostInventory();
+  await refreshAlertsReal(30);
+    });
+
+  /* =========================
+   6) Alerts (REAL - last 30)
+   ========================= */
+
+function severityBadgeFromTriage(sev, score, recommend) {
+  const s = String(sev || "INFO").toUpperCase();
+  const scNum = (typeof score === "number") ? score : Number(score);
+
+  // Base por severidad
+  let cls =
+    s === "CRITICAL" ? "bg-red-500/10 border-red-500/25 text-red-200" :
+    s === "HIGH"     ? "bg-orange-500/10 border-orange-500/25 text-orange-200" :
+    s === "MEDIUM"   ? "bg-yellow-500/10 border-yellow-500/25 text-yellow-200" :
+    s === "LOW"      ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-200" :
+                       "bg-slate-500/10 border-slate-500/25 text-slate-200";
+
+  // Si score>=50 y NO es CRITICAL, pásalo a "rose" suave (más hacia rojo pero no rojo puro)
+  if (s !== "CRITICAL" && !Number.isNaN(scNum) && scNum >= 50) {
+    cls = "bg-rose-500/10 border-rose-500/25 text-rose-200";
+  }
+
+  const rec = recommend ? " · DFIR" : "";
+  const sc = (!Number.isNaN(scNum)) ? ` · ${scNum}` : "";
+  return `<span class="px-2 py-1 rounded-lg border ${cls} mono text-[10px] font-black uppercase tracking-widest">${s}${sc}${rec}</span>`;
+}
+function severityRowClass(sev, score) {
+  const s = String(sev || "INFO").toUpperCase();
+  const sc = (typeof score === "number") ? score : Number(score);
+
+  // Mantén CRITICAL como lo más fuerte
+  if (s === "CRITICAL") return "sev-critical";
+
+  // Si score >= 50, fuerza tono rojizo suave (no rojo puro)
+  if (!Number.isNaN(sc) && sc >= 50) return "sev-score50";
+
+  // Si no, usa tu mapping normal
+  if (s === "HIGH")     return "sev-high";
+  if (s === "MEDIUM")   return "sev-medium";
+  if (s === "LOW")      return "sev-low";
+  return "sev-info";
+}
+
+
+function formatRowDesc(a) {
+  // prioriza firma, luego tipo, luego source
+  const sig = a.signature ? String(a.signature) : "";
+  const typ = a.alert_type ? String(a.alert_type) : "";
+  const src = a.source ? String(a.source).toUpperCase() : "UNKNOWN";
+
+  const proto = a.protocol ? String(a.protocol).toUpperCase() : "";
+
+  const s = a.src || {};
+  const d = a.dst || {};
+
+  const hidePort = (proto === "ICMP" || proto === "IP" || proto === "UNKNOWN");
+
+  const srcPort = hidePort ? "" : (s.port != null ? `:${s.port}` : "");
+  const dstPort = hidePort ? "" : (d.port != null ? `:${d.port}` : "");
+
+  const srcTxt = (s.ip ? `${s.ip}` : "--") + srcPort;
+  const dstTxt = (d.ip ? `${d.ip}` : "--") + dstPort;
+
+  const main = sig || typ || `${src} alert`;
+  const sub = `${src} · ${proto} · ${srcTxt} → ${dstTxt}`.replace(/\s+/g, " ").trim();
+
+  return `
+    <div class="font-bold text-slate-200">${escapeHtml(main)}</div>
+    <div class="mono text-[10px] text-slate-400 mt-1">${escapeHtml(sub)}</div>
+  `;
+}
+
+
+async function refreshAlertsReal(limit = 30) {
+  try {
+    const data = await safeFetchJson(API.alertsLatest(limit));
+    const list = Array.isArray(data.alerts) ? data.alerts : [];
+
+    UI.alertsBody.innerHTML = list.map(a => {
+      const time = a.ts_utc ? String(a.ts_utc).replace("T", " ").replace("Z", "") : "--";
+      return `
+       <tr class="${severityRowClass(a.severity, a.score_0_100)} hover:bg-slate-900/20 transition-colors">
+          <td class="px-4 py-3 mono text-slate-300 whitespace-nowrap">${escapeHtml(time)}</td>
+          <td class="px-4 py-3">${formatRowDesc(a)}</td>
+          <td class="px-4 py-3">
+            ${severityBadgeFromTriage(a.severity, a.score_0_100, a.recommend_forensics)}
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    UI.alertsCount.textContent = String(list.length);
+
+    const sid = data.session_id ? `session=${data.session_id}` : "session=none";
+    logLine(`Alerts updated (${list.length}) · ${sid}`);
+
+  } catch (e) {
+    logLine(`ERROR alerts/latest: ${e.message}`);
+    UI.alertsBody.innerHTML = `
+      <tr>
+        <td class="px-4 py-3 mono text-red-300" colspan="3">
+          Failed to load alerts: ${escapeHtml(e.message)}
+        </td>
+      </tr>
+    `;
+    UI.alertsCount.textContent = "0";
+  }
+}
+
+
+    /* =========================
+       7) Health chart (demo)
+       ========================= */
+    /* =========================
+   7) Health (REAL) + Traffic (REAL)
+   ========================= */
+
+function toPct(used, total) {
+  const t = Number(total) || 0;
+  const u = Number(used) || 0;
+  if (t <= 0) return 0;
+  return Math.max(0, Math.min(100, (u / t) * 100));
+}
+
+function initHealthChartReal() {
+  const canvas = document.getElementById("healthChart");
+  if (!canvas) return;
+
+  // CLAVE: destruir chart previo si existe
+  if (State.chart) {
+    State.chart.destroy();
+    State.chart = null;
+  }
+
+  const ctx = canvas.getContext("2d");
+
+  State.chart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: ["CPU", "RAM", "DISK"],
+      datasets: [{
+        label: "Uso (%)",
+        data: [0, 0, 0],
+        backgroundColor: [
+          "rgba(34,211,238,0.55)",   // CPU
+          "rgba(16,185,129,0.55)",   // RAM
+          "rgba(245,158,11,0.55)"    // DISK
+        ],
+        borderRadius: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      resizeDelay: 200,
+      animation: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 100,
+          ticks: { color: "rgba(148,163,184,0.7)" },
+          grid: { color: "rgba(51,65,85,0.25)" }
+        },
+        x: {
+          ticks: { color: "rgba(148,163,184,0.7)" },
+          grid: { display: false }
+        }
+      },
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
+}
+
+async function fetchHypervisorStatsOnce() {
+  const stats = await safeFetchJson(API.hypervisorStats);
+
+  const cpuUsed  = stats.vcpus_used || 0;
+  const cpuTotal = stats.vcpus || 0;
+
+  const ramUsed  = stats.memory_mb_used || 0;
+  const ramTotal = stats.memory_mb || 0;
+
+  const diskUsed  = stats.local_gb_used || 0;
+  const diskTotal = stats.local_gb || 0;
+
+  const cpuPct  = Number(toPct(cpuUsed, cpuTotal).toFixed(1));
+  const ramPct  = Number(toPct(ramUsed, ramTotal).toFixed(1));
+  const diskPct = Number(toPct(diskUsed, diskTotal).toFixed(1));
+
+  if (State.chart) {
+    State.chart.data.datasets[0].data = [cpuPct, ramPct, diskPct];
+    State.chart.update();
+  }
+
+  logLine(`Hypervisor stats: CPU ${cpuPct}% | RAM ${ramPct}% | DISK ${diskPct}%`);
+}
+
+function startHypervisorPolling(intervalMs = 5000) {
+  if (State.timers.hypervisor) clearInterval(State.timers.hypervisor);
+
+  const tick = async () => {
+    try {
+      await fetchHypervisorStatsOnce();
+    } catch (e) {
+      logLine(`ERROR hypervisor-stats: ${e.message}`);
+    }
+  };
+
+  tick();
+  State.timers.hypervisor = setInterval(tick, intervalMs);
+}
+
+function initTrafficChartReal() {
+  const canvas = document.getElementById("trafficChart");
+  if (!canvas) return;
+
+  const ctx = canvas.getContext("2d");
+
+  State.traffic.chart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: [],
+      datasets: [
+        { label: "TOTAL", data: [], tension: 0.35, borderWidth: 2 },
+        { label: "MODBUS", data: [], tension: 0.35, borderWidth: 2 },
+        { label: "PROFINET", data: [], tension: 0.35, borderWidth: 2 },
+        { label: "OTHER", data: [], tension: 0.35, borderWidth: 2 },
+      ]
+    },
+    options: {
+      responsive: true,
+      animation: false,
+      maintainAspectRatio: false,
+      scales: {
+        x: { ticks: { color: "rgba(148,163,184,0.7)" }, grid: { color: "rgba(51,65,85,0.25)" } },
+        y: { ticks: { color: "rgba(148,163,184,0.7)" }, grid: { color: "rgba(51,65,85,0.25)" }, min: 0 }
+      },
+      plugins: { legend: { labels: { color: "rgba(226,232,240,0.8)" } } }
+    }
+  });
+}
+
+function resetTrafficSeries() {
+  State.traffic.labels = [];
+  State.traffic.total = [];
+  State.traffic.modbus = [];
+  State.traffic.profinet = [];
+  State.traffic.other = [];
+
+  if (State.traffic.chart) {
+    State.traffic.chart.data.labels = [];
+    State.traffic.chart.data.datasets[0].data = [];
+    State.traffic.chart.data.datasets[1].data = [];
+    State.traffic.chart.data.datasets[2].data = [];
+    State.traffic.chart.data.datasets[3].data = [];
+    State.traffic.chart.update();
+  }
+}
+
+function classifyProto(rawLine) {
+  const s = String(rawLine || "");
+  if (s.includes("MODBUS TCP")) return "MODBUS";
+  if (s.includes("PROFINET")) return "PROFINET";
+  return "OTHER";
+}
+
+function pushTrafficPoint(proto) {
+  const t = nowTime();
+
+  // Mantener ventana corta (ej. 20 puntos)
+  const MAX = 20;
+
+  const lastTotal = State.traffic.total.length ? State.traffic.total[State.traffic.total.length - 1] : 0;
+  const lastMod   = State.traffic.modbus.length ? State.traffic.modbus[State.traffic.modbus.length - 1] : 0;
+  const lastProf  = State.traffic.profinet.length ? State.traffic.profinet[State.traffic.profinet.length - 1] : 0;
+  const lastOther = State.traffic.other.length ? State.traffic.other[State.traffic.other.length - 1] : 0;
+
+  const nextTotal = lastTotal + 1;
+  const nextMod   = lastMod + (proto === "MODBUS" ? 1 : 0);
+  const nextProf  = lastProf + (proto === "PROFINET" ? 1 : 0);
+  const nextOther = lastOther + (proto === "OTHER" ? 1 : 0);
+
+  State.traffic.labels.push(t);
+  State.traffic.total.push(nextTotal);
+  State.traffic.modbus.push(nextMod);
+  State.traffic.profinet.push(nextProf);
+  State.traffic.other.push(nextOther);
+
+  if (State.traffic.labels.length > MAX) {
+    State.traffic.labels.shift();
+    State.traffic.total.shift();
+    State.traffic.modbus.shift();
+    State.traffic.profinet.shift();
+    State.traffic.other.shift();
+  }
+
+  if (State.traffic.chart) {
+    State.traffic.chart.data.labels = State.traffic.labels;
+    State.traffic.chart.data.datasets[0].data = State.traffic.total;
+    State.traffic.chart.data.datasets[1].data = State.traffic.modbus;
+    State.traffic.chart.data.datasets[2].data = State.traffic.profinet;
+    State.traffic.chart.data.datasets[3].data = State.traffic.other;
+    State.traffic.chart.update();
+  }
+}
+
+function stopTrafficStream() {
+  if (State.traffic.es) {
+    try { State.traffic.es.close(); } catch {}
+    State.traffic.es = null;
+  }
+}
+
+async function loadInstancesFull() {
+  const data = await safeFetchJson(API.instancesFull);
+  State.instances = data.instances || [];
+  return State.instances;
+}
+
+function findVmIdByName(name) {
+  const n = String(name || "").toLowerCase().trim();
+  if (!n) return null;
+
+  const vm = State.instances.find(x => String(x.name || "").toLowerCase().trim() === n);
+  return vm ? vm.id : null;
+}
+
+function startTrafficStreamForRole(roleObj, roleLabel, protosCsv = "modbus,profinet,tcp,udp,icmp") {
+  stopTrafficStream();
+  resetTrafficSeries();
+
+  const vmName = roleObj?.name || "";
+  const vmId = findVmIdByName(vmName);
+
+  UI.trafficSource.textContent = vmId ? `${roleLabel}: ${vmName}` : `${roleLabel}: ${vmName} (id no resuelto)`;
+
+  if (!vmId) {
+    logLine(`ERROR traffic: no se pudo resolver ID para VM "${vmName}". Necesito /api/openstack/instances/full con nombres consistentes.`);
+    return;
+  }
+
+  const url = API.trafficSSE(vmId, protosCsv);
+  logLine(`Traffic SSE conectado: ${roleLabel} -> ${vmName} (${vmId.slice(0,8)})`);
+
+  State.traffic.es = new EventSource(url);
+
+  State.traffic.es.onmessage = (e) => {
+    const line = String(e.data || "").trim();
+    if (!line || line === ":") return;
+
+    // Log operacional existente
+    logLine(line);
+
+    // Gráfica
+    const proto = classifyProto(line);
+    pushTrafficPoint(proto);
+  };
+
+  State.traffic.es.onerror = () => {
+    logLine("ERROR traffic SSE: pérdida de conexión / endpoint no disponible.");
+    stopTrafficStream();
+  };
+}
+
+    function escapeHtml(str) {
+      return String(str ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    /* =========================
+       Boot
+       ========================= */
+    document.addEventListener("DOMContentLoaded", async () => {
+  UI.logTerminal.textContent = "";
+  logLine("JS cargado correctamente.");
+
+  // Charts reales
+  initHealthChartReal();
+  initTrafficChartReal();
+
+  // Alerts demo (puedes mantenerlo)
+
+
+
+  // Carga base
+  await loadRoles();
+  await loadHostInventory();
+
+  // Necesario para resolver IDs a partir de nombres (sin tocar backend)
+  try {
+    await loadInstancesFull();
+  } catch (e) {
+    logLine(`ERROR instances/full: ${e.message}`);
+  }
+
+  // Inicia health real (OpenStack hypervisor)
+  startHypervisorPolling(5000);
+
+  // Inicia tráfico real por defecto: VICTIM (si existe)
+  // Usa lo que ya te devuelve tu endpoint de roles: data.victim
+  try {
+    const roles = await safeFetchJson(API.roles);
+    const victim = roles.victim || {};
+    startTrafficStreamForRole(victim, "VICTIM");
+  } catch (e) {
+    logLine(`ERROR start traffic (roles): ${e.message}`);
+  }
+logLine("Alerts polling enabled: every 10s");
+
+  // Auto refresh alerts demo (igual que tenías)
+
+startAlertsPolling(10000);
+});
+
+  </script>
+</body>
+</html>

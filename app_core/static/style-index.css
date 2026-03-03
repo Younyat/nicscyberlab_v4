@@ -1,0 +1,575 @@
+/* Variables de color para fácil mantenimiento */
+:root {
+    --bg-dark: #0f1015; /* Fondo más oscuro */
+    --bg-medium: #1a1c22; /* Fondo de paneles / sidebar */
+    --bg-light: #2c2e36; /* Inputs, hover states */
+    --border-color-dark: #3a3f4c;
+    --border-color-light: #5a606e;
+
+    --primary-color: #00e676; /* Verde eléctrico (similar al antiguo #00ff88) */
+    --secondary-color: #00b0ff; /* Azul brillante */
+    --accent-warning: #ffb300; /* Naranja/amarillo */
+    --accent-error: #ef5350; /* Rojo */
+    --accent-purple: #7e57c2; /* Morado */
+
+    --text-light: #e0e0e0;
+    --text-medium: #b0b0b0;
+    --text-dark: #808080;
+
+    --font-mono: 'Fira Code', 'Cascadia Code', 'Consolas', 'Monaco', monospace;
+    --font-sans: 'Inter', 'Segoe UI', sans-serif;
+}
+
+/* Importar una fuente moderna (ej. Inter de Google Fonts) y una monospace como Fira Code si se desea */
+/* @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600;700&display=swap'); */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-sans); /* Fuente sans-serif principal */
+    background: var(--bg-dark);
+    color: var(--text-light);
+    height: 100vh;
+    overflow: hidden;
+    line-height: 1.6;
+}
+
+.dashboard-container {
+    display: flex;
+    height: 100vh;
+}
+
+.sidebar {
+    width: 320px; /* Un poco más ancha */
+    background: var(--bg-medium);
+    padding: 25px;
+    overflow-y: auto;
+    border-right: 1px solid var(--border-color-dark);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.4); /* Sombra para profundidad */
+}
+
+.main-canvas {
+    flex: 1;
+    position: relative;
+}
+
+#cy {
+    width: 100%;
+    height: 100%;
+    background: 
+        linear-gradient(135deg, var(--bg-dark) 0%, #15181e 100%); /* Degradado sutil */
+    border: none; /* Quitamos bordes si los hubiera */
+}
+
+/* Estilos de los elementos de la barra lateral */
+.sidebar-section {
+    margin-bottom: 30px;
+    padding-bottom: 15px; /* Espacio extra para el borde inferior */
+    border-bottom: 1px dashed rgba(var(--border-color-dark), 0.5); /* Borde sutil y punteado */
+}
+.sidebar-section:last-child {
+    border-bottom: none; /* No hay borde en la última sección */
+}
+
+.sidebar-title {
+    font-size: 1.15em; /* Un poco más grande */
+    font-weight: 700; /* Más negrita */
+    margin-bottom: 20px;
+    color: var(--primary-color); /* Verde eléctrico */
+    text-shadow: 0 0 8px rgba(0, 230, 118, 0.3); /* Resplandor sutil */
+    letter-spacing: 0.5px;
+}
+
+.node-palette {
+    display: flex;
+    flex-direction: column;
+    gap: 12px; /* Espacio entre botones */
+}
+
+.node-button {
+    padding: 14px 18px; /* Más padding */
+    border: none;
+    border-radius: 6px; /* Bordes ligeramente más suaves */
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease; /* Transición más general */
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--font-sans);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* Sombra ligera */
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.node-button .node-icon {
+    font-size: 1.2em; /* Iconos un poco más grandes */
+    vertical-align: middle;
+}
+
+/* Degradados para los botones de nodo */
+.node-button.monitor {
+    background: linear-gradient(135deg, #4ba150 0%, #034206 100%); /* Verde oscuro a claro */
+    color: white;
+}
+
+.node-button.attack {
+    background: linear-gradient(135deg, #a84444 0%, #600706 100%); /* Rojo oscuro a claro */
+    color: white;
+}
+
+.node-button.victim {
+    background: linear-gradient(135deg, #5283bc 0%, #033464 100%); /* Azul oscuro a claro */
+    color: white;
+}
+
+.node-button:hover {
+    transform: translateY(-3px); /* Efecto 3D sutil */
+    box-shadow: 0 6px 15px rgba(0,0,0,0.4); /* Sombra más pronunciada */
+    filter: brightness(1.1); /* Ligero brillo al pasar el ratón */
+}
+
+.node-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    filter: brightness(0.9); /* Oscurecer un poco al hacer clic */
+}
+
+/* Panel de Propiedades y Formularios */
+.properties-panel {
+    background: var(--bg-medium);
+    border: 1px solid var(--border-color-dark);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.3); /* Sombra interior para profundidad */
+}
+
+.form-group {
+    margin-bottom: 18px; /* Más espacio entre grupos */
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-medium);
+    font-size: 0.9em;
+    font-weight: 600;
+}
+
+.form-group input, 
+.form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color-light);
+    border-radius: 5px;
+    background: var(--bg-light);
+    color: var(--text-light);
+    font-size: 0.95em;
+    font-family: var(--font-mono); /* Fuente monospace para inputs */
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    -webkit-appearance: none; /* Para personalizar el select en Webkit */
+    -moz-appearance: none; /* Para personalizar el select en Firefox */
+    appearance: none; /* Estilo consistente del select */
+}
+
+.form-group input:focus, 
+.form-group select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 230, 118, 0.3); /* Resplandor al enfocar */
+}
+
+.form-group select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23b0b0b0'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E"); /* Flecha personalizada para select */
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px;
+}
+
+/* Grupo de opciones de seguridad (Snort/Suricata) */
+.security-options-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--bg-dark); /* Fondo más oscuro para agrupar */
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px dashed var(--border-color-dark);
+}
+
+.security-options-group label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-light);
+    margin-bottom: 0; /* Anular margen del label general */
+}
+
+.security-options-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border: 2px solid var(--border-color-light);
+    border-radius: 4px;
+    background-color: var(--bg-light);
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.security-options-group input[type="checkbox"]:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(0, 230, 118, 0.3);
+}
+
+.security-options-group input[type="checkbox"]:checked::before {
+    content: '';
+    display: block;
+    color: var(--bg-dark);
+    font-size: 12px;
+    text-align: center;
+    line-height: 14px;
+}
+
+
+.security-options-group select {
+    width: auto;
+    padding: 6px 10px;
+    font-size: 0.85em;
+    margin-left: auto; /* Empuja el select a la derecha */
+}
+
+
+/* Botones de acción */
+.action-buttons {
+    display: flex;
+    flex-wrap: wrap; /* Permite que los botones se envuelvan */
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.action-btn {
+    flex: 1 1 calc(50% - 5px); /* Dos botones por fila */
+    min-width: 120px; /* Ancho mínimo para evitar que se aplasten */
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    font-family: var(--font-sans);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* Estilos para los botones específicos */
+.btn-connect {
+    background: linear-gradient(135deg, #d84315 0%, #ff5722 100%); /* Naranja oscuro a claro */
+    color: white;
+}
+
+.btn-delete {
+    background: linear-gradient(135deg, #424242 0%, #616161 100%); /* Gris oscuro */
+    color: white;
+}
+
+.btn-create { 
+    background: linear-gradient(135deg, #0d47a1 0%, #1976d2 100%); /* Azul oscuro a claro */
+    color: white;
+    flex-basis: 100%; /* Botón "Crear Escenario" ocupa todo el ancho */
+    margin-bottom: 10px; /* Espacio extra debajo */
+}
+
+.btn-clear {
+    background: linear-gradient(135deg, #424242 0%, #616161 100%); /* Gris oscuro */
+    color: white;
+    flex-basis: 100%; /* Botón "Limpiar Todo" ocupa todo el ancho */
+}
+
+/* Botón de actualizar propiedades */
+.update-props-btn {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #00c853 100%);
+    color: var(--bg-dark); /* Texto oscuro en fondo claro */
+    margin-top: 15px;
+    flex-basis: 100%;
+}
+
+
+.action-btn:hover, .update-props-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 12px rgba(0,0,0,0.4);
+    filter: brightness(1.1);
+}
+
+.action-btn:active, .update-props-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    filter: brightness(0.9);
+}
+
+/* Panel de Información y Estado */
+.info-panel {
+    background: var(--bg-medium);
+    border: 1px solid var(--border-color-dark);
+    border-left: 5px solid var(--primary-color); /* Borde acentuado */
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    font-weight: 600;
+    color: var(--text-light);
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    box-shadow: 0 0 8px var(--primary-color), inset 0 0 3px rgba(255,255,255,0.5);
+    animation: pulse 1.5s infinite ease-out; /* Animación más sutil */
+}
+
+@keyframes pulse {
+    0% { transform: scale(0.95); opacity: 0.8; }
+    50% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.scenario-stats {
+    font-family: var(--font-mono); /* Monospace para las estadísticas */
+    font-size: 0.9em;
+    color: var(--text-medium);
+}
+
+.scenario-stats div {
+    margin-bottom: 5px;
+}
+
+/* Notificaciones Toast */
+.toast {
+    position: fixed;
+    top: 25px;
+    right: 25px;
+    background: var(--bg-medium);
+    color: var(--text-light);
+    padding: 14px 25px;
+    border-radius: 6px;
+    border-left: 5px solid var(--primary-color);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    opacity: 0;
+    transform: translateX(120%); /* Empieza más a la derecha */
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55); /* Animación elástica */
+    z-index: 1000;
+    font-family: var(--font-sans);
+    font-size: 0.9em;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Estilos de Cytoscape - Asegúrate de que estos estén en initCytoscape() */
+/* Opcional: Si quieres que los bordes del nodo se vean más contrastados */
+/*
+cy.style()
+    .selector('node')
+        .style({
+            'border-color': 'data(borderColor)' // Si añades data.borderColor a tus nodos
+        })
+    .update();
+*/
+
+
+/* Definición de la fuente Inter (como se requiere) */
+@import url('https://fonts.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+body {
+    font-family: 'Inter', sans-serif;
+    /* Fondo del cuerpo sólido para un contraste máximo */
+    background-color: #0d1117; 
+    color: #e0e0e0; 
+}
+
+/* Estilo específico para el HEADER (Menú Superior) */
+.header-bg {
+    /* La imagen proporcionada por el usuario */
+    background-image: url('https://www.pmg-ssi.com/wp-content/uploads/2023/10/ethical-hacking.jpg'); 
+    background-size: cover;
+    background-position: center center;
+    /* CAMBIO CLAVE: Opacidad reducida a 50% para ver la imagen. */
+    background-color: rgba(13, 17, 23, 0.5); 
+    background-blend-mode: overlay; /* Permite que los colores de la imagen se mezclen sin oscurecerla demasiado */
+}
+        
+/* Ajuste de la altura y el ancho del iframe para que se vea bien en el centro */
+.iframe-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px; /* 20px de padding arriba y abajo */
+    
+    /* CÁLCULO DE ALTURA: 100vh - (96px de Header) - (40px de padding total) */
+    height: calc(100vh - 96px - 40px); 
+}
+
+.centered-iframe {
+    width: 90%; /* Ancho dentro del contenedor principal */
+    height: 100%; /* Altura máxima dentro del contenedor */
+    /* Estilo de consola/pantalla incrustada */
+    border: 2px solid #00e676; 
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(0, 230, 118, 0.4), inset 0 0 10px rgba(0, 0, 0, 0.5); 
+    background-color: #1a1c22; /* Fondo para el contenido del iframe */
+}
+
+/* Ajuste para el contenido principal para saltar el header y el sidebar */
+main {
+    /* PADDING CORRECTO: La altura del header es h-24 = 96px */
+    padding-top: 96px; 
+    padding-left: 256px; /* Ancho del sidebar fijo */
+    /* Fondo ligeramente transparente sobre el cuerpo oscuro */
+    background-color: rgba(0, 0, 0, 0.2); 
+    min-height: 100vh;
+}
+
+/* Responsive para móvil/tablet: Mostrar sidebar y ajustar padding */
+@media (max-width: 1024px) {
+    .sidebar {
+        /* CAMBIADO: Muestra la sidebar. Usa 'flex' o 'grid' si era ese el display original. */
+        display: block; 
+    }
+    main {
+        /* Es posible que necesites un padding-left para dejar espacio al sidebar */
+        padding-left: 0; 
+        /* Si la sidebar no es fija o superpone el contenido, puedes dejar el padding en 0, 
+           o ajustarlo si es necesario, p. ej. padding-left: 250px; */
+    }
+    .iframe-container {
+        /* Ajuste móvil: 100vh - (96px de Header) - (20px de padding total) */
+        padding: 10px;
+        height: calc(100vh - 96px - 20px);
+    }
+}
+/* Definición de variables de color para el editor */
+:root {
+    --bg-dark: #1e1e2e;
+    --bg-light: #2d2d3d;
+    --text-light: #f0f0f0;
+    --primary-color: #00e676; /* Verde eléctrico */
+    --secondary-color: #4fc3f7; /* Azul brillante */
+    --accent-warning: #ffb300; /* Naranja */
+    --border-color-light: #444;
+    --font-mono: 'Fira Code', 'Lucida Console', monospace;
+}
+
+/* Estilos Base: Asegura que el contenedor principal ocupe toda la altura */
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-light);
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+    height: 100%; /* Ajustado a 100% para adaptarse a la altura del iframe */
+    /* Se permite el desplazamiento si el contenido es más grande que la ventana */
+    overflow: auto; 
+}
+
+/* 1. Contenedor Principal (Dashboard) */
+.dashboard-container {
+    /* Mantiene la distribución horizontal (sidebar y canvas) siempre */
+    display: flex;
+    min-height: 100%; /* Ajustado a 100% */
+    
+    /* FORZAR VISIBILIDAD: Mínimo necesario para mostrar el sidebar + un poco de canvas */
+    min-width: 720px; 
+}
+
+/* 2. Barra Lateral (Sidebar) */
+.sidebar {
+    width: 320px; /* Ancho fijo para escritorio, siempre visible */
+    background-color: var(--bg-light);
+    padding: 20px;
+    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.5);
+    overflow-y: auto; 
+    flex-shrink: 0; /* Asegura que no se encoja */
+}
+
+.sidebar-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid var(--border-color-light);
+}
+
+.sidebar-section {
+    margin-bottom: 25px;
+    padding: 15px;
+    border: 1px solid var(--border-color-light);
+    border-radius: 8px;
+    background-color: #262635; 
+}
+
+/* Estilos de botones y formularios */
+.node-button, .action-btn, input[type="text"], select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.node-button, .action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-light);
+    box-shadow: 0 4px #1a1a27;
+}
+
+/* Colores de botones de nodo */
+.node-button.monitor { background-color: #35ba3b; } 
+.node-button.attack { background-color: #e53935; } 
+.node-button.victim { background-color: #1776d4; } 
+
+/* 3. Área de Trabajo (Cytoscape) */
+.main-canvas {
+    flex-grow: 1;
+    height: 100%; /* Ajustado a 100% */
+    padding: 20px;
+    background-color: var(--bg-dark); 
+}
+
+#cy {
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+    background-color: #13131d; 
+    box-shadow: inset 0 0 15px rgba(0, 230, 118, 0.1);
+}
+
+/* Añade esto a tu archivo styles.css */
+.btn-load {
+    background: linear-gradient(135deg, #0277bd 0%, #03a9f4 100%);
+    /* Azul claro */
+}
+
+.btn-load:hover {
+    background: linear-gradient(135deg, #01579b 0%, #0288d1 100%);
+}

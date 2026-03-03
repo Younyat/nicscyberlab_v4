@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Terminal Flask Logs</title>
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<style>
+body { background-color: #111; color: #0f0; font-family: monospace; padding: 10px; }
+#terminal { height: 90vh; overflow-y: auto; white-space: pre-wrap; border: 1px solid #0f0; padding: 10px; border-radius: 5px; }
+</style>
+</head>
+<body>
+<h2> Terminal de Logs en Tiempo Real</h2>
+<div id="terminal"></div>
+
+<script>
+const socket = io("http://127.0.0.1:5050");
+const terminal = document.getElementById('terminal');
+
+socket.on('connect', () => {
+    terminal.innerHTML = "";
+    terminal.innerHTML += " Conectado al servidor...\n";
+});
+
+socket.on('terminal_output', (msg) => {
+    terminal.innerHTML += msg.data + "\n";
+    terminal.scrollTop = terminal.scrollHeight;
+});
+</script>
+</body>
+</html>

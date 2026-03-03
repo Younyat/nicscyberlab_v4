@@ -6,7 +6,7 @@ attack_bp = Blueprint('attack', __name__)
 manager = SSHTacticalManager()
 
 # Ruta base de los scripts .sh
-SCRIPTS_DIR = os.path.abspath(os.path.join(os.getcwd(), "tools-installer", "scripts"))
+SCRIPTS_DIR = os.path.abspath(os.path.join(os.getcwd(), "attack", "scripts"))
 
 @attack_bp.route('/launch', methods=['GET'])
 def launch_attack():

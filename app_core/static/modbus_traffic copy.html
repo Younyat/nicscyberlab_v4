@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
+    <style>
+        body { background: #020617; color: #f1f5f9; font-family: 'Inter', sans-serif; overflow: hidden; height: 100vh; }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+            border-radius: 1rem;
+        }
+        /* Scrollbar estilo forense */
+        #packet-flow::-webkit-scrollbar { width: 4px; }
+        #packet-flow::-webkit-scrollbar-track { background: transparent; }
+        #packet-flow::-webkit-scrollbar-thumb { background: #38bdf8; border-radius: 10px; }
+
+        .packet-card { transition: all 0.2s ease; border-left: 4px solid transparent; }
+        .packet-card:hover { background: rgba(255,255,255,0.03); border-left-color: #38bdf8; }
+        .packet-card.active .details { display: block; }
+        .details { display: none; }
+        
+        .badge-ot { font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
+        .status-pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body class="p-6">
+    <div class="grid grid-cols-12 gap-6 h-full">
+        
+        <div class="col-span-3 flex flex-col gap-6">
+            <div class="glass-panel p-5 flex-1">
+                <h2 class="text-[10px] font-black tracking-[0.2em] text-sky-400 mb-6 uppercase">Inventory Context</h2>
+                <div id="node-list" class="space-y-4">
+                    </div>
+                <div class="mt-8 pt-6 border-t border-slate-800">
+                    <div class="text-[9px] text-slate-500 font-bold uppercase mb-2">Network Segment</div>
+                    <div class="text-xs font-mono bg-black/40 p-2 rounded border border-slate-800 text-sky-300">
+                        vNet: internal_industrial_01<br>
+                        CIDR: 10.0.2.0/24
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-span-9 flex flex-col gap-6 overflow-hidden">
+            <div class="glass-panel p-6 flex flex-col h-full overflow-hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h1 class="text-lg font-bold text-white tracking-tight">Industrial Traffic Inspector</h1>
+                        <p class="text-xs text-slate-400">Captura en tiempo real - Interfaz eth0</p>
+                    </div>
+                    <div class="flex items-center gap-4 bg-slate-900/80 px-4 py-2 rounded-full border border-slate-800">
+                        <div class="w-2 h-2 bg-emerald-500 rounded-full status-pulse"></div>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-emerald-400">Live Stream</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-12 px-4 mb-2 text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                    <div class="col-span-2">Timestamp</div>
+                    <div class="col-span-4">Source (Identity)</div>
+                    <div class="col-span-4">Destination (Identity)</div>
+                    <div class="col-span-2 text-right">Function</div>
+                </div>
+
+                <div id="packet-flow" class="flex-1 overflow-y-auto space-y-2 pr-2">
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // MAPEO DE INSTANCIAS (Simulando lo que traes de tu API de OpenStack)
+        const OPENSTACK_NODES = {
+            '10.0.2.214': { name: 'ATTACK-HOST-02', role: 'Attacker', color: 'bg-rose-500/10 text-rose-400 border-rose-500/20' },
+            '10.0.2.15': { name: 'PLC-S7-SIMULATOR', role: 'Industrial Device', color: 'bg-sky-500/10 text-sky-400 border-sky-500/20' },
+            '10.0.2.10': { name: 'SCADA-RUNTIME-01', role: 'HMI/Monitor', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' }
+        };
+
+        // Renderizar lista de nodos lateral
+        const nodeList = document.getElementById('node-list');
+        Object.entries(OPENSTACK_NODES).forEach(([ip, info]) => {
+            nodeList.innerHTML += `
+                <div class="p-3 rounded-xl bg-white/5 border border-white/5">
+                    <div class="text-[10px] font-bold text-slate-300 uppercase">${info.name}</div>
+                    <div class="flex justify-between items-center mt-1">
+                        <span class="text-[9px] font-mono text-slate-500">${ip}</span>
+                        <span class="badge-ot ${info.color}">${info.role}</span>
+                    </div>
+                </div>
+            `;
+        });
+
+        const flow = document.getElementById('packet-flow');
+
+        function addPacket(srcIp, dstIp, func, hexPayload) {
+            const src = OPENSTACK_NODES[srcIp] || { name: 'Unknown', color: 'bg-slate-800 text-slate-400' };
+            const dst = OPENSTACK_NODES[dstIp] || { name: 'Unknown', color: 'bg-slate-800 text-slate-400' };
+            const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+
+            const card = document.createElement('div');
+            card.className = "packet-card bg-slate-900/40 border border-slate-800 rounded-lg overflow-hidden cursor-pointer";
+            card.onclick = () => card.classList.toggle('active');
+
+            card.innerHTML = `
+                <div class="grid grid-cols-12 p-4 items-center text-[11px]">
+                    <div class="col-span-2 font-mono text-slate-500">${time}</div>
+                    <div class="col-span-4 flex flex-col">
+                        <span class="font-bold text-slate-200">${src.name}</span>
+                        <span class="text-[9px] font-mono text-slate-500">${srcIp}</span>
+                    </div>
+                    <div class="col-span-4 flex flex-col">
+                        <span class="font-bold text-slate-200">${dst.name}</span>
+                        <span class="text-[9px] font-mono text-slate-500">${dstIp}</span>
+                    </div>
+                    <div class="col-span-2 text-right">
+                        <span class="px-2 py-1 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20 font-bold text-[9px]">${func}</span>
+                    </div>
+                </div>
+                <div class="details p-4 bg-black/40 border-t border-slate-800 animate-in fade-in duration-300">
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="text-[8px] font-black text-slate-500 uppercase mb-2 tracking-widest">Packet Metadata</h4>
+                            <div class="space-y-1 font-mono text-[10px] text-slate-400">
+                                <p>Eth: 802.3 · IPv4 · TCP (502)</p>
+                                <p>Modbus TID: ${Math.floor(Math.random()*6000)}</p>
+                                <p>Length: ${hexPayload.split(' ').length} bytes</p>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="text-[8px] font-black text-sky-400 uppercase mb-2 tracking-widest">Hex Content</h4>
+                            <div class="bg-slate-950 p-3 rounded-md border border-slate-800 text-[10px] font-mono text-sky-200 break-all leading-relaxed">
+                                ${hexPayload}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            flow.prepend(card);
+            // Limitar a 50 elementos para no saturar el DOM, pero con scroll activo
+            if (flow.children.length > 50) flow.lastChild.remove();
+        }
+
+        // Simulación de tráfico capturado por el script de Python
+        setInterval(() => {
+            addPacket('10.0.2.214', '10.0.2.15', 'WRITE_COIL', '00 01 00 00 00 06 01 05 00 6B FF 00');
+        }, 3000);
+        
+        setInterval(() => {
+            addPacket('10.0.2.10', '10.0.2.15', 'READ_REGS', '00 24 00 00 00 06 01 03 00 01 00 0A');
+        }, 5000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Terminal SSH Web</title>
+    <!-- Intenta cargar socket.io desde la CDN -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        // Si socket.io no se carga desde la CDN, intenta con una copia local
+        if (typeof io === 'undefined') {
+            console.warn("socket.io no se cargó desde la CDN, intentando carga local");
+            document.write('<script src="/static/socket.io.min.js"></' + 'script>');
+        }
+    </script>
+    <style>
+        body {
+            background: #111;
+            color: #0f0;
+            font-family: monospace;
+            padding: 12px;
+        }
+        #terminal {
+            height: 60vh;
+            overflow: auto;
+            border: 1px solid #0f0;
+            padding: 8px;
+            background: #000;
+        }
+        input, button {
+            font-family: monospace;
+        }
+        .line {
+            white-space: pre-wrap;
+            color: #ddd;
+        }
+        .cmd {
+            color: #ff0;
+        }
+        .info {
+            color: #6cf;
+        }
+        .err {
+            color: #f66;
+        }
+        .input-group {
+            margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <h2>Terminal SSH Web</h2>
+    <div class="input-group">
+        Host: <input id="host" value="10.0.2.221" />
+        User: <input id="user" value="ubuntu" />
+        Key: <input id="key" value="nueva_clave_wazuh" />
+        <button id="btnConnect">Conectar</button>
+        <button id="btnDisconnect">Desconectar</button>
+    </div>
+    <div id="terminal"></div>
+    <div class="input-group">
+        <input id="cmd" style="width: 80%;" placeholder="Escribe comando y presiona Enter" />
+        <button id="send" disabled>Enviar</button>
+    </div>
+
+    <script>
+        console.log("Iniciando script de frontend");
+        if (typeof io === 'undefined') {
+            console.error("Error: socket.io no se cargó correctamente (ni CDN ni local)");
+            alert("Error: socket.io no se cargó. Verifica la copia local en /static/socket.io.min.js.");
+        } else {
+            console.log("socket.io cargado correctamente");
+        }
+
+        // Conectar explícitamente a 10.0.2.221:8888
+        const socket = io('http://0.0.0.0:8080/', {
+            reconnection: false, // Desactivar reconexión automática
+            reconnectionAttempts: 3,
+            reconnectionDelay: 1000,
+            transports: ['websocket', 'polling'] // Intentar WebSocket, con polling como respaldo
+        });
+        const terminal = document.getElementById("terminal");
+        const hostInput = document.getElementById("host");
+        const userInput = document.getElementById("user");
+        const keyInput = document.getElementById("key");
+        const btnConnect = document.getElementById("btnConnect");
+        const btnDisconnect = document.getElementById("btnDisconnect");
+        const cmdInput = document.getElementById("cmd");
+        const sendBtn = document.getElementById("send");
+
+        let sshConnected = false;
+
+        function stripAnsi(text) {
+            try {
+                // Eliminar códigos ANSI, normalizar saltos de línea y espacios
+                return text.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '')
+                          .replace(/\r\n|\r|\n/g, '')
+                          .trim()
+                          .replace(/\s+/g, ' ');
+            } catch (e) {
+                console.error("Error en stripAnsi:", e);
+                return text;
+            }
+        }
+
+        function print(text, cls = "line") {
+            try {
+                text = stripAnsi(text);
+                console.log("Imprimiendo en terminal:", JSON.stringify(text));
+                const d = document.createElement("div");
+                d.className = cls;
+                d.innerText = text;
+                terminal.appendChild(d);
+                terminal.scrollTop = terminal.scrollHeight;
+            } catch (e) {
+                console.error("Error en print:", e);
+                print("[ERROR] Error al mostrar texto en el terminal: " + e.message, "err");
+            }
+        }
+
+        // Verificar que los elementos del DOM existan
+        if (!btnConnect || !btnDisconnect || !sendBtn || !cmdInput || !terminal) {
+            console.error("Error: No se encontraron elementos del DOM (btnConnect, btnDisconnect, sendBtn, cmdInput o terminal)");
+            alert("Error: Problema con la interfaz. Verifica el HTML.");
+        } else {
+            console.log("Elementos del DOM cargados correctamente");
+        }
+
+        btnConnect.onclick = () => {
+            console.log("Botón Conectar clicado");
+            alert("Botón Conectar clicado");
+            const host = hostInput.value.trim();
+            const user = userInput.value.trim();
+            const keyName = keyInput.value.trim();
+            console.log("Enviando connect_ssh:", JSON.stringify({ host, user, keyName }));
+            if (!host || !user || !keyName) {
+                print("[ERROR] Rellena host, user y key", "err");
+                return;
+            }
+            socket.emit("connect_ssh", { host, user, keyName });
+            print(`[INFO] Solicitando conexión SSH a ${user}@${host} con clave ${keyName}`, "info");
+        };
+
+        btnDisconnect.onclick = () => {
+            console.log("Botón Desconectar clicado");
+            alert("Botón Desconectar clicado");
+            socket.disconnect();
+            sshConnected = false;
+            sendBtn.disabled = true;
+            console.log("Deshabilitando botón Enviar tras desconexión");
+            print("[INFO] Socket desconectado (puedes recargar la página para reconectar).", "info");
+        };
+
+        sendBtn.onclick = () => {
+            console.log("Botón Enviar clicado");
+            alert("Botón Enviar clicado");
+            const cmd = cmdInput.value.trim();
+            if (!cmd) {
+                console.log("No se envió comando: campo vacío");
+                return;
+            }
+            print("$ " + cmd, "cmd");
+            socket.emit("send_command", { command: cmd });
+            cmdInput.value = "";
+        };
+
+        cmdInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                console.log("Enter presionado en cmdInput");
+                sendBtn.click();
+            }
+        });
+
+        socket.on("connect", () => {
+            console.log("Conectado al servidor WebSocket");
+            print("[INFO] Conectado al servidor WebSocket.", "info");
+        });
+
+        socket.on("disconnect", () => {
+            console.log("WebSocket desconectado");
+            sshConnected = false;
+            sendBtn.disabled = true;
+            console.log("Deshabilitando botón Enviar tras desconexión WebSocket");
+            print("[INFO] WebSocket desconectado.", "info");
+        });
+
+        socket.on("terminal_output", (msg) => {
+            try {
+                let text = msg.data || "";
+                console.log("Recibido terminal_output (crudo):", JSON.stringify(text));
+                text = stripAnsi(text);
+                console.log("Recibido terminal_output (procesado):", JSON.stringify(text));
+                console.log("Estado de sendBtn antes:", sendBtn.disabled);
+                if (text.includes("[SSH] Conectado a")) {
+                    sshConnected = true;
+                    sendBtn.disabled = false;
+                    console.log("Habilitando botón Enviar");
+                    print(text, "info");
+                } else if (text.includes("[SSH] Conexión cerrada")) {
+                    sshConnected = false;
+                    sendBtn.disabled = true;
+                    console.log("Deshabilitando botón Enviar");
+                    print(text, "info");
+                } else if (text.includes("[ERROR]")) {
+                    print(text, "err");
+                } else if (text.includes("[INFO]")) {
+                    print(text, "info");
+                } else {
+                    print(text);
+                }
+                console.log("Estado de sendBtn después:", sendBtn.disabled);
+            } catch (e) {
+                console.error("Error en terminal_output handler:", e);
+                print("[ERROR] Error al procesar terminal_output: " + e.message, "err");
+            }
+        });
+
+        socket.on("error", (error) => {
+            console.error("Error en WebSocket:", error);
+            print("[ERROR] Error en WebSocket: " + error, "err");
+        });
+
+        socket.on("connect_error", (error) => {
+            console.error("Error de conexión WebSocket:", error);
+            print("[ERROR] Error de conexión WebSocket: " + error.message, "err");
+        });
+
+        console.log("Script de frontend cargado correctamente");
+    </script>
+</body>
+</html>

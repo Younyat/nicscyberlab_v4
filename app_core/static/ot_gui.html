@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F-35 Tactical HUD - Cyber Ops</title>
+   
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.0/cytoscape.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+   
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+       
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #00ff88;
+            margin: 0;
+            overflow-y: auto;   
+            overflow-x: hidden;
+        }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        #cy {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, rgba(10,14,39,0.8) 0%, rgba(10,14,39,0.95) 100%),
+                        repeating-linear-gradient(0deg, rgba(0,255,136,0.03) 0px, transparent 1px, transparent 40px, rgba(0,255,136,0.03) 41px),
+                        repeating-linear-gradient(90deg, rgba(0,255,136,0.03) 0px, transparent 1px, transparent 40px, rgba(0,255,136,0.03) 41px);
+        }
+        .hud-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            background:
+                linear-gradient(to right, rgba(0,255,136,0.1) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0,255,136,0.1) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+        .targeting-hud {
+            position: absolute;
+            display: none;
+            pointer-events: none;
+            z-index: 1000;
+            transform: translate(-50%, -50%);
+        }
+        .targeting-hud.active {
+            display: block;
+            animation: targetLock 0.3s ease-out;
+        }
+        @keyframes targetLock {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        .reticle {
+            width: 200px;
+            height: 200px;
+            border: 2px solid #00ff88;
+            border-radius: 50%;
+            position: relative;
+            box-shadow: 0 0 30px rgba(0,255,136,0.4), inset 0 0 30px rgba(0,255,136,0.2);
+        }
+        .reticle::before, .reticle::after {
+            content: '';
+            position: absolute;
+            background: #00ff88;
+        }
+        .reticle::before { width: 40px; height: 2px; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+        .reticle::after { width: 2px; height: 40px; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+        .context-menu {
+            position: absolute;
+            display: none;
+            background: rgba(10, 14, 39, 0.98);
+            border: 2px solid #00ff88;
+            border-radius: 12px;
+            padding: 8px;
+            min-width: 280px;
+            box-shadow: 0 0 40px rgba(0,255,136,0.6);
+            z-index: 10000;
+            backdrop-filter: blur(10px);
+        }
+        .context-menu.active { display: block; }
+        .context-menu-section { margin-bottom: 12px; }
+        .context-menu-title {
+            font-size: 9px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            color: #00ff88;
+            margin-bottom: 6px;
+            padding-left: 8px;
+            border-left: 3px solid #00ff88;
+        }
+        .context-menu-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0,255,136,0.05);
+            border: 1px solid rgba(0,255,136,0.2);
+            margin-bottom: 4px;
+        }
+        .context-menu-item:hover {
+            background: rgba(0,255,136,0.2);
+            border-color: #00ff88;
+            transform: translateX(4px);
+        }
+        #combat-log::-webkit-scrollbar { width: 6px; }
+        #combat-log::-webkit-scrollbar-track { background: rgba(0,255,136,0.1); }
+        #combat-log::-webkit-scrollbar-thumb { background: #00ff88; border-radius: 10px; }
+        .hud-corner {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 2px solid #00ff88;
+            z-index: 10;
+        }
+        .hud-corner.tl { top: 20px; left: 20px; border-right: none; border-bottom: none; }
+        .hud-corner.tr { top: 20px; right: 20px; border-left: none; border-bottom: none; }
+        .hud-corner.bl { bottom: 20px; left: 20px; border-right: none; border-top: none; }
+        .hud-corner.br { bottom: 20px; right: 20px; border-left: none; border-top: none; }
+        .scan-line {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ff88, transparent);
+            animation: scanMove 4s linear infinite;
+            opacity: 0.3;
+            z-index: 5;
+        }
+        @keyframes scanMove { 0% { top: 0; } 100% { top: 100%; } }
+        .status-indicator { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        .status-online { background: #00ff88; box-shadow: 0 0 8px #00ff88; }
+        .status-offline { background: #ff3366; box-shadow: 0 0 8px #ff3366; }
+        .status-unknown { background: #ffaa00; box-shadow: 0 0 8px #ffaa00; }
+
+
+/* Busca el aside y el log y déjalos así */
+aside {
+    width: 450px !important; 
+}
+
+/* Esta es la parte clave para que sea grande */
+.terminal-container { 
+    height: 600px !important; /* Aumentado para que quepa todo el ping */
+    display: flex;
+    flex-direction: column;
+}
+
+#combat-log {
+    flex-grow: 1; /* Esto hace que el log use todo el espacio del contenedor */
+    height: 550px !important; 
+    font-size: 12px; 
+    line-height: 1.6;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 15px;
+    overflow-y: auto;
+    border-top: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="hud-corner tl"></div>
+    <div class="hud-corner tr"></div>
+    <div class="hud-corner bl"></div>
+    <div class="hud-corner br"></div>
+
+    <header class="absolute top-0 left-0 right-0 z-50 p-6 flex justify-between items-start">
+        <div>
+            <div class="text-xs font-black tracking-widest text-[#00ff88] mb-1">TACTICAL CYBER OPS</div>
+            <h1 class="text-3xl font-black tracking-tight text-white flex items-center gap-3">
+                <span class="w-10 h-10 bg-gradient-to-br from-[#00ff88] to-[#00aa66] rounded-lg flex items-center justify-center">
+                    <i class="fas fa-crosshairs text-[#0a0e27] text-lg"></i>
+                </span>
+                F-35 COMMAND HUD
+            </h1>
+            <div class="text-xs font-mono text-[#00ff88]/60 mt-1">OPENSTACK BATTLEFIELD - LIVE FEED</div>
+        </div>
+        <div class="flex gap-3 flex-wrap">
+            <button onclick="refreshBattlefield()" class="px-5 py-3 bg-[#00ff88]/10 border-2 border-[#00ff88] rounded-lg text-xs font-black text-[#00ff88] hover:bg-[#00ff88]/20 transition-all">
+                <i class="fas fa-sync-alt mr-2"></i> REFRESH SCAN
+            </button>
+            <button onclick="toggleAutoRefresh()" class="px-5 py-3 bg-[#0a0e27] border-2 border-[#00aaff] rounded-lg text-xs font-black text-[#00aaff] hover:bg-[#00aaff]/10 transition-all">
+                <i class="fas fa-satellite-dish mr-2"></i> AUTO-SCAN: <span id="auto-status">OFF</span>
+            </button>
+            <button onclick="toggleConnectionMode()" class="px-5 py-3 bg-[#ffaa00]/10 border-2 border-[#ffaa00] rounded-lg text-xs font-black text-[#ffaa00] hover:bg-[#ffaa00]/20 transition-all">
+                <i class="fas fa-link mr-2"></i> CONECTAR: <span id="conn-status">OFF</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="h-screen flex pt-24 pb-6 px-6 gap-6">
+        <div class="flex-1 relative">
+            <div class="h-full bg-[#0a0e27]/60 border-2 border-[#00ff88]/30 rounded-2xl overflow-hidden relative backdrop-blur-sm">
+                <div class="hud-overlay"></div>
+                <div class="scan-line"></div>
+                <div id="cy"></div>
+               
+                <div class="absolute bottom-8 left-8 flex gap-2">
+                    <button onclick="cy.zoom(cy.zoom()+0.15)" class="w-12 h-12 bg-[#00ff88]/20 border-2 border-[#00ff88] rounded-lg flex items-center justify-center text-[#00ff88] hover:bg-[#00ff88]/40 transition-all"><i class="fas fa-plus"></i></button>
+                    <button onclick="cy.zoom(cy.zoom()-0.15)" class="w-12 h-12 bg-[#00ff88]/20 border-2 border-[#00ff88] rounded-lg flex items-center justify-center text-[#00ff88] hover:bg-[#00ff88]/40 transition-all"><i class="fas fa-minus"></i></button>
+                    <button onclick="cy.fit(cy.nodes(), 80)" class="w-12 h-12 bg-[#00ff88] rounded-lg flex items-center justify-center text-[#0a0e27] font-black hover:bg-[#00dd77] transition-all"><i class="fas fa-expand"></i></button>
+                </div>
+
+                <div class="absolute top-6 left-6 bg-[#0a0e27]/90 border-2 border-[#00ff88] rounded-xl p-4 backdrop-blur-sm">
+                    <div class="text-[9px] font-black text-[#00ff88] mb-3 tracking-widest">THEATER STATUS</div>
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div><div id="target-count" class="text-2xl font-black text-white">0</div><div class="text-[8px] text-[#00ff88]/60 font-bold">TARGETS</div></div>
+                        <div><div id="link-count" class="text-2xl font-black text-white">0</div><div class="text-[8px] text-[#00ff88]/60 font-bold">LINKS</div></div>
+                        <div><div id="threat-level" class="text-2xl font-black text-[#ff3366]">LOW</div><div class="text-[8px] text-[#00ff88]/60 font-bold">THREAT</div></div>
+                    </div>
+                </div>
+            </div>
+
+
+
+
+               <div class="h-[650px] bg-[#0a0e27]/90 border-2 border-[#00ff88] rounded-2xl p-5 backdrop-blur-sm flex flex-col">
+        <div class="flex justify-between items-center mb-3 pb-2 border-b border-[#00ff88]/20">
+            <span class="text-[9px] font-black text-[#00ff88] tracking-widest">COMBAT LOG / LIVE TELEMETRY</span>
+            <button onclick="clearLog()" class="text-[8px] text-[#00ff88]/60 hover:text-[#00ff88] uppercase font-bold">CLEAR</button>
+        </div>
+        <div id="combat-log" class="flex-1 overflow-y-auto font-mono text-[11px] text-[#00ff88]/90 space-y-1 scroll-smooth"></div>
+    </div>
+
+
+
+    
+        </div>
+
+   
+
+
+<aside class="w-[420px] flex flex-col gap-6">
+    <div class="bg-[#0a0e27]/90 border-2 border-[#00ff88] rounded-2xl p-6 backdrop-blur-sm">
+        <div class="flex items-center gap-4 mb-4 pb-4 border-b-2 border-[#00ff88]/20">
+            <div id="target-icon-container" class="w-14 h-14 bg-[#00ff88]/10 border-2 border-[#00ff88] rounded-xl flex items-center justify-center text-2xl text-[#00ff88]">
+                <i id="target-icon" class="fas fa-bullseye"></i>
+            </div>
+            <div class="flex-1">
+                <h3 id="target-name" class="text-lg font-black text-white truncate">NO TARGET SELECTED</h3>
+                <div class="flex items-center gap-2 mt-1">
+                    <span id="target-status-indicator" class="status-indicator status-unknown"></span>
+                    <p id="target-role" class="text-[10px] font-bold text-[#00ff88]/60 uppercase tracking-widest">AWAITING LOCK</p>
+                </div>
+            </div>
+        </div>
+        <div id="target-details" class="space-y-4">
+            </div>
+    </div>
+
+ 
+
+
+
+
+
+</aside>
+
+
+
+    </div>
+
+    <div id="targeting-hud" class="targeting-hud">
+        <div class="reticle"></div>
+        <div class="absolute top-full left-1/2 transform -translate-x-1/2 mt-4 bg-[#0a0e27]/95 border-2 border-[#00ff88] rounded-lg p-3 min-w-[200px] backdrop-blur-sm">
+            <div id="hover-name" class="text-xs font-black text-white mb-2"></div>
+            <div class="space-y-1 text-[10px] font-mono">
+                <div class="flex justify-between"><span class="text-[#00ff88]/60">IP:</span><span id="hover-ip" class="text-[#00ff88]">-</span></div>
+                <div class="flex justify-between"><span class="text-[#00ff88]/60">ROLE:</span><span id="hover-role" class="text-[#00ff88]">-</span></div>
+                <div class="flex justify-between"><span class="text-[#00ff88]/60">STATUS:</span><span id="hover-status" class="text-[#00ff88]">-</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="context-menu" class="context-menu">
+        <div id="context-attack" class="context-menu-section">
+            <div class="context-menu-title">⚔️ OFFENSIVE OPS</div>
+            <div id="attack-actions"></div>
+        </div>
+        <div id="context-defense" class="context-menu-section">
+            <div class="context-menu-title">🛡️ DEFENSIVE OPS</div>
+            <div id="defense-actions"></div>
+        </div>
+        <div id="context-prevention" class="context-menu-section">
+            <div class="context-menu-title">🔒 PREVENTIVE OPS</div>
+            <div id="prevention-actions"></div>
+        </div>
+    </div>
+
+    <script>
+        let cy;
+        let autoRefresh = false;
+        let autoRefreshInterval;
+        let connectionMode = false;
+        let selectedNodes = [];
+
+        const API_BASE = "http://127.0.0.1:5001/api";
+
+        const ROLE_CONFIG = {
+            plc:       { icon: "fa-microchip", color: "#00aaff", label: "PLC CONTROLLER" },
+            scada:     { icon: "fa-desktop",   color: "#ff6600", label: "SCADA SYSTEM" },
+            attacker:  { icon: "fa-user-ninja",color: "#ff3366", label: "ATTACKER NODE" },
+            monitor:   { icon: "fa-radar",     color: "#00ff88", label: "MONITOR STATION" },
+            victim:    { icon: "fa-server",    color: "#ffaa00", label: "VICTIM HOST" },
+            unknown:   { icon: "fa-question-circle", color: "#888888", label: "UNKNOWN" }
+        };
+
+        document.addEventListener("DOMContentLoaded", () => {
+            cy = cytoscape({
+                container: document.getElementById("cy"),
+                style: [
+                    {
+                        selector: "node",
+                        style: {
+                            'label': 'data(name)',
+                            'text-valign': 'bottom',
+                            'text-margin-y': 10,
+                            'color': '#00ff88',
+                            'font-family': 'Orbitron',
+                            'font-size': '10px',
+                            'background-color': d => ROLE_CONFIG[d.data('role')]?.color || '#888888',
+                            'border-width': 2,
+                            'border-color': '#00ff88',
+                            'width': 40, 'height': 40
+                        }
+                    },
+                    {
+                        selector: "edge",
+                        style: {
+                            'width': 2,
+                            'curve-style': 'bezier',
+                            'target-arrow-shape': 'triangle',
+                            'opacity': 0.8
+                        }
+                    },
+                    // Estilos por tipo de enlace
+                    { selector: 'edge[type="network"]', style: { 'line-color': '#00ff88', 'target-arrow-color': '#00ff88' } },
+                    { selector: 'edge[type="modbus"]',  style: { 'line-color': '#ffaa00', 'target-arrow-color': '#ffaa00', 'width': 3 } },
+                    { selector: 'edge[type="attack"]',  style: { 'line-color': '#ff3366', 'target-arrow-color': '#ff3366', 'line-style': 'dashed' } },
+                    { selector: 'edge[type="monitor"]', style: { 'line-color': '#00aaff', 'target-arrow-color': '#00aaff' } },
+                    { selector: 'edge[type="c2"]',      style: { 'line-color': '#ff6600', 'target-arrow-color': '#ff6600' } },
+                    { selector: 'edge[type="manual"]',  style: { 'line-color': '#ffaa00', 'target-arrow-color': '#ffaa00', 'opacity': 1 } },
+                    { selector: ':selected', style: { 'border-width': 4, 'border-color': '#ffaa00' } }
+                ],
+                layout: { name: "preset" }
+            });
+
+            cy.on("tap", "node", e => renderTargetDetails(e.target));
+            cy.on("mouseover", "node", handleNodeHover);
+            cy.on("mouseout", "node", () => document.getElementById("targeting-hud").classList.remove("active"));
+            cy.on("cxttap", "node", handleRightClick);
+
+            // Hover en enlaces → info en log
+            cy.on("mouseover", "edge", e => {
+                const edge = e.target;
+                const s = edge.source().data("name") || edge.source().id();
+                const t = edge.target().data("name") || edge.target().id();
+                const type = edge.data("type") || "network";
+                logCombat("EDGE", `${s} → ${t}  (${type})`);
+            });
+
+            // Modo conexión: selección de nodos
+        cy.on("select", "node", evt => {
+    if (!connectionMode) return;
+
+    selectedNodes.push(evt.target);
+    logCombat("SELECT", `Nodo seleccionado: ${evt.target.id()}`);
+
+    if (selectedNodes.length === 2) {
+        const a = selectedNodes[0];
+        const b = selectedNodes[1];
+
+        cy.add({
+            group: "edges",
+            data: {
+                id: `manual-${Date.now()}`,
+                source: a.id(),
+                target: b.id(),
+                type: "manual"
+            }
+        });
+
+        logCombat("EDGE", `Enlace manual: ${a.id()} → ${b.id()}`);
+        selectedNodes = [];
+        connectionMode = false;
+        document.getElementById("conn-status").textContent = "OFF";
+        updateStats();
+    }
+});
+
+            document.addEventListener("click", () => {
+                document.getElementById("context-menu").classList.remove("active");
+            });
+
+            refreshBattlefield();
+        });
+
+ async function refreshBattlefield() {
+    logCombat("SCAN", "Escaneo táctico iniciado");
+
+    try {
+        const res = await fetch(`${API_BASE}/hud/instances`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
+        cy.elements().remove();
+
+        const instances = data.instances || [];
+        const edges = data.edges || [];
+
+        // =========================
+        // NODOS
+        // =========================
+        instances.forEach((inst, i) => {
+            const pos = inst.position || {
+                x: 500 + Math.cos((i / instances.length) * 2 * Math.PI) * 250,
+                y: 400 + Math.sin((i / instances.length) * 2 * Math.PI) * 250
+            };
+
+            cy.add({
+                group: "nodes",
+                data: {
+                    id: inst.id,          // ✅ ID REAL
+                    name: inst.name,
+                    role: inst.role,
+                    status: inst.status,
+                    ip: inst.ip,
+                    os: inst.os,
+                    allowed_ports: inst.allowed_ports,
+                    strategies: inst.strategies
+                },
+                position: pos
+            });
+        });
+
+        // =========================
+        // EDGES (ÚNICA FUENTE)
+        // =========================
+        if (Array.isArray(edges) && edges.length > 0) {
+            cy.add(edges.map((e, i) => ({
+                group: "edges",
+                data: {
+                    id: e.id || `edge-${i}-${e.source}-${e.target}`,
+                    source: e.source,
+                    target: e.target,
+                    type: e.type || "network"
+                }
+            })));
+            logCombat("EDGES", `Cargados ${edges.length} enlaces`);
+        } else {
+            logCombat("WARN", "Sin enlaces recibidos");
+        }
+
+        cy.fit(null, 60);
+        updateStats();
+        debugLinks();
+
+        logCombat("SUCCESS", "HUD sincronizado");
+
+    } catch (err) {
+        logCombat("ERROR", err.message);
+    }
+}
+
+function debugLinks() {
+    console.groupCollapsed("HUD LINKS");
+    cy.edges().forEach(e => {
+        console.log(
+            e.id(),
+            e.source().id(),
+            "→",
+            e.target().id(),
+            `[${e.data("type")}]`
+        );
+    });
+    console.log("Total:", cy.edges().length);
+    console.groupEnd();
+}
+
+
+
+
+function toggleConnectionMode() {
+    connectionMode = !connectionMode;
+    selectedNodes = [];
+
+    document.getElementById("conn-status").textContent =
+        connectionMode ? "ON" : "OFF";
+
+    logCombat(
+        "MODE",
+        connectionMode
+            ? "Modo conexión activo (selecciona 2 nodos)"
+            : "Modo conexión desactivado"
+    );
+}
+
+
+
+        function handleNodeHover(e) {
+            const node = e.target;
+            const pos = node.renderedPosition();
+            const hud = document.getElementById("targeting-hud");
+            const data = node.data();
+           
+            hud.style.left = pos.x + "px";
+            hud.style.top = pos.y + "px";
+            hud.classList.add("active");
+           
+            document.getElementById("hover-name").textContent = data.name;
+            document.getElementById("hover-ip").textContent = data.ip || "N/A";
+            document.getElementById("hover-role").textContent = (data.role || "UNKNOWN").toUpperCase();
+            document.getElementById("hover-status").textContent = data.status || "-";
+        }
+
+        function handleRightClick(e) {
+            e.preventDefault();
+            const menu = document.getElementById("context-menu");
+            const pos = e.renderedPosition;
+            menu.style.left = pos.x + "px";
+            menu.style.top = pos.y + "px";
+            menu.classList.add("active");
+
+            const data = e.target.data();
+            const strategies = data.strategies || { attack: [], defense: [], prevention: [] };
+           
+            populateContextActions("attack-actions", strategies.attack || [], data.id);
+            populateContextActions("defense-actions", strategies.defense || [], data.id);
+            populateContextActions("prevention-actions", strategies.prevention || [], data.id);
+        }
+
+        function populateContextActions(id, actions, targetId) {
+            const container = document.getElementById(id);
+            container.innerHTML = actions.length ? "" : '<div class="text-[9px] opacity-40 p-2">No disponible</div>';
+            actions.forEach(a => {
+                const div = document.createElement("div");
+                div.className = `context-menu-item ${id.split('-')[0]}`;
+                div.innerHTML = `<i class="fas fa-terminal"></i> ${a}`;
+                div.onclick = () => executeAction(targetId, a, a);
+                container.appendChild(div);
+            });
+        }
+
+        async function executeAction(targetId, actionId, label) {
+            logCombat("ACTION", `Ejecutando ${label} en ${targetId}...`);
+            try {
+                const res = await fetch(`${API_BASE}/hud/action`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ target_id: targetId, action: actionId })
+                });
+                const result = await res.json();
+                logCombat("RESULT", result.message || "Operación confirmada.");
+            } catch (e) {
+                logCombat("ERROR", "Fallo en la ejecución.");
+            }
+        }
+
+
+
+
+
+async function runAttack(attackerIp, targetIp, scriptName) {
+    terminalWrite(`ESTABLISHING SECURE SSH TUNNEL...`, 'text-sky-300 animate-pulse');
+    
+    try {
+        // Nota: El backend ahora buscará la máquina 'attack...' automáticamente, 
+        // pero enviamos attackerIp por si tu backend lo requiere como filtro inicial.
+        const response = await fetch(`${API_BASE}/hud/attack/launch?ip=${attackerIp}&target=${targetIp}&script=${scriptName}`);
+        
+        if (!response.ok) {
+            throw new Error(`ENLACE FALLIDO: Status ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            // Separamos por el formato SSE (data: ...)
+            const lines = chunk.split('\n');
+            
+            lines.forEach(line => {
+                if (line.startsWith('data:')) {
+                    let cleanLine = line.replace('data:', '').trim();
+                    
+                    if (cleanLine.includes("[MANAGER ERROR]") || cleanLine.includes("[INFRA ERROR]")) {
+                        terminalWrite(cleanLine, 'text-red-500 font-bold');
+                    } else if (cleanLine) {
+                        // Aquí sale el output real del ping (64 bytes from...)
+                        terminalWrite(`  ${cleanLine}`, 'text-[#00ff88]');
+                    }
+                }
+            });
+        }
+        terminalWrite("╔══════════════════════════════════════════════════════╗", 'text-emerald-500');
+        terminalWrite("║ ESTATO: OPERACIÓN COMPLETADA CON ÉXITO               ║", 'text-emerald-500');
+        terminalWrite("╚══════════════════════════════════════════════════════╝", 'text-emerald-500');
+        
+    } catch (err) {
+        terminalWrite(`!! FALLO CRÍTICO EN EL SISTEMA: ${err.message}`, 'text-red-500 font-black');
+    }
+}
+
+let activeTerminalContext = null;
+
+function initiateTacticalPing(targetIp) {
+    // 1. VALIDACIÓN DE SEGURIDAD INMEDIATA
+    // Si la IP no existe o es "N/A", abortamos la misión antes de contactar al servidor
+    if (!targetIp || targetIp === "N/A" || targetIp === "undefined" || targetIp === "") {
+        terminalWrite("!! ERROR DE PUNTERÍA: EL OBJETIVO NO TIENE UNA IP VÁLIDA", "text-red-500 font-black");
+        logCombat("CRITICAL", "Misión abortada: Dirección de destino nula.");
+        return; 
+    }
+
+    // 2. IDENTIFICACIÓN DE LA UNIDAD ATACANTE
+    // Buscamos en el grafo el nodo que tiene el rol de atacante
+    const attackerNode = cy.nodes('[role = "attacker"]')[0];
+    
+    if (!attackerNode) {
+        terminalWrite("!! ERROR DE COMUNICACIÓN: NO SE DETECTA NODO ATACANTE", "text-red-500");
+        logCombat("ERROR", "SECTOR BLOQUEADO: No hay unidad con privilegios de ataque en el HUD.");
+        return;
+    }
+
+    const attackerName = attackerNode.data('name');
+    const attackerIp = attackerNode.data('ip');
+
+    // 3. IDENTIFICACIÓN DEL OBJETIVO EN EL GRAFO (Para el log visual)
+    const targetNode = cy.nodes().filter(n => n.data('ip') === targetIp)[0];
+    const targetName = targetNode ? targetNode.data('name') : "UNKNOWN_HOST";
+
+    // 4. PREPARACIÓN DE LA TERMINAL TÁCTICA
+    // Limpiamos el log para mostrar la nueva misión de forma clara
+    // const log = document.getElementById("combat-log");
+   //  log.innerHTML = ""; 
+    
+    terminalWrite(`╔══════════════════════════════════════════════════════╗`, 'text-sky-400');
+    terminalWrite(`║ MISSION: TACTICAL NETWORK DIAGNOSTIC (PING)          ║`, 'text-sky-400');
+    terminalWrite(`║ ORIGIN:  ${attackerName.padEnd(20)} [${attackerIp}] ║`, 'text-white font-bold');
+    terminalWrite(`║ TARGET:  ${targetName.padEnd(20)} [${targetIp}]   ║`, 'text-yellow-400 font-bold');
+    terminalWrite(`╚══════════════════════════════════════════════════════╝`, 'text-sky-400');
+    
+    // 5. EJECUCIÓN DEL ATAQUE
+    // Enviamos los datos validados a la función que conecta con el backend
+    logCombat("ACTION", `Iniciando túnel táctico hacia ${targetIp}`);
+    runAttack(attackerIp, targetIp, 'ping_target.sh');
+}
+
+
+
+function renderTargetDetails(node) {
+    if (!node || !node.data) return;
+
+    const data = node.data() || {};
+    const role = (data.role || "").toLowerCase();
+    const config = ROLE_CONFIG[role] || ROLE_CONFIG.unknown;
+
+    const portsHtml =
+        Array.isArray(data.allowed_ports) && data.allowed_ports.length > 0
+            ? data.allowed_ports
+                  .map(p =>
+                      `<span class="bg-[#00ff88]/10 border border-[#00ff88]/30 px-1 rounded text-[10px]">${p}</span>`
+                  )
+                  .join(" ")
+            : '<span class="opacity-30">NONE</span>';
+
+    document.getElementById("target-name").textContent = data.name || "UNKNOWN";
+    document.getElementById("target-role").textContent = config.label;
+    document.getElementById("target-icon").className = `fas ${config.icon}`;
+    document.getElementById("target-status-indicator").className =
+        `status-indicator ${
+            data.status === "ACTIVE" ? "status-online" : "status-offline"
+        }`;
+
+    document.getElementById("target-details").innerHTML = `
+        <div class="grid grid-cols-2 gap-4 text-[11px] font-mono mb-4">
+            <div><span class="opacity-50">IP</span><br>${data.ip ?? "N/A"}</div>
+            <div><span class="opacity-50">STATUS</span><br>${data.status ?? "UNKNOWN"}</div>
+            <div><span class="opacity-50">OS</span><br>${data.os ?? "LINUX"}</div>
+        </div>
+
+        <div class="border-t border-[#00ff88]/20 pt-3 mb-4">
+            <span class="text-[9px] font-black text-[#00ff88] tracking-widest block mb-2">
+                FIREWALL RULES
+            </span>
+            <div class="flex flex-wrap gap-1 font-mono">
+                ${portsHtml}
+            </div>
+        </div>
+
+        <!-- INSTALAR DETECTOR (CUALQUIER NODO) -->
+        <div class="border-t border-[#00aaff]/20 pt-3 mb-4">
+            <button onclick="installIcmpDetector('${data.ip}')"
+                class="w-full py-3 bg-[#00aaff]/10 border border-[#00aaff]
+                       rounded-lg text-[10px] font-black text-[#00aaff]
+                       hover:bg-[#00aaff]/20 transition-all
+                       flex items-center justify-center gap-2">
+                <i class="fas fa-shield-alt"></i> INSTALL ICMP DETECTOR
+            </button>
+            <p class="text-[8px] text-[#00aaff]/40 mt-2 text-center uppercase">
+                Detector ICMP pasivo (root requerido)
+            </p>
+        </div>
+
+        ${
+            role === "monitor"
+                ? `
+        <!-- MONITOR CONTROL -->
+        <div class="border-t border-[#00ff88]/20 pt-3 mb-4">
+            <button onclick="startMonitorListener('${data.ip}')"
+                class="w-full py-3 bg-[#00ff88]/10 border border-[#00ff88]
+                       rounded-lg text-[10px] font-black text-[#00ff88]
+                       hover:bg-[#00ff88]/20 transition-all
+                       flex items-center justify-center gap-2">
+                <i class="fas fa-play"></i> START ICMP LISTENER
+            </button>
+
+            <button onclick="stopMonitorListener('${data.ip}')"
+                class="w-full mt-2 py-3 bg-[#ff3366]/10 border border-[#ff3366]
+                       rounded-lg text-[10px] font-black text-[#ff3366]
+                       hover:bg-[#ff3366]/20 transition-all
+                       flex items-center justify-center gap-2">
+                <i class="fas fa-stop"></i> STOP ICMP LISTENER
+            </button>
+
+            <p class="text-[8px] text-[#00ff88]/40 mt-2 text-center uppercase">
+                ICMP event collector
+            </p>
+        </div>
+        `
+                : ""
+        }
+
+        <!-- ATAQUE -->
+        <div class="border-t border-[#00ff88]/20 pt-4">
+            <button onclick="initiateTacticalPing('${data.ip}')"
+                class="w-full py-3 bg-[#00ff88]/10 border border-[#00ff88]
+                       rounded-lg text-[10px] font-black text-[#00ff88]
+                       hover:bg-[#00ff88]/20 transition-all
+                       flex items-center justify-center gap-2">
+                <i class="fas fa-satellite-dish"></i> LAUNCH TACTICAL PING
+            </button>
+            <p class="text-[8px] text-[#00ff88]/40 mt-2 text-center uppercase">
+                Requiere instancia atacante activa
+            </p>
+        </div>
+    `;
+}
+
+
+
+function updateStats() {
+            document.getElementById("target-count").textContent = cy.nodes().length;
+            document.getElementById("link-count").textContent = cy.edges().length;
+        }
+
+        function logCombat(type, msg) {
+            const log = document.getElementById("combat-log");
+            const div = document.createElement("div");
+            div.innerHTML = `<span class="opacity-40">[${new Date().toLocaleTimeString()}]</span> <span class="font-bold text-white">${type}:</span> ${msg}`;
+            log.appendChild(div);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function toggleAutoRefresh() {
+            autoRefresh = !autoRefresh;
+            document.getElementById("auto-status").textContent = autoRefresh ? "ON" : "OFF";
+            if (autoRefresh) {
+                autoRefreshInterval = setInterval(refreshBattlefield, 10000);
+            } else {
+                clearInterval(autoRefreshInterval);
+            }
+        }
+
+        function clearLog() {
+            document.getElementById("combat-log").innerHTML = "";
+        }
+/* ======================
+   UTILIDADES DE FEEDBACK (UI)
+   ====================== */
+function terminalWrite(msg, colorClass = 'text-[#00ff88]') {
+    const log = document.getElementById("combat-log");
+    const div = document.createElement("div");
+    div.className = `font-mono ${colorClass}`;
+    div.innerHTML = `<span class="opacity-40">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+}
+
+function showToast(message) {
+    logCombat("SYSTEM", message);
+}
+
+// Para evitar errores si no tienes estos elementos en el HTML, 
+// creamos funciones seguras que verifiquen si el elemento existe
+function setProgress(pct) {
+    const bar = document.getElementById('progress-bar-inner');
+    if (bar) bar.style.width = `${pct}%`;
+}
+
+function setStatus(text, subtext = '', type = 'idle') {
+    logCombat("STATUS", `${text} - ${subtext}`);
+}
+
+function bloquearBotones() {
+    const buttons = document.querySelectorAll("button");
+    buttons.forEach(btn => btn.disabled = true);
+}
+
+function desbloquearBotones() {
+    const buttons = document.querySelectorAll("button");
+    buttons.forEach(btn => btn.disabled = false);
+}
+
+function showOverlay(show) {
+    // Si no tienes un div "overlay", al menos logueamos el estado
+    console.log("Overlay:", show ? "MOSTRANDO" : "OCULTANDO");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+async function installIcmpDetector(targetIp) {
+    if (!targetIp || targetIp === "N/A") {
+        terminalWrite(
+            "!! NO SE PUEDE INSTALAR DETECTOR: IP inválida",
+            "text-red-500 font-black"
+        );
+        return;
+    }
+
+    // 🔍 localizar nodo monitor automáticamente
+    const monitorNode = cy.nodes('[role = "monitor"]')[0];
+
+    if (!monitorNode) {
+        terminalWrite(
+            "!! NO SE PUEDE INSTALAR DETECTOR: no hay nodo MONITOR",
+            "text-red-500 font-black"
+        );
+        return;
+    }
+
+    const monitorIp = monitorNode.data('ip');
+
+    if (!monitorIp || monitorIp === "N/A") {
+        terminalWrite(
+            "!! IP del MONITOR inválida",
+            "text-red-500 font-black"
+        );
+        return;
+    }
+
+    terminalWrite(
+        `[SETUP] Instalando detector ICMP en ${targetIp} → monitor ${monitorIp}`,
+        "text-sky-400"
+    );
+
+    const url =
+        `${API_BASE}/hud/victim/install_detector` +
+        `?ip=${targetIp}` +
+        `&monitor_ip=${monitorIp}` +
+        `&script=ping_target_detecter.sh`;
+
+    console.log("[DETECTOR][FRONT] URL =", url);
+
+    try {
+        const res = await fetch(url);
+
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            chunk.split('\n').forEach(line => {
+                if (line.startsWith("data:")) {
+                    terminalWrite(
+                        line.replace("data:", "").trim(),
+                        "text-[#00ff88]"
+                    );
+                }
+            });
+        }
+
+        terminalWrite(
+            "[OK] Detector ICMP activo en el nodo",
+            "text-emerald-400"
+        );
+        markDetectorInstalled();
+
+    } catch (err) {
+        terminalWrite(
+            `[ERROR] Fallo al instalar detector: ${err.message}`,
+            "text-red-500"
+        );
+    }
+}
+
+
+let icmpDetectorInstalled = false;
+function markDetectorInstalled() {
+    icmpDetectorInstalled = true;
+    logCombat("DETECTOR", "ICMP detector instalado en la víctima");
+}
+
+
+
+async function startMonitorListener(monitorIp) {
+    terminalWrite(
+        `[MONITOR] Starting ICMP listener on ${monitorIp}...`,
+        "text-sky-400"
+    );
+
+    const url = `${API_BASE}/hud/monitor/start_listener?ip=${monitorIp}`;
+
+    try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const text = await res.text();
+        terminalWrite(text.replace("data:", "").trim(), "text-emerald-400");
+
+        logCombat("MONITOR", "ICMP listener started");
+
+    } catch (err) {
+        terminalWrite(
+            `[ERROR] Cannot start listener: ${err.message}`,
+            "text-red-500"
+        );
+    }
+}
+
+async function stopMonitorListener(monitorIp) {
+    terminalWrite(
+        `[MONITOR] Stopping ICMP listener on ${monitorIp}...`,
+        "text-yellow-400"
+    );
+
+    const url = `${API_BASE}/hud/monitor/stop_listener?ip=${monitorIp}`;
+
+    try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const text = await res.text();
+        terminalWrite(text.replace("data:", "").trim(), "text-emerald-400");
+
+        logCombat("MONITOR", "ICMP listener stopped");
+
+    } catch (err) {
+        terminalWrite(
+            `[ERROR] Cannot stop listener: ${err.message}`,
+            "text-red-500"
+        );
+    }
+}
+
+
+
+</script>
+</body>
+</html>

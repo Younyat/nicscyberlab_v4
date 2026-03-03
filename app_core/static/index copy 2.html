@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NICS CyberLab | Ultra-Smooth Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            overflow: hidden; 
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif; 
+            /* Gradiente negro suave para oscurecer la imagen y ganar contraste técnico */
+            background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), 
+                        url('image.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-color: #2c303b; /* Fondo base oscuro por si la imagen tarda en cargar */
+        }
+        
+        .slider-wrapper {
+            display: flex;
+            gap: 60px;
+            padding: 100px 50vw;
+            will-change: transform;
+            align-items: center;
+            transition: opacity 1s ease;
+        }
+
+        .card-option {
+            flex: 0 0 340px; 
+            height: 420px;   
+            transition: transform 0.8s cubic-bezier(0.23, 1, 0.32, 1), 
+                        opacity 0.8s ease, 
+                        filter 0.8s ease,
+                        border-color 0.4s ease;
+            cursor: pointer;
+            border-width: 1px;
+            /* Cristal templado ligeramente translúcido */
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            border-radius: 3rem;
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .card-option:hover {
+            transform: scale(1.08) translateY(-25px) !important;
+            z-index: 10;
+            box-shadow: 0 45px 90px -20px rgba(0, 0, 0, 0.4);
+            border-color: #232528;
+            background: rgba(255, 255, 255, 1);
+        }
+
+        .slider-wrapper:hover .card-option:not(:hover) {
+            opacity: 0.5;
+            filter: blur(1px);
+            transform: scale(0.95);
+        }
+
+        #contentOverlay {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 98%; 
+            height: 100vh;
+            background: white;
+            z-index: 100;
+            transition: right 1.2s cubic-bezier(0.05, 0.7, 0.1, 1);
+            display: flex;
+        }
+
+        #contentOverlay.active { right: 0; }
+
+        .exit-area {
+            width: 2%; 
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-right: 1px solid #f1f5f9;
+        }
+
+        .exit-arrow {
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            font-size: 0.65rem;
+            font-weight: 900;
+            letter-spacing: 0.3em;
+            color: #475569;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="fixed top-8 right-8 z-50 flex gap-4">
+        <select onchange="changeLang(this.value)" class="bg-black/40 backdrop-blur-xl border border-white/20 text-white text-[10px] font-bold py-2 px-4 rounded-full shadow-sm focus:outline-none cursor-pointer uppercase tracking-widest hover:border-blue-500 transition">
+            <option value="es" class="bg-slate-900">ESPAÑOL</option>
+            <option value="en" class="bg-slate-900">ENGLISH</option>
+        </select>
+    </div>
+
+    <div class="fixed top-16 left-0 w-full text-center z-40" id="mainHeader">
+        <h1 class="text-4xl font-black text-white tracking-tighter italic drop-shadow-2xl">NICS | <span class="text-blue-400">CYBERLAB</span></h1>
+        <p id="sub-title" class="text-[10px] font-bold text-blue-100/70 mt-2 tracking-[0.5em] uppercase text-content drop-shadow-lg" data-es="INFRAESTRUCTURA DE INVESTIGACIÓN" data-en="RESEARCH INFRASTRUCTURE">INFRAESTRUCTURA DE INVESTIGACIÓN</p>
+    </div>
+
+    <div id="sliderContainer" class="flex items-center min-h-screen">
+        <div id="sliderWrapper" class="slider-wrapper">
+            
+            <div onclick="openView('inventory')" class="card-option flex flex-col items-center justify-center p-10 shadow-sm">
+                <div class="w-20 h-20 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center font-black text-2xl mb-8">01</div>
+                <span class="text-xs font-black text-slate-400 tracking-[0.2em] mb-2 uppercase">PLATFORM</span>
+                <span class="text-lg font-bold text-slate-800 text-center uppercase leading-tight text-content" data-es="Inicialización del Entorno" data-en="Environment Initialization">Inicialización del Entorno</span>
+            </div>
+
+            <div onclick="openView('index-scenario')" class="card-option flex flex-col items-center justify-center p-10 shadow-sm">
+                <div class="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center font-black text-2xl mb-8">02</div>
+                <span class="text-xs font-black text-indigo-400 tracking-[0.2em] mb-2 uppercase text-content" data-es="ESCENARIO" data-en="SCENARIO">ESCENARIO</span>
+                <span class="text-lg font-bold text-slate-800 text-center uppercase leading-tight text-content" data-es="Configuración de Escenarios" data-en="Scenario Configuration">Configuración de Escenarios</span>
+            </div>
+
+            <div onclick="openView('index-tools')" class="card-option flex flex-col items-center justify-center p-10 shadow-sm">
+                <div class="w-20 h-20 bg-cyan-50 text-cyan-600 rounded-3xl flex items-center justify-center font-black text-2xl mb-8">03</div>
+                <span class="text-xs font-black text-cyan-400 tracking-[0.2em] mb-2 uppercase text-content" data-es="DEFENSA" data-en="DEFENSE">DEFENSA</span>
+                <span class="text-lg font-bold text-slate-800 text-center uppercase leading-tight text-content" data-es="Gestión de Herramientas" data-en="Tools Management">Gestión de Herramientas</span>
+            </div>
+
+            <div onclick="openView('dashboard')" class="card-option flex flex-col items-center justify-center p-10 shadow-sm">
+                <div class="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center font-black text-2xl mb-8">04</div>
+                <span class="text-xs font-black text-emerald-400 tracking-[0.2em] mb-2 uppercase text-content" data-es="ANALÍTICA" data-en="ANALYTICS">ANALÍTICA</span>
+                <span class="text-lg font-bold text-slate-800 text-center uppercase leading-tight text-content" data-es="Panel de Monitorización" data-en="Monitoring Dashboard">Panel de Monitorización</span>
+            </div>
+
+            <div onclick="openView('industrial')" class="card-option flex flex-col items-center justify-center p-10 shadow-sm">
+                <div class="w-20 h-20 bg-orange-50 text-orange-600 rounded-3xl flex items-center justify-center font-black text-2xl mb-8">05</div>
+                <span class="text-xs font-black text-orange-400 tracking-[0.2em] mb-2 uppercase text-content" data-es="CRÍTICO" data-en="CRITICAL">CRÍTICO</span>
+                <span class="text-lg font-bold text-slate-800 text-center uppercase leading-tight text-content" data-es="Escenarios Industriales / OT" data-en="Industrial / OT Scenarios">Escenarios Industriales / OT</span>
+            </div>
+
+            <div onclick="openView('forensic_inventory')" class="card-option flex flex-col items-center justify-center p-10 shadow-sm">
+                <div class="w-20 h-20 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center font-black text-2xl mb-8">06</div>
+                <span class="text-xs font-black text-rose-400 tracking-[0.2em] mb-2 uppercase text-content" data-es="INVESTIGACIÓN" data-en="INVESTIGATION">INVESTIGACIÓN</span>
+                <span class="text-lg font-bold text-slate-800 text-center uppercase leading-tight text-content" data-es="Análisis Forense" data-en="Forensic Analysis">Análisis Forense</span>
+            </div>
+
+             <div onclick="openView('ai_module')" class="card-option flex flex-col items-center justify-center p-10 shadow-sm">
+                <div class="w-20 h-20 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center font-black text-2xl mb-8">07</div>
+                <span class="text-xs font-black text-rose-400 tracking-[0.2em] mb-2 uppercase text-content" data-es="INTELIGENTE" data-en="SMART">INTELIGENTE</span>
+                <span class="text-lg font-bold text-slate-800 text-center uppercase leading-tight text-content" data-es="Modulo IA" data-en="AI modul">Modulo IA</span>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="contentOverlay">
+        <div class="exit-area" onclick="closeView()">
+            <div id="exitText" class="exit-arrow text-content" data-es="← VOLVER AL MENÚ DE CONTROL" data-en="← BACK TO CONTROL MENU">← VOLVER AL MENÚ DE CONTROL</div>
+        </div>
+        <div class="flex-1 bg-white flex flex-col">
+            <header class="h-16 border-b border-slate-50 flex items-center justify-between px-10">
+                <span id="overlayTitle" class="text-[10px] font-black text-slate-900 uppercase tracking-[0.4em]">Loading...</span>
+                <div class="text-[9px] font-bold text-slate-300 tracking-widest uppercase">NICS SYSTEM ACTIVE</div>
+            </header>
+            <div class="flex-1 bg-slate-50 p-4">
+                <iframe id="contentIframe" src="" class="w-full h-full border-none rounded-[2.5rem] bg-white shadow-sm"></iframe>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    <script>
+        const wrapper = document.getElementById('sliderWrapper');
+        const overlay = document.getElementById('contentOverlay');
+        const iframe = document.getElementById('contentIframe');
+        
+        let targetX = 0;
+        let currentX = 0;
+        let isOverlayOpen = false;
+
+        window.addEventListener('load', () => {
+            const centerX = (wrapper.scrollWidth - window.innerWidth) / 2;
+            targetX = -centerX;
+            currentX = -centerX;
+            updateSlider();
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (isOverlayOpen) return;
+            const percent = e.clientX / window.innerWidth;
+            const maxMove = wrapper.scrollWidth - window.innerWidth;
+            targetX = -(percent * maxMove);
+        });
+
+        function updateSlider() {
+            if (!isOverlayOpen) {
+                currentX += (targetX - currentX) * 0.05;
+                wrapper.style.transform = `translateX(${currentX}px)`;
+            }
+            requestAnimationFrame(updateSlider);
+        }
+        updateSlider();
+
+        function changeLang(lang) {
+            document.querySelectorAll('.text-content').forEach(el => {
+                el.innerText = el.getAttribute(`data-${lang}`);
+            });
+        }
+
+        function openView(key) {
+           isOverlayOpen = true;
+    
+    // Eliminamos cualquier '/' que pueda venir en la 'key' para evitar duplicados
+    const cleanKey = key.replace(/^\//, '').replace(/^static\//, '');
+    
+    // Construimos la ruta limpia
+    iframe.src = `/static/${cleanKey}.html`;
+    
+    overlay.classList.add('active');
+        }
+
+        function closeView() {
+            overlay.classList.remove('active');
+            setTimeout(() => { 
+                isOverlayOpen = false;
+                iframe.src = ''; 
+            }, 1200);
+        }
+    </script>
+</body>
+</html>

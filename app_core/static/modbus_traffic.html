@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NICS CyberLab | Host Forensic Inventory</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .terminal-scroll::-webkit-scrollbar { width: 6px; }
+    .terminal-scroll::-webkit-scrollbar-track { background: #020617; }
+    .terminal-scroll::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+    .terminal-scroll::-webkit-scrollbar-thumb:hover { background: #334155; }
+    
+    .scanline {
+      width: 100%;
+      height: 2px;
+      background: rgba(16, 185, 129, 0.1);
+      position: absolute;
+      animation: scan 4s linear infinite;
+      z-index: 5;
+    }
+    @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+
+
+
+    #traffic-terminal {
+    white-space: pre; /* Mantiene los espacios en blanco del backend */
+    font-variant-ligatures: none;
+    line-height: 1.6;
+    letter-spacing: 0.05em;
+}
+
+/* Efecto de parpadeo suave para el cursor */
+.terminal-entry::before {
+    content: ">> ";
+    color: #10b981;
+    font-weight: bold;
+}
+
+
+
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-emerald-500/30">
+
+  <main class="max-w-7xl mx-auto py-10 px-6 space-y-8">
+    <header class="mb-8 border-b border-slate-800 pb-8 relative">
+      <div class="absolute -top-10 -left-10 w-32 h-32 bg-sky-500/10 rounded-full blur-3xl"></div>
+      <h1 class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-emerald-400 font-mono tracking-tighter uppercase">
+        Live Traffic Analyzer
+      </h1>
+      
+    </header>
+
+    <section class="bg-slate-900/80 border border-slate-800 rounded-xl p-5 shadow-2xl backdrop-blur-sm">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-sky-300 flex items-center gap-2">
+          <span class="w-2 h-2 bg-sky-500 rounded-full animate-pulse"></span>
+          Instancias en Red
+        </h2>
+        <div id="detail-title" class="text-[10px] text-slate-400 font-mono italic px-3 py-1 bg-slate-950 rounded-full border border-slate-800 uppercase tracking-widest">
+          Selecciona una IP Flotante para Auditar
+        </div>
+      </div>
+
+      <div class="overflow-auto max-h-[400px] terminal-scroll border border-slate-800 rounded-lg">
+        <table class="w-full text-sm text-left">
+          <thead class="bg-slate-950 sticky top-0 z-20 text-[10px] uppercase tracking-wider text-slate-500 border-b border-slate-800">
+            <tr>
+              <th class="py-4 px-4">Instancia</th>
+              <th class="py-4 px-4">Estado</th>
+              <th class="py-4 px-4 text-emerald-500">Floating IP</th>
+              <th class="py-4 px-4">Flavor</th>
+              <th class="py-4 px-4">Volúmenes</th>
+              <th class="py-4 px-4 text-right">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-instances" class="divide-y divide-slate-800/50"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="space-y-4">
+      <h2 class="text-lg font-semibold text-sky-300">Host tools</h2>
+      <div id="tools-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+    </div>
+
+    <footer class="mt-12 pt-8 border-t border-slate-900 flex justify-between items-center">
+      <button onclick="loadInstancesFull()" class="group flex items-center gap-2 text-[10px] font-bold text-slate-500 hover:text-sky-400 transition-colors uppercase tracking-widest">
+        <svg class="w-4 h-4 group-active:rotate-180 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+        Sincronizar Nodos
+      </button>
+      <div class="flex flex-col items-end">
+        <span class="text-[10px] text-slate-600 font-mono uppercase tracking-widest">NICS CyberLab v2.0 - Professional Suite</span>
+        <span id="last-update" class="text-[8px] text-slate-700 font-mono mt-1 uppercase">LAST SYNC: --:--</span>
+      </div>
+    </footer>
+  </main>
+
+  <div id="traffic-overlay" class="hidden fixed inset-0 bg-black/95 z-[110] flex items-center justify-center backdrop-blur-xl">
+    <div class="bg-slate-900 border border-emerald-500/30 rounded-3xl p-6 w-full max-w-5xl shadow-2xl border-t-4 border-t-emerald-600 relative overflow-hidden h-[85vh] flex flex-col">
+      <div class="scanline"></div>
+      
+      <div class="flex justify-between items-center mb-6 relative z-10">
+        <div class="flex items-center gap-4">
+          <div class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></div>
+          <div>
+            <h2 class="text-lg font-bold text-emerald-400 font-mono uppercase tracking-widest">Live Traffic Analyzer</h2>
+            <span id="traffic-vm-info" class="text-[10px] text-emerald-500/60 font-mono uppercase mt-1 block tracking-tighter"></span>
+          </div>
+        </div>
+        <button onclick="closeTraffic()" class="px-6 py-2 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white transition-all text-[10px] font-black rounded-full uppercase border border-red-500/20">Cerrar Captura</button>
+      </div>
+
+      <div class="flex flex-wrap gap-3 mb-4 p-4 bg-black/40 rounded-xl border border-slate-800 relative z-10 items-center">
+          <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest mr-2">Filtros Activos:</span>
+          
+          <label class="flex items-center gap-2 px-3 py-1.5 bg-slate-800 rounded-lg cursor-pointer border border-slate-700 hover:border-emerald-500/50 transition-colors">
+              <input type="checkbox" class="proto-filter w-3 h-3 accent-emerald-500" value="modbus" checked>
+              <span class="text-[10px] font-mono text-emerald-400 font-bold uppercase">Modbus</span>
+          </label>
+
+          <label class="flex items-center gap-2 px-3 py-1.5 bg-slate-800 rounded-lg cursor-pointer border border-slate-700 hover:border-emerald-500/50 transition-colors">
+              <input type="checkbox" class="proto-filter w-3 h-3 accent-emerald-500" value="profinet" checked>
+              <span class="text-[10px] font-mono text-emerald-400 font-bold uppercase">Profinet</span>
+          </label>
+
+          <label class="flex items-center gap-2 px-3 py-1.5 bg-slate-800 rounded-lg cursor-pointer border border-slate-700">
+              <input type="checkbox" class="proto-filter w-3 h-3 accent-sky-500" value="tcp">
+              <span class="text-[10px] font-mono text-sky-400 font-bold uppercase">TCP</span>
+          </label>
+
+          <label class="flex items-center gap-2 px-3 py-1.5 bg-slate-800 rounded-lg cursor-pointer border border-slate-700">
+              <input type="checkbox" class="proto-filter w-3 h-3 accent-sky-500" value="udp">
+              <span class="text-[10px] font-mono text-sky-400 font-bold uppercase">UDP</span>
+          </label>
+
+          <button onclick="applyTrafficFilters()" class="ml-auto px-5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black rounded-lg uppercase transition-all shadow-lg active:scale-95">
+              Refrescar Captura
+          </button>
+      </div>
+
+      <div class="bg-black/80 rounded-2xl border border-slate-800 p-6 relative z-10 flex-1 flex flex-col overflow-hidden">
+        <pre id="traffic-terminal" class="flex-1 overflow-auto text-[11px] font-mono text-emerald-400 leading-relaxed terminal-scroll"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let STATE = { instances: [], selected: null, trafficSource: null };
+
+    const UI = {
+      tblInstances: document.getElementById("tbl-instances"),
+      detailTitle: document.getElementById("detail-title"),
+      trafficOverlay: document.getElementById("traffic-overlay"),
+      trafficTerminal: document.getElementById("traffic-terminal"),
+      trafficInfo: document.getElementById("traffic-vm-info"),
+      grid: document.getElementById("tools-grid")
+    };
+
+    function escapeHtml(s) { return String(s ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;"); }
+
+    async function loadInstancesFull() {
+      try {
+        const res = await fetch("/api/openstack/instances/full");
+        const data = await res.json();
+        STATE.instances = data.instances || [];
+        renderTable();
+        document.getElementById("last-update").textContent = `LAST SYNC: ${new Date().toLocaleTimeString()}`;
+      } catch (err) {
+        UI.tblInstances.innerHTML = `<tr><td colspan="6" class="py-10 text-center text-red-500 font-mono uppercase text-xs">Error de conexión con la API</td></tr>`;
+      }
+    }
+
+    function renderTable() {
+      UI.tblInstances.innerHTML = STATE.instances.map(vm => `
+        <tr class="hover:bg-slate-800/40 cursor-pointer transition-all group" onclick="startTrafficAnalysis('${vm.id}')">
+          <td class="py-4 px-4 font-bold text-slate-100">${escapeHtml(vm.name)}<br><span class="text-[9px] text-slate-500 font-mono">${vm.id.substring(0,8)}</span></td>
+          <td class="py-4 px-4"><span class="px-2 py-0.5 rounded text-[9px] font-black uppercase ${vm.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}">${vm.status}</span></td>
+          <td class="py-4 px-4 font-mono text-xs font-bold text-emerald-400">${escapeHtml(vm.ip_floating || "N/A")}</td>
+          <td class="py-4 px-4 text-slate-500 text-[10px] font-mono">${escapeHtml(vm.flavor?.name || "-")}</td>
+          <td class="py-4 px-4 text-slate-500 text-[10px] font-mono">${(vm.volumes || []).length} Units</td>
+          <td class="py-4 px-4 text-right"><button class="bg-sky-500/10 text-sky-400 px-4 py-1.5 rounded-lg text-[9px] font-black uppercase border border-sky-500/20 group-hover:bg-sky-500 group-hover:text-white transition-all">Audit</button></td>
+        </tr>
+      `).join("");
+    }
+
+    function applyTrafficFilters() {
+      if (STATE.selected) startTrafficAnalysis(STATE.selected.id);
+    }
+
+    function startTrafficAnalysis(id) {
+      const vm = STATE.instances.find(x => x.id === id);
+      if (!vm) return;
+      STATE.selected = vm;
+
+      UI.trafficOverlay.classList.replace("hidden", "flex");
+     // Ahora mostramos la IP principal pero indicamos que es una auditoría de nodo completo
+      UI.trafficInfo.textContent = `AUDITING NODE: ${vm.name} | MGMT_IP: ${vm.ip_floating || vm.ip_private || 'N/A'} | MODE: PROMISCUOUS`;
+      
+      // Limpiamos y ponemos cabecera
+      UI.trafficTerminal.innerHTML = `<div class="text-slate-500 italic mb-2">[${new Date().toLocaleTimeString()}] Conectando con el motor Libpcap...</div>`;
+
+      // Obtener filtros seleccionados
+      const protos = Array.from(document.querySelectorAll('.proto-filter:checked')).map(cb => cb.value).join(',');
+      
+      if (STATE.trafficSource) STATE.trafficSource.close();
+      
+      // Conexión al endpoint
+      STATE.trafficSource = new EventSource(`/api/openstack/traffic/${vm.id}?protos=${protos}`);
+      
+   STATE.trafficSource.onmessage = (e) => {
+        // Ignorar mensajes de keep-alive
+        if (e.data.trim() === ":") return;
+
+        const line = document.createElement("div");
+        line.className = "terminal-entry py-0.5 hover:bg-emerald-500/5 transition-colors px-2 font-mono whitespace-pre";
+        
+        const rawData = e.data;
+        
+        // Coloreado dinámico para protocolos industriales
+        if (rawData.includes("MODBUS TCP")) {
+            line.innerHTML = `<span class="text-yellow-400 font-bold">${rawData}</span>`;
+        } else if (rawData.includes("PROFINET")) {
+            line.innerHTML = `<span class="text-pink-400 font-bold">${rawData}</span>`;
+        } else if (rawData.includes("[SISTEMA]")) {
+            line.innerHTML = `<span class="text-sky-400 font-black underline">${rawData}</span>`;
+        } else {
+            line.innerText = rawData; 
+        }
+        
+        UI.trafficTerminal.appendChild(line);
+        
+        // Auto-scroll suave
+        UI.trafficTerminal.scrollTop = UI.trafficTerminal.scrollHeight;
+      };
+
+      STATE.trafficSource.onerror = () => {
+        const errDiv = document.createElement("div");
+        errDiv.className = "text-red-500 font-bold px-2 py-2";
+        errDiv.innerText = "[ERROR] Pérdida de conexión con el sniffer. Reintentando...";
+        UI.trafficTerminal.appendChild(errDiv);
+      };
+    }
+    function closeTraffic() {
+      if (STATE.trafficSource) STATE.trafficSource.close();
+      UI.trafficOverlay.classList.replace("flex", "hidden");
+    }
+
+    async function loadHostInventory() {
+      try {
+        const res = await fetch("/api/host/inventory");
+        const data = await res.json();
+        UI.grid.innerHTML = data.tools.map(tool => `
+          <div class="bg-slate-900/40 border border-slate-800 rounded-xl p-5 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div class="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center text-sky-500 font-bold italic">#</div>
+              <div>
+                <h3 class="font-bold text-slate-100 text-xs uppercase">${tool.name}</h3>
+                <p class="text-[9px] font-mono ${tool.status === 'installed' ? 'text-emerald-500' : 'text-slate-500'}">${tool.status.toUpperCase()}</p>
+              </div>
+            </div>
+            <button class="px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${tool.status === 'installed' ? 'bg-red-900/20 text-red-500 border border-red-500/30' : 'bg-sky-600 text-white'}">${tool.status === 'installed' ? 'Purge' : 'Deploy'}</button>
+          </div>
+        `).join("");
+      } catch (e) {}
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadHostInventory();
+      loadInstancesFull();
+    });
+  </script>
+</body>
+</html>

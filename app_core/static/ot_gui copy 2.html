@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Industrial Network HUD</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.0/cytoscape.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Estilo del contenedor del grafo */
+        #cy {
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        /* Scrollbar personalizada para el terminal */
+        #feedback-terminal::-webkit-scrollbar { width: 4px; }
+        #feedback-terminal::-webkit-scrollbar-track { background: transparent; }
+        #feedback-terminal::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+
+        /* Animación de pulso para nodos activos */
+        .active-pulse { animation: pulse-green 2s infinite; }
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+    </style>
+</head>
+<body class="h-screen overflow-hidden flex flex-col p-6 gap-6">
+
+    <header class="flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                <span class="p-2 bg-indigo-600 rounded-lg"><i class="fas fa-shield-halved text-white text-sm"></i></span>
+                INDUSTRIAL COMMAND CENTER
+            </h1>
+        </div>
+        <div class="flex gap-3">
+            <button onclick="loadScenario()" class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
+                <i class="fas fa-sync mr-2"></i> RECARGAR ESCENARIO
+            </button>
+            <button onclick="saveIndustrialScenario()" class="px-4 py-2 bg-slate-900 rounded-xl text-xs font-bold text-white hover:bg-black transition-all shadow-lg">
+                <i class="fas fa-save mr-2"></i> GUARDAR CAMBIOS
+            </button>
+        </div>
+    </header>
+
+    <div class="flex-1 flex gap-6 overflow-hidden">
+        
+        <div class="flex-1 flex flex-col gap-4">
+            <div class="flex-1 bg-white rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden">
+                <div id="cy"></div>
+                
+                <div class="absolute bottom-6 left-6 flex gap-2">
+                    <button onclick="cy.zoom(cy.zoom()+0.1)" class="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-400 hover:text-indigo-600 shadow-sm"><i class="fas fa-plus"></i></button>
+                    <button onclick="cy.zoom(cy.zoom()-0.1)" class="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-400 hover:text-indigo-600 shadow-sm"><i class="fas fa-minus"></i></button>
+                    <button onclick="cy.fit()" class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg"><i class="fas fa-expand"></i></button>
+                </div>
+            </div>
+
+            <div class="h-44 bg-slate-900 rounded-3xl p-5 flex flex-col shadow-2xl">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">System Telemetry</span>
+                    <button onclick="document.getElementById('feedback-terminal').innerHTML=''" class="text-[9px] text-slate-500 hover:text-white uppercase">Limpiar</button>
+                </div>
+                <div id="feedback-terminal" class="flex-1 overflow-y-auto font-mono text-[11px] text-indigo-300">
+                    <div class="opacity-50">> System ready. Waiting for scenario data...</div>
+                </div>
+            </div>
+        </div>
+
+        <aside class="w-96 flex flex-col gap-4">
+            <div class="bg-white rounded-3xl border border-slate-200 p-6 flex-1 shadow-sm flex flex-col">
+                <div class="flex items-center gap-4 mb-8">
+                    <div class="h-12 w-12 bg-slate-100 rounded-2xl flex items-center justify-center text-indigo-600 text-xl">
+                        <i id="targetIcon" class="fas fa-microchip"></i>
+                    </div>
+                    <div>
+                        <h3 id="targetLabel" class="text-lg font-black text-slate-900 truncate w-56">SELECCIONAR NODO</h3>
+                        <p id="targetType" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Awaiting selection</p>
+                    </div>
+                </div>
+
+                <div id="industrial-panel" class="space-y-6 flex-1">
+                    <div class="text-center py-20">
+                        <i class="fas fa-mouse-pointer text-slate-200 text-4xl mb-4"></i>
+                        <p class="text-sm text-slate-400 px-10">Haz clic en un nodo industrial para ver telemetría y controles de despliegue.</p>
+                    </div>
+                </div>
+
+                <div class="mt-auto pt-6 border-t border-slate-100 grid grid-cols-2 gap-4">
+                    <div class="bg-slate-50 p-3 rounded-2xl text-center">
+                        <p id="nodeCount" class="text-xl font-black text-slate-900">0</p>
+                        <p class="text-[9px] font-bold text-slate-400 uppercase">Nodos</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-2xl text-center">
+                        <p id="edgeCount" class="text-xl font-black text-slate-900">0</p>
+                        <p class="text-[9px] font-bold text-slate-400 uppercase">Links</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+ 
+<script>let cy;
+let connectionMode = false;
+let selectedNodes = [];
+
+// ==========================================
+// CONFIGURACIÓN DE CYTOSCAPE (DISEÑO)
+// ==========================================
+document.addEventListener("DOMContentLoaded", () => {
+    cy = cytoscape({
+        container: document.getElementById("cy"),
+        elements: [],
+        style: [
+            {
+                selector: "node",
+                style: {
+                    'label': 'data(name)',
+                    'text-valign': 'bottom',
+                    'text-margin-y': 10,
+                    'font-family': 'Inter, sans-serif',
+                    'font-weight': '800',
+                    'font-size': '11px',
+                    'color': '#1e293b',
+                    'background-color': '#ffffff',
+                    'border-width': 2,
+                    'border-color': '#e2e8f0',
+                    'width': 50,
+                    'height': 50,
+                    'text-wrap': 'wrap',
+                    'text-max-width': 80
+                }
+            },
+            {
+                selector: 'node[type^="industrial_"]',
+                style: {
+                    'shape': 'round-rectangle',
+                    'background-color': '#f8fafc',
+                    'border-color': '#6366f1',
+                    'border-width': 3,
+                    'width': 60,
+                    'height': 60
+                }
+            },
+            {
+                selector: 'node[type="attack"]',
+                style: { 'border-color': '#ef4444', 'background-color': '#fef2f2' }
+            },
+            {
+                selector: "edge",
+                style: {
+                    'width': 2.5,
+                    'line-color': '#cbd5e1',
+                    'target-arrow-color': '#cbd5e1',
+                    'target-arrow-shape': 'triangle',
+                    'curve-style': 'bezier',
+                    'arrow-scale': 1.6
+                }
+            },
+            {
+                selector: ':selected',
+                style: {
+                    'border-color': '#4f46e5',
+                    'border-width': 4,
+                    'background-color': '#eef2ff'
+                }
+            }
+        ],
+        layout: { name: "preset" }
+    });
+
+    cy.on("tap", "node", evt => renderIndustrialPanel(evt.target));
+    
+    // Carga inicial
+    loadScenario();
+});
+
+// ==========================================
+// CARGA Y SINCRONIZACIÓN (BACKEND)
+// ==========================================
+async function loadScenario() {
+    try {
+        const res = await fetch("http://127.0.0.1:5001/api/get_active_scenario");
+        if (!res.ok) throw new Error("No hay escenario");
+        
+        const scenario = await res.json();
+        cy.elements().remove();
+
+        // Mapeo de nodos
+        const nodes = scenario.nodes.map(n => ({
+            group: "nodes",
+            data: { ...n },
+            position: n.position
+        }));
+
+        // Mapeo de edges
+        const edges = scenario.edges.map(e => ({
+            group: "edges",
+            data: { id: e.id || `e_${e.source}_${e.target}`, source: e.source, target: e.target }
+        }));
+
+        cy.add([...nodes, ...edges]);
+        await applyIndustrialStateToNodes();
+        
+        cy.fit(null, 50);
+        updateStats();
+        logAction("SUCCESS", "Infraestructura industrial sincronizada.");
+    } catch (err) {
+        logAction("ERROR", "Escenario no detectado.");
+    }
+}
+
+async function applyIndustrialStateToNodes() {
+    const res = await fetch("http://127.0.0.1:5001/api/industrial/state");
+    if (!res.ok) return;
+    const state = await res.json();
+
+    cy.nodes().forEach(node => {
+        const type = node.data("type");
+        if (type === "industrial_plc" && state.plc) {
+            node.data("industrial_state", state.plc);
+            if (state.plc.instance?.ip_floating) node.data("ip_floating", state.plc.instance.ip_floating);
+        }
+        if (type === "industrial_scada" && state.scada) {
+            node.data("industrial_state", state.scada);
+            if (state.scada.instance?.ip_floating) node.data("ip_floating", state.scada.instance.ip_floating);
+        }
+    });
+}
+
+// ==========================================
+// RENDERIZADO DEL PANEL DERECHO
+// ==========================================
+function renderIndustrialPanel(node) {
+    const panel = document.getElementById("industrial-panel");
+    const label = document.getElementById("targetLabel");
+    const typeLabel = document.getElementById("targetType");
+    const icon = document.getElementById("targetIcon");
+
+    const data = node.data();
+    const type = data.type;
+    const state = data.industrial_state || {};
+    const status = state.tool?.status || "ready";
+    const ip = data.ip_floating || "NOT_ASSIGNED";
+
+    label.textContent = data.name;
+    typeLabel.textContent = type.replace('_', ' ');
+    icon.className = type.includes('plc') ? "fas fa-microchip" : "fas fa-desktop";
+
+    let content = `
+        <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-4">
+            <div class="flex justify-between items-center">
+                <span class="text-[10px] font-black text-slate-400 uppercase">Network Status</span>
+                ${renderBadge(status)}
+            </div>
+            
+            <div class="space-y-2">
+                <div class="flex justify-between text-xs"><span class="text-slate-500">IP ADDRESS:</span><span class="font-mono font-bold">${ip}</span></div>
+                <div class="flex justify-between text-xs"><span class="text-slate-500">PROTOCOL:</span><span class="font-bold">${type.includes('plc')?'MODBUS/TCP':'HTTP'}</span></div>
+            </div>
+
+            ${status === 'installed' ? `
+                <button onclick="window.open('http://${ip}:${type.includes('plc')?8080:1881}', '_blank')" 
+                    class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-black rounded-xl shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2">
+                    <i class="fas fa-external-link-alt"></i> ABRIR PANEL DE CONTROL
+                </button>
+            ` : `
+                <button onclick="deployIndustrial('${type.includes('plc')?'plc':'scada'}')" 
+                    class="w-full py-3 bg-slate-900 hover:bg-black text-white text-[11px] font-black rounded-xl transition-all">
+                    INICIAR DESPLIEGUE INDUSTRIAL
+                </button>
+            `}
+        </div>
+    `;
+
+    panel.innerHTML = content;
+}
+
+function renderBadge(status) {
+    const styles = {
+        installed: "bg-emerald-100 text-emerald-600 border-emerald-200",
+        installing: "bg-amber-100 text-amber-600 border-amber-200 animate-pulse",
+        ready: "bg-slate-100 text-slate-500 border-slate-200"
+    };
+    const current = styles[status] || styles.ready;
+    return `<span class="px-2 py-1 ${current} border text-[9px] font-black rounded-md uppercase">${status}</span>`;
+}
+
+// ==========================================
+// ACCIONES (DEPLOY / LOGS)
+// ==========================================
+async function deployIndustrial(component) {
+    logAction("ACTION", `Desplegando ${component.toUpperCase()}...`);
+    try {
+        const res = await fetch("http://127.0.0.1:5001/api/industrial/deploy", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ component })
+        });
+        
+        if (!res.ok) throw new Error("Error en despliegue");
+        
+        // Manejo de Stream de logs (opcional pero recomendado)
+        const reader = res.body.getReader();
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            const text = new TextDecoder().decode(value);
+            logAction("INFO", text.trim());
+        }
+        
+        loadScenario(); // Refrescar al terminar
+    } catch (err) {
+        logAction("ERROR", err.message);
+    }
+}
+
+function logAction(level, msg) {
+    const terminal = document.getElementById("feedback-terminal");
+    const div = document.createElement("div");
+    const colors = { ERROR: "text-red-400", SUCCESS: "text-emerald-400", ACTION: "text-indigo-400", INFO: "text-slate-400" };
+    div.innerHTML = `<span class="opacity-40">[${new Date().toLocaleTimeString()}]</span> <span class="${colors[level] || 'text-white'} font-bold">[${level}]</span> ${msg}`;
+    terminal.prepend(div);
+}
+
+function updateStats() {
+    document.getElementById("nodeCount").textContent = cy.nodes().length;
+    document.getElementById("edgeCount").textContent = cy.edges().length;
+}
+</script>
+</body>
+</html>

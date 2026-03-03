@@ -204,6 +204,45 @@ if [[ $RC -ne 0 ]]; then
   echo "[OK] matplotlib instalado (pip/venv)."
 fi
 
+
+
+
+
+# -----------------------------
+# [5.9/6] START nics_scenario_captures
+# logs en: app_core/infrastructure/ics_traffic/captures/full_scenario_captures/logs
+# -----------------------------
+section "[5.9/6] START nics_scenario_captures (background)"
+
+LOG_DIR="$APP_PATH/app_core/infrastructure/ics_traffic/captures/full_scenario_captures/logs"
+mkdir -p "$LOG_DIR"
+
+sudo -n bash "$APP_PATH/nics_scenario_captures.sh" > "$LOG_DIR/scenario_captures.log" 2>&1 &
+ok "nics_scenario_captures lanzado (PID=$!)"
+
+
+# -----------------------------
+# [5.95/6] LOAD OPENSTACK CREDS (for Gunicorn + workers)
+# -----------------------------
+section "[5.95/6] Cargando credenciales OpenStack (admin-openrc.sh)"
+
+OPENRC="$APP_PATH/admin-openrc.sh"
+if [ -f "$OPENRC" ]; then
+  # shellcheck disable=SC1090
+  set +u
+  source "$OPENRC"
+  set -u
+  ok "OpenStack env cargado desde: $OPENRC"
+else
+  warn "No existe $OPENRC. Gunicorn arrancará SIN credenciales OS_*."
+fi
+
+# (opcional) sanity check mínimo
+if [ -z "${OS_AUTH_URL:-}" ]; then
+  warn "OS_AUTH_URL está vacío. Revisa admin-openrc.sh o su export."
+else
+  ok "OS_AUTH_URL detectado."
+fi
 # -----------------------------
 # [6/6] START SERVER
 # -----------------------------

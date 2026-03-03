@@ -96,10 +96,10 @@ for off in $CANDIDATES; do
                 # Format: MD5|name|inode|mode_as_string|UID|GID|size|atime|mtime|ctime|crtime
 
                 # 1. Recover auth.log
-                AUTH_INODE=$(grep "var/log/auth.log" "$PART_OUT/bodyfile.txt" | cut -d'|' -f3 | head -n 1)
+                AUTH_INODE=$(grep "var/log/auth.log" "$PART_OUT/bodyfile.txt" | cut -d'|' -f3 | head -n 1 || true)
                 # [ADDED] More exact match fallback
                 if [[ -z "${AUTH_INODE:-}" ]]; then
-                    AUTH_INODE=$(grep "|/var/log/auth.log|" "$PART_OUT/bodyfile.txt" | cut -d'|' -f3 | head -n 1)
+                    AUTH_INODE=$(grep "|/var/log/auth.log|" "$PART_OUT/bodyfile.txt" | cut -d'|' -f3 | head -n 1 || true)
                 fi
                 if [[ -n "${AUTH_INODE:-}" ]]; then
                     icat -o "$off" "$DISK" "$AUTH_INODE" > "$RECOVERY_DIR/auth.log" 2>/dev/null || true
@@ -107,10 +107,10 @@ for off in $CANDIDATES; do
                 fi
 
                 # 2. Recover .bash_history for user ubuntu (UID 1000)
-                BASH_INODE=$(grep "home/ubuntu/.bash_history" "$PART_OUT/bodyfile.txt" | cut -d'|' -f3 | head -n 1)
+                BASH_INODE=$(grep "home/ubuntu/.bash_history" "$PART_OUT/bodyfile.txt" | cut -d'|' -f3 | head -n 1 || true)
                 # [ADDED] More exact match fallback
                 if [[ -z "${BASH_INODE:-}" ]]; then
-                    BASH_INODE=$(grep "|/home/ubuntu/.bash_history|" "$PART_OUT/bodyfile.txt" | cut -d'|' -f3 | head -n 1)
+                    BASH_INODE=$(grep "|/home/ubuntu/.bash_history|" "$PART_OUT/bodyfile.txt" | cut -d'|' -f3 | head -n 1 || true)
                 fi
                 if [[ -n "${BASH_INODE:-}" ]]; then
                     icat -o "$off" "$DISK" "$BASH_INODE" > "$RECOVERY_DIR/bash_history_ubuntu" 2>/dev/null || true
@@ -118,10 +118,10 @@ for off in $CANDIDATES; do
                 fi
 
                 # 3. Recover /etc/passwd to verify users
-                PASSWD_INODE=$(grep "etc/passwd" "$PART_OUT/bodyfile.txt" | cut -d'|' -f3 | head -n 1)
+                PASSWD_INODE=$(grep "etc/passwd" "$PART_OUT/bodyfile.txt" | cut -d'|' -f3 | head -n 1 || true)
                 # [ADDED] More exact match fallback
                 if [[ -z "${PASSWD_INODE:-}" ]]; then
-                    PASSWD_INODE=$(grep "|/etc/passwd|" "$PART_OUT/bodyfile.txt" | cut -d'|' -f3 | head -n 1)
+                    PASSWD_INODE=$(grep "|/etc/passwd|" "$PART_OUT/bodyfile.txt" | cut -d'|' -f3 | head -n 1 || true)
                 fi
                 if [[ -n "${PASSWD_INODE:-}" ]]; then
                     icat -o "$off" "$DISK" "$PASSWD_INODE" > "$RECOVERY_DIR/passwd" 2>/dev/null || true

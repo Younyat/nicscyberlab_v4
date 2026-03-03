@@ -8,6 +8,7 @@ def create_app():
     Se registrarán blueprints y configuración aquí.
     """
     app = Flask(__name__)
+    
     CORS(app)
 
     # Los blueprints se registrarán más adelante

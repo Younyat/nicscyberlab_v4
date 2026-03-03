@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Escenario Industrial</title>
+
+    <!-- LIBRERÍAS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.0/cytoscape.min.js"></script>
+    <link rel="stylesheet" href="../scenario/style-scenario.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <style>
+        #feedback-terminal {
+            border: 1px solid #374151;
+            line-height: 1.4;
+        }
+        #toast {
+    position: fixed; /* Flota sobre el contenido */
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100px); /* Escondido arriba */
+    background: linear-gradient(135deg, #059669 0%, #064e3b 100%); /* Verde industrial */
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: bold;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.4s;
+    opacity: 0;
+}
+
+#toast.show {
+    transform: translateX(-50%) translateY(0); /* Baja a su posición */
+    opacity: 1;
+}
+
+    </style>
+    
+</head>
+
+<body class="bg-gray-900">
+
+<div id="app-container" class="flex min-h-screen p-4 gap-4">
+
+    <!-- =====================================================
+         COLUMNA IZQUIERDA: ESCENARIO + TERMINAL
+    ====================================================== -->
+    <div class="flex-1 flex flex-col gap-4">
+
+        <!-- CANVAS -->
+        <div id="cy"
+             class="bg-gray-800 rounded-xl shadow-lg"
+             style="height:560px;">
+        </div>
+
+        <!-- TERMINAL DE FEEDBACK -->
+        <div class="bg-gray-900/80 rounded-xl shadow-lg p-4"
+             style="height:200px;">
+
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-sm font-bold text-gray-300">
+                    Terminal de feedback
+                </h2>
+                <button onclick="clearFeedbackTerminal()"
+                        class="text-xs px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-white">
+                    Limpiar
+                </button>
+            </div>
+
+            <div id="feedback-terminal"
+                 class="bg-black text-green-400 font-mono text-xs rounded p-3 h-full overflow-y-auto">
+                <div>[INFO] Terminal inicializado</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- =====================================================
+         COLUMNA DERECHA: PANEL DE CONTROL
+    ====================================================== -->
+    <div id="controls-panel" class="w-[34rem] flex flex-col gap-6">
+
+        <!-- TÍTULO -->
+        <h1 class="text-2xl font-extrabold text-white border-b border-gray-700 pb-3">
+            <i class="fas fa-industry mr-2"></i> Editor de Escenario Industrial
+        </h1>
+
+        <!-- ESTADÍSTICAS -->
+        <div class="bg-gray-700/50 p-4 rounded-xl shadow-lg">
+            <h2 class="text-lg font-bold mb-3 text-gray-200">Estadísticas</h2>
+            <div class="flex justify-around text-center">
+                <div>
+                    <p class="text-3xl font-mono text-secondary-color" id="nodeCount">0</p>
+                    <p class="text-sm text-gray-400">Nodos</p>
+                </div>
+                <div>
+                    <p class="text-3xl font-mono text-primary-color" id="edgeCount">0</p>
+                    <p class="text-sm text-gray-400">Conexiones</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- BOTONES INDUSTRIALES -->
+        <div class="grid grid-cols-2 gap-3">
+            <button onclick="setIndustrialMode('plc')" class="bg-orange-700 hover:bg-orange-600 rounded-lg text-white py-3 font-bold">
+                PLC
+            </button>
+            <button onclick="setIndustrialMode('scada')" class="bg-purple-700 hover:bg-purple-600 rounded-lg text-white py-3 font-bold">
+                SCADA
+            </button>
+            <button  class="bg-blue-700 hover:bg-blue-600 rounded-lg text-white py-3 font-bold cursor-not-allowed">
+                IoT Device
+            </button>
+            <button  class="bg-teal-700 hover:bg-teal-600 rounded-lg text-white py-3 font-bold cursor-not-allowed">
+                IoT Network
+            </button>
+        </div>
+
+        <!-- CONEXIÓN Y BORRADO -->
+        <div class="flex gap-3">
+            <button onclick="toggleConnectionMode()" class="flex-1 py-3 bg-orange-700 hover:bg-orange-600 rounded-lg text-white">
+                Conectar
+            </button>
+            <button onclick="deleteSelected()" class="flex-1 py-3 bg-gray-600 hover:bg-gray-500 rounded-lg text-white">
+                Eliminar
+            </button>
+          
+        </div>
+
+        <!-- PANEL CONFIGURACIÓN INDUSTRIAL -->
+        <div id="industrial-panel" class="bg-gray-700/50 p-6 rounded-xl shadow-lg">
+            <p class="text-gray-400 text-center">
+                Selecciona un componente industrial para configurarlo
+            </p>
+        </div>
+
+        <!-- INTEGRACIÓN DE ESCENARIO -->
+        <div class="bg-gray-700/50 p-6 rounded-xl shadow-lg">
+            <h2 class="text-lg font-bold mb-5 text-gray-200 text-center">
+                Integración de Escenario
+            </h2>
+
+            <div class="flex flex-col gap-4">
+                <button onclick="loadScenario()"
+                        class="py-3 bg-indigo-700 hover:bg-indigo-600 rounded-lg text-white font-bold">
+                    Cargar Escenario Base
+                </button>
+
+                <button onclick="deleteIndustrialScenario()"
+                        class="py-3 bg-red-900 hover:bg-red-800 rounded-lg text-white font-bold">
+                    Eliminar Escenario Industrial
+                </button>
+
+                <button onclick="saveIndustrialScenario()"
+                        class="py-3 bg-green-700 hover:bg-green-600 rounded-lg text-white font-bold">
+                    Guardar Escenario Industrial
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- JS -->
+<script src="industrial.js"></script>
+
+</body>
+</html>

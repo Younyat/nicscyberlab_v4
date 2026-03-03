@@ -13,6 +13,9 @@ logger = logging.getLogger("app_logger")
 # Blueprint principal con todas las rutas migradas desde app.py
 api_bp = Blueprint("api", __name__)
 
+
+
+
 # Ruta base del repositorio (raíz del proyecto)
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -2226,12 +2229,14 @@ api_bp.register_blueprint(ALERTS_API_BP)
 #-------------------------------------------Forensics new one  end----------------------------------------------------
 
         
-@api_bp.route('/')
+
+
+@api_bp.route("/")
 def index():
-    return send_from_directory(os.path.join(REPO_ROOT, 'static'), 'index.html')
+    return send_from_directory(os.path.join(REPO_ROOT, "app_core", "static"), "index.html")
+    #return send_from_directory(os.path.join(REPO_ROOT, 'static'), 'index.html')
 
-
-@api_bp.route('/<path:path>')
+@api_bp.route("/<path:path>")
 def static_files(path):
-    return send_from_directory(os.path.join(REPO_ROOT, 'static'), path)
-
+    return send_from_directory(os.path.join(REPO_ROOT, "app_core", "static"), path)
+    #return send_from_directory(os.path.join(REPO_ROOT, 'static'), path)

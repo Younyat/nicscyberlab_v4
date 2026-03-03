@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NICS CyberLab | Forensic Manager</title>
+
+    <script src="https://unpkg.com/cytoscape/dist/cytoscape.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
+
+    <style>
+        #cy { height: 550px; width: 100%; }
+        
+        #ics-log-terminal::-webkit-scrollbar,
+        #tools-terminal::-webkit-scrollbar { width: 6px; }
+        
+        #ics-log-terminal::-webkit-scrollbar-track,
+        #tools-terminal::-webkit-scrollbar-track { background: #000; }
+        
+        #ics-log-terminal::-webkit-scrollbar-thumb,
+        #tools-terminal::-webkit-scrollbar-thumb { 
+            background: #334155; 
+            border-radius: 10px; 
+        }
+
+        .btn-uninstall {
+            transition: all 0.3s ease;
+            border: 1px solid rgba(249, 115, 22, 0.3);
+        }
+        .btn-uninstall:hover {
+            background-color: rgba(249, 115, 22, 0.1);
+            border-color: rgba(249, 115, 22, 1);
+            box-shadow: 0 0 10px rgba(249, 115, 22, 0.2);
+        }
+    </style>
+</head>
+
+<body class="bg-slate-950 text-white min-h-screen">
+
+    <div id="overlay" class="hidden fixed inset-0 bg-black/90 z-[100] flex items-center justify-center backdrop-blur-md p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 w-full max-w-2xl shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center gap-4">
+                    <div id="status-dot" class="w-4 h-4 rounded-full bg-sky-500 animate-pulse"></div>
+                    <div>
+                        <h2 id="overlay-title" class="text-xl font-bold text-sky-400 font-mono uppercase tracking-wider">Consola de Sistema</h2>
+                        <p id="overlay-status" class="text-[10px] text-slate-500 font-mono italic uppercase">Status: Operando...</p>
+                    </div>
+                </div>
+                <button onclick="setOverlay(false)" class="p-2 hover:bg-slate-800 rounded-full transition-colors">
+                    <i class="fas fa-times text-slate-500"></i>
+                </button>
+            </div>
+            <div class="bg-black border border-slate-700 rounded-lg overflow-hidden shadow-inner">
+                <div class="bg-slate-800/50 px-4 py-2 border-b border-slate-700 text-[10px] text-slate-400 font-bold uppercase">NICS_Host_Terminal_v2.log</div>
+                <pre id="ics-log-terminal" class="p-6 text-xs text-emerald-500 font-mono h-96 overflow-auto whitespace-pre-wrap leading-relaxed">[SISTEMA LISTO]</pre>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex p-6 space-x-6">
+        <div class="w-1/3 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
+            <h1 class="text-2xl font-bold mb-4 flex items-center gap-2">
+                <i class="fas fa-server text-sky-500"></i> Instancias Disponibles
+            </h1>
+            <div id="instance-list" class="space-y-3"></div>
+        </div>
+
+        <div class="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
+            <h1 class="text-xl font-bold mb-3 flex items-center gap-2">
+                <i class="fas fa-network-wired text-sky-500"></i> Escenario Actual
+            </h1>
+            <div id="cy" class="bg-slate-950 rounded-lg shadow-inner"></div>
+        </div>
+
+        <div class="w-1/3 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
+            <h1 class="text-2xl font-bold mb-4 text-center">
+                <i class="fas fa-tools text-sky-500"></i> Herramientas de Instancia
+            </h1>
+
+            <div id="selected-instance-info" class="p-4 bg-slate-950 border border-slate-800 rounded-lg mb-5 hidden">
+                <h2 class="text-lg font-bold mb-2">Instancia seleccionada:</h2>
+                <p class="text-sky-400" id="instance-name"></p>
+                <p class="text-sm text-gray-500" id="instance-ip"></p>
+            </div>
+
+            <h2 class="text-lg font-bold mb-2">Herramientas Instaladas</h2>
+            <div id="installed-tools" class="bg-slate-950 border border-slate-800 rounded-lg p-4 space-y-2 h-40 overflow-y-auto"></div>
+
+            <h2 class="text-lg font-bold mt-6 mb-2 text-slate-400">Añadir Herramienta</h2>
+            <select id="available-tools" class="w-full bg-slate-950 border border-slate-800 p-2 rounded-lg text-white mb-3">
+                <option value="">Selecciona herramienta...</option>
+                <option value="wazuh">Wazuh</option>
+                <option value="wazuh_agent">Wazuh-Agent</option>
+                <option value="suricata">Suricata</option>
+                <option value="snort">Snort</option>
+                <option value="nmap">Nmap</option>
+                <option value="caldera">MITRE Caldera</option>
+                <option value="caldera_agent">MITRE Caldera Agent</option>
+                <option value="tcpdump">TCPDump</option>
+                <option value="zeek">Zeek</option> 
+                <option value="caldera_ot_plugins">Caldera Ot Plugins</option>
+            </select>
+
+            <button onclick="addTool()" class="w-full bg-emerald-600 hover:bg-emerald-500 py-2 rounded-lg font-bold mb-4 transition-all">
+                <i class="fas fa-plus"></i> Añadir Herramienta
+            </button>
+
+            <div class="grid grid-cols-2 gap-2 mb-4">
+                <button onclick="loadToolsConfig()" class="bg-blue-600 hover:bg-blue-500 py-2 rounded-lg font-bold text-xs">
+                    <i class="fas fa-cogs"></i> CONFIG
+                </button>
+                <button onclick="installTools()" class="bg-green-600 hover:bg-green-500 py-2 rounded-lg font-bold text-xs">
+                    <i class="fas fa-play"></i> INSTALAR
+                </button>
+            </div>
+
+            <div id="tools-terminal" class="bg-black text-green-500 rounded-lg p-3 h-48 overflow-y-auto font-mono text-xs border border-slate-800">
+                > Sistema de instancias listo...
+            </div>
+        </div>
+    </div>
+
+    <div class="px-6 my-4"><div class="border-t border-slate-800"></div></div>
+
+
+
+
+<section class="w-full bg-slate-900/20 border-t border-slate-800 mt-12">
+    <main class="w-full max-w-none mx-auto py-16 px-12">
+        <header class="mb-12 border-b border-slate-800 pb-10 relative">
+            <div class="absolute -top-10 -left-10 w-48 h-48 bg-sky-500/5 rounded-full blur-3xl"></div>
+           
+
+            <h1 class="text-2xl font-bold mb-4 flex items-center gap-2">
+                <i class="fas fa-server text-sky-500"></i> Host Forensic Inventory
+            </h1>
+            <p class="text-slate-500 mt-3 text-sm font-mono tracking-widest uppercase opacity-70">
+                Monitorización de capacidades locales del nodo de control
+            </p>
+        </header>
+
+        <div id="tools-grid" class="flex flex-col gap-4 w-full">
+            
+            <div class="w-full bg-slate-900 border border-slate-800 hover:border-sky-500/40 rounded-2xl p-6 flex items-center justify-between transition-all duration-300 group shadow-lg">
+                <div class="flex items-center gap-10">
+                    <div class="relative">
+                        <div class="absolute inset-0 bg-sky-500/20 blur-xl rounded-full group-hover:bg-sky-500/40 transition-all"></div>
+                        <div class="relative w-14 h-14 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-center text-sky-400 shadow-2xl">
+                            <i class="fas fa-microchip text-2xl"></i>
+                        </div>
+                    </div>
+
+                    <div class="min-w-[300px]">
+                        <div class="flex items-center gap-3">
+                            <h3 class="text-xl font-bold font-mono tracking-tight text-white uppercase">Tshark Analyzer</h3>
+                            <span class="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded font-mono">v4.0.2</span>
+                        </div>
+                        <p class="text-xs text-slate-500 font-mono mt-1 italic">Network traffic capture and protocol deep inspection engine</p>
+                    </div>
+
+                    <div class="hidden xl:block w-64 ml-10">
+                        <div class="flex justify-between mb-1">
+                            <span class="text-[9px] font-bold text-slate-600 uppercase">System Readiness</span>
+                            <span class="text-[9px] font-bold text-emerald-500">100%</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                            <div class="bg-gradient-to-r from-sky-600 to-emerald-500 h-full w-full"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-12">
+                    <div class="flex flex-col items-end">
+                        <span class="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-1">Status</span>
+                        <div class="flex items-center gap-2 px-4 py-1.5 bg-emerald-500/5 border border-emerald-500/20 rounded-lg">
+                            <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] animate-pulse"></div>
+                            <span class="text-xs font-bold text-emerald-500 uppercase">Ready</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-3">
+                        <button class="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-8 py-3 rounded-xl text-xs font-bold uppercase transition-all active:scale-95">
+                            Audit System
+                        </button>
+                        <button class="bg-red-500/10 hover:bg-red-600 hover:text-white text-red-500 border border-red-500/20 px-4 py-3 rounded-xl transition-all">
+                            <i class="fas fa-power-off"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full bg-slate-900/40 border border-slate-800/50 rounded-2xl p-6 flex items-center justify-between transition-all opacity-60 hover:opacity-100 group">
+                <div class="flex items-center gap-10">
+                    <div class="w-14 h-14 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-center text-slate-600">
+                        <i class="fas fa-memory text-2xl"></i>
+                    </div>
+                    <div class="min-w-[300px]">
+                        <h3 class="text-xl font-bold font-mono tracking-tight text-slate-400 uppercase">Volatility 3</h3>
+                        <p class="text-xs text-slate-600 font-mono mt-1 italic">Advanced memory forensics framework for incident response</p>
+                    </div>
+                    
+                    <div class="hidden xl:block w-64 ml-10">
+                        <div class="w-full bg-slate-800/50 h-1.5 rounded-full"></div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-12">
+                    <div class="flex flex-col items-end">
+                        <span class="text-xs font-bold text-slate-700 uppercase italic">Offline</span>
+                    </div>
+                    <button onclick="setOverlay(true)" class="bg-sky-600 hover:bg-sky-500 px-12 py-3 rounded-xl text-xs font-bold uppercase transition-all shadow-lg shadow-sky-900/20 text-white">
+                        Deploy Tool
+                    </button>
+                </div>
+            </div>
+
+            <div class="animate-pulse w-full bg-slate-900/30 border border-slate-800/50 rounded-2xl h-24"></div>
+        </div>
+
+        <footer class="mt-16 pt-10 border-t border-slate-900 flex justify-between items-center text-slate-600">
+            <div class="flex gap-10">
+                <button onclick="loadHostInventory()" class="flex items-center gap-3 text-xs font-black hover:text-sky-400 transition-colors uppercase tracking-[0.3em]">
+                    <i class="fas fa-sync-alt"></i> Force Sync
+                </button>
+                <div class="text-[10px] font-mono flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500/50"></span>
+                    Local Host: nics-node-primary
+                </div>
+            </div>
+            <div id="last-update" class="text-[10px] font-mono uppercase tracking-widest opacity-50">Last Update: --:--:--</div>
+        </footer>
+    </main>
+</section>
+
+    <script>
+        function setOverlay(show) {
+            const overlay = document.getElementById('overlay');
+            if (show) overlay.classList.remove('hidden');
+            else overlay.classList.add('hidden');
+        }
+    </script>
+
+    <script src="index-tools.js"></script>
+     
+
+</body>
+</html>
