@@ -252,8 +252,9 @@ Typical offensive actions include:
 
 ### Why it matters
 
-This service makes the relationship between attack generation and detection explicit. It is especially useful for training, demonstrations, and controlled exercises in which the user must understand both sides of the event.
+This service makes the relationship between attack generation and detection explicit. After attacks are executed, the resulting events and alerts are registered and can be reviewed through the operational monitoring dashboard, which shows the active IT and OT components together with the generated indicators. This is especially useful for training, demonstrations, and controlled exercises in which the user must understand both sides of the event.
 
+![Operational Monitoring Dashboard](Images_readme/it_ot_environment_dashboard.png)
 ---
 
 ## Forensic Acquisition and Analysis Dashboard
@@ -457,5 +458,5 @@ PLC/plc_programs/TankControl.st
 ```
 
 ---
-
-                                                                            NICS LAB — NICS | CyberLab
+ 
+                                 NICS LAB — NICS | CyberLab
