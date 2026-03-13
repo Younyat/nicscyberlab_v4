@@ -1,0 +1,94 @@
+
+        /* Custom Variables */
+        :root {
+            --primary-color: #0d9488; /* Teal-600 */
+            --secondary-color: #f97316; /* Orange-500 */
+            --accent-warning: #facc15; /* Yellow-400 */
+            --bg-dark: #1f2937; /* Gray-800 */
+            --border-color-light: #4b5563; /* Gray-600 */
+            --font-sans: 'Inter', sans-serif;
+            --font-mono: 'Fira Mono', monospace;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-dark);
+            color: #f3f4f6;
+            overflow: hidden; /* Evitar scroll en el body principal */
+        }
+
+        #app-container {
+            height: 100vh;
+            display: flex;
+        }
+
+        #cy {
+            flex-grow: 1;
+            height: 100%;
+            background-color: #111827; /* Gray-900 */
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Estilo para el panel lateral de controles */
+        #controls-panel {
+            width: 380px;
+            min-width: 380px;
+            background-color: var(--bg-dark);
+            border-left: 1px solid var(--border-color-light);
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+
+        /* Estilo para los botones principales (modos) */
+        .btn-mode {
+            @apply flex flex-col items-center justify-center p-3 rounded-xl transition duration-200 ease-in-out font-semibold text-sm;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Estilo para el Toast */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: var(--primary-color);
+            color: #fff;
+            text-align: center;
+            border-radius: 12px;
+            padding: 16px;
+            position: fixed;
+            z-index: 1000;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 30px;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.5s, bottom 0.5s;
+        }
+
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 50px;
+        }
+
+        /* Estilo del modal (reemplazo de confirm) */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        .modal-content {
+            background: var(--bg-dark);
+            border: 1px solid var(--border-color-light);
+            padding: 2rem;
+            border-radius: 1rem;
+            max-width: 400px;
+            text-align: center;
+        }
+  

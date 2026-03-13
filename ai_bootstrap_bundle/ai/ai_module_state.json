@@ -1,0 +1,32 @@
+{
+  "module": "ai",
+  "deployment": {
+    "phase": "done",
+    "progress": 100,
+    "message": "Módulo IA desplegado correctamente"
+  },
+  "instance": {
+    "name": "AI",
+    "exists": true,
+    "id": "18021851-9942-4600-bf3b-6593afb5403a",
+    "status": "ACTIVE"
+  },
+  "network": {
+    "ip_floating": "10.0.2.204",
+    "ip_private": null
+  },
+  "gui": {
+    "installed": true,
+    "status": "running",
+    "port": 3000,
+    "url": "http://10.0.2.204:3000"
+  },
+  "api": {
+    "port": 8000,
+    "url": "http://10.0.2.204:8000/v1/chat/completions"
+  },
+  "timestamps": {
+    "created": "2026-03-09T16:35:54+01:00",
+    "last_update": "2026-03-09T16:50:07+01:00"
+  }
+}

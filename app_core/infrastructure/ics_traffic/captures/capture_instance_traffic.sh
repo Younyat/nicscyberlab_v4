@@ -102,7 +102,7 @@ PY
 EOF
 
 # 6) Captura limpia: SIGINT para que tcpdump cierre PCAP correctamente
-sudo timeout -s INT "$DURATION" tcpdump -U -i "$IFACE" -n "$BPF" -w "$PCAP" >/dev/null 2>&1 || true
+timeout -s INT "$DURATION" tcpdump -U -i "$IFACE" -n "$BPF" -w "$PCAP" >/dev/null 2>&1 || true
 
 END_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 

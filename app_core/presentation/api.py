@@ -1929,7 +1929,7 @@ def api_ai_status():
         "deploying": False,
         "progress": 0,
         "phase": "not_installed",
-        "message": "El módulo de IA no existe. Requiere despliegue manual.",
+        "message": "The AI ​​module does not exist. It requires deployment.",
         "status": {
             "module": "ai",
             "instance": {
@@ -2224,6 +2224,11 @@ api_bp.register_blueprint(forensics_bp)
 from app_core.infrastructure.forensics.alerts_api import ALERTS_API_BP
 api_bp.register_blueprint(ALERTS_API_BP)
 
+#------------------------------------------- Forensic report
+
+
+from app_core.infrastructure.forensics.forensics_report_api import forensics_report_bp
+api_bp.register_blueprint(forensics_report_bp)
 
 
 #-------------------------------------------Forensics new one  end----------------------------------------------------
@@ -2240,3 +2245,8 @@ def index():
 def static_files(path):
     return send_from_directory(os.path.join(REPO_ROOT, "app_core", "static"), path)
     #return send_from_directory(os.path.join(REPO_ROOT, 'static'), path)
+
+
+
+
+

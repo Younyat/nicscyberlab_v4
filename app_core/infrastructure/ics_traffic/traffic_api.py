@@ -309,6 +309,94 @@ def find_vm_sniff_iface(vm_ips):
 
     return os.environ.get("TRAFFIC_DEFAULT_IFACE", "br-int")
 
+def _preflight_capture_ready(iface: str, bpf: str = None):
+    """
+    Comprueba antes de arrancar la captura que:
+      - la interfaz existe
+      - tenemos permisos reales para abrir captura en esa interfaz
+
+    Usa tcpdump -d para validar el filtro sin capturar y
+    dumpcap/tcpdump -D o existencia de interfaz para comprobar entorno.
+    """
+    if not iface:
+        return False, "No sniff interface resolved"
+
+    if not os.path.exists(f"/sys/class/net/{iface}"):
+        return False, f"Interface '{iface}' does not exist on this host"
+
+    # Validar sintaxis BPF si existe tcpdump
+    tcpdump_bin = subprocess.run(
+        ["bash", "-lc", "command -v tcpdump || true"],
+        capture_output=True,
+        text=True
+    ).stdout.strip()
+
+    if tcpdump_bin and bpf:
+        try:
+            chk = subprocess.run(
+                [tcpdump_bin, "-d", bpf],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            if chk.returncode != 0:
+                err = (chk.stderr or chk.stdout or "").strip()
+                return False, f"Invalid BPF for tcpdump: {err}"
+        except Exception as e:
+            return False, f"BPF validation failed: {e}"
+
+    # Prueba real de permisos de captura
+    # Intentamos con dumpcap si existe, si no con tcpdump -i iface -c 1
+    dumpcap_bin = subprocess.run(
+        ["bash", "-lc", "command -v dumpcap || true"],
+        capture_output=True,
+        text=True
+    ).stdout.strip()
+
+    try:
+        if dumpcap_bin:
+            chk = subprocess.run(
+                [dumpcap_bin, "-i", iface, "-f", bpf or "", "-a", "duration:1", "-w", "/dev/null"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+        elif tcpdump_bin:
+            cmd = [tcpdump_bin, "-i", iface, "-c", "1", "-nn"]
+            if bpf:
+                cmd.append(bpf)
+            chk = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+        else:
+            return False, "Neither dumpcap nor tcpdump is available for capture preflight"
+
+        # rc 0 o timeout corto con arranque correcto es aceptable
+        stderr_txt = (chk.stderr or "").strip().lower()
+        stdout_txt = (chk.stdout or "").strip().lower()
+        combined = f"{stdout_txt} {stderr_txt}"
+
+        if "operation not permitted" in combined:
+            return False, f"Capture permission denied on interface '{iface}'"
+        if "you don't have permission" in combined:
+            return False, f"Capture permission denied on interface '{iface}'"
+        if "permission denied" in combined:
+            return False, f"Capture permission denied on interface '{iface}'"
+        if "no such device" in combined:
+            return False, f"Interface '{iface}' not usable"
+    except subprocess.TimeoutExpired:
+        # timeout aquí significa que el backend arrancó y no falló de inmediato
+        pass
+    except Exception as e:
+        return False, f"Capture preflight failed: {e}"
+
+    return True, None
+
+
+
 
 # ============================================================
 # Capture generator (SSE)
@@ -318,25 +406,17 @@ def find_vm_sniff_iface(vm_ips):
 def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"):
     """
     SSE generator:
-      - Captura tráfico (AsyncSniffer) y escribe PCAP + metadata JSON.
-      - Si case_dir es válido (bajo EVIDENCE_ROOT):
-          * Registra eventos en metadata/pipeline_events.jsonl
-          * Registra artefactos en manifest.json (pcap + pcap_metadata)
-          * Exporta evidencia OT derivada (Modbus/TCP) como JSON DERIVED y trazable
-            en el layer industrial/: industrial/ot_export_<vm>_<run>_<ts>.json
-
-    NOTA IMPORTANTE:
-      Para que el parseo Modbus funcione, asegúrate de tener Raw importado:
-        from scapy.all import IP, TCP, UDP, Raw, PcapWriter, AsyncSniffer
+      - Captura tráfico y escribe PCAP + metadata.
+      - Si case_dir es válido:
+          * registra pipeline_events.jsonl
+          * registra manifest
+          * exporta OT derivado a industrial/
     """
-    from scapy.all import Raw  # fallback por si no está en imports globales
+    from scapy.all import Raw
 
     packet_queue = Queue()
     stop_event = Event()
 
-    # ============================================================
-    # Concurrencia: 1 captura activa por vm_id
-    # ============================================================
     with _ACTIVE_LOCK:
         if vm_id in _ACTIVE_CAPTURES:
             yield "data: [ERROR] Ya existe una captura activa para este vm_id.\n\n"
@@ -347,16 +427,10 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
     pkts_written = 0
     termination_reason = "unknown"
 
-    # "Sesión" = desde que entra hasta que finaliza (incluye preparación + captura + teardown)
     session_start_epoch = time.time()
-
-    # "Captura real" = desde sniffer.start() hasta sniffer.stop()
     capture_start_epoch = None
     capture_end_epoch = None
 
-    # ============================================================
-    # Resolver IPs + interfaz
-    # ============================================================
     vm_ips = get_vm_ips_live(vm_id)
     if not vm_ips:
         with _ACTIVE_LOCK:
@@ -367,9 +441,6 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
     tap_iface, port_id = pick_tap_iface_for_vm(vm_id)
     sniff_iface = tap_iface if tap_iface else find_vm_sniff_iface(vm_ips)
 
-    # ============================================================
-    # BPF filter (IPs + protocolos)
-    # ============================================================
     protos = [p.strip().lower() for p in (selected_protos or []) if p and p.strip()]
     ip_filter = " or ".join(f"host {ip}" for ip in vm_ips)
 
@@ -387,15 +458,11 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
     if proto_bits:
         final_bpf += f" and ({' or '.join(proto_bits)})"
 
-    # ============================================================
-    # Output dirs  (OT export -> industrial/)
-    # ============================================================
     use_case = bool(case_dir) and _is_safe_case_dir(case_dir)
     if use_case:
-        # [PER_VM] PCAP por VM en subdir estable
         per_vm_dir = os.path.join(case_dir, "network", "per_vm", vm_id)
         os.makedirs(per_vm_dir, exist_ok=True)
-        out_dir = per_vm_dir  # [PER_VM] antes: case_dir/network
+        out_dir = per_vm_dir
 
         meta_dir = os.path.join(case_dir, "metadata")
         os.makedirs(meta_dir, exist_ok=True)
@@ -406,9 +473,6 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
         out_dir = CAPTURE_DIR_LEGACY
         industrial_dir = None
 
-    # ============================================================
-    # Filenames
-    # ============================================================
     run_id = (run_id or "R1").strip() or "R1"
     ts_tag = time.strftime("%Y%m%d_%H%M%SZ", time.gmtime())
 
@@ -418,7 +482,6 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
     meta_filename = f"pcap_{vm_id}_{run_id}_{ts_tag}.metadata.json"
     meta_path = os.path.join(out_dir, meta_filename)
 
-    # [PER_VM] rel paths apuntan a network/per_vm/<vm_id>/...
     pcap_rel = os.path.join("network", "per_vm", vm_id, pcap_filename) if use_case else None
     meta_rel = os.path.join("network", "per_vm", vm_id, meta_filename) if use_case else None
 
@@ -426,9 +489,6 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
     industrial_export_path = os.path.join(industrial_dir, industrial_export_filename) if use_case else None
     industrial_export_rel = os.path.join("industrial", industrial_export_filename) if use_case else None
 
-    # ============================================================
-    # Eventos de inicio de sesión
-    # ============================================================
     if use_case:
         _append_case_event(
             case_dir,
@@ -447,9 +507,6 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
             },
         )
 
-    # ============================================================
-    # Writer PCAP
-    # ============================================================
     try:
         os.makedirs(out_dir, exist_ok=True)
     except Exception as e:
@@ -466,9 +523,6 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
         yield f"data: [ERROR] No puedo abrir PCAP en '{pcap_path}': {e}\n\n"
         return
 
-    # ============================================================
-    # Metadata inicial (sesión)
-    # ============================================================
     try:
         with open(meta_path, "w", encoding="utf-8") as f:
             json.dump(
@@ -484,7 +538,6 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
                     "start_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                     "pcap_file": pcap_filename,
                     "industrial_export_file": industrial_export_filename if use_case else None,
-                    # [PER_VM] donde vive realmente
                     "pcap_rel": pcap_rel if use_case else None,
                     "meta_rel": meta_rel if use_case else None,
                 },
@@ -494,9 +547,6 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
     except Exception:
         pass
 
-    # ============================================================
-    # OT (Modbus/TCP) parsing (DERIVED, en vivo)
-    # ============================================================
     ot_ops = []
     ot_ops_max = 2000
 
@@ -505,6 +555,9 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
 
     ot_first_epoch = None
     ot_last_epoch = None
+
+    sniffer_failed = Event()
+    sniffer_failure_reason = {"value": None}
 
     def _safe_int(x, default=None):
         try:
@@ -594,9 +647,6 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
                     "data_hex_prefix": data[:16].hex() if data else None})
         return rec
 
-    # ============================================================
-    # Callback: PCAP + SSE + OT derived
-    # ============================================================
     def packet_callback(pkt):
         nonlocal pkts_written, ot_seen_packets_502, ot_seen_payload_packets, ot_first_epoch, ot_last_epoch
 
@@ -609,8 +659,10 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
             with writer_lock:
                 pkts_writer.write(pkt)
                 pkts_written += 1
-        except Exception:
-            pass
+        except Exception as e:
+            sniffer_failure_reason["value"] = f"pcap_write_failed: {e}"
+            sniffer_failed.set()
+            return
 
         try:
             src, dst = pkt[IP].src, pkt[IP].dst
@@ -694,9 +746,58 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
         except Exception:
             return
 
-    # ============================================================
-    # Sniffer
-    # ============================================================
+    ok, preflight_err = _preflight_capture_ready(sniff_iface, final_bpf)
+    if not ok:
+        termination_reason = f"preflight_failed: {preflight_err}"
+
+        try:
+            with open(meta_path, "r", encoding="utf-8") as f:
+                meta = json.load(f)
+        except Exception:
+            meta = {}
+
+        meta.update({
+            "end_epoch": time.time(),
+            "end_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "capture_start_epoch": None,
+            "capture_end_epoch": None,
+            "capture_duration_s": None,
+            "packets_written": 0,
+            "termination_reason": termination_reason,
+        })
+
+        try:
+            with open(meta_path, "w", encoding="utf-8") as f:
+                json.dump(meta, f, indent=2)
+        except Exception:
+            pass
+
+        if use_case:
+            _append_case_event(
+                case_dir,
+                "traffic_failed",
+                run_id=run_id,
+                meta={
+                    "vm_id": vm_id,
+                    "port_id": port_id,
+                    "iface": sniff_iface,
+                    "reason": preflight_err,
+                    "bpf": final_bpf,
+                },
+            )
+
+        try:
+            with writer_lock:
+                pkts_writer.close()
+        except Exception:
+            pass
+
+        with _ACTIVE_LOCK:
+            _ACTIVE_CAPTURES.discard(vm_id)
+
+        yield f"data: [ERROR] Capture preflight failed on {sniff_iface}: {preflight_err}\n\n"
+        return
+
     sniffer = AsyncSniffer(iface=sniff_iface, filter=final_bpf, prn=packet_callback, store=False)
 
     try:
@@ -733,6 +834,12 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
                 meta={"vm_id": vm_id, "port_id": port_id, "iface": sniff_iface, "reason": str(e), "bpf": final_bpf},
             )
 
+        try:
+            with writer_lock:
+                pkts_writer.close()
+        except Exception:
+            pass
+
         yield f"data: [ERROR] No se pudo iniciar sniffer en {sniff_iface}: {e}\n\n"
         return
 
@@ -740,14 +847,35 @@ def capture_packets_generator(vm_id, selected_protos, case_dir=None, run_id="R1"
     yield f"data: [SISTEMA] BPF: {final_bpf}\n\n"
     yield f"data: [SISTEMA] Archivo: {pcap_filename}\n\n"
 
-    # ============================================================
-    # Streaming loop
-    # ============================================================
     try:
         while True:
+            if stop_event.is_set():
+                if termination_reason == "unknown":
+                    termination_reason = "stop_event_set"
+                break
+
+            if sniffer_failed.is_set():
+                termination_reason = sniffer_failure_reason["value"] or "sniffer_runtime_failed"
+                yield f"data: [ERROR] {termination_reason}\n\n"
+                break
+
+            if capture_start_epoch is not None and not getattr(sniffer, "running", False):
+                try:
+                    pending = packet_queue.get_nowait()
+                    yield pending
+                    continue
+                except Empty:
+                    if termination_reason == "unknown":
+                        termination_reason = "sniffer_stopped_unexpectedly"
+                    break
+
             try:
                 yield packet_queue.get(timeout=1.5)
             except Empty:
+                if capture_start_epoch is not None and not getattr(sniffer, "running", False):
+                    if termination_reason == "unknown":
+                        termination_reason = "sniffer_stopped_unexpectedly"
+                    break
                 yield ": keep-alive\n\n"
 
     except GeneratorExit:
@@ -1047,16 +1175,11 @@ def download_pcap(filename):
  # captura 20s no SSE
 
 
-
 def capture_packets_fixed_duration(vm_id: str, selected_protos: list, duration_s: int, case_dir: str = None, run_id: str = "R1") -> dict:
     """
     Captura tráfico durante duration_s segundos y preserva PCAP + metadata.
-    Reutiliza exactamente el mismo layout y registro que tu generator:
-      network/per_vm/<vm_id>/pcap_...pcap
-      network/per_vm/<vm_id>/pcap_...metadata.json
-      industrial/ot_export_...json si modbus está en protos
     """
-    from scapy.all import Raw  # needed for modbus parsing
+    from scapy.all import Raw
 
     duration_s = int(duration_s or 20)
     if duration_s <= 0:
@@ -1064,7 +1187,6 @@ def capture_packets_fixed_duration(vm_id: str, selected_protos: list, duration_s
 
     run_id = (run_id or "R1").strip() or "R1"
 
-    # Resolver IPs + interfaz
     vm_ips = get_vm_ips_live(vm_id)
     if not vm_ips:
         return {"result": "error", "error": "No se detectaron IPs en la VM", "vm_id": vm_id}
@@ -1072,7 +1194,6 @@ def capture_packets_fixed_duration(vm_id: str, selected_protos: list, duration_s
     tap_iface, port_id = pick_tap_iface_for_vm(vm_id)
     sniff_iface = tap_iface if tap_iface else find_vm_sniff_iface(vm_ips)
 
-    # BPF filter
     protos = [p.strip().lower() for p in (selected_protos or []) if p and p.strip()]
     ip_filter = " or ".join(f"host {ip}" for ip in vm_ips)
 
@@ -1168,7 +1289,9 @@ def capture_packets_fixed_duration(vm_id: str, selected_protos: list, duration_s
         fc = adu[7]
         data = adu[8:]
         rec = {"tid": tid, "unit_id": unit_id, "fc": fc, "mbap_len": length, "is_write": fc in (0x05, 0x06, 0x0F, 0x10)}
-        def u16(b0, b1): return (b0 << 8) | b1
+
+        def u16(b0, b1):
+            return (b0 << 8) | b1
 
         if fc == 0x05 and len(data) >= 4:
             addr = u16(data[0], data[1])
@@ -1219,7 +1342,6 @@ def capture_packets_fixed_duration(vm_id: str, selected_protos: list, duration_s
             "duration_s": duration_s,
         })
 
-    # Metadata inicial
     try:
         with open(meta_path, "w", encoding="utf-8") as f:
             json.dump({
@@ -1245,6 +1367,43 @@ def capture_packets_fixed_duration(vm_id: str, selected_protos: list, duration_s
     sniffer = None
     termination_reason = "unknown"
 
+    ok, preflight_err = _preflight_capture_ready(sniff_iface, final_bpf)
+    if not ok:
+        termination_reason = f"preflight_failed: {preflight_err}"
+
+        try:
+            with open(meta_path, "r", encoding="utf-8") as f:
+                meta = json.load(f)
+        except Exception:
+            meta = {}
+
+        meta.update({
+            "end_epoch": time.time(),
+            "end_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "capture_start_epoch": None,
+            "capture_end_epoch": None,
+            "capture_duration_s": None,
+            "packets_written": 0,
+            "termination_reason": termination_reason,
+        })
+
+        try:
+            with open(meta_path, "w", encoding="utf-8") as f:
+                json.dump(meta, f, indent=2)
+        except Exception:
+            pass
+
+        if use_case:
+            _append_case_event(case_dir, "traffic_failed", run_id=run_id, meta={
+                "vm_id": vm_id,
+                "port_id": port_id,
+                "iface": sniff_iface,
+                "reason": preflight_err,
+                "bpf": final_bpf,
+            })
+
+        return {"result": "error", "error": preflight_err, "vm_id": vm_id}
+
     try:
         pkts_writer = PcapWriter(pcap_path, append=False, sync=True, linktype=1)
 
@@ -1256,7 +1415,7 @@ def capture_packets_fixed_duration(vm_id: str, selected_protos: list, duration_s
                 pkts_writer.write(pkt)
                 pkts_written += 1
             except Exception:
-                pass
+                return
 
             if not use_case or "modbus" not in protos:
                 return
@@ -1329,9 +1488,14 @@ def capture_packets_fixed_duration(vm_id: str, selected_protos: list, duration_s
                 "duration_s": duration_s,
             })
 
-        time.sleep(duration_s)
-
-        termination_reason = "fixed_duration_elapsed"
+        deadline = time.time() + duration_s
+        while time.time() < deadline:
+            if not getattr(sniffer, "running", False):
+                termination_reason = "sniffer_stopped_unexpectedly"
+                break
+            time.sleep(0.2)
+        else:
+            termination_reason = "fixed_duration_elapsed"
 
     except Exception as e:
         termination_reason = f"traffic_exception: {e}"
@@ -1341,8 +1505,12 @@ def capture_packets_fixed_duration(vm_id: str, selected_protos: list, duration_s
         try:
             if sniffer and getattr(sniffer, "running", False):
                 sniffer.stop()
-        except Exception:
-            pass
+        except OSError as e:
+            if termination_reason == "unknown":
+                termination_reason = f"oserror: {e}"
+        except Exception as e:
+            if termination_reason == "unknown":
+                termination_reason = f"sniffer_stop_exception: {e}"
 
         capture_end_epoch = time.time()
 
@@ -1356,7 +1524,6 @@ def capture_packets_fixed_duration(vm_id: str, selected_protos: list, duration_s
         session_duration_s = round(session_end_epoch - session_start_epoch, 3)
         capture_duration_s = round(capture_end_epoch - capture_start_epoch, 3) if capture_start_epoch else None
 
-        # Update metadata
         try:
             with open(meta_path, "r", encoding="utf-8") as f:
                 meta = json.load(f)
@@ -1385,7 +1552,6 @@ def capture_packets_fixed_duration(vm_id: str, selected_protos: list, duration_s
         except Exception:
             pass
 
-        # Preserve and register artifacts
         if use_case:
             pcap_sha = meta_sha = None
             pcap_size = meta_size = None
@@ -1524,7 +1690,6 @@ def capture_packets_fixed_duration(vm_id: str, selected_protos: list, duration_s
         "termination_reason": termination_reason,
         "industrial_export_rel": industrial_export_rel if (use_case and "modbus" in protos) else None
     }
-
 
 @traffic_bp.route("/api/forensics/traffic/capture", methods=["POST"])
 def api_forensics_traffic_capture_fixed():
