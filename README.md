@@ -454,7 +454,7 @@ restart_openstack.sh
 ### Example PLC program
 
 ```bash
-PLC/plc_programs/TankControl.st
+industrial-scenario/PLC/plc_programs/TankControl.st
 ```
 
 ---
