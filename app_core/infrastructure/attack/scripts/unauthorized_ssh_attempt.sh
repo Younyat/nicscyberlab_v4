@@ -15,7 +15,7 @@ echo "PHASE 2 - SSH BRUTE ATTEMPT"
 echo "==========================================="
 
 # usuario incorrecto
-BAD_USER="intruder"
+BAD_USER="debian"
 
 # clave incorrecta
 FAKE_KEY="/tmp/fake_key"

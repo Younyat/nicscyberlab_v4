@@ -16,7 +16,7 @@ SSH_KEY="$HOME/.ssh/my_key"
 INSTANCE_ID="nmap_$(echo "$TARGET_IP" | tr '.' '_')"
 
 if [[ -z "$TARGET_IP" ]]; then
-    echo "❌ ERROR: No se proporcionó la IP de destino para Nmap."
+    echo " ERROR: No se proporcionó la IP de destino para Nmap."
     exit 1
 fi
 
@@ -80,10 +80,10 @@ export ANSIBLE_HOST_KEY_CHECKING=False
 
 if ansible-playbook -i "$BASE_DIR/inventory/hosts.ini" "$BASE_DIR/playbooks/nmap-install.yml"; then
     echo "----------------------------------------------------"
-    echo " ✅ NMAP INSTALADO EXITOSAMENTE EN $TARGET_IP"
+    echo "  NMAP INSTALADO EXITOSAMENTE EN $TARGET_IP"
     echo "----------------------------------------------------"
 else
-    echo " ❌ ERROR en la instalación de Nmap."
+    echo "  ERROR en la instalación de Nmap."
     exit 1
 fi
 

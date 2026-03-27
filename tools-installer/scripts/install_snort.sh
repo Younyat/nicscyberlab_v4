@@ -123,10 +123,10 @@ export ANSIBLE_HOST_KEY_CHECKING=False
 
 if ansible-playbook -i "$BASE_DIR/hosts.ini" "$BASE_DIR/snort-install.yml"; then
     echo "----------------------------------------------------"
-    echo " ✅ SNORT 3 INSTALADO CON EXITO"
+    echo "  SNORT 3 INSTALADO CON EXITO"
     echo "----------------------------------------------------"
 else
-    echo " ❌ Fallo critico. Revisa los logs de CMake."
+    echo "  Fallo critico. Revisa los logs de CMake."
     exit 1
 fi
 

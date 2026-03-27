@@ -2,6 +2,9 @@
 # payload: file_tamper_sim.sh (LAB-SCOPE on VICTIM via SSH)
 set -euo pipefail
 
+
+
+
 TARGET_IP="${1:-}"
 if [[ -z "${TARGET_IP}" ]]; then
   echo "[ERROR] Missing TARGET_IP"

@@ -500,7 +500,7 @@ body.dfir-locked #dfir-auto-overlay *{
             <div onclick="openView('dashboard')" class="card-option flex flex-col items-center justify-center p-10 shadow-sm">
                 <div class="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center font-black text-2xl mb-8">04</div>
                 <span class="text-xs font-black text-emerald-400 tracking-[0.2em] mb-2 uppercase text-content" data-es="HERRAMIENTAS DE SEGURIDAD" data-en="SECURITY TOOLS DASHBOARD">HERRAMIENTAS DE SEGURIDAD</span>
-                <span class="text-lg font-bold text-slate-800 text-center uppercase leading-tight text-content" data-es="ENTRENAMIENTO EN SEGURIDAD" data-en="SECURITY LEARNING LAB">ENTRENAMIENTO EN SEGURIDAD</span>
+            <span class="text-lg font-bold text-slate-800 text-center uppercase leading-tight text-content" data-es="ENTRENAMIENTO EN SEGURIDAD" data-en="SECURITY LEARNING LAB">ENTRENAMIENTO EN SEGURIDAD</span>
             </div>
 
             <div onclick="openView('industrial')" class="card-option flex flex-col items-center justify-center p-10 shadow-sm">
@@ -683,12 +683,11 @@ body.dfir-locked #dfir-auto-overlay *{
         }
 
         // Parsea exactamente el formato que tu backend emite:
-        // [DETECTED] severity=HIGH score=87 forensics=YES sig=... src=IP:PORT dst=IP:PORT
+        // [DETECTED] severity=HIGH score=7 forensics=YES sig=... src=IP:PORT dst=IP:PORT
         function rtParseDetectedLine(line) {
             const s = String(line || "").trim();
             if (!s) return null;
 
-            // 1) Tu formato actual: NIVEL: X ...
             if (s.includes("NIVEL:")) {
                 const level = parseInt(s.match(/NIVEL:\s*(\d+)/)?.[1] || "0", 10);
 
@@ -709,7 +708,7 @@ body.dfir-locked #dfir-auto-overlay *{
                 };
             }
 
-            // 2) Si tu backend sí emite [DETECTED] (lo dejamos)
+           
             if (s.startsWith("[DETECTED]")) {
                 const get = (k) => (s.match(new RegExp(`${k}=([^\\s]+)`)) || [,""])[1];
 
@@ -725,7 +724,6 @@ body.dfir-locked #dfir-auto-overlay *{
                 };
             }
 
-            // 3) Suricata marker
             if (s.includes("[IDS/SURICATA]")) {
                 return {
                     ts: rtNow(),
@@ -812,7 +810,7 @@ body.dfir-locked #dfir-auto-overlay *{
             const host = document.getElementById("rt-toasts");
             if (!host) return;
             const sc = (typeof ev.score === "number") ? ev.score : Number(ev.score);
-            if (!Number.isNaN(sc) && sc >= 50) ev.forensics = "YES";
+            if (!Number.isNaN(sc) && sc >= 7) ev.forensics = "YES";
             const meta = rtSevMeta(ev.severity, ev.score);
 
             const el = document.createElement("div");
@@ -1147,13 +1145,13 @@ async function sendCopilot() {
     if (!text) return;
 
     COPILOT_PENDING = true;
-    input.disabled = true;          // 🔒 DESACTIVAR INPUT
+    input.disabled = true;          
     input.value = "";
     autoResize(input);
 
     addMessage(text, "user");
 
-    // Mensaje temporal "pensando…"
+   
     const thinkingMsg = document.createElement("div");
     thinkingMsg.className =
         "bg-slate-200 text-slate-600 p-3 rounded-xl max-w-[80%]";
@@ -1173,10 +1171,10 @@ async function sendCopilot() {
 
         const data = await res.json();
 
-        // Quitar “pensando…”
+        
         thinkingMsg.remove();
 
-        // 🚨 IA no disponible REAL
+      
         if (
             data.status === "success" &&
             typeof data.response === "string" &&
@@ -1204,7 +1202,7 @@ async function sendCopilot() {
         addMessage("Error de comunicación con la IA.", "error");
 
     } finally {
-        // 🔓 REACTIVAR INPUT
+        
         COPILOT_PENDING = false;
         input.disabled = false;
         input.focus();
@@ -1222,19 +1220,19 @@ async function handleCopilotClick() {
         return;
     }
 
-    // NO INSTALADO
+    
     if (!d.installed) {
         forceCopilotUnavailable();
         return;
     }
 
-    // DESPLEGANDO / ARRANCANDO -> no abrir chat
+   
     if (d.deploying) {
         forceCopilotUnavailable("El módulo de IA se está desplegando. Ve a Instalaciones IA.");
         return;
     }
 
-    // INSTALADO -> abrir copilot normal
+   
     toggleCopilot();
 }
 
@@ -1266,7 +1264,7 @@ function toggleCopilot() {
         popup.classList.remove("error");
         popup.style.display = "block";
 
-        // 🔧 FORZAR recalculo de layout
+       
         messages.scrollTop = messages.scrollHeight;
 
         setTimeout(() => {
@@ -1292,7 +1290,7 @@ function addMessage(text, type) {
     msg.innerText = text;
     messages.appendChild(msg);
 
-    // FORZAR repaint + scroll (robusto en Chrome/Firefox)
+   
    requestAnimationFrame(() => {
     messages.scrollTop = messages.scrollHeight;
 });
@@ -1378,7 +1376,7 @@ function dfirRenderBtn() {
 }
 
 function dfirToggleAuto() {
-  if (DFIR.running) return; // bloquea mientras corre
+  if (DFIR.running) return; // bloquea mientras corre (quiero decir run :)
   DFIR.auto = !DFIR.auto;
   dfirSaveAuto();
   dfirRenderBtn();
@@ -1469,7 +1467,7 @@ function startDfiroAutoSSE() {
   });
 
   DFIR_ES.onerror = async () => {
-    // EventSource no te da status code. Hacemos un fetch SOLO cuando ya ha fallado,
+  
     // para leer el JSON del backend (400/409) y mostrarlo.
     try {
       const res = await fetch(url, { cache: "no-store" });

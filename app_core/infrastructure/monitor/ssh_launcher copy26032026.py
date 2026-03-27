@@ -123,20 +123,18 @@ def live_wazuh_stream():
                             except Exception:
                                 pass
 
-                           
+                            # 2) Opcional: manda una línea HUMANA al frontend (sin escupir el JSON)
                             tri = out.get("triage", {})
                             sev = tri.get("severity", "UNKNOWN")
-                            score = tri.get("native_score")
-                            scale = tri.get("native_scale", "unknown")
+                            score = tri.get("score_0_100", 0)
                             rec = tri.get("recommend_forensics", False)
 
-                            
+                            # NUEVO: mostrar si se guardó en CASE o no
                             case_rel = out.get("case_rel")
                             case_info = f"case_saved={case_rel}" if case_rel else "case_saved=NO"
 
                             human = (
-                                f"[DETECTED] severity={sev} native_score={score} "
-                                f"scale={scale} "
+                                f"[DETECTED] severity={sev} score={score} "
                                 f"forensics={'YES' if rec else 'NO'} "
                                 f"{case_info} "
                                 f"sig={normalized.get('signature') or 'N/A'} "
@@ -146,7 +144,7 @@ def live_wazuh_stream():
                             yield f"data: {human}\n\n"
                             continue
                     except Exception:
-                        
+                        # Si falla el parseo, lo dejamos caer como texto normal al frontend
                         pass
 
                 # 3) Todo lo demás se stream-ea tal cual al frontend
@@ -307,15 +305,15 @@ class SSHMonitorManager:
         self.client.close()
 
 
-
+# ============================================================
 # Manager instance
 # ============================================================
 manager = SSHMonitorManager(key_path="~/.ssh/my_key")
 
 SCRIPT_NAME = "icmp_listener.py"
 
-
-#  START ICMP LISTENER
+# ============================================================
+# ▶ START ICMP LISTENER
 # ============================================================
 @monitor_infra_bp.route("/start_listener")
 def start_monitor_listener():

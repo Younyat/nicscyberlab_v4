@@ -32,7 +32,7 @@ class AlertsLogger:
     """
     Pre-case detection log:
       - Primary: alerts.jsonl (normalizado + raw)
-      - Derived: triage.jsonl (score/severity/decision)
+      - Derived: triage.jsonl (native score / severity / decision)
     """
 
     def __init__(self, base_dir: str = FORENSICS_ALERTS_BASE):
@@ -68,45 +68,61 @@ class AlertsLogger:
         }
 
     def compute_severity(self, ev: Dict[str, Any]) -> Dict[str, Any]:
-        score = 10
-        reasons = {}
+        """
+        Usa el score nativo de la fuente cuando esté disponible.
+        Para Wazuh:
+          - native_score = rule_level
+          - native_scale = wazuh_rule_level_0_16
 
+        No inventa score_0_100.
+        """
         source = (ev.get("source") or "").lower()
-        if source == "suricata":
-            score += 25
-        elif source == "wazuh":
-            score += 20
-        elif source == "icmp_sensor":
-            score += 10
-        reasons["source"] = source or "unknown"
+        reasons = {"source": source or "unknown"}
 
-        level = ev.get("rule_level")
-        if isinstance(level, int):
-            score += min(40, level * 3)
+        if source == "wazuh":
+            level = ev.get("rule_level")
+
+            try:
+                level = int(level)
+            except Exception:
+                level = None
+
             reasons["rule_level"] = level
 
-        proto = (ev.get("protocol") or "").lower()
-        if proto in {"modbus", "s7comm", "dnp3", "bacnet", "opcua", "profinet"}:
-            score += 25
-            reasons["ot_protocol"] = proto
-        elif proto in {"icmp", "ip"}:
-            score += 5
+            if level is None:
+                return {
+                    "native_score": None,
+                    "native_scale": "wazuh_rule_level_0_16",
+                    "severity": "UNKNOWN",
+                    "recommend_forensics": False,
+                    "reasons": reasons,
+                }
 
-        score = max(0, min(100, int(score)))
+            # Clasificación visual simple basada en el propio nivel nativo.
+           
+            if level >= 12:
+                sev = "CRITICAL"
+            elif level >= 7:
+                sev = "HIGH"
+            elif level >= 5:
+                sev = "MEDIUM"
+            else:
+                sev = "LOW"
 
-        if score >= 80:
-            sev = "CRITICAL"
-        elif score >= 50:
-            sev = "HIGH"
-        elif score >= 35:
-            sev = "MEDIUM"
-        else:
-            sev = "LOW"
+            return {
+                "native_score": level,
+                "native_scale": "wazuh_rule_level_0_16",
+                "severity": sev,
+                "recommend_forensics": level >= 10,
+                "reasons": reasons,
+            }
 
+        # Para fuentes no-Wazuh, dejamos constancia pero no inventamos score.
         return {
-            "score_0_100": score,
-            "severity": sev,
-            "recommend_forensics": score >= 60,
+            "native_score": None,
+            "native_scale": "none",
+            "severity": "UNKNOWN",
+            "recommend_forensics": False,
             "reasons": reasons,
         }
 
@@ -124,7 +140,7 @@ class AlertsLogger:
             derived = iso_to_epoch(ts_utc)
             ts_epoch = derived if derived > 0 else time.time()
 
-        # 3) Construir PRIMARY (igual que antes)
+        # 3) Construir PRIMARY
         primary = {
             "event_id": event_id,
             "ts_utc": ts_utc,
@@ -141,10 +157,10 @@ class AlertsLogger:
             "raw": ev.get("raw"),
         }
 
-        # 4) Guardar PRIMARY en alerts_store (como ya hacías)
+        # 4) Guardar PRIMARY en alerts_store
         _append_jsonl(paths["alerts"], primary)
 
-        # 5) Guardar DERIVED triage (como ya hacías)
+        # 5) Guardar DERIVED triage
         triage = self.compute_severity(primary)
         derived = {
             "event_id": event_id,
@@ -153,27 +169,24 @@ class AlertsLogger:
         }
         _append_jsonl(paths["triage"], derived)
 
-        # 6) NUEVO: si el caller nos pasa case_dir, guardamos el PRIMARY dentro del CASE
-        #    Si el CASE no existe todavía, _write_case_alert devuelve None y NO falla.
+        # 6) Si el caller nos pasa case_dir, guardamos el PRIMARY dentro del CASE
         case_rel = None
         case_dir = (ev.get("case_dir") or "").strip()
 
-        # Fallback: si no viene case_dir, usa el CASE activo (si existe)
+        # Fallback: si no viene case_dir, usa el CASE activo
         if not case_dir:
             case_dir = _read_active_case_dir() or ""
 
         if case_dir:
             case_rel = _write_case_alert(case_dir, primary)
 
-        # 7) Respuesta (compatible + extra info)
+        # 7) Respuesta
         return {
             "primary": primary,
             "triage": triage,
-            "case_rel": case_rel,      # alerts/event_<event_id>.json si se pudo guardar en CASE
+            "case_rel": case_rel,
             "session_id": self.session_id,
         }
-
-
 
 
 def iso_to_epoch(iso_utc: str) -> float:
@@ -217,7 +230,7 @@ def _write_case_alert(case_dir: str, alert_obj: Dict[str, Any]) -> Optional[str]
     """
     Guarda el alert PRIMARY dentro del CASE:
       CASE/.../alerts/event_<event_id>.json
-    Devuelve rel_path (alerts/event_<id>.json) o None si no se pudo.
+    Devuelve rel_path o None si no se pudo.
     """
     try:
         if not case_dir:
@@ -243,14 +256,11 @@ def _write_case_alert(case_dir: str, alert_obj: Dict[str, Any]) -> Optional[str]
         return None
 
 
-
-
-
 def attach_alert_to_case(case_dir: str, alert_event_id: str, base_dir: str = FORENSICS_ALERTS_BASE) -> Optional[str]:
     """
     Copia/adjunta al CASE un alert ya existente en alerts_store, buscándolo por event_id.
     - Busca recursivamente en alerts_store/ALERTS-*/alerts.jsonl
-    - Cuando lo encuentra, escribe CASE/alerts/event_<id>.json (PRIMARY)
+    - Cuando lo encuentra, escribe CASE/alerts/event_<id>.json
     Devuelve rel_path dentro del CASE o None si no se encuentra/no se pudo.
     """
     case_dir = os.path.abspath(case_dir or "")
@@ -265,14 +275,13 @@ def attach_alert_to_case(case_dir: str, alert_event_id: str, base_dir: str = FOR
     if not os.path.isdir(base_dir):
         return None
 
-    # Recorre sesiones ALERTS-*
     sessions = []
     for name in os.listdir(base_dir):
         if name.startswith("ALERTS-"):
             p = os.path.join(base_dir, name)
             if os.path.isdir(p):
                 sessions.append(p)
-    sessions.sort(reverse=True)  # más reciente primero
+    sessions.sort(reverse=True)
 
     for sdir in sessions:
         alerts_path = os.path.join(sdir, "alerts.jsonl")
@@ -291,7 +300,6 @@ def attach_alert_to_case(case_dir: str, alert_event_id: str, base_dir: str = FOR
                     if not isinstance(obj, dict):
                         continue
                     if str(obj.get("event_id") or "").strip() == alert_event_id:
-                        # encontrado -> escribir en CASE
                         return _write_case_alert(case_dir, obj)
         except Exception:
             continue
@@ -299,15 +307,12 @@ def attach_alert_to_case(case_dir: str, alert_event_id: str, base_dir: str = FOR
     return None
 
 
-
-
-
 ACTIVE_CASE_PTR = os.path.abspath("app_core/infrastructure/forensics/evidence_store/_active_case.txt")
 
 
 def _read_active_case_dir() -> Optional[str]:
     """
-    Lee el CASE activo desde evidence_store/_active_case.txt (si existe).
+    Lee el CASE activo desde evidence_store/_active_case.txt.
     Devuelve ruta absoluta o None.
     """
     try:

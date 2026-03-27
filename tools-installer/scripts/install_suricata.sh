@@ -16,7 +16,7 @@ SSH_KEY="$HOME/.ssh/my_key"
 INSTANCE_ID="suricata_$(echo "$TARGET_IP" | tr '.' '_')"
 
 if [[ -z "$TARGET_IP" ]]; then
-    echo "❌ ERROR: No se proporcionó la IP de destino para Suricata."
+    echo " ERROR: No se proporcionó la IP de destino para Suricata."
     exit 1
 fi
 
@@ -122,10 +122,10 @@ export ANSIBLE_HOST_KEY_CHECKING=False
 
 if ansible-playbook -i "$BASE_DIR/inventory/hosts.ini" "$BASE_DIR/playbooks/suricata-aio.yml"; then
     echo "----------------------------------------------------"
-    echo " ✅ SURICATA INSTALADO Y MONITORIZANDO EN $TARGET_IP"
+    echo "  SURICATA INSTALADO Y MONITORIZANDO EN $TARGET_IP"
     echo "----------------------------------------------------"
 else
-    echo " ❌ ERROR en la instalación de Suricata."
+    echo "  ERROR en la instalación de Suricata."
     exit 1
 fi
 

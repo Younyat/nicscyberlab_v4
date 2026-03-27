@@ -1454,25 +1454,20 @@ function toolAction(tool) {
 
     switch (tool) {
         case "wazuh":
-            openWazuhDynamicHUD();
+            showToast("Wazuh manager status requested");
             break;
-
-        case "caldera":
-            openCalderaDynamicHUD();
-            break;
-
         case "suricata":
             showToast("Suricata rules / sensors");
             break;
-
         case "snort":
             showToast("Snort engine status");
             break;
-
+        case "caldera":
+            showToast("CALDERA C2 interface");
+            break;
         case "nmap":
             showToast("Nmap reconnaissance module");
             break;
-
         default:
             logCombat("WARN", "Unknown tool");
     }
@@ -1585,99 +1580,6 @@ function launchFileTamperFromSidebar() {
 
   initiateFileTamper(currentLockedTarget.ip);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-async function openCalderaDynamicHUD() {
-    try {
-        logCombat("TOOL", "Resolving attacker node for CALDERA");
-
-        const response = await fetch(`${API_BASE}/instance_roles`);
-        const roles = await response.json();
-
-        const attacker = roles.attacker || roles.attack;
-
-        if (!attacker || !attacker.ip) {
-            logCombat("ERROR", "Attacker instance not found");
-            writeDualTerminal('monitoring', "CALDERA ERROR: attacker instance not found", "text-red-500 font-bold");
-            return;
-        }
-
-        const url = `http://${attacker.ip}:8888`;
-
-        logCombat("TOOL", `Opening CALDERA on ${attacker.name} ${attacker.ip}`);
-        writeDualTerminal('monitoring', `Opening CALDERA: ${url}`, "text-[#ff3366] font-bold");
-
-        window.open(
-            url,
-            "caldera_window",
-            "toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=1400,height=900"
-        );
-
-    } catch (error) {
-        logCombat("ERROR", `CALDERA connection failed: ${error.message}`);
-        writeDualTerminal('monitoring', `CALDERA ERROR: ${error.message}`, "text-red-500 font-bold");
-    }
-}
-
-async function openWazuhDynamicHUD() {
-    try {
-        logCombat("TOOL", "Resolving monitor node for WAZUH");
-
-        const response = await fetch(`${API_BASE}/instance_roles`);
-        const roles = await response.json();
-
-        if (!roles.monitor || !roles.monitor.ip) {
-            logCombat("ERROR", "Monitor instance not found");
-            writeDualTerminal('monitoring', "WAZUH ERROR: monitor instance not found", "text-red-500 font-bold");
-            return;
-        }
-
-        const instanceName = roles.monitor.name;
-        const ip = roles.monitor.ip;
-
-        writeDualTerminal('monitoring', `Checking WAZUH on ${instanceName} ${ip}`, "text-[#00aaff]");
-
-        const res = await fetch(`${API_BASE}/check_wazuh`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                instance: instanceName,
-                ip: ip
-            })
-        });
-
-        const data = await res.json();
-        const output = data.stdout || data.stderr || "No output";
-
-        writeDualTerminal('monitoring', output, "text-[#00aaff]/90");
-        logCombat("TOOL", `Opening WAZUH on ${ip}`);
-
-        window.open(
-            `https://${ip}`,
-            "wazuh_window",
-            "toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=1400,height=900"
-        );
-
-    } catch (error) {
-        logCombat("ERROR", `WAZUH connection failed: ${error.message}`);
-        writeDualTerminal('monitoring', `WAZUH ERROR: ${error.message}`, "text-red-500 font-bold");
-    }
-}
-
-
-
 
 
 

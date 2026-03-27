@@ -134,10 +134,34 @@ class SSHTacticalManager:
 manager = SSHTacticalManager(key_path="~/.ssh/my_key")
 
 
+
+def normalize_os_user(os_value: str) -> str:
+    n = (os_value or "").strip().lower()
+
+    if "ubuntu" in n:
+        return "ubuntu"
+    if "debian" in n:
+        return "debian"
+    if "kali" in n:
+        return "kali"
+
+    return "debian"
+
+
+
+
 @attack_infra_bp.route('/launch')
 def launch_attack():
     target_ip = request.args.get('target')  # IP de la víctima desde el front
     script_name = request.args.get('script', 'ping_target.sh')
+  
+
+
+
+    target_os = request.args.get('os', '')
+    victim_user = normalize_os_user(target_os)
+    print(f"[target_os_raw  : {target_os}]")
+    print(f"[victim_user    : {victim_user}]")
 
     print(f"[ATTACK] Target IP recibida desde el frontend: {target_ip}")
     print(f"[script_name : {script_name}")
@@ -154,7 +178,7 @@ def launch_attack():
         )
 
     # 2) localizar víctima por IP y mapear user por imagen
-    victim_user = "debian"  # fallback
+ 
     server, image_name = manager.discover_instance_by_ip(target_ip)
     if server and image_name:
         victim_user = manager._map_user(image_name)
