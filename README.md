@@ -173,20 +173,74 @@ It allows the user to:
 - observe live terminal feedback
 - inspect host-side tools on the control node
 
-Example tools available through this service include:
+The node-side installation catalog exposed by this service includes the following prepared entries:
 
-- Wazuh
-- Wazuh Agent
-- Suricata
-- Snort
-- Nmap
-- MITRE Caldera
-- MITRE Caldera Agent
-- TCPDump
-- Zeek
-- Caldera OT Plugins
+- **Security analytics and endpoint telemetry**
+  - Wazuh
+  - Wazuh Agent
+- **Network and protocol sensors**
+  - Suricata
+  - Snort
+  - TCPDump
+  - Zeek
+- **Offensive and assessment tooling**
+  - Nmap
+  - MITRE Caldera
+  - MITRE Caldera Agent
+- **OT / ICS experiment tooling**
+  - Caldera OT Plugins
+  - mbpoll
 
-Installation output is shown in the interface and preserved in backend logs for troubleshooting and later review.
+The same node-level catalog also exposes prepared configuration-oriented entries associated with detection workflows:
+
+- **Wazuh-oriented configuration profile**
+  - Wazuh FIM Realtime
+- **Rollback / restoration profiles**
+  - Wazuh + Suricata Integration Rollback
+  - Suricata ICMP Rule Rollback
+
+At the industrial node layer, the project also defines a restricted installation policy for native OT services:
+
+- **Industrial PLC nodes**
+  - OpenPLC
+- **Industrial SCADA nodes**
+  - FUXA
+
+This means the installation surface is not limited to generic tools only. It includes:
+
+- executable security tooling
+- detection sensor deployment
+- OT protocol utilities
+- prepared configuration profiles
+- controlled rollback entries
+
+At the host level, the control node inventory service exposes prepared install and uninstall workflows for:
+
+- The Sleuth Kit (TSK)
+- Tcpdump
+- Tshark
+- Termshark
+- Volatility 3
+- Scapy
+- mbpoll
+
+In addition, the forensic host API defines a dedicated host-side forensic installation surface for:
+
+- Volatility 3
+- Autopsy
+- The Sleuth Kit (TSK)
+- Tcpdump
+- Tshark
+- Termshark
+
+Installation output is shown in the interface and preserved in backend logs for troubleshooting, auditability, and later review.
+
+Scientifically, this separation is important because it distinguishes between:
+
+- **node-level operational tooling**, deployed inside workload instances
+- **node-level detection configuration entries**, used to prepare or restore telemetry behavior
+- **industrial node constraints**, which restrict the allowed OT software set by node type
+- **host-level analysis tooling**, installed on the control or forensic host rather than inside scenario workloads
 
 ![Instance Tools Manager](Images_readme/instance_tools_manager.png)
 
