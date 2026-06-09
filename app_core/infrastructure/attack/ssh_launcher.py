@@ -1,16 +1,21 @@
 import os
 import time
+
 import openstack
 import paramiko
-from flask import Blueprint, Response, jsonify, stream_with_context, request
+from flask import Blueprint, Response, jsonify, request, stream_with_context
 
 from app_core.infrastructure.attack.catalog import (
     find_attack_by_id,
     get_attack_catalog,
     resolve_script_name,
 )
+from app_core.infrastructure.attack.executor import (
+    resolve_requested_attack,
+    stream_attack_execution,
+)
 
-attack_infra_bp = Blueprint('attack_infra', __name__)
+attack_infra_bp = Blueprint("attack_infra", __name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SCRIPTS_DIR = os.path.join(BASE_DIR, "scripts")
@@ -22,11 +27,10 @@ class SSHTacticalManager:
         self.client = paramiko.SSHClient()
         self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-        # Conexión a OpenStack
         try:
             self.conn = openstack.connect()
-        except Exception as e:
-            print(f"Error conexión OpenStack: {e}")
+        except Exception as exc:
+            print(f"OpenStack connection error: {exc}")
             self.conn = None
 
     def _map_user(self, image_name: str):
@@ -35,16 +39,14 @@ class SSHTacticalManager:
             return "ubuntu"
         if "kali" in n:
             return "kali"
-        # default
         return "debian"
 
     def _get_all_ips_from_addresses(self, addresses):
-        """Devuelve todas las IPs (fixed + floating) de un server.addresses."""
         ips = []
         try:
             for net in (addresses or {}).values():
-                for a in net or []:
-                    ip = a.get("addr")
+                for addr in net or []:
+                    ip = addr.get("addr")
                     if ip:
                         ips.append(ip)
         except Exception:
@@ -52,34 +54,28 @@ class SSHTacticalManager:
         return ips
 
     def discover_attacker_instance(self):
-        """Busca una instancia que empiece por 'attack', obtiene su Floating IP y su imagen."""
         if not self.conn:
             return None, None
 
         try:
             for server in self.conn.compute.servers(all_projects=True):
                 if server.name and server.name.lower().startswith("attack"):
-                    f_ip = server.access_ipv4 or self._get_floating_ip_from_addresses(server.addresses)
-                    if f_ip:
+                    floating_ip = server.access_ipv4 or self._get_floating_ip_from_addresses(server.addresses)
+                    if floating_ip:
                         image = self.conn.image.get_image(server.image.id)
                         user = self._map_user(getattr(image, "name", "") or "")
-                        return f_ip, user
+                        return floating_ip, user
             return None, None
         except Exception:
             return None, None
 
     def discover_instance_by_ip(self, target_ip: str):
-        """
-        Encuentra el server de OpenStack cuyo addresses contiene target_ip (fixed o floating).
-        Devuelve (server, image_name) o (None, None).
-        """
         if not self.conn or not target_ip:
             return None, None
 
         try:
             for server in self.conn.compute.servers(all_projects=True):
                 ips = self._get_all_ips_from_addresses(getattr(server, "addresses", None))
-                # también considerar access_ipv4 si está poblado
                 if getattr(server, "access_ipv4", None):
                     ips.append(server.access_ipv4)
 
@@ -92,11 +88,10 @@ class SSHTacticalManager:
             return None, None
 
     def _get_floating_ip_from_addresses(self, addresses):
-        """Auxiliar para extraer la IP flotante del diccionario de direcciones."""
         for network in (addresses or {}).values():
             for addr in network or []:
-                if addr.get('OS-EXT-IPS:type') == 'floating':
-                    return addr.get('addr')
+                if addr.get("OS-EXT-IPS:type") == "floating":
+                    return addr.get("addr")
         return None
 
     def execute_remote_stream(self, host, user, local_script_path, args=None):
@@ -119,9 +114,8 @@ class SSHTacticalManager:
 
             while True:
                 if channel.recv_ready():
-                    data = channel.recv(4096).decode('utf-8', errors='ignore')
+                    data = channel.recv(4096).decode("utf-8", errors="ignore")
                     if data:
-                        # SSE correcto: cada línea con data:
                         for line in data.splitlines():
                             yield f"data: {line}\n\n"
 
@@ -130,104 +124,173 @@ class SSHTacticalManager:
 
                 time.sleep(0.05)
 
+            exit_code = channel.recv_exit_status()
+            yield f"data: [EXIT CODE] {exit_code}\n\n"
+
             self.client.exec_command(f"rm -f {remote_path}")
             self.client.close()
 
-        except Exception as e:
-            yield f"data: [SSH ERROR] {str(e)}\n\n"
+        except Exception as exc:
+            yield f"data: [SSH ERROR] {str(exc)}\n\n"
 
 
 manager = SSHTacticalManager(key_path="~/.ssh/my_key")
 
 
-
 def normalize_os_user(os_value: str) -> str:
     n = (os_value or "").strip().lower()
-
     if "ubuntu" in n:
         return "ubuntu"
     if "debian" in n:
         return "debian"
     if "kali" in n:
         return "kali"
-
     return "debian"
 
 
-
-
-@attack_infra_bp.route('/launch')
-def launch_attack():
-    target_ip = request.args.get('target')  # IP de la víctima desde el front
-    attack_id = request.args.get('attack_id', '').strip()
-    script_name = resolve_script_name(
-        script_name=request.args.get('script', '').strip(),
-        attack_id=attack_id,
-    ) or 'ping_target.sh'
-  
-
-
-
-    target_os = request.args.get('os', '')
+def _resolve_target_context(target_ip: str, target_os: str):
     victim_user = normalize_os_user(target_os)
-    print(f"[target_os_raw  : {target_os}]")
-    print(f"[victim_user    : {victim_user}]")
-
-    print(f"[ATTACK] Target IP recibida desde el frontend: {target_ip}")
-    print(f"[attack_id   : {attack_id or '(legacy-script-mode)'}")
-    print(f"[script_name : {script_name}")
-
-    # 1) localizar attacker dinámico
-    attacker_ip, attacker_user = manager.discover_attacker_instance()
-    print(f"[attacker_ip : {attacker_ip}")
-    print(f"[attacker user : {attacker_user}")
-
-    if not attacker_ip:
-        return Response(
-            "data: [ERROR] No se encontró ninguna instancia 'attack' con IP flotante\n\n",
-            mimetype='text/event-stream'
-        )
-
-    # 2) localizar víctima por IP y mapear user por imagen
- 
     server, image_name = manager.discover_instance_by_ip(target_ip)
     if server and image_name:
         victim_user = manager._map_user(image_name)
+        return server, image_name, victim_user
+    return None, "", victim_user
+
+
+def _resolve_attacker_context(attacker_ip: str = ""):
+    if attacker_ip:
+        server, image_name = manager.discover_instance_by_ip(attacker_ip)
+        if server and image_name:
+            attacker_user = manager._map_user(image_name)
+            return attacker_ip, attacker_user
+    return manager.discover_attacker_instance()
+
+
+@attack_infra_bp.route("/launch")
+def launch_attack():
+    target_ip = request.args.get("target")
+    attack_id = request.args.get("attack_id", "").strip()
+    script_name = resolve_script_name(
+        script_name=request.args.get("script", "").strip(),
+        attack_id=attack_id,
+    ) or "ping_target.sh"
+
+    target_os = request.args.get("os", "")
+    print(f"[target_os_raw  : {target_os}]")
+    print(f"[ATTACK] Target IP received from frontend: {target_ip}")
+    print(f"[attack_id   : {attack_id or '(legacy-script-mode)'}")
+    print(f"[script_name : {script_name}]")
+
+    attacker_ip, attacker_user = _resolve_attacker_context()
+    print(f"[attacker_ip   : {attacker_ip}]")
+    print(f"[attacker_user : {attacker_user}]")
+
+    if not attacker_ip:
+        return Response(
+            "data: [ERROR] No attacker instance with floating IP was found\n\n",
+            mimetype="text/event-stream",
+        )
+
+    server, image_name, victim_user = _resolve_target_context(target_ip, target_os)
+    print(f"[victim_user   : {victim_user}]")
+    if server and image_name:
         print(f"[victim_server : {server.name}]")
         print(f"[victim_image  : {image_name}]")
-        print(f"[victim_user   : {victim_user}]")
     else:
-        print("[victim_lookup] No se pudo identificar la VM por IP; usando user fallback=debian")
+        print("[victim_lookup] Could not identify the VM by IP; using OS-based fallback user")
 
-    # 3) cargar script desde scripts/
     local_script = os.path.join(SCRIPTS_DIR, script_name)
     if not os.path.exists(local_script):
         return Response(
-            f"data: [ERROR] Script local no encontrado: {local_script}\n\n",
-            mimetype='text/event-stream'
+            f"data: [ERROR] Local script not found: {local_script}\n\n",
+            mimetype="text/event-stream",
         )
 
-    # 4) args al script: $1=target_ip, $2=victim_user
     return Response(
         stream_with_context(
             manager.execute_remote_stream(attacker_ip, attacker_user, local_script, [target_ip, victim_user])
         ),
-        mimetype='text/event-stream'
+        mimetype="text/event-stream",
     )
 
 
-@attack_infra_bp.route('/catalog', methods=['GET'])
+@attack_infra_bp.route("/catalog", methods=["GET"])
 def attack_catalog():
-    return jsonify({
-        "attacks": get_attack_catalog(),
-        "count": len(get_attack_catalog()),
-    })
+    section = request.args.get("section", "")
+    detection_engine = request.args.get("detection_engine", "")
+    target_role = request.args.get("target_role", "")
+    attacks = get_attack_catalog(
+        section=section,
+        detection_engine=detection_engine,
+        target_role=target_role,
+    )
+    return jsonify({"attacks": attacks, "count": len(attacks)})
 
 
-@attack_infra_bp.route('/describe', methods=['GET'])
+@attack_infra_bp.route("/describe", methods=["GET"])
 def describe_attack():
-    attack_id = request.args.get('attack_id', '').strip()
+    attack_id = request.args.get("attack_id", "").strip()
     attack = find_attack_by_id(attack_id)
     if not attack:
-        return jsonify({"error": f"attack_id no encontrado: {attack_id}"}), 404
+        return jsonify({"error": f"attack_id not found: {attack_id}"}), 404
     return jsonify(attack)
+
+
+@attack_infra_bp.route("/execute", methods=["POST"])
+def execute_attack():
+    payload = request.get_json(silent=True) or {}
+    attack = resolve_requested_attack(payload)
+    if not attack:
+        return jsonify({"error": "Unknown attack_id"}), 404
+
+    target_ip = (payload.get("target_ip") or "").strip()
+    target_role = (payload.get("target_role") or "").strip().lower()
+    if not target_ip:
+        return jsonify({"error": "target_ip is required"}), 400
+    if target_role and target_role not in attack.get("target_roles", []):
+        return jsonify(
+            {
+                "error": "target_role not allowed for this attack",
+                "allowed_roles": attack.get("target_roles", []),
+            }
+        ), 400
+
+    attacker_ip = (payload.get("attacker_ip") or "").strip()
+    attacker_ip, attacker_user = _resolve_attacker_context(attacker_ip)
+    if not attacker_ip:
+        return jsonify({"error": "No attacker instance with floating IP was found"}), 503
+
+    target_os = (payload.get("target_os") or payload.get("os") or "").strip()
+    server, image_name, victim_user = _resolve_target_context(target_ip, target_os)
+    local_script = os.path.join(SCRIPTS_DIR, attack["script"])
+    if not os.path.exists(local_script):
+        return jsonify({"error": f"Backend script not found: {attack['script']}"}), 500
+
+    if server and image_name:
+        print(f"[victim_server : {server.name}]")
+        print(f"[victim_image  : {image_name}]")
+
+    stream_payload = {
+        "attack_id": attack["attack_id"],
+        "target_ip": target_ip,
+        "target_role": target_role,
+        "attacker_ip": attacker_ip,
+        "case_dir": payload.get("case_dir", ""),
+        "parameters": payload.get("parameters", {}) or {},
+    }
+
+    return Response(
+        stream_with_context(
+            stream_attack_execution(
+                manager=manager,
+                attack=attack,
+                local_script=local_script,
+                attacker_ip=attacker_ip,
+                attacker_user=attacker_user,
+                target_user=victim_user,
+                target_image=image_name,
+                payload=stream_payload,
+            )
+        ),
+        mimetype="text/event-stream",
+    )

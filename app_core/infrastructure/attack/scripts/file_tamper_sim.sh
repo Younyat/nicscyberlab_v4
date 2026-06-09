@@ -11,7 +11,7 @@ if [[ -z "${TARGET_IP}" ]]; then
   exit 1
 fi
 
-# Usuario en la víctima: preferir arg2 (backend), luego env var, luego debian
+# Victim-side user: prefer arg2 (backend), then env var, then debian
 VICTIM_USER="${2:-${VICTIM_USER:-debian}}"
 
 LAB_SCOPE="$HOME/nics_lab/sensitive"
@@ -24,7 +24,7 @@ echo "SCOPE : ${LAB_SCOPE}"
 echo "==========================================="
 
 SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 -o LogLevel=ERROR"
-# Fuerza la key que ya usas en el backend
+# Force the same key already used by the backend
 SSH_KEY="$HOME/.ssh/my_key"
 if [[ ! -f "${SSH_KEY}" ]]; then
   echo "[ERROR] SSH key not found in attacker: ${SSH_KEY}"
@@ -61,7 +61,7 @@ echo "[TERMINAL] Tamper ops within scope only"
 mv "${F3}" "${LAB_SCOPE}/scenario_config_${TS}.yaml"
 echo "level,999,${TS}" >> "${F1}"
 sed -i 's/level : INT;/level : INT; (* modified *)/' "${F2}"
-rm -f "${F1}"   # borrado controlado dentro del lab scope
+rm -f "${F1}"   # controlled deletion inside lab scope
 
 echo "[TERMINAL] POST state:"
 ls -l "${LAB_SCOPE}" | while read -r line; do echo "[TERMINAL] $line"; done
@@ -73,4 +73,4 @@ echo "[TERMINAL] DONE"
 REMOTE
 
 echo "==========================================="
-echo "OPERACIÓN FINALIZADA (LAB SCOPE)"
+echo "OPERATION COMPLETED (LAB SCOPE)"

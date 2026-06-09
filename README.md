@@ -256,61 +256,232 @@ Typical offensive actions include:
 - dual visibility of victim-side and monitoring-side telemetry
 - alignment between attack execution and alert generation
 
-### Scientific attack taxonomy
+### ATT&CK-aligned scientific taxonomy
 
-The dashboard no longer treats offensive actions as a flat list of buttons only. Instead, it organizes the operational attack surface into scientific categories that better support experimentation, evaluation, and reporting.
+The dashboard no longer exposes attacks as informal labels only. Offensive actions are now modeled as **MITRE ATT&CK-aligned experimental profiles** backed by a structured catalog and execution layer.
 
-The current taxonomy is:
-
-- **Reconnaissance**
-  - ICMP Reconnaissance
-  - Port Scan Reconnaissance
-- **Unauthorized Access**
-  - Unauthorized SSH Attempt
-- **Integrity / FIM**
-  - Controlled File Tamper
-- **Exfiltration**
-  - Data Exfiltration over SCP
-- **ICS / OT**
-  - Modbus Register Manipulation
-- **Multi-Vector Exercise**
-  - Multi-Vector Detection Validation
-
-This taxonomy is implemented through a backend attack catalog that decouples:
-
-- the **scientific attack identity**
-- the **frontend presentation**
-- the **backend execution script**
-
-The taxonomy is also reflected in the tactical interface itself. Offensive actions are grouped by scientific category rather than exposed as a flat undifferentiated arsenal. This improves:
-
-- experimental clarity
-- operator situational awareness
-- reproducibility of attack selection
-- consistency between the interface and the analytical model described in a paper
-
-The catalog is currently defined in:
+The backend catalog is defined in:
 
 ```bash
 app_core/infrastructure/attack/catalog.py
 ```
 
-Each attack profile is represented through an `attack_id` and associated metadata such as:
+Each profile is represented through a professional `attack_id` and metadata such as:
 
-- display name
-- scientific category
-- attack stage
-- ATT&CK or ATT&CK for ICS references
+- ATT&CK or ATT&CK for ICS identifier
+- internal attack ID
+- domain
+- tactic
+- target-role constraints
+- detection engine
+- severity
+- execution mode
+- expected alerts
+- expected forensic artifacts
+- rollback requirement
+- DFIR escalation flag
 - backend script mapping
+
+This design separates:
+
+- the **scientific technique identity**
+- the **dashboard presentation**
+- the **execution backend**
+- the **forensic expectations**
+
+The catalog schema is centered on reproducibility. A typical profile includes:
+
+```text
+attack_id
+legacy_name
+display_name
+category
+description
+mitre_domain
+mitre_id
+mitre_technique
+tactic
+detection_engine
+target_roles
+severity
+execution_mode
+script
+expected_alerts
+expected_artifacts
+safety_policy
+rollback_required
+dfir_escalation
+```
+
+### Existing ATT&CK-aligned techniques
+
+The original operational attacks are now exposed as formal ATT&CK profiles:
+
+- **ICMP Reconnaissance**
+  - `T1595_ACTIVE_SCANNING_ICMP_RECON`
+  - `T1595 - Active Scanning`
+- **Port Scan Reconnaissance**
+  - `T1046_NETWORK_SERVICE_DISCOVERY_PORT_SCAN`
+  - `T1046 - Network Service Discovery`
+- **Unauthorized SSH Attempt**
+  - `T1110_001_SSH_PASSWORD_GUESSING`
+  - `T1110.001 - Password Guessing`
+- **Controlled File Tamper**
+  - `T1565_001_STORED_DATA_MANIPULATION_FIM`
+  - `T1565.001 - Stored Data Manipulation`
+- **Data Exfiltration**
+  - `T1048_EXFILTRATION_OVER_ALTERNATIVE_PROTOCOL`
+  - `T1048 - Exfiltration Over Alternative Protocol`
+- **Modbus Register Manipulation**
+  - `T0831_MANIPULATION_OF_CONTROL_MODBUS`
+  - `T0831 - Manipulation of Control`
+- **Multi-Vector Validation**
+  - `CHAIN_MULTI_VECTOR_DETECTION_VALIDATION`
+  - composite ATT&CK validation chain
+
+### Advanced ATT&CK Techniques panel
+
+The tactical dashboard now includes a dedicated **Advanced ATT&CK Techniques** panel. It is organized into three scientific sections:
+
+- **Existing ATT&CK-Aligned Techniques**
+- **Advanced Suricata-Detectable Techniques**
+- **Advanced Wazuh-Detectable Techniques**
+
+Each ATT&CK card shows:
+
+- attack display name
+- MITRE ID and technique name
+- ATT&CK domain
+- tactic
+- detection engine
+- allowed target roles
+- severity
+- execution mode
+- expected alerts
+- expected forensic artifacts
+- launch action
+
+This allows the operator to evaluate the detection model and evidence expectations **before** launching a technique.
+
+### Advanced Suricata-detectable profiles
+
+The Suricata-oriented section currently includes:
+
+- `T1595_ACTIVE_SCANNING_ICMP_RECON`
+- `T1046_NETWORK_SERVICE_DISCOVERY_PORT_SCAN`
+- `T1048_EXFILTRATION_OVER_ALTERNATIVE_PROTOCOL`
+- `T1105_INGRESS_TOOL_TRANSFER`
+- `T1570_LATERAL_TOOL_TRANSFER`
+- `T0846_ICS_REMOTE_SYSTEM_DISCOVERY`
+- `T0861_POINT_AND_TAG_IDENTIFICATION`
+- `T0877_IO_IMAGE`
+- `T0836_MODIFY_PARAMETER`
+- `T1692_001_UNAUTHORIZED_COMMAND_MESSAGE`
+- `T0831_MANIPULATION_OF_CONTROL_MODBUS`
+
+These profiles focus on **network-visible evidence**, OT subnet probing, Modbus visibility, and protocol-level anomaly generation. In the hybrid IT/OT model, Suricata is the primary engine for network and ICS telemetry, while Wazuh can ingest related `eve.json` events.
+
+### Advanced Wazuh-detectable profiles
+
+The Wazuh-oriented section currently includes:
+
+- `T1110_001_SSH_PASSWORD_GUESSING`
+- `T1078_VALID_ACCOUNTS_SSH_LOGIN`
+- `T1082_SYSTEM_INFORMATION_DISCOVERY`
+- `T1016_SYSTEM_NETWORK_CONFIGURATION_DISCOVERY`
+- `T1049_SYSTEM_NETWORK_CONNECTIONS_DISCOVERY`
+- `T1057_PROCESS_DISCOVERY`
+- `T1033_SYSTEM_OWNER_USER_DISCOVERY`
+- `T1087_ACCOUNT_DISCOVERY`
+- `T1083_FILE_AND_DIRECTORY_DISCOVERY`
+- `T1005_DATA_FROM_LOCAL_SYSTEM`
+- `T1560_ARCHIVE_COLLECTED_DATA`
+- `T1565_001_STORED_DATA_MANIPULATION_FIM`
+- `T1070_004_FILE_DELETION`
+- `T1059_COMMAND_AND_SCRIPTING_INTERPRETER`
+- `T1036_MASQUERADING`
+- `T1027_OBFUSCATED_FILES_OR_INFORMATION`
+- `T1562_001_DISABLE_OR_MODIFY_TOOLS_SIMULATED`
+
+These profiles are oriented toward **host-visible activity** such as authentication, command execution, discovery, file creation, file deletion, integrity changes, and simulated security-tool interference.
+
+### Execution and safety model
+
+Every ATT&CK profile is constrained by a safety model. The current implementation enforces or documents the following principles:
+
+- no external targets
+- no credential dumping
+- no malware payloads
+- no uncontrolled denial of service
+- no real destructive activity outside lab-created directories
+- no unsafe OT writes outside predefined lab scope
+- no modification of platform services, OpenStack configuration, or SSH key material
+
+The preferred safe roots are:
+
+```bash
+/tmp/nics_attack_lab
+/tmp/nics_attack_lab/fim
+/tmp/nics_attack_lab/sensitive_data
+/tmp/nics_attack_lab/output
+```
+
+Execution modes include:
+
+- `controlled`
+- `read_only`
+- `simulated`
+- `restore_by_default`
+- `disabled_by_default`
+
+### Execution backend and result preservation
+
+The attack backend now supports a structured execution path in addition to the previous legacy launcher:
+
+```text
+dashboard profile -> attack_id -> catalog lookup -> backend script -> result.json
+```
+
+The primary execution endpoint is:
+
+```bash
+POST /api/hud/attack/execute
+```
+
+The legacy launch path remains available for backward compatibility:
+
+```bash
+GET /api/hud/attack/launch
+```
+
+Every ATT&CK execution now generates a structured result directory under:
+
+```bash
+app_core/infrastructure/attack/outputs/
+```
+
+Each run writes a `result.json` file that records:
+
+- execution metadata
+- stdout and stderr traces
 - expected alert families
-- expected evidence artifacts
-- realism vs. validation-simulation semantics
+- expected artifact families
+- exit code
+- success state
+- timeline metadata
+- chain-of-custody entries
+- DFIR relevance flag
 
-This allows the platform to distinguish between:
+### DFIR escalation semantics
 
-- **realistic controlled attack actions**
-- **detection-validation exercises**
-- **forensic expectations associated with each technique**
+The catalog explicitly marks techniques that are DFIR-relevant. In practice, **HIGH** and **CRITICAL** profiles are treated as escalation candidates and their execution result is preserved with forensic-oriented metadata.
+
+This creates a stronger bridge between:
+
+- attack execution
+- expected detection coverage
+- artifact preservation
+- case-oriented incident review
 
 ### OT-aware category visibility
 

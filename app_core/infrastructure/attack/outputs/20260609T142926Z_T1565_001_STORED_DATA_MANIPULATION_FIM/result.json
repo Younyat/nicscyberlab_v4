@@ -1,0 +1,66 @@
+{
+  "attack_id": "T1565_001_STORED_DATA_MANIPULATION_FIM",
+  "attacker_ip": "10.0.2.214",
+  "case_dir": "",
+  "chain_of_custody": [
+    {
+      "action": "attack_execution_started",
+      "artifact": "result.json",
+      "operator": "dashboard_tactical_hud",
+      "timestamp": "2026-06-09T14:29:26.156795+00:00"
+    },
+    {
+      "action": "attack_execution_completed",
+      "artifact": "result.json",
+      "operator": "dashboard_tactical_hud",
+      "timestamp": "2026-06-09T14:29:26.702015+00:00"
+    }
+  ],
+  "completed_at": "2026-06-09T14:29:26.701989+00:00",
+  "detection_engine": "Wazuh FIM",
+  "dfir_escalation": true,
+  "display_name": "Controlled File Tamper",
+  "execution_mode": "controlled",
+  "exit_code": 1,
+  "expected_alerts": [
+    "file_modified",
+    "fim_integrity_alert",
+    "stored_data_manipulation"
+  ],
+  "expected_artifacts": [
+    "hash_before",
+    "hash_after",
+    "file_metadata_before",
+    "file_metadata_after",
+    "wazuh_fim_alert",
+    "execution_log"
+  ],
+  "forensic_case_event": true,
+  "mitre_domain": "Enterprise",
+  "mitre_id": "T1565.001",
+  "mitre_technique": "Stored Data Manipulation",
+  "output_dir": "/home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260609T142926Z_T1565_001_STORED_DATA_MANIPULATION_FIM",
+  "parameters": {},
+  "raw_event_stream": [
+    "[SSH ERROR] Authentication failed."
+  ],
+  "rollback_required": false,
+  "safety_policy": "Modify only lab-created files under /tmp/nics_attack_lab/fim.",
+  "severity": "HIGH",
+  "started_at": "2026-06-09T14:29:26.156777+00:00",
+  "stderr": [
+    "[SSH ERROR] Authentication failed."
+  ],
+  "stdout": [],
+  "success": false,
+  "tactic": "Impact",
+  "target_image": "ubuntu-22.04",
+  "target_ip": "10.0.2.9",
+  "target_role": "scada",
+  "target_user": "ubuntu",
+  "timeline_event": {
+    "dfir_relevant": true,
+    "event_type": "attack_execution",
+    "severity": "HIGH"
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "attack_id": "T1110_001_SSH_PASSWORD_GUESSING",
+  "attacker_ip": "10.0.2.214",
+  "case_dir": "",
+  "chain_of_custody": [
+    {
+      "action": "attack_execution_started",
+      "artifact": "result.json",
+      "operator": "dashboard_tactical_hud",
+      "timestamp": "2026-06-09T14:29:19.732847+00:00"
+    },
+    {
+      "action": "attack_execution_completed",
+      "artifact": "result.json",
+      "operator": "dashboard_tactical_hud",
+      "timestamp": "2026-06-09T14:29:20.318493+00:00"
+    }
+  ],
+  "completed_at": "2026-06-09T14:29:20.318462+00:00",
+  "detection_engine": "Wazuh",
+  "dfir_escalation": false,
+  "display_name": "Unauthorized SSH Attempt",
+  "execution_mode": "detection_validation",
+  "exit_code": 1,
+  "expected_alerts": [
+    "failed_ssh_login",
+    "multiple_authentication_failures",
+    "ssh_bruteforce_validation"
+  ],
+  "expected_artifacts": [
+    "auth_log_extract",
+    "wazuh_alert",
+    "attempt_sequence",
+    "execution_log"
+  ],
+  "forensic_case_event": false,
+  "mitre_domain": "Enterprise",
+  "mitre_id": "T1110.001",
+  "mitre_technique": "Password Guessing",
+  "output_dir": "/home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260609T142919Z_T1110_001_SSH_PASSWORD_GUESSING",
+  "parameters": {},
+  "raw_event_stream": [
+    "[SSH ERROR] Authentication failed."
+  ],
+  "rollback_required": false,
+  "safety_policy": "Use a small number of failed attempts only. No real password lists.",
+  "severity": "MEDIUM",
+  "started_at": "2026-06-09T14:29:19.732819+00:00",
+  "stderr": [
+    "[SSH ERROR] Authentication failed."
+  ],
+  "stdout": [],
+  "success": false,
+  "tactic": "Credential Access",
+  "target_image": "ubuntu-22.04",
+  "target_ip": "10.0.2.9",
+  "target_role": "scada",
+  "target_user": "ubuntu",
+  "timeline_event": {
+    "dfir_relevant": false,
+    "event_type": "attack_execution",
+    "severity": "MEDIUM"
+  }
+}

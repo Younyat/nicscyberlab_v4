@@ -301,6 +301,69 @@ aside {
     display: none !important;
 }
 
+.advanced-attack-panel {
+    border: 1px solid rgba(255, 51, 102, 0.20);
+    background: rgba(255, 51, 102, 0.03);
+    border-radius: 16px;
+    padding: 14px;
+    max-height: 620px;
+    overflow-y: auto;
+}
+
+.advanced-attack-section {
+    border-top: 1px solid rgba(255, 51, 102, 0.12);
+    padding-top: 12px;
+    margin-top: 12px;
+}
+
+.advanced-attack-section:first-child {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+}
+
+.advanced-attack-card {
+    border: 1px solid rgba(255, 51, 102, 0.18);
+    background: rgba(255, 51, 102, 0.06);
+    border-radius: 14px;
+    padding: 12px;
+}
+
+.advanced-attack-card-meta {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.72);
+    line-height: 1.7;
+}
+
+.advanced-attack-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 7px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 51, 102, 0.28);
+    background: rgba(255, 51, 102, 0.10);
+    color: #ffd4de;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.advanced-attack-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+.advanced-attack-panel::-webkit-scrollbar-thumb {
+    background: rgba(255, 51, 102, 0.55);
+    border-radius: 10px;
+}
+
+.advanced-attack-panel::-webkit-scrollbar-track {
+    background: rgba(255, 51, 102, 0.10);
+}
+
 .target-intel-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -442,13 +505,13 @@ aside {
                     <button onclick="launchFromSidebar()"
                             class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
                         <i class="fas fa-satellite-dish animate-pulse"></i>
-                        ICMP RECONNAISSANCE
+                        ICMP RECONNAISSANCE · T1595
                         <i class="fas fa-chevron-right opacity-0 group-hover:opacity-100 transition-all"></i>
                     </button>
                     <button onclick="launchPortScanFromSidebar()"
                             class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
                         <i class="fas fa-network-wired"></i>
-                        PORT SCAN RECONNAISSANCE
+                        PORT SCAN RECONNAISSANCE · T1046
                     </button>
                 </div>
             </div>
@@ -460,7 +523,7 @@ aside {
                     <button onclick="launchUnauthorizedSSH(currentLockedTarget.ip, currentLockedTarget.os)"
                             class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
                         <i class="fas fa-user-secret"></i>
-                        UNAUTHORIZED SSH ATTEMPT
+                        UNAUTHORIZED SSH ATTEMPT · T1110.001
                     </button>
                 </div>
             </div>
@@ -472,7 +535,7 @@ aside {
                     <button onclick="launchFileTamperFromSidebar()"
                             class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
                         <i class="fas fa-file-signature"></i>
-                        CONTROLLED FILE TAMPER
+                        CONTROLLED FILE TAMPER · T1565.001
                         <i class="fas fa-chevron-right opacity-0 group-hover:opacity-100 transition-all"></i>
                     </button>
                 </div>
@@ -485,7 +548,7 @@ aside {
                     <button onclick="launchDataExfilFromSidebar()"
                             class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
                         <i class="fas fa-download"></i>
-                        DATA EXFILTRATION
+                        DATA EXFILTRATION · T1048
                     </button>
                 </div>
             </div>
@@ -497,7 +560,7 @@ aside {
                     <button onclick="launchModbusAttackFromSidebar()"
                             class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
                         <i class="fas fa-microchip"></i>
-                        MODBUS REGISTER MANIPULATION
+                        MODBUS REGISTER MANIPULATION · T0831
                     </button>
                 </div>
             </div>
@@ -509,9 +572,32 @@ aside {
                     <button onclick="launchMultiVectorFromSidebar()"
                             class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
                         <i class="fas fa-layer-group"></i>
-                        MULTI-VECTOR VALIDATION
+                        MULTI-VECTOR VALIDATION · ATT&CK CHAIN
                         <i class="fas fa-chevron-right opacity-0 group-hover:opacity-100 transition-all"></i>
                     </button>
+                </div>
+            </div>
+
+            <div class="attack-category-block">
+                <div class="attack-category-title">Advanced ATT&CK Techniques</div>
+                <div class="attack-category-meta">MITRE-aligned experiment profiles with detection and DFIR semantics</div>
+                <div class="attack-category-actions">
+                    <button onclick="toggleAdvancedAttackPanel()"
+                            class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
+                        <i class="fas fa-book-skull"></i>
+                        ADVANCED ATT&CK TECHNIQUES
+                    </button>
+                </div>
+            </div>
+
+            <div id="advanced-attack-panel" class="advanced-attack-panel hidden">
+                <div class="text-[9px] font-black tracking-[0.18em] uppercase text-[#ff9db4] mb-3">
+                    ATT&CK-aligned controlled experiment catalog
+                </div>
+                <div id="advanced-attack-content" class="space-y-4">
+                    <div class="opacity-40 text-center text-[10px] uppercase tracking-widest">
+                        Loading ATT&CK profiles...
+                    </div>
                 </div>
             </div>
         </div>
@@ -722,78 +808,33 @@ aside {
         let selectedNodes = [];
 
         const API_BASE = "http://127.0.0.1:5001/api";
-        const ATTACK_CATALOG = {
-            recon_icmp: {
-                id: "recon_icmp",
-                displayName: "ICMP Reconnaissance",
-                label: "TACTICAL PING",
-                category: "Reconnaissance",
-                stage: "Discovery",
-                mitre: "T1046",
-                scriptName: "ping_target.sh",
-                scriptMode: "legacy"
-            },
-            recon_portscan: {
-                id: "recon_portscan",
-                displayName: "Port Scan Reconnaissance",
-                label: "PORT SCAN RECON",
-                category: "Reconnaissance",
-                stage: "Discovery",
-                mitre: "T1046",
-                scriptName: "port_scan_recon.sh",
-                scriptMode: "legacy"
-            },
-            credential_unauthorized_ssh: {
-                id: "credential_unauthorized_ssh",
-                displayName: "Unauthorized SSH Attempt",
-                label: "UNAUTHORIZED SSH",
-                category: "Credential Access",
-                stage: "Initial Access",
-                mitre: "T1110/T1078",
-                scriptName: "unauthorized_ssh_attempt.sh",
-                scriptMode: "legacy"
-            },
-            collection_data_exfiltration: {
-                id: "collection_data_exfiltration",
-                displayName: "Data Exfiltration over SCP",
-                label: "DATA EXFILTRATION",
-                category: "Collection/Exfiltration",
-                stage: "Actions on Objectives",
-                mitre: "T1005/T1048",
-                scriptName: "data_exfiltration.sh",
-                scriptMode: "legacy"
-            },
-            impact_file_tamper: {
-                id: "impact_file_tamper",
-                displayName: "Controlled File Tamper",
-                label: "FILE TAMPER (FIM)",
-                category: "Impact",
-                stage: "Impact",
-                mitre: "T1565.001",
-                scriptName: "file_tamper_sim.sh",
-                scriptMode: "legacy"
-            },
-            ics_modbus_register_write: {
-                id: "ics_modbus_register_write",
-                displayName: "Modbus Register Manipulation",
-                label: "MODBUS MANIPULATION",
-                category: "ICS Manipulation",
-                stage: "Impact",
-                mitre: "ATT&CK ICS T0831",
-                scriptName: "modbus_register_attack.sh",
-                scriptMode: "legacy"
-            },
-            validation_multi_vector: {
-                id: "validation_multi_vector",
-                displayName: "Multi-Vector Detection Validation",
-                label: "MULTI-VECTOR VALIDATION",
-                category: "Detection Validation",
-                stage: "Exercise",
-                mitre: "T1110/T1565.001/T1046",
-                scriptName: "multi_Attack_sim.sh",
-                scriptMode: "legacy"
-            }
+        let ATTACK_CATALOG = {};
+        const DEFAULT_ATTACK_IDS = {
+            recon_icmp: "T1595_ACTIVE_SCANNING_ICMP_RECON",
+            recon_portscan: "T1046_NETWORK_SERVICE_DISCOVERY_PORT_SCAN",
+            credential_unauthorized_ssh: "T1110_001_SSH_PASSWORD_GUESSING",
+            impact_file_tamper: "T1565_001_STORED_DATA_MANIPULATION_FIM",
+            collection_data_exfiltration: "T1048_EXFILTRATION_OVER_ALTERNATIVE_PROTOCOL",
+            ics_modbus_register_write: "T0831_MANIPULATION_OF_CONTROL_MODBUS",
+            validation_multi_vector: "CHAIN_MULTI_VECTOR_DETECTION_VALIDATION"
         };
+        const ADVANCED_SECTIONS = [
+            {
+                id: "existing",
+                title: "Existing ATT&CK-Aligned Techniques",
+                description: "Current operational profiles remapped to formal ATT&CK identifiers."
+            },
+            {
+                id: "advanced_suricata",
+                title: "Advanced Suricata-Detectable Techniques",
+                description: "Network-visible and ICS-visible techniques designed for Suricata-driven observation."
+            },
+            {
+                id: "advanced_wazuh",
+                title: "Advanced Wazuh-Detectable Techniques",
+                description: "Host-visible techniques focused on authentication, command execution, discovery, and FIM telemetry."
+            }
+        ];
 
         const ROLE_CONFIG = {
             plc:       { icon: "fa-microchip", color: "#00aaff", label: "PLC CONTROLLER" },
@@ -824,6 +865,142 @@ async function fetchJSON(url, label) {
 
 function normalizeName(name) {
     return String(name || "").trim().toLowerCase();
+}
+
+function normalizeAttackCatalogEntries(attacks) {
+    const catalog = {};
+    (attacks || []).forEach(attack => {
+        if (!attack || !attack.attack_id) return;
+        catalog[attack.attack_id] = {
+            ...attack,
+            id: attack.attack_id,
+            displayName: attack.display_name,
+            label: `${attack.display_name} (${attack.mitre_id})`,
+            category: attack.category,
+            stage: attack.tactic,
+            mitre: `${attack.mitre_id} - ${attack.mitre_technique}`,
+            scriptName: attack.script,
+            scriptMode: "catalog"
+        };
+    });
+    return catalog;
+}
+
+function getCatalogAttack(attackId) {
+    return ATTACK_CATALOG[attackId] || null;
+}
+
+async function loadAttackCatalog() {
+    try {
+        const data = await fetchJSON(`${API_BASE}/hud/attack/catalog`, "Attack catalog");
+        ATTACK_CATALOG = normalizeAttackCatalogEntries(data.attacks || []);
+        renderAdvancedAttackPanel();
+    } catch (err) {
+        console.warn("Attack catalog load failed:", err);
+        const fallbackAttacks = Object.values(DEFAULT_ATTACK_IDS).map(id => ({
+            attack_id: id,
+            display_name: id,
+            category: "Unavailable",
+            mitre_id: "N/A",
+            mitre_technique: "Unavailable",
+            tactic: "Unavailable",
+            script: "",
+        }));
+        ATTACK_CATALOG = normalizeAttackCatalogEntries(fallbackAttacks);
+        renderAdvancedAttackPanel();
+    }
+}
+
+function toggleAdvancedAttackPanel() {
+    const panel = document.getElementById("advanced-attack-panel");
+    panel.classList.toggle("hidden");
+}
+
+function roleAllowedForAttack(attack, targetRole) {
+    const role = String(targetRole || "").toLowerCase();
+    if (!attack || !Array.isArray(attack.target_roles) || !role) return true;
+    return attack.target_roles.includes(role);
+}
+
+function launchAttackProfile(attackId) {
+    const attack = getCatalogAttack(attackId);
+    if (!attack) {
+        writeDualTerminal("victim", "ATTACK PROFILE NOT AVAILABLE", "text-red-500");
+        return;
+    }
+    if (!currentLockedTarget || !currentLockedTarget.ip || currentLockedTarget.ip === "N/A") {
+        writeDualTerminal("victim", "SELECT A TARGET NODE BEFORE LAUNCHING A PROFILE", "text-red-500 font-bold");
+        return;
+    }
+    if (!roleAllowedForAttack(attack, currentLockedTarget.role)) {
+        writeDualTerminal("victim", "TARGET ROLE NOT ALLOWED FOR THIS TECHNIQUE", "text-red-500 font-bold");
+        return;
+    }
+    const attackerNode = cy.nodes('[role = "attacker"]')[0];
+    if (!attackerNode) {
+        writeDualTerminal("victim", "ATTACKER NODE NOT FOUND", "text-red-500");
+        return;
+    }
+
+    clearTerminal("victim");
+    terminalWrite(`MISSION: ${attack.displayName}`, "text-[#ff3366]");
+    terminalWrite(`${attack.mitre}`, "text-[#ff9db4]");
+    terminalWrite(`TARGET: ${currentLockedTarget.name} [${currentLockedTarget.ip}]`, "text-yellow-400");
+    terminalWrite(`TACTIC: ${attack.tactic}`, "text-white");
+    terminalWrite(`DETECTION: ${attack.detection_engine}`, "text-white");
+    runAttack(attackerNode.data("ip"), currentLockedTarget.ip, currentLockedTarget.os || "", attack);
+}
+
+function renderAdvancedAttackPanel() {
+    const container = document.getElementById("advanced-attack-content");
+    if (!container) return;
+
+    const targetRole = String(currentLockedTarget?.role || "").toLowerCase();
+    container.innerHTML = ADVANCED_SECTIONS.map(section => {
+        const attacks = Object.values(ATTACK_CATALOG)
+            .filter(attack => attack.ui_section === section.id)
+            .filter(attack => roleAllowedForAttack(attack, targetRole));
+
+        const cards = attacks.length
+            ? attacks.map(attack => `
+                <div class="advanced-attack-card">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <div class="text-[12px] font-black text-white">${attack.displayName}</div>
+                            <div class="text-[10px] font-bold text-[#ff9db4] mt-1">${attack.mitre}</div>
+                        </div>
+                        <span class="advanced-attack-chip">${attack.severity}</span>
+                    </div>
+                    <div class="advanced-attack-card-meta mt-3">
+                        <div>Domain: ${attack.mitre_domain}</div>
+                        <div>Tactic: ${attack.tactic}</div>
+                        <div>Detection: ${attack.detection_engine}</div>
+                        <div>Targets: ${(attack.target_roles || []).join(", ")}</div>
+                        <div>Mode: ${attack.execution_mode}</div>
+                    </div>
+                    <div class="text-[10px] text-white/75 mt-3 leading-5">${attack.description}</div>
+                    <div class="text-[9px] text-[#ff9db4]/80 mt-3 uppercase tracking-[0.12em]">
+                        Expected alerts: ${(attack.expected_alerts || []).join(", ") || "N/A"}
+                    </div>
+                    <div class="text-[9px] text-white/55 mt-1 uppercase tracking-[0.12em]">
+                        Expected artifacts: ${(attack.expected_artifacts || []).join(", ") || "N/A"}
+                    </div>
+                    <button onclick="launchAttackProfile('${attack.attack_id}')"
+                            class="w-full mt-4 py-3 bg-[#ff3366]/10 border border-[#ff3366] rounded-lg text-[10px] font-black text-[#ff3366] hover:bg-[#ff3366]/20 transition-all">
+                        LAUNCH TECHNIQUE
+                    </button>
+                </div>
+            `).join("")
+            : `<div class="opacity-40 text-center text-[10px] uppercase tracking-widest">No ATT&CK profiles available for the current target role</div>`;
+
+        return `
+            <div class="advanced-attack-section">
+                <div class="attack-category-title">${section.title}</div>
+                <div class="attack-category-meta">${section.description}</div>
+                <div class="space-y-3 mt-3">${cards}</div>
+            </div>
+        `;
+    }).join("");
 }
 
 function buildInstanceIndex(instances) {
@@ -970,6 +1147,7 @@ cy.on("tap", "node", e => {
     renderTargetDetails(e.target);
     renderAttackStack(e.target);
     updateAttackCategoryVisibility(data);
+    renderAdvancedAttackPanel();
     syncTargetToolsFromIndexTools(e.target);
     
     // 3. LOG DE SISTEMA: Registro de actividad en la terminal de monitoreo
@@ -1033,7 +1211,7 @@ cy.on("tap", "node", e => {
                 document.getElementById("context-menu").classList.remove("active");
             });
 
-            refreshBattlefield();
+            loadAttackCatalog().finally(() => refreshBattlefield());
         });
 
  async function refreshBattlefield() {
@@ -1217,6 +1395,7 @@ function toggleConnectionMode() {
 function getAttackDescriptor(attackRef) {
     if (typeof attackRef === "string") {
         return ATTACK_CATALOG[attackRef] || {
+            attack_id: "",
             id: "",
             label: attackRef,
             displayName: attackRef,
@@ -1224,7 +1403,9 @@ function getAttackDescriptor(attackRef) {
             stage: "Operational",
             mitre: "N/A",
             scriptName: attackRef,
-            scriptMode: "legacy"
+            scriptMode: "legacy",
+            detection_engine: "Unknown",
+            execution_mode: "legacy"
         };
     }
     return attackRef || null;
@@ -1240,20 +1421,33 @@ async function runAttack(attackerIp, targetIp, targetOs, attackRef) {
     terminalWrite(`ESTABLISHING SECURE SSH TUNNEL...`, 'text-sky-300 animate-pulse');
 
     try {
-        const params = new URLSearchParams({
-            target: targetIp,
-            os: targetOs || ""
-        });
-
-        if (attack.id) {
-            params.set("attack_id", attack.id);
+        let attackFailed = false;
+        let exitCode = null;
+        let response;
+        if (attack.attack_id || attack.id) {
+            response = await fetch(`${API_BASE}/hud/attack/execute`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    attack_id: attack.attack_id || attack.id,
+                    target_ip: targetIp,
+                    target_role: currentLockedTarget?.role || "",
+                    attacker_ip: attackerIp,
+                    target_os: targetOs || "",
+                    case_dir: "",
+                    parameters: {}
+                })
+            });
+        } else {
+            const params = new URLSearchParams({
+                target: targetIp,
+                os: targetOs || ""
+            });
+            if (attack.scriptMode === "legacy" && attack.scriptName) {
+                params.set("script", attack.scriptName);
+            }
+            response = await fetch(`${API_BASE}/hud/attack/launch?${params.toString()}`);
         }
-
-        if (attack.scriptMode === "legacy" && attack.scriptName) {
-            params.set("script", attack.scriptName);
-        }
-
-        const response = await fetch(`${API_BASE}/hud/attack/launch?${params.toString()}`);
 
         if (!response.ok) {
             throw new Error(`ENLACE FALLIDO: Status ${response.status}`);
@@ -1273,11 +1467,20 @@ async function runAttack(attackerIp, targetIp, targetOs, attackRef) {
                 if (line.startsWith('data:')) {
                     let cleanLine = line.replace('data:', '').trim();
 
-                    if (
+                    if (cleanLine.startsWith("[EXIT CODE]")) {
+                        const parsed = parseInt(cleanLine.replace("[EXIT CODE]", "").trim(), 10);
+                        if (!Number.isNaN(parsed)) {
+                            exitCode = parsed;
+                            if (parsed !== 0) attackFailed = true;
+                        }
+                    } else if (
                         cleanLine.includes("[MANAGER ERROR]") ||
                         cleanLine.includes("[INFRA ERROR]") ||
-                        cleanLine.includes("[SSH ERROR]")
+                        cleanLine.includes("[SSH ERROR]") ||
+                        cleanLine.includes("[FAIL]") ||
+                        cleanLine.includes("Permission denied")
                     ) {
+                        attackFailed = true;
                         terminalWrite(cleanLine, 'text-red-500 font-bold');
                     } else if (cleanLine) {
                         terminalWrite(`  ${cleanLine}`, 'text-[#00ff88]');
@@ -1286,9 +1489,15 @@ async function runAttack(attackerIp, targetIp, targetOs, attackRef) {
             });
         }
 
-        terminalWrite("╔══════════════════════════════════════════════════════╗", 'text-emerald-500');
-        terminalWrite("║ ESTATO: OPERACIÓN COMPLETADA CON ÉXITO               ║", 'text-emerald-500');
-        terminalWrite("╚══════════════════════════════════════════════════════╝", 'text-emerald-500');
+        if (attackFailed || (exitCode !== null && exitCode !== 0)) {
+            terminalWrite("╔══════════════════════════════════════════════════════╗", 'text-red-500');
+            terminalWrite(`║ STATUS: OPERATION FAILED${exitCode !== null ? ` (EXIT ${exitCode})` : ''}                     ║`, 'text-red-500 font-bold');
+            terminalWrite("╚══════════════════════════════════════════════════════╝", 'text-red-500');
+        } else {
+            terminalWrite("╔══════════════════════════════════════════════════════╗", 'text-emerald-500');
+            terminalWrite("║ STATUS: OPERATION COMPLETED SUCCESSFULLY            ║", 'text-emerald-500');
+            terminalWrite("╚══════════════════════════════════════════════════════╝", 'text-emerald-500');
+        }
 
     } catch (err) {
         terminalWrite(`!! FALLO CRÍTICO EN EL SISTEMA: ${err.message}`, 'text-red-500 font-black');
@@ -1326,8 +1535,9 @@ function initiateTacticalPing(targetIp) {
     terminalWrite(`║ TARGET:  ${targetName.padEnd(20)} [${targetIp}]   ║`, 'text-yellow-400 font-bold');
     terminalWrite(`╚══════════════════════════════════════════════════════╝`, 'text-sky-400');
 
-    logCombat("ACTION", `Iniciando ${ATTACK_CATALOG.recon_icmp.displayName} hacia ${targetIp}`);
-    runAttack(attackerIp, targetIp, targetOs, ATTACK_CATALOG.recon_icmp);
+    const attack = getCatalogAttack(DEFAULT_ATTACK_IDS.recon_icmp);
+    logCombat("ACTION", `Launching ${attack?.displayName || "ICMP Reconnaissance"} toward ${targetIp}`);
+    runAttack(attackerIp, targetIp, targetOs, attack || DEFAULT_ATTACK_IDS.recon_icmp);
 }
 function initiateFileTamper(targetIp) {
   if (!targetIp || targetIp === "N/A" || targetIp === "undefined" || targetIp === "") {
@@ -1356,8 +1566,9 @@ function initiateFileTamper(targetIp) {
   terminalWrite(`║ TARGET:  ${targetName.padEnd(20)} [${targetIp}]   ║`, 'text-yellow-400 font-bold');
   terminalWrite(`╚══════════════════════════════════════════════════════╝`, 'text-[#ff3366]');
 
-  logCombat("ACTION", `Iniciando ${ATTACK_CATALOG.impact_file_tamper.displayName} hacia ${targetIp}`);
-  runAttack(attackerIp, targetIp, targetOs, ATTACK_CATALOG.impact_file_tamper);
+  const attack = getCatalogAttack(DEFAULT_ATTACK_IDS.impact_file_tamper);
+  logCombat("ACTION", `Launching ${attack?.displayName || "Controlled File Tamper"} toward ${targetIp}`);
+  runAttack(attackerIp, targetIp, targetOs, attack || DEFAULT_ATTACK_IDS.impact_file_tamper);
 }
 
 function normalizeToolsMap(tools) {
@@ -1741,10 +1952,10 @@ function launchDataExfilFromSidebar() {
 
   const attackerIp = attackerNode.data('ip');
 
-  terminalWrite(`MISSION: ${ATTACK_CATALOG.collection_data_exfiltration.displayName}`,"text-[#ff3366]");
+  const attack = getCatalogAttack(DEFAULT_ATTACK_IDS.collection_data_exfiltration);
+  terminalWrite(`MISSION: ${attack?.displayName || "Data Exfiltration"}`,"text-[#ff3366]");
   terminalWrite(`TARGET: ${currentLockedTarget.ip}`,"text-yellow-400");
-
-  runAttack(attackerIp, currentLockedTarget.ip, currentLockedTarget.os || '', ATTACK_CATALOG.collection_data_exfiltration);
+  runAttack(attackerIp, currentLockedTarget.ip, currentLockedTarget.os || '', attack || DEFAULT_ATTACK_IDS.collection_data_exfiltration);
 }
 
 function launchPortScanFromSidebar() {
@@ -1763,10 +1974,10 @@ function launchPortScanFromSidebar() {
 
   const attackerIp = attackerNode.data('ip');
 
-  terminalWrite(`MISSION: ${ATTACK_CATALOG.recon_portscan.displayName}`,"text-[#ff3366]");
+  const attack = getCatalogAttack(DEFAULT_ATTACK_IDS.recon_portscan);
+  terminalWrite(`MISSION: ${attack?.displayName || "Port Scan Reconnaissance"}`,"text-[#ff3366]");
   terminalWrite(`TARGET: ${currentLockedTarget.ip}`,"text-yellow-400");
-
-  runAttack(attackerIp, currentLockedTarget.ip, currentLockedTarget.os || '', ATTACK_CATALOG.recon_portscan);
+  runAttack(attackerIp, currentLockedTarget.ip, currentLockedTarget.os || '', attack || DEFAULT_ATTACK_IDS.recon_portscan);
 }
 function launchModbusAttackFromSidebar() {
 
@@ -1784,10 +1995,10 @@ function launchModbusAttackFromSidebar() {
 
   const attackerIp = attackerNode.data('ip');
 
-  terminalWrite(`MISSION: ${ATTACK_CATALOG.ics_modbus_register_write.displayName}`,"text-[#ff3366]");
+  const attack = getCatalogAttack(DEFAULT_ATTACK_IDS.ics_modbus_register_write);
+  terminalWrite(`MISSION: ${attack?.displayName || "Modbus Register Manipulation"}`,"text-[#ff3366]");
   terminalWrite(`TARGET PLC: ${currentLockedTarget.ip}`,"text-yellow-400");
-
-  runAttack(attackerIp, currentLockedTarget.ip, currentLockedTarget.os || '', ATTACK_CATALOG.ics_modbus_register_write);
+  runAttack(attackerIp, currentLockedTarget.ip, currentLockedTarget.os || '', attack || DEFAULT_ATTACK_IDS.ics_modbus_register_write);
 }
 
 function launchUnauthorizedSSH(targetIp, targetOs = "") {
@@ -1811,7 +2022,8 @@ function launchUnauthorizedSSH(targetIp, targetOs = "") {
   terminalWrite("╚══════════════════════════════════════╝", 'text-[#ff3366]');
 
   
-  runAttack(attackerIp, targetIp, targetOs, ATTACK_CATALOG.credential_unauthorized_ssh);
+  const attack = getCatalogAttack(DEFAULT_ATTACK_IDS.credential_unauthorized_ssh);
+  runAttack(attackerIp, targetIp, targetOs, attack || DEFAULT_ATTACK_IDS.credential_unauthorized_ssh);
 }
 
 
@@ -1985,9 +2197,14 @@ async function stopMonitorListener(monitorIp) {
     const groups = new Map();
 
     attacks.forEach(att => {
-        const mapped = Object.values(ATTACK_CATALOG).find(item => item.label === att || item.displayName === att);
+        const mapped = Object.values(ATTACK_CATALOG).find(item =>
+            item.displayName === att ||
+            item.display_name === att ||
+            item.legacy_name === att ||
+            item.attack_id === att
+        );
         const category = mapped?.category || "Uncategorized";
-        if (category === "ICS Manipulation" && !isOtRole(data?.role)) {
+        if (category === "ICS / OT" && !isOtRole(data?.role)) {
             return;
         }
         if (!groups.has(category)) groups.set(category, []);
@@ -2010,7 +2227,7 @@ async function stopMonitorListener(monitorIp) {
         items.forEach(({ label, mapped }) => {
             const div = document.createElement("div");
             const subtitle = mapped
-                ? `${mapped.stage} · ${mapped.mitre}`
+                ? `${mapped.tactic || mapped.stage} · ${mapped.mitre || `${mapped.mitre_id} - ${mapped.mitre_technique}`}`
                 : "Operational mapping available";
             div.className = `
                 p-3 rounded-lg border
@@ -2167,7 +2384,8 @@ function launchFileTamperFromSidebar() {
     return;
   }
 
-  logCombat("LAUNCH", `Manual trigger: ${ATTACK_CATALOG.impact_file_tamper.displayName} -> ${currentLockedTarget.ip}`);
+  const attack = getCatalogAttack(DEFAULT_ATTACK_IDS.impact_file_tamper);
+  logCombat("LAUNCH", `Manual trigger: ${attack?.displayName || "Controlled File Tamper"} -> ${currentLockedTarget.ip}`);
   clearTerminal('victim');
 
   initiateFileTamper(currentLockedTarget.ip);
@@ -2190,11 +2408,12 @@ function launchMultiVectorFromSidebar() {
   const targetIp = currentLockedTarget.ip;
   const targetOs = currentLockedTarget.os || '';
 
-  logCombat("LAUNCH", `Manual trigger: ${ATTACK_CATALOG.validation_multi_vector.displayName} -> ${targetIp}`);
+  const attack = getCatalogAttack(DEFAULT_ATTACK_IDS.validation_multi_vector);
+  logCombat("LAUNCH", `Manual trigger: ${attack?.displayName || "Multi-Vector Validation"} -> ${targetIp}`);
   clearTerminal('victim');
-  terminalWrite(`MISSION: ${ATTACK_CATALOG.validation_multi_vector.displayName}`, "text-[#ff3366]");
+  terminalWrite(`MISSION: ${attack?.displayName || "Multi-Vector Validation"}`, "text-[#ff3366]");
   terminalWrite(`TARGET: ${targetIp}`, "text-yellow-400");
-  runAttack(attackerIp, targetIp, targetOs, ATTACK_CATALOG.validation_multi_vector);
+  runAttack(attackerIp, targetIp, targetOs, attack || DEFAULT_ATTACK_IDS.validation_multi_vector);
 }
 
 

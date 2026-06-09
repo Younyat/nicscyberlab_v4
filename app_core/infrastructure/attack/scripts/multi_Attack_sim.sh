@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VICTIM_IP="${1:?Uso: $0 <VICTIM_IP> <SSH_USER>}"
-SSH_USER="${2:?Uso: $0 <VICTIM_IP> <SSH_USER>}"
+VICTIM_IP="${1:?Usage: $0 <VICTIM_IP> <SSH_USER>}"
+SSH_USER="${2:?Usage: $0 <VICTIM_IP> <SSH_USER>}"
 SSH_KEY="$HOME/.ssh/my_key"
 
 ssh_exec() {
@@ -14,23 +14,23 @@ ssh_exec() {
 }
 
 echo "===================================================="
-echo " [INFO] Generando eventos de seguridad en $VICTIM_IP"
-echo " [INFO] Usuario SSH: $SSH_USER"
+echo " [INFO] Generating security events on $VICTIM_IP"
+echo " [INFO] SSH user: $SSH_USER"
 echo "===================================================="
 
-echo "[1/3] Modificando archivos críticos..."
+echo "[1/3] Modifying critical files..."
 ssh_exec "sudo touch /etc/shadow_backup && sudo chmod 777 /etc/shadow_backup"
-echo " [OK] Evento de integridad generado en /etc"
+echo " [OK] Integrity event generated in /etc"
 
-echo "[2/3] Generando intentos de acceso fallidos..."
+echo "[2/3] Generating failed access attempts..."
 ssh_exec "for i in {1..3}; do ssh -o ConnectTimeout=1 no-existe@localhost 2>/dev/null || true; done"
-echo " [OK] Eventos de autenticación generados"
+echo " [OK] Authentication events generated"
 
-echo "[3/3] Ejecutando peticiones sospechosas..."
+echo "[3/3] Executing suspicious requests..."
 ssh_exec "curl -s -A 'SQLMAP' http://google.com > /dev/null || true"
 ssh_exec "curl -s http://testmyids.com > /dev/null || true"
-echo " [OK] Tráfico de red (User-Agent malicioso) generado"
+echo " [OK] Suspicious network activity generated"
 
 echo "===================================================="
-echo " [SUCCESS] Eventos enviados. Revisa tu monitor remoto."
+echo " [SUCCESS] Events sent. Check your remote monitor."
 echo "===================================================="
