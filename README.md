@@ -258,7 +258,7 @@ Typical offensive actions include:
 
 ### ATT&CK-aligned scientific taxonomy
 
-The dashboard no longer exposes attacks as informal labels only. Offensive actions are now modeled as **MITRE ATT&CK-aligned experimental profiles** backed by a structured catalog and execution layer.
+The dashboard presents offensive actions as **MITRE ATT&CK-aligned experimental profiles** backed by a structured catalog and execution layer.
 
 The backend catalog is defined in:
 
@@ -289,6 +289,27 @@ This design separates:
 - the **execution backend**
 - the **forensic expectations**
 
+### MITRE provenance and methodological rationale
+
+The attack catalog is derived from **MITRE ATT&CK** and **MITRE ATT&CK for ICS**, which provide publicly recognized technique identifiers, tactic placement, and adversary-behavior semantics.
+
+This matters scientifically because it gives the platform:
+
+- a **standardized behavioral vocabulary**
+- a **reproducible technique selection model**
+- a **defensible mapping between attack behavior and expected telemetry**
+- a **clear link between experimental scenarios and established cybersecurity knowledge**
+
+In practical terms, each CyberLab attack profile is built by starting from a MITRE technique and then constraining it to:
+
+- the CyberLab target role
+- the allowed execution scope
+- the expected detector
+- the expected forensic artifacts
+- the rollback and DFIR policy
+
+This means the platform does not claim to reproduce the full real-world complexity of every ATT&CK technique. Instead, it implements **controlled laboratory realizations** of ATT&CK behaviors that preserve the scientific identity of the technique while respecting safety and reproducibility constraints.
+
 The catalog schema is centered on reproducibility. A typical profile includes:
 
 ```text
@@ -315,7 +336,7 @@ dfir_escalation
 
 ### Existing ATT&CK-aligned techniques
 
-The original operational attacks are now exposed as formal ATT&CK profiles:
+The operational attack set is organized as formal ATT&CK profiles:
 
 - **ICMP Reconnaissance**
   - `T1595_ACTIVE_SCANNING_ICMP_RECON`
@@ -339,9 +360,24 @@ The original operational attacks are now exposed as formal ATT&CK profiles:
   - `CHAIN_MULTI_VECTOR_DETECTION_VALIDATION`
   - composite ATT&CK validation chain
 
+These baseline techniques cover the main experimental layers required by the platform:
+
+- **Reconnaissance**
+  - `T1595` and `T1046` model active scanning and service discovery
+- **Credential Access**
+  - `T1110.001` models failed SSH password guessing
+- **Impact and Integrity**
+  - `T1565.001` models monitored file tampering for FIM validation
+- **Collection and Exfiltration**
+  - `T1048` models controlled outbound transfer of lab data
+- **ICS / OT manipulation**
+  - `T0831` models controlled Modbus-oriented manipulation of process control
+- **Composite detection validation**
+  - the multi-vector chain combines multiple ATT&CK-aligned steps into a single experimental sequence
+
 ### Advanced ATT&CK Techniques panel
 
-The tactical dashboard now includes a dedicated **Advanced ATT&CK Techniques** panel. It is organized into three scientific sections:
+The tactical dashboard contains a dedicated **Advanced ATT&CK Techniques** panel. It is organized into three scientific sections:
 
 - **Existing ATT&CK-Aligned Techniques**
 - **Advanced Suricata-Detectable Techniques**
@@ -363,9 +399,14 @@ Each ATT&CK card shows:
 
 This allows the operator to evaluate the detection model and evidence expectations **before** launching a technique.
 
+The figures below show the operational ATT&CK view of the dashboard. The first image presents the full scenario together with the categorized ATT&CK technique surface, while the second image shows the detailed node intelligence pane used to assess target state, installed tools, exposure surface, and forensic readiness before launch.
+
+![Tactical Cyber Operations Dashboard](Images_readme/tactical_cyber_operations_dashboard.png)
+![Tactical Cyber Operations Dashboard](Images_readme/tactical_cyber_operations_dashboard_2.png)
+
 ### Advanced Suricata-detectable profiles
 
-The Suricata-oriented section currently includes:
+The Suricata-oriented section includes:
 
 - `T1595_ACTIVE_SCANNING_ICMP_RECON`
 - `T1046_NETWORK_SERVICE_DISCOVERY_PORT_SCAN`
@@ -381,9 +422,19 @@ The Suricata-oriented section currently includes:
 
 These profiles focus on **network-visible evidence**, OT subnet probing, Modbus visibility, and protocol-level anomaly generation. In the hybrid IT/OT model, Suricata is the primary engine for network and ICS telemetry, while Wazuh can ingest related `eve.json` events.
 
+At a methodological level, this section groups techniques whose primary observability comes from:
+
+- packet captures
+- flow-level behavior
+- protocol transactions
+- internal host-to-host transfers
+- Modbus reads and writes
+
+This is why these profiles are presented as **Suricata-detectable techniques** rather than generic attacks. Their selection is driven by the kind of evidence the platform aims to generate and validate.
+
 ### Advanced Wazuh-detectable profiles
 
-The Wazuh-oriented section currently includes:
+The Wazuh-oriented section includes:
 
 - `T1110_001_SSH_PASSWORD_GUESSING`
 - `T1078_VALID_ACCOUNTS_SSH_LOGIN`
@@ -405,9 +456,36 @@ The Wazuh-oriented section currently includes:
 
 These profiles are oriented toward **host-visible activity** such as authentication, command execution, discovery, file creation, file deletion, integrity changes, and simulated security-tool interference.
 
+Methodologically, these techniques were selected because their expected observability is primarily local to the endpoint:
+
+- authentication logs
+- process execution traces
+- shell command history or auditd-style telemetry
+- file integrity events
+- service-state changes
+
+This allows CyberLab to evaluate whether Wazuh-based instrumentation can capture ATT&CK-aligned host activity in a reproducible way.
+
+### Professional summary of the ATT&CK strategy set
+
+The ATT&CK strategy set implemented in CyberLab can be summarized as follows:
+
+- **Enterprise reconnaissance and discovery**
+  - active scanning, service discovery, system discovery, account discovery, process discovery, and file discovery
+- **Enterprise credential access and remote access validation**
+  - failed SSH password guessing and controlled valid-account login
+- **Enterprise collection, staging, and exfiltration**
+  - local data collection, archiving, ingress transfer, lateral transfer, and exfiltration over alternative protocol
+- **Integrity, impact, and anti-forensic behavior**
+  - file tampering, file deletion, masquerading, obfuscation, and simulated tool interference
+- **ICS discovery and control-oriented behavior**
+  - OT subnet discovery, point and tag identification, I/O image acquisition, parameter modification, unauthorized command messaging, and manipulation of control
+
+Taken together, these families provide a coherent attack strategy model for a hybrid IT/OT laboratory. The key point is that the catalog is **behavior-centered and ATT&CK-referenced**, which makes the experimental design stronger than a simple list of arbitrary attack names.
+
 ### Execution and safety model
 
-Every ATT&CK profile is constrained by a safety model. The current implementation enforces or documents the following principles:
+Every ATT&CK profile is constrained by a safety model. The platform enforces or documents the following principles:
 
 - no external targets
 - no credential dumping
@@ -436,7 +514,7 @@ Execution modes include:
 
 ### Execution backend and result preservation
 
-The attack backend now supports a structured execution path in addition to the previous legacy launcher:
+The attack backend follows a structured execution path:
 
 ```text
 dashboard profile -> attack_id -> catalog lookup -> backend script -> result.json
@@ -448,13 +526,13 @@ The primary execution endpoint is:
 POST /api/hud/attack/execute
 ```
 
-The legacy launch path remains available for backward compatibility:
+An auxiliary compatibility launch path is also available:
 
 ```bash
 GET /api/hud/attack/launch
 ```
 
-Every ATT&CK execution now generates a structured result directory under:
+Every ATT&CK execution generates a structured result directory under:
 
 ```bash
 app_core/infrastructure/attack/outputs/
@@ -485,12 +563,12 @@ This creates a stronger bridge between:
 
 ### OT-aware category visibility
 
-The tactical dashboard now applies category visibility rules based on the selected target role.
+The tactical dashboard applies category visibility rules based on the selected target role.
 
 In particular:
 
 - **ICS / OT** attack actions are only exposed when the selected target is an OT asset
-- OT assets are currently modeled as:
+- OT assets are modeled as:
   - **PLC**
   - **SCADA**
 
@@ -504,14 +582,14 @@ This design strengthens the scientific coherence of the interface because:
 
 ### Attack execution model
 
-Attack execution is now conceptually organized as:
+Attack execution is conceptually organized as:
 
 1. **Frontend attack profile**
 2. **Scientific `attack_id`**
 3. **Backend catalog resolution**
 4. **Concrete script execution**
 
-The launcher preserves backward compatibility with the previous script-based model while supporting the new scientific abstraction. This means the platform can still execute legacy script calls, but the preferred experimental model is now:
+The launcher supports the scientific abstraction while preserving compatibility with script-based execution. The preferred experimental model is:
 
 ```text
 attack_id -> catalog metadata -> script_name -> execution
@@ -521,9 +599,9 @@ This improves reproducibility, interpretability, and experimental consistency wh
 
 ### Pre-attack node intelligence
 
-The tactical dashboard has also been extended with a richer **pre-attack node intelligence** panel. Before launching an attack, the operator can inspect a structured node profile containing the most relevant operational and experimental context.
+The tactical dashboard includes a **pre-attack node intelligence** panel. Before launching an attack, the operator can inspect a structured node profile containing the most relevant operational and experimental context.
 
-The panel now includes:
+The panel includes:
 
 - status
 - primary IP
@@ -552,7 +630,7 @@ This information is intended to support a stronger decision process before actio
 
 ### Real data source strategy
 
-The tactical dashboard now uses a hybrid data strategy in order to preserve both graph semantics and operational accuracy.
+The tactical dashboard uses a hybrid data strategy in order to preserve both graph semantics and operational accuracy.
 
 It combines:
 
@@ -574,7 +652,7 @@ This prevents the tactical dashboard from relying only on reduced HUD metadata w
 
 ### Tool registry consistency with Instance Tools Manager
 
-To avoid discrepancies in the displayed tool inventory, the tactical dashboard now aligns its tool registry with the same backend source used by the **Instance Tools Manager** (`index-tools.html`).
+To avoid discrepancies in the displayed tool inventory, the tactical dashboard aligns its tool registry with the same backend source used by the **Instance Tools Manager** (`index-tools.html`).
 
 The tool count and tool registry shown in the tactical node profile are synchronized through:
 
@@ -587,9 +665,6 @@ This choice is important scientifically and operationally because it ensures tha
 - the tactical dashboard and the tools management dashboard report the same installed-tool view
 - the operator does not make decisions on conflicting tooling metadata
 - pre-attack node readiness is evaluated against the same source of truth used for tool orchestration
-
-![Tactical Cyber Operations Dashboard](Images_readme/tactical_cyber_operations_dashboard.png)
-![Tactical Cyber Operations Dashboard](Images_readme/tactical_cyber_operations_dashboard_2.png)
 
 ### Why it matters
 

@@ -34,6 +34,7 @@
             border-color: rgba(249, 115, 22, 1);
             box-shadow: 0 0 10px rgba(249, 115, 22, 0.2);
         }
+
     </style>
 </head>
 
@@ -89,26 +90,13 @@
             <h2 class="text-lg font-bold mb-2">Installed Tools</h2>
             <div id="installed-tools" class="bg-slate-950 border border-slate-800 rounded-lg p-4 space-y-2 h-40 overflow-y-auto"></div>
 
-            <h2 class="text-lg font-bold mt-6 mb-2 text-slate-400">Add Tool</h2>
+            <h2 class="text-lg font-bold mt-6 mb-2 text-slate-400">Installation Catalog</h2>
+            <div class="text-[10px] text-slate-500 font-mono uppercase tracking-widest mb-3">
+                Scientific classification of deployable node capabilities
+            </div>
+
             <select id="available-tools" class="w-full bg-slate-950 border border-slate-800 p-2 rounded-lg text-white mb-3">
                 <option value="">Select tool...</option>
-                <option value="wazuh">Wazuh</option>
-                <option value="wazuh_agent">Wazuh-Agent</option>
-                <option value="suricata">Suricata</option>
-                <option value="snort">Snort</option>
-                <option value="nmap">Nmap</option>
-                <option value="caldera">MITRE Caldera</option>
-                <option value="caldera_agent">MITRE Caldera Agent</option>
-                <option value="tcpdump">TCPDump</option>
-                <option value="zeek">Zeek</option> 
-                <option value="caldera_ot_plugins">Caldera OT Plugins</option>
-                <option value="mbpoll">mbpoll</option>
-                <option value="rollback_wazuh_suricata_integration">WAZUH + SURICATA INTEGRATION ROLLBACK</option>
-                <option value="rollback_suricata_ping_detection">SURICATA ICMP RULE ROLLBACK</option>
-                <option value="wazuh_fim_realtime">WAZUH FIM REALTIME</option>
-
-                
-               
             </select>
 
             <button onclick="addTool()" class="w-full bg-emerald-600 hover:bg-emerald-500 py-2 rounded-lg font-bold mb-4 transition-all">

@@ -6,11 +6,141 @@ console.log("JS CARGADO CORRECTAMENTE ");
 let cy = null;
 let selectedInstance = null;
 
+const TOOL_CATALOG = [
+    {
+        id: "wazuh",
+        label: "Wazuh Manager",
+        category: "Security Analytics Platforms",
+        class: "Detection Platform",
+        detector: "Wazuh",
+        scope: "Central monitoring and SIEM correlation",
+        summary: "Host-centric detection, alert correlation, and security event management plane."
+    },
+    {
+        id: "wazuh_agent",
+        label: "Wazuh Agent",
+        category: "Security Analytics Platforms",
+        class: "Endpoint Telemetry",
+        detector: "Wazuh",
+        scope: "Endpoint visibility on workload nodes",
+        summary: "Endpoint telemetry collector for logs, integrity events, and agent-driven visibility."
+    },
+    {
+        id: "suricata",
+        label: "Suricata",
+        category: "Network and Protocol Sensors",
+        class: "Network IDS",
+        detector: "Suricata",
+        scope: "Packet inspection and protocol telemetry",
+        summary: "Network-visible detection engine for scans, transfers, and ICS protocol activity."
+    },
+    {
+        id: "snort",
+        label: "Snort",
+        category: "Network and Protocol Sensors",
+        class: "Network IDS",
+        detector: "Snort",
+        scope: "Alternative packet inspection sensor",
+        summary: "Signature-based network intrusion detection sensor for comparative experimentation."
+    },
+    {
+        id: "tcpdump",
+        label: "TCPDump",
+        category: "Network and Protocol Sensors",
+        class: "Traffic Capture",
+        detector: "Packet Capture",
+        scope: "Raw traffic acquisition",
+        summary: "Low-level packet capture utility for evidentiary collection and traffic validation."
+    },
+    {
+        id: "zeek",
+        label: "Zeek",
+        category: "Network and Protocol Sensors",
+        class: "Network Telemetry",
+        detector: "Zeek",
+        scope: "Protocol metadata and behavioral logging",
+        summary: "High-level network telemetry engine for connection-oriented analysis."
+    },
+    {
+        id: "nmap",
+        label: "Nmap",
+        category: "Offensive and Assessment Tooling",
+        class: "Discovery Utility",
+        detector: "Operator Tooling",
+        scope: "Reconnaissance and service discovery",
+        summary: "Network discovery and service enumeration utility for controlled attack preparation."
+    },
+    {
+        id: "caldera",
+        label: "MITRE Caldera",
+        category: "Offensive and Assessment Tooling",
+        class: "Adversary Emulation Platform",
+        detector: "Operator Tooling",
+        scope: "Adversary workflow orchestration",
+        summary: "MITRE-aligned adversary emulation framework for procedure-driven exercises."
+    },
+    {
+        id: "caldera_agent",
+        label: "MITRE Caldera Agent",
+        category: "Offensive and Assessment Tooling",
+        class: "Execution Agent",
+        detector: "Operator Tooling",
+        scope: "Remote emulation execution",
+        summary: "Agent component for distributed adversary emulation across workload nodes."
+    },
+    {
+        id: "caldera_ot_plugins",
+        label: "Caldera OT Plugins",
+        category: "OT / ICS Experiment Tooling",
+        class: "ICS Emulation Extension",
+        detector: "Operator Tooling",
+        scope: "OT-oriented adversary emulation",
+        summary: "Industrial control extensions for OT-aligned adversary emulation workflows."
+    },
+    {
+        id: "mbpoll",
+        label: "mbpoll",
+        category: "OT / ICS Experiment Tooling",
+        class: "Modbus Utility",
+        detector: "Operator Tooling",
+        scope: "Controlled Modbus interaction",
+        summary: "Command-line Modbus client for controlled OT register reads and writes."
+    },
+    {
+        id: "wazuh_fim_realtime",
+        label: "Wazuh FIM Realtime",
+        category: "Wazuh Configuration Profiles",
+        class: "Detection Configuration",
+        detector: "Wazuh",
+        scope: "File integrity monitoring policy",
+        summary: "Realtime file integrity monitoring profile for tamper and deletion visibility."
+    },
+    {
+        id: "rollback_wazuh_suricata_integration",
+        label: "Wazuh + Suricata Integration Rollback",
+        category: "Wazuh Configuration Profiles",
+        class: "Rollback Profile",
+        detector: "Wazuh + Suricata",
+        scope: "Correlation rollback workflow",
+        summary: "Reversal profile for the Wazuh-Suricata event integration chain."
+    },
+    {
+        id: "rollback_suricata_ping_detection",
+        label: "Suricata ICMP Rule Rollback",
+        category: "Suricata Configuration Profiles",
+        class: "Rollback Profile",
+        detector: "Suricata",
+        scope: "ICMP signature rollback",
+        summary: "Rollback profile for ICMP-oriented Suricata detection rules."
+    }
+];
+
 /* ============================================================
     SE EJECUTA AL CARGAR LA PÁGINA
    ============================================================ */
 document.addEventListener("DOMContentLoaded", () => {
     console.log(" Cargando escenario inicial…");
+    renderToolCatalogSelect();
     loadExistingScenario();
 });
 
@@ -318,6 +448,30 @@ function renderToolsList(tools) {
             </div>
         `;
         toolsBox.appendChild(row);
+    });
+}
+
+function renderToolCatalogSelect() {
+    const select = document.getElementById("available-tools");
+    if (!select) return;
+    select.innerHTML = `<option value="">Select tool...</option>`;
+
+    const groups = new Map();
+    TOOL_CATALOG.forEach(tool => {
+        if (!groups.has(tool.category)) groups.set(tool.category, []);
+        groups.get(tool.category).push(tool);
+    });
+
+    groups.forEach((tools, category) => {
+        const optgroup = document.createElement("optgroup");
+        optgroup.label = category;
+        tools.forEach(tool => {
+            const option = document.createElement("option");
+            option.value = tool.id;
+            option.textContent = tool.label;
+            optgroup.appendChild(option);
+        });
+        select.appendChild(optgroup);
     });
 }
 
