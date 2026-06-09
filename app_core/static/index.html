@@ -560,6 +560,67 @@ body.dfir-locked #dfir-auto-overlay *{
 
 
 
+ <div onclick="openView('honeyv')" class="card-option flex flex-col items-center justify-center p-10 shadow-sm">
+                <div class="w-20 h-20 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center font-black text-2xl mb-8">11</div>
+                 <span class="text-xs font-black text-rose-400 tracking-[0.2em] mb-2 uppercase text-content"
+                      data-es="PANEL DE CONTROL DE LAB EXCHANGE" data-en="LAB EXCHANGE DASHBOARD">LAB EXCHANGE DASHBOARD</span>
+                <span class="text-lg font-bold text-slate-800 text-center uppercase leading-tight text-content"
+                      data-es="PANEL DE CONTROL DE LAB EXCHANGE" data-en="PANEL DE CONTROL DE LAB EXCHANGE">PANEL DE CONTROL DE LAB EXCHANGE</span>
+            </div>
+
+
+
+
+            <div onclick="openView('etc_lab')" class="card-option flex flex-col items-center justify-center p-10 shadow-sm">
+    <div class="w-20 h-20 bg-violet-50 text-violet-600 rounded-3xl flex items-center justify-center font-black text-2xl mb-8">12</div>
+    <span class="text-xs font-black text-violet-400 tracking-[0.2em] mb-2 uppercase text-content"
+          data-es="TRÁFICO CIFRADO" data-en="ENCRYPTED TRAFFIC">TRÁFICO CIFRADO</span>
+    <span class="text-lg font-bold text-slate-800 text-center uppercase leading-tight text-content"
+          data-es="ETC Lab: sistema de clasificación de tráfico cifrado mediante IA."
+          data-en="ETC Lab: AI-based encrypted traffic classification system.">
+          ETC Lab: sistema de clasificación de tráfico cifrado mediante IA.
+    </span>
+</div>
+
+
+          <div onclick="openView('ciberia_lab')" class="card-option flex flex-col items-center justify-center p-10 shadow-sm">
+    <div class="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center font-black text-2xl mb-8">13</div>
+    <span class="text-xs font-black text-emerald-400 tracking-[0.2em] mb-2 uppercase text-content"
+          data-es="CLASIFICACIÓN DE FLUJOS"
+          data-en="FLOW CLASSIFICATION">
+          CLASIFICACIÓN DE FLUJOS
+    </span>
+    <span class="text-lg font-bold text-slate-800 text-center uppercase leading-tight text-content"
+          data-es="CiberIA Lab: clasificación de flujos de red, entrenamiento de modelos y análisis desde PCAP."
+          data-en="CiberIA Lab: network flow classification, model training, and PCAP-based analysis.">
+          CiberIA Lab: clasificación de flujos de red, entrenamiento de modelos y análisis desde PCAP.
+    </span>
+</div>
+
+
+
+
+
+
+<div onclick="openView('adv_detection')" class="card-option flex flex-col items-center justify-center p-10 shadow-sm">
+  <div class="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center font-black text-2xl mb-8">14</div>
+
+  <span class="text-xs font-black text-emerald-400 tracking-[0.2em] mb-2 uppercase text-content"
+        data-es="ROBUSTEZ ADVERSARIA INDUSTRIAL"
+        data-en="INDUSTRIAL ADVERSARIAL ROBUSTNESS">
+        ROBUSTEZ ADVERSARIA INDUSTRIAL
+  </span>
+
+  <span class="text-lg font-bold text-slate-800 text-center uppercase leading-tight text-content"
+        data-es="advDetection: ataques de evasión adversaria y evaluación de defensas sobre sistemas de detección de anomalías industriales."
+        data-en="advDetection: adversarial evasion attacks and defence evaluation for industrial anomaly detection systems.">
+        advDetection: ataques de evasión adversaria y evaluación de defensas sobre sistemas de detección de anomalías industriales.
+  </span>
+</div>
+
+
+
+
         </div>
     </div>
 
@@ -685,61 +746,125 @@ body.dfir-locked #dfir-auto-overlay *{
         // Parsea exactamente el formato que tu backend emite:
         // [DETECTED] severity=HIGH score=7 forensics=YES sig=... src=IP:PORT dst=IP:PORT
         function rtParseDetectedLine(line) {
-            const s = String(line || "").trim();
-            if (!s) return null;
+    const s = String(line || "").trim();
+    if (!s) return null;
 
-            if (s.includes("NIVEL:")) {
-                const level = parseInt(s.match(/NIVEL:\s*(\d+)/)?.[1] || "0", 10);
+    // 1) Si el backend envía JSON
+    try {
+        const obj = JSON.parse(s);
 
-                let severity = "LOW";
-                if (level >= 10) severity = "CRITICAL";
-                else if (level >= 7) severity = "HIGH";
-                else if (level >= 4) severity = "MEDIUM";
+        const level =
+            Number(obj?.level) ||
+            Number(obj?.score) ||
+            Number(obj?.rule?.level) ||
+            Number(obj?.alert?.level) ||
+            0;
 
-                return {
-                    ts: rtNow(),
-                    severity,
-                    score: level,
-                    forensics: "YES",
-                    signature: "WAZUH LIVE (LEVEL)",
-                    src: "--",
-                    dst: "--",
-                    raw: s
-                };
-            }
+        let severity =
+            String(obj?.severity || obj?.rule?.severity || "").toUpperCase();
 
-           
-            if (s.startsWith("[DETECTED]")) {
-                const get = (k) => (s.match(new RegExp(`${k}=([^\\s]+)`)) || [,""])[1];
-
-                return {
-                    ts: rtNow(),
-                    severity: get("severity") || "INFO",
-                    score: Number(get("score") || 0),
-                    forensics: (get("forensics") || "NO").toUpperCase(),
-                    signature: (get("sig") || "N/A").replaceAll("_", " "),
-                    src: get("src") || "--",
-                    dst: get("dst") || "--",
-                    raw: s
-                };
-            }
-
-            if (s.includes("[IDS/SURICATA]")) {
-                return {
-                    ts: rtNow(),
-                    severity: "HIGH",
-                    score: 8,
-                    forensics: "YES",
-                    signature: "SURICATA ALERT",
-                    src: "--",
-                    dst: "--",
-                    raw: s
-                };
-            }
-
-            return null;
+        if (!severity) {
+            if (level >= 10) severity = "CRITICAL";
+            else if (level >= 7) severity = "HIGH";
+            else if (level >= 4) severity = "MEDIUM";
+            else if (level >= 1) severity = "LOW";
+            else severity = "INFO";
         }
 
+        return {
+            ts: rtNow(),
+            severity,
+            score: level,
+            forensics: level >= 7 ? "YES" : "NO",
+            signature:
+                obj?.signature ||
+                obj?.rule?.description ||
+                obj?.description ||
+                "WAZUH ALERT",
+            src:
+                obj?.src ||
+                obj?.srcip ||
+                obj?.data?.srcip ||
+                "--",
+            dst:
+                obj?.dst ||
+                obj?.dstip ||
+                obj?.data?.dstip ||
+                "--",
+            raw: s
+        };
+    } catch {}
+
+    // 2) Si viene como texto con NIVEL:
+    if (s.includes("NIVEL:")) {
+        const level = parseInt(s.match(/NIVEL:\s*(\d+)/)?.[1] || "0", 10);
+
+        let severity = "INFO";
+        if (level >= 10) severity = "CRITICAL";
+        else if (level >= 7) severity = "HIGH";
+        else if (level >= 4) severity = "MEDIUM";
+        else if (level >= 1) severity = "LOW";
+
+        return {
+            ts: rtNow(),
+            severity,
+            score: level,
+            forensics: level >= 7 ? "YES" : "NO",
+            signature: "WAZUH LIVE ALERT",
+            src: "--",
+            dst: "--",
+            raw: s
+        };
+    }
+
+    // 3) Si viene como [DETECTED] key=value
+    if (s.startsWith("[DETECTED]")) {
+        const get = (k) => (s.match(new RegExp(`${k}=([^\\s]+)`)) || [, ""])[1];
+
+        const level =
+            Number(get("score")) ||
+            Number(get("level")) ||
+            Number(get("rule_level")) ||
+            0;
+
+        let severity = String(get("severity") || "").toUpperCase();
+
+        if (!severity) {
+            if (level >= 10) severity = "CRITICAL";
+            else if (level >= 7) severity = "HIGH";
+            else if (level >= 4) severity = "MEDIUM";
+            else if (level >= 1) severity = "LOW";
+            else severity = "INFO";
+        }
+
+        return {
+            ts: rtNow(),
+            severity,
+            score: level,
+            forensics: (get("forensics") || (level >= 7 ? "YES" : "NO")).toUpperCase(),
+            signature: (get("sig") || get("signature") || "WAZUH ALERT").replaceAll("_", " "),
+            src: get("src") || "--",
+            dst: get("dst") || "--",
+            raw: s
+        };
+    }
+
+    // 4) Suricata fijo
+    if (s.includes("[IDS/SURICATA]")) {
+        return {
+            ts: rtNow(),
+            severity: "HIGH",
+            score: 8,
+            forensics: "YES",
+            signature: "SURICATA ALERT",
+            src: "--",
+            dst: "--",
+            raw: s
+        };
+    }
+
+    return null;
+}
         function rtDedupeKey(ev) {
             return `${String(ev.signature || "").toUpperCase()}|${ev.src}|${ev.dst}|${String(ev.severity || "").toUpperCase()}`;
         }
@@ -855,7 +980,7 @@ body.dfir-locked #dfir-auto-overlay *{
             });
             // OPEN: abre tu dashboard dentro del overlay (sin borrar nada)
             el.querySelector('[data-action="open"]').addEventListener("click", () => {
-                openView("dashboard");
+                openView("nicscyberlab_dashboard");
             });
 
             host.prepend(el);

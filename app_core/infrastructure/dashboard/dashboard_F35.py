@@ -23,6 +23,7 @@ CORS(hud_bp)
 # Ruta raíz del proyecto
 # ============================================================
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+INSTALLED_DIR = os.path.join(REPO_ROOT, "tools-installer", "installed")
 
 # ============================================================
 # Conexión a OpenStack
@@ -167,6 +168,19 @@ def get_allowed_ports(conn, server) -> List[str]:
     return allowed_rules if allowed_rules else ["No ingress"]
 
 
+def get_installed_tools(server_id: str) -> Dict[str, Any]:
+    path = os.path.join(INSTALLED_DIR, f"{server_id}.json")
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data.get("installed_tools", {}) or {}
+    except Exception as e:
+        logger.debug(f"Installed tools extraction failed for {server_id}: {e}")
+        return {}
+
+
 
 
 
@@ -244,26 +258,49 @@ def hud_instances():
 
             status = "OFFLINE"
             ip = "N/A"
+            ip_private = None
+            ip_floating = None
             os_sys = "Unknown"
             nets = []
             ports = []
+            image_name = None
+            flavor_name = None
+            instance_uuid = None
+            installed_tools = {}
 
             if server:
                 ip_p, ip_f, nets = extract_ips_and_networks(server)
+                ip_private = ip_p
+                ip_floating = ip_f
                 status = server.status.upper()
                 ip = ip_f or ip_p or "N/A"
                 os_sys = get_os_from_server(conn, server)
                 ports = get_allowed_ports(conn, server)
+                image_name = getattr(server, "image", None)
+                if isinstance(image_name, dict):
+                    image_name = image_name.get("id")
+                flavor_name = getattr(server, "flavor", None)
+                if isinstance(flavor_name, dict):
+                    flavor_name = flavor_name.get("original_name") or flavor_name.get("id")
+                instance_uuid = getattr(server, "id", None)
+                if instance_uuid:
+                    installed_tools = get_installed_tools(instance_uuid)
 
             info = {
                 "id": node_id,                
                 "name": instance_name,         
                 "role": role,                  
                 "status": status,
+                "instance_id": instance_uuid,
                 "ip": ip,
+                "ip_private": ip_private,
+                "ip_floating": ip_floating,
                 "os": os_sys,
+                "image": image_name,
+                "flavor": flavor_name,
                 "networks": nets,
                 "allowed_ports": ports,
+                "installed_tools": installed_tools,
                 "strategies": strategies_for(role),
                 "position": POS.get(node_id),
             }
@@ -356,5 +393,4 @@ def hud_action():
         "status": "accepted",
         "message": f"Acción {action_id} enviada a {instance_id}"
     }), 202
-
 

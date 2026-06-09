@@ -20,6 +20,7 @@ TIMEOUT=20000
 
 APP_PATH="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
 VENV_PYTHON="/home/younes/Desktop/Openstack/myenv/bin/python3.12"
+SCENARIO_CAPTURE_PID=""
 
 # -----------------------------
 # UTILS
@@ -35,6 +36,39 @@ ok ()   { echo " [OK]   $1"; }
 warn () { echo " [WARN] $1"; }
 info () { echo " [INFO] $1"; }
 err ()  { echo " [ERR]  $1"; }
+
+cleanup() {
+    echo
+    info "Ejecutando limpieza final..."
+
+    if [[ -n "${SCENARIO_CAPTURE_PID:-}" ]]; then
+        if ps -p "$SCENARIO_CAPTURE_PID" > /dev/null 2>&1; then
+            info "Deteniendo nics_scenario_captures.sh (PID=$SCENARIO_CAPTURE_PID)..."
+
+            sudo -n kill -TERM "$SCENARIO_CAPTURE_PID" 2>/dev/null || true
+
+            for _ in {1..10}; do
+                if ! ps -p "$SCENARIO_CAPTURE_PID" > /dev/null 2>&1; then
+                    break
+                fi
+                sleep 1
+            done
+
+            if ps -p "$SCENARIO_CAPTURE_PID" > /dev/null 2>&1; then
+                warn "El proceso sigue vivo. Forzando parada..."
+                sudo -n kill -KILL "$SCENARIO_CAPTURE_PID" 2>/dev/null || true
+            fi
+
+            if ! ps -p "$SCENARIO_CAPTURE_PID" > /dev/null 2>&1; then
+                ok "nics_scenario_captures.sh detenido correctamente."
+            else
+                warn "No se pudo detener completamente nics_scenario_captures.sh."
+            fi
+        fi
+    fi
+}
+
+trap cleanup EXIT INT TERM
 
 # -----------------------------
 # [1/6] PREPARATION
@@ -56,8 +90,11 @@ else
     ok "VENV Python detectado: $VENV_PYTHON"
 fi
 
-# --- Asegurar permisos correctos en SSH (evita Permission denied / bad permissions) ---
+# -----------------------------
+# [2.5/6] SSH PERMISSIONS
+# -----------------------------
 section "[2.5/6] Ajustando permisos SSH..."
+
 chmod 700 "$HOME/.ssh" 2>/dev/null || true
 chmod 600 "$HOME/.ssh/my_key" 2>/dev/null || true
 chmod 644 "$HOME/.ssh/my_key.pub" 2>/dev/null || true
@@ -120,11 +157,10 @@ else
 fi
 
 # -----------------------------
-# [3.5/6] PYTHON CAPABILITIES (Scapy/AsyncSniffer sin sudo)
+# [3.5/6] PYTHON CAPABILITIES
 # -----------------------------
 section "[3.5/6] Configurando capacidades de red (python)"
 
-# Resolver el binario REAL (no el symlink del venv)
 REAL_PY="$(readlink -f "$VENV_PYTHON" 2>/dev/null || true)"
 
 if [ -z "$REAL_PY" ] || [ ! -f "$REAL_PY" ]; then
@@ -180,7 +216,6 @@ echo "============================================="
 echo " [5/6] Verificando dependencias Python (en el VENV)"
 echo "============================================="
 
-# OJO: con set -e, un exit!=0 aborta el script; por eso capturamos RC.
 set +e
 "$VENV_PYTHON" - <<'PY'
 import sys
@@ -204,13 +239,8 @@ if [[ $RC -ne 0 ]]; then
   echo "[OK] matplotlib instalado (pip/venv)."
 fi
 
-
-
-
-
 # -----------------------------
 # [5.9/6] START nics_scenario_captures
-# logs en: app_core/infrastructure/ics_traffic/captures/full_scenario_captures/logs
 # -----------------------------
 section "[5.9/6] START nics_scenario_captures (background)"
 
@@ -218,17 +248,16 @@ LOG_DIR="$APP_PATH/app_core/infrastructure/ics_traffic/captures/full_scenario_ca
 mkdir -p "$LOG_DIR"
 
 sudo -n bash "$APP_PATH/nics_scenario_captures.sh" > "$LOG_DIR/scenario_captures.log" 2>&1 &
-ok "nics_scenario_captures lanzado (PID=$!)"
-
+SCENARIO_CAPTURE_PID=$!
+ok "nics_scenario_captures lanzado (PID=$SCENARIO_CAPTURE_PID)"
 
 # -----------------------------
-# [5.95/6] LOAD OPENSTACK CREDS (for Gunicorn + workers)
+# [5.95/6] LOAD OPENSTACK CREDS
 # -----------------------------
 section "[5.95/6] Cargando credenciales OpenStack (admin-openrc.sh)"
 
 OPENRC="$APP_PATH/admin-openrc.sh"
 if [ -f "$OPENRC" ]; then
-  # shellcheck disable=SC1090
   set +u
   source "$OPENRC"
   set -u
@@ -237,12 +266,12 @@ else
   warn "No existe $OPENRC. Gunicorn arrancará SIN credenciales OS_*."
 fi
 
-# (opcional) sanity check mínimo
 if [ -z "${OS_AUTH_URL:-}" ]; then
   warn "OS_AUTH_URL está vacío. Revisa admin-openrc.sh o su export."
 else
   ok "OS_AUTH_URL detectado."
 fi
+
 # -----------------------------
 # [6/6] START SERVER
 # -----------------------------
@@ -250,9 +279,13 @@ section "[6/6] Lanzando Servidor Forense (Gunicorn)"
 
 cd "$APP_PATH" || exit 1
 
-exec "$VENV_PYTHON" -m gunicorn \
+"$VENV_PYTHON" -m gunicorn \
     -w 4 \
     -b "0.0.0.0:$PORT" \
     --timeout "$TIMEOUT" \
     --log-level info \
     app:app
+
+GUNICORN_RC=$?
+info "Gunicorn finalizó con código: $GUNICORN_RC"
+exit "$GUNICORN_RC"

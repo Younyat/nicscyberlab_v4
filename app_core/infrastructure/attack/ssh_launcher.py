@@ -2,7 +2,13 @@ import os
 import time
 import openstack
 import paramiko
-from flask import Blueprint, Response, stream_with_context, request
+from flask import Blueprint, Response, jsonify, stream_with_context, request
+
+from app_core.infrastructure.attack.catalog import (
+    find_attack_by_id,
+    get_attack_catalog,
+    resolve_script_name,
+)
 
 attack_infra_bp = Blueprint('attack_infra', __name__)
 
@@ -153,7 +159,11 @@ def normalize_os_user(os_value: str) -> str:
 @attack_infra_bp.route('/launch')
 def launch_attack():
     target_ip = request.args.get('target')  # IP de la víctima desde el front
-    script_name = request.args.get('script', 'ping_target.sh')
+    attack_id = request.args.get('attack_id', '').strip()
+    script_name = resolve_script_name(
+        script_name=request.args.get('script', '').strip(),
+        attack_id=attack_id,
+    ) or 'ping_target.sh'
   
 
 
@@ -164,6 +174,7 @@ def launch_attack():
     print(f"[victim_user    : {victim_user}]")
 
     print(f"[ATTACK] Target IP recibida desde el frontend: {target_ip}")
+    print(f"[attack_id   : {attack_id or '(legacy-script-mode)'}")
     print(f"[script_name : {script_name}")
 
     # 1) localizar attacker dinámico
@@ -203,3 +214,20 @@ def launch_attack():
         ),
         mimetype='text/event-stream'
     )
+
+
+@attack_infra_bp.route('/catalog', methods=['GET'])
+def attack_catalog():
+    return jsonify({
+        "attacks": get_attack_catalog(),
+        "count": len(get_attack_catalog()),
+    })
+
+
+@attack_infra_bp.route('/describe', methods=['GET'])
+def describe_attack():
+    attack_id = request.args.get('attack_id', '').strip()
+    attack = find_attack_by_id(attack_id)
+    if not attack:
+        return jsonify({"error": f"attack_id no encontrado: {attack_id}"}), 404
+    return jsonify(attack)

@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NICS CyberLab — advDetection Module</title>
+  <link rel="stylesheet" href="/static/css/adv_detection.css">
+</head>
+<body>
+  <div class="wrap">
+    <h1>ADV DETECTION MODULE</h1>
+
+    <div class="card topbar">
+      <div class="row">
+        <span class="pill">
+          <span id="status-dot" class="status-dot dot-bad"></span>
+          Module: <span id="module-status" class="mono">offline</span>
+        </span>
+
+        <span class="pill">
+          Vendor repo: <span id="vendor-path" class="mono">—</span>
+        </span>
+
+        <span class="pill">
+          Runs dir: <span id="runs-path" class="mono">—</span>
+        </span>
+
+        <button id="btn-refresh" class="primary">Refresh</button>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div>
+        <div class="card">
+          <h2>Vendor Assets</h2>
+
+          <label>Mode</label>
+          <select id="run-mode">
+            <option value="notebook">notebook</option>
+            <option value="python_file">python_file</option>
+            <option value="custom_command">custom_command</option>
+          </select>
+
+          <label>Entrypoint</label>
+          <select id="entrypoint-select">
+            <option value="">Loading assets...</option>
+          </select>
+
+          <label>Arguments</label>
+          <input id="run-arguments" placeholder="optional command arguments" />
+
+          <label>Timeout seconds</label>
+          <input id="run-timeout" type="number" value="3600" />
+
+          <div id="custom-command-box" class="hidden">
+            <label>Custom command</label>
+            <textarea id="custom-command" placeholder="Example: python3 functions.py"></textarea>
+          </div>
+
+          <div class="row mt">
+            <button id="btn-run" class="primary">Run</button>
+            <button id="btn-load-assets">Reload Assets</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Run Output</h2>
+          <label>Last result</label>
+          <textarea id="result-box" class="console" readonly></textarea>
+        </div>
+
+        <div class="card">
+          <h2>Console</h2>
+          <textarea id="console-box" class="console" readonly></textarea>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h2>Repository Summary</h2>
+          <div id="repo-summary" class="kv-block">Not loaded.</div>
+        </div>
+
+        <div class="card">
+          <h2>Recent Runs</h2>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Run ID</th>
+                  <th>Mode</th>
+                  <th>Entrypoint</th>
+                  <th>Return</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="runs-table">
+                <tr><td colspan="5" class="mut">No runs loaded.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Run Detail</h2>
+          <div class="detail-grid">
+            <div>
+              <label>Run ID</label>
+              <div id="detail-run-id" class="mono">—</div>
+
+              <label>Started</label>
+              <div id="detail-started" class="mono">—</div>
+
+              <label>Finished</label>
+              <div id="detail-finished" class="mono">—</div>
+
+              <label>Return code</label>
+              <div id="detail-return-code" class="mono">—</div>
+            </div>
+
+            <div>
+              <label>Copied outputs</label>
+              <div id="detail-files" class="kv-block">—</div>
+            </div>
+          </div>
+
+          <label>STDOUT</label>
+          <textarea id="detail-stdout" class="console" readonly></textarea>
+
+          <label>STDERR</label>
+          <textarea id="detail-stderr" class="console" readonly></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/adv_detection.js"></script>
+</body>
+</html>

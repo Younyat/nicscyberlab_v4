@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NICS CyberLab — WINDOWS LAB EXCHANGE</title>
+
+  <style>
+    :root {
+      --bg:#070b10;
+      --card:#0c1420;
+      --fg:#e8eef7;
+      --mut:#93a4bc;
+      --line:#16304a;
+      --ok:#38d39f;
+      --bad:#ff5d5d;
+      --warn:#ffd166;
+      --accent:#12365a;
+      --accent2:#0c2238;
+      --row:#081727;
+      --json-key:#8ec5ff;
+      --json-string:#9fe3b1;
+      --json-number:#ffd58a;
+      --json-bool:#ff9ea1;
+      --json-null:#c4b5fd;
+    }
+
+    html, body {
+      height: 100%;
+    }
+
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      padding: 24px;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      margin: 0 0 18px;
+      font-size: 22px;
+      letter-spacing: .5px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    @media (min-width: 1400px) {
+      .grid {
+        grid-template-columns: 1.2fr .95fr;
+      }
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 16px;
+      color: var(--mut);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .two-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .three-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .two-cols,
+      .three-cols {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      color: var(--mut);
+      margin: 10px 0 6px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      box-sizing: border-box;
+      background: #060b12;
+      border: 1px solid var(--line);
+      color: var(--fg);
+      border-radius: 10px;
+      padding: 10px 12px;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 120px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    button {
+      background: var(--accent2);
+      color: var(--fg);
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    button.primary {
+      background: var(--accent);
+    }
+
+    button.warn {
+      background: #4d3413;
+      border-color: #73511b;
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .kv {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 14px;
+      color: #cfe2ff;
+      word-break: break-all;
+    }
+
+    .mut {
+      color: var(--mut);
+      font-size: 14px;
+    }
+
+    .hr {
+      height: 1px;
+      background: var(--line);
+      margin: 12px 0;
+    }
+
+    .pill {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #06101a;
+      font-size: 14px;
+      color: var(--mut);
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+
+    .dot-ok {
+      background: var(--ok);
+    }
+
+    .dot-bad {
+      background: var(--bad);
+    }
+
+    .dot-warn {
+      background: var(--warn);
+    }
+
+    .table-wrap {
+      max-height: 420px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #060b12;
+      margin-top: 10px;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0;
+    }
+
+    .table th,
+    .table td {
+      border-bottom: 1px solid var(--line);
+      padding: 8px;
+      font-size: 14px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .table th {
+      color: var(--mut);
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      background: #060b12;
+      z-index: 1;
+    }
+
+    .clickrow {
+      cursor: pointer;
+    }
+
+    .clickrow:hover {
+      background: var(--row);
+    }
+
+    .selected {
+      outline: 2px solid rgba(159,208,255,.25);
+      background: var(--row);
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #06101a;
+      font-size: 13px;
+      color: var(--mut);
+    }
+
+    .console {
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 200px;
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    .actions-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    @media (min-width: 900px) {
+      .actions-grid {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+    }
+
+    .small {
+      font-size: 12px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .json-panel {
+      margin-top: 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #060b12;
+      overflow: hidden;
+    }
+
+    .json-toolbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: #081322;
+    }
+
+    .json-meta {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .json-viewer {
+      max-height: 520px;
+      overflow: auto;
+      padding: 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .json-empty {
+      color: var(--mut);
+      padding: 14px;
+      min-height: 140px;
+    }
+
+    .json-row {
+      padding: 2px 0;
+    }
+
+    .json-indent {
+      display: inline-block;
+      width: 18px;
+    }
+
+    .json-key {
+      color: var(--json-key);
+    }
+
+    .json-string {
+      color: var(--json-string);
+    }
+
+    .json-number {
+      color: var(--json-number);
+    }
+
+    .json-bool {
+      color: var(--json-bool);
+    }
+
+    .json-null {
+      color: var(--json-null);
+    }
+
+    .json-brace {
+      color: #b7c9e5;
+    }
+
+    .json-toggle {
+      cursor: pointer;
+      user-select: none;
+      color: #b7c9e5;
+      margin-right: 6px;
+      display: inline-block;
+      width: 12px;
+    }
+
+    .json-node.collapsed > .json-children {
+      display: none;
+    }
+
+    .json-summary {
+      color: var(--mut);
+    }
+
+    .json-search-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .json-search-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .report-highlight {
+      background: rgba(255, 209, 102, 0.16);
+      border-radius: 4px;
+      padding: 1px 2px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <h1>LAB EXCHANGE DASHBOARD</h1>
+
+    <div class="card">
+      <div class="row">
+        <span class="pill">
+          <span id="backend-dot" class="status-dot dot-bad"></span>
+          Backend: <span id="backend-status" class="kv">offline</span>
+        </span>
+
+        <span class="pill">
+          <span id="ssh-dot" class="status-dot dot-bad"></span>
+          SSH target: <span id="ssh-status" class="kv">unknown</span>
+        </span>
+
+        <span class="pill">
+          Current path: <span id="current-path-badge" class="kv">—</span>
+        </span>
+
+        <span class="pill">
+          Selected: <span id="selected-count" class="kv">0</span>
+        </span>
+
+        <button id="btn-refresh-all" class="primary">Refresh</button>
+        <button id="btn-clear-console">Clear Console</button>
+      </div>
+
+      <div class="mut" style="margin-top:10px;">
+        Restricted navigation over allowed Ubuntu roots, controlled ZIP generation, upload, SSH transfer, remote validation, remote execution, and remote JSON report reading.
+      </div>
+    </div>
+
+    <div class="grid" style="margin-top:14px;">
+      <div>
+        <div class="card">
+          <h2>Directory Browser</h2>
+
+          <label>Allowed root</label>
+          <select id="root-selector">
+            <option value="">Loading roots...</option>
+          </select>
+
+          <label>Current path</label>
+          <div class="row">
+            <input id="current-path" value="" />
+            <button id="btn-open-path" class="primary">Open</button>
+            <button id="btn-parent">Parent</button>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table" id="browser-table">
+              <thead>
+                <tr>
+                  <th style="width:60px;">Sel</th>
+                  <th>Name</th>
+                  <th style="width:110px;">Type</th>
+                  <th style="width:120px;">Size</th>
+                  <th style="width:200px;">Modified UTC</th>
+                  <th style="width:140px;">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="6" class="mut">Not loaded.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px;">
+          <h2>Workspace Actions</h2>
+
+          <div class="actions-grid">
+            <div>
+              <label>ZIP name</label>
+              <input id="zip-name" placeholder="case_bundle.zip" />
+              <button id="btn-create-zip" class="primary" style="margin-top:10px; width:100%;">Create ZIP from selected</button>
+            </div>
+
+            <div>
+              <label>Upload local file</label>
+              <input id="upload-file" type="file" />
+              <button id="btn-upload-file" class="primary" style="margin-top:10px; width:100%;">Upload to workspace</button>
+            </div>
+
+            <div>
+              <label>Send path to remote</label>
+              <input id="send-path" placeholder="/absolute/path/to/file" />
+              <button id="btn-send-file" class="primary" style="margin-top:10px; width:100%;">Send via SSH SFTP</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px;">
+          <h2>SSH Target Configuration</h2>
+
+          <div class="two-cols">
+            <div>
+              <label>Host</label>
+              <input id="ssh-host" placeholder="192.168.1.50" />
+            </div>
+            <div>
+              <label>Port</label>
+              <input id="ssh-port" type="number" value="22" />
+            </div>
+          </div>
+
+          <div class="two-cols">
+            <div>
+              <label>User</label>
+              <input id="ssh-user" placeholder="administrator" />
+            </div>
+            <div>
+              <label>Timeout seconds</label>
+              <input id="ssh-timeout" type="number" value="15" />
+            </div>
+          </div>
+
+          <div class="two-cols">
+            <div>
+              <label>Auth type</label>
+              <select id="ssh-auth-type">
+                <option value="password">password</option>
+                <option value="key">key</option>
+              </select>
+            </div>
+            <div>
+              <label>Remote directory</label>
+              <input id="ssh-remote-dir" placeholder="C:/NICS_Windows_Lab/incoming" />
+            </div>
+          </div>
+
+          <div id="password-auth-box">
+            <label>Password</label>
+            <input id="ssh-password" type="password" placeholder="password" />
+          </div>
+
+          <div id="key-auth-box" class="hidden">
+            <div class="two-cols">
+              <div>
+                <label>Private key path on backend host</label>
+                <input id="ssh-key-path" placeholder="/home/younes/.ssh/id_rsa" />
+              </div>
+              <div>
+                <label>Key passphrase</label>
+                <input id="ssh-key-passphrase" type="password" placeholder="optional" />
+              </div>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <button id="btn-save-ssh-config" class="primary">Save SSH Config</button>
+            <button id="btn-load-ssh-config">Reload SSH Config</button>
+            <button id="btn-test-ssh" class="warn">Test SSH Connection</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px;">
+          <h2>Remote Verification</h2>
+
+          <label>Remote path to verify</label>
+          <input id="remote-verify-path" placeholder="C:/NICS_Windows_Lab/incoming/file.zip" />
+
+          <div class="row" style="margin-top:12px;">
+            <button id="btn-use-last-remote-path">Use last sent remote path</button>
+            <button id="btn-verify-remote-file" class="primary">Verify remote file</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px;">
+          <h2>Remote JSON Report Reader</h2>
+
+          <label>Remote JSON file path</label>
+          <input id="remote-json-path" placeholder="C:/NICS_Windows_Lab/reports/report.json" />
+
+          <div class="json-search-row">
+            <input id="json-search" placeholder="Search inside loaded JSON report" />
+            <button id="btn-use-last-json-path">Use last remote path</button>
+            <button id="btn-read-remote-json" class="primary">Read remote JSON</button>
+          </div>
+
+          <div class="json-panel">
+            <div class="json-toolbar">
+              <div class="json-meta">
+                <span class="pill">Report path: <span id="json-report-path" class="kv">—</span></span>
+                <span class="pill">Size: <span id="json-report-size" class="kv">—</span></span>
+                <span class="pill">Modified UTC: <span id="json-report-modified" class="kv">—</span></span>
+              </div>
+
+              <div class="row">
+                <button id="btn-copy-json-raw">Copy raw JSON</button>
+                <button id="btn-expand-json">Expand all</button>
+                <button id="btn-collapse-json">Collapse all</button>
+              </div>
+            </div>
+
+            <div id="json-viewer" class="json-viewer">
+              <div class="json-empty">No remote JSON report loaded.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px;">
+          <h2>Remote Execution</h2>
+
+          <label>Command type</label>
+          <select id="exec-type">
+            <option value="command">command</option>
+            <option value="powershell">powershell</option>
+          </select>
+
+          <label>Working directory on remote</label>
+          <input id="exec-cwd" placeholder="optional" />
+
+          <label>Command or script</label>
+          <textarea id="exec-command" placeholder="Write a command or a PowerShell script here"></textarea>
+
+          <div class="three-cols">
+            <div>
+              <label>Execution timeout seconds</label>
+              <input id="exec-timeout" type="number" value="120" />
+            </div>
+            <div>
+              <label>Expected uploaded remote file</label>
+              <input id="exec-target-file" placeholder="optional" />
+            </div>
+            <div>
+              <label>After execution</label>
+              <select id="exec-post-check">
+                <option value="none">none</option>
+                <option value="verify_target_file">verify target file</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <button id="btn-run-remote" class="primary">Run on remote host</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px;">
+          <h2>Console</h2>
+          <textarea id="console" class="console" readonly></textarea>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h2>Selected Artifact</h2>
+
+          <label>Name</label>
+          <div id="sel-name" class="kv">—</div>
+
+          <label>Path</label>
+          <div id="sel-path" class="kv">—</div>
+
+          <label>Type</label>
+          <div id="sel-type" class="kv">—</div>
+
+          <label>Size</label>
+          <div id="sel-size" class="kv">—</div>
+
+          <label>Modified UTC</label>
+          <div id="sel-modified" class="kv">—</div>
+
+          <div class="hr"></div>
+
+          <div class="row">
+            <button id="btn-use-selected-for-send">Use selected in send box</button>
+            <button id="btn-copy-selected-path">Copy selected path</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px;">
+          <h2>Remote Status</h2>
+
+          <label>Host</label>
+          <div id="remote-host-view" class="kv">—</div>
+
+          <label>User</label>
+          <div id="remote-user-view" class="kv">—</div>
+
+          <label>Remote directory</label>
+          <div id="remote-dir-view" class="kv">—</div>
+
+          <label>Last remote path</label>
+          <div id="last-remote-path-view" class="kv">—</div>
+
+          <label>Last connection check</label>
+          <div id="last-connection-check-view" class="kv">—</div>
+        </div>
+
+        <div class="card" style="margin-top:14px;">
+          <h2>Last Result</h2>
+          <textarea id="result-box" readonly></textarea>
+        </div>
+
+        <div class="card" style="margin-top:14px;">
+          <h2>Notes</h2>
+          <div class="mut small">
+            This panel now supports real SSH target configuration, validation of connectivity, remote file presence checks, remote execution with output capture, and direct reading of remote JSON report files.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/honeyv.js"></script>
+</body>
+</html>

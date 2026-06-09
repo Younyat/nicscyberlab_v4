@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NICS CyberLab — WINDOWS LAB EXCHANGE</title>
+
+  <style>
+    :root {
+      --bg:#070b10;
+      --card:#0c1420;
+      --fg:#e8eef7;
+      --mut:#93a4bc;
+      --line:#16304a;
+      --ok:#38d39f;
+      --bad:#ff5d5d;
+      --accent:#12365a;
+      --accent2:#0c2238;
+      --row:#081727;
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: var(--bg);
+      color: var(--fg);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      padding: 24px;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      margin: 0 0 18px;
+      font-size: 22px;
+      letter-spacing: .5px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    @media (min-width: 1200px) {
+      .grid {
+        grid-template-columns: 1.35fr .9fr;
+      }
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 16px;
+      color: var(--mut);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      color: var(--mut);
+      margin: 10px 0 6px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      box-sizing: border-box;
+      background: #060b12;
+      border: 1px solid var(--line);
+      color: var(--fg);
+      border-radius: 10px;
+      padding: 10px 12px;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 120px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    button {
+      background: var(--accent2);
+      color: var(--fg);
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    button.primary {
+      background: var(--accent);
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .kv {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 14px;
+      color: #cfe2ff;
+      word-break: break-all;
+    }
+
+    .mut {
+      color: var(--mut);
+      font-size: 14px;
+    }
+
+    .hr {
+      height: 1px;
+      background: var(--line);
+      margin: 12px 0;
+    }
+
+    .pill {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #06101a;
+      font-size: 14px;
+      color: var(--mut);
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+
+    .dot-ok { background: var(--ok); }
+    .dot-bad { background: var(--bad); }
+
+    .table-wrap {
+      max-height: 420px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #060b12;
+      margin-top: 10px;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0;
+    }
+
+    .table th,
+    .table td {
+      border-bottom: 1px solid var(--line);
+      padding: 8px;
+      font-size: 14px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .table th {
+      color: var(--mut);
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      background: #060b12;
+      z-index: 1;
+    }
+
+    .clickrow {
+      cursor: pointer;
+    }
+
+    .clickrow:hover {
+      background: var(--row);
+    }
+
+    .selected {
+      outline: 2px solid rgba(159,208,255,.25);
+      background: var(--row);
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #06101a;
+      font-size: 13px;
+      color: var(--mut);
+    }
+
+    .console {
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 160px;
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    .actions-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    @media (min-width: 900px) {
+      .actions-grid {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+    }
+
+    .small {
+      font-size: 12px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <h1>WINDOWS LAB EXCHANGE DASHBOARD</h1>
+
+    <div class="card">
+      <div class="row">
+        <span class="pill">
+          <span id="backend-dot" class="status-dot dot-bad"></span>
+          Backend: <span id="backend-status" class="kv">offline</span>
+        </span>
+
+        <span class="pill">
+          Current path: <span id="current-path-badge" class="kv">—</span>
+        </span>
+
+        <span class="pill">
+          Selected: <span id="selected-count" class="kv">0</span>
+        </span>
+
+        <button id="btn-refresh-all" class="primary">Refresh</button>
+        <button id="btn-clear-console">Clear Console</button>
+      </div>
+
+      <div class="mut" style="margin-top:10px;">
+        Restricted navigation over allowed Ubuntu roots, controlled ZIP generation, upload, and transfer to Windows Lab over SFTP.
+      </div>
+    </div>
+
+    <div class="grid" style="margin-top:14px;">
+      <div>
+        <div class="card">
+          <h2>Directory Browser</h2>
+
+          <label>Allowed root</label>
+          <select id="root-selector">
+            {% for root in allowed_roots %}
+            <option value="{{ root }}">{{ root }}</option>
+            {% endfor %}
+          </select>
+
+          <label>Current path</label>
+          <div class="row">
+            <input id="current-path" value="{{ initial_path }}" />
+            <button id="btn-open-path" class="primary">Open</button>
+            <button id="btn-parent">Parent</button>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table" id="browser-table">
+              <thead>
+                <tr>
+                  <th style="width:60px;">Sel</th>
+                  <th>Name</th>
+                  <th style="width:110px;">Type</th>
+                  <th style="width:120px;">Size</th>
+                  <th style="width:200px;">Modified UTC</th>
+                  <th style="width:140px;">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="6" class="mut">Not loaded.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px;">
+          <h2>Workspace Actions</h2>
+
+          <div class="actions-grid">
+            <div>
+              <label>ZIP name</label>
+              <input id="zip-name" placeholder="case_bundle.zip" />
+              <button id="btn-create-zip" class="primary" style="margin-top:10px; width:100%;">Create ZIP from selected</button>
+            </div>
+
+            <div>
+              <label>Upload local file</label>
+              <input id="upload-file" type="file" />
+              <button id="btn-upload-file" class="primary" style="margin-top:10px; width:100%;">Upload to workspace</button>
+            </div>
+
+            <div>
+              <label>Send path to Windows Lab</label>
+              <input id="send-path" placeholder="/absolute/path/to/file" />
+              <button id="btn-send-file" class="primary" style="margin-top:10px; width:100%;">Send via SSH SFTP</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px;">
+          <h2>Console</h2>
+          <textarea id="console" class="console" readonly></textarea>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h2>Selected Artifact</h2>
+
+          <label>Name</label>
+          <div id="sel-name" class="kv">—</div>
+
+          <label>Path</label>
+          <div id="sel-path" class="kv">—</div>
+
+          <label>Type</label>
+          <div id="sel-type" class="kv">—</div>
+
+          <label>Size</label>
+          <div id="sel-size" class="kv">—</div>
+
+          <label>Modified UTC</label>
+          <div id="sel-modified" class="kv">—</div>
+
+          <div class="hr"></div>
+
+          <div class="row">
+            <button id="btn-use-selected-for-send">Use selected in send box</button>
+            <button id="btn-copy-selected-path">Copy selected path</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px;">
+          <h2>Last Result</h2>
+          <textarea id="result-box" readonly></textarea>
+        </div>
+
+        <div class="card" style="margin-top:14px;">
+          <h2>Notes</h2>
+          <div class="mut small">
+            Use this panel to collect suspect files, package them as ZIP, and transfer them to the isolated Windows analysis lab.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/windows_lab_exchange.js') }}"></script>
+</body>
+</html>

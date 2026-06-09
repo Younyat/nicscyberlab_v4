@@ -1,0 +1,79 @@
+{
+    "scenario_name": "file",
+    "nodes": [
+        {
+            "id": "node1",
+            "name": "monitor 11",
+            "type": "monitor",
+            "position": {
+                "x": 719,
+                "y": 124
+            },
+            "properties": {
+                "os": "ubuntu-22.04",
+                "ip": "192.168.1.101",
+                "network": "net_private_01",
+                "subnet": "subnet_net_private_01",
+                "flavor": "PLC_FLAVOR",
+                "image": "ubuntu-22.04",
+                "security_group": "sg_basic",
+                "keypair": "my_key"
+            }
+        },
+        {
+            "id": "node2",
+            "name": "attack 22",
+            "type": "attack",
+            "position": {
+                "x": 1025,
+                "y": 306
+            },
+            "properties": {
+                "os": "debian-12",
+                "ip": "192.168.1.102",
+                "network": "net_private_01",
+                "subnet": "subnet_net_private_01",
+                "flavor": "PLC_FLAVOR",
+                "image": "debian-12",
+                "security_group": "sg_basic",
+                "keypair": "my_key"
+            }
+        },
+        {
+            "id": "node3",
+            "name": "victim 33",
+            "type": "victim",
+            "position": {
+                "x": 960,
+                "y": 146
+            },
+            "properties": {
+                "os": "debian-12",
+                "ip": "192.168.1.103",
+                "network": "net_private_01",
+                "subnet": "subnet_net_private_01",
+                "flavor": "PLC_FLAVOR",
+                "image": "debian-12",
+                "security_group": "sg_basic",
+                "keypair": "my_key"
+            }
+        }
+    ],
+    "edges": [
+        {
+            "id": "edge_node1_node3",
+            "source": "node1",
+            "target": "node3"
+        },
+        {
+            "id": "edge_node3_node1",
+            "source": "node3",
+            "target": "node1"
+        },
+        {
+            "id": "edge_node2_node3",
+            "source": "node2",
+            "target": "node3"
+        }
+    ]
+}

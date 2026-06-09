@@ -1,0 +1,24 @@
+{
+  "vm_id": "16583180-627d-4c40-bd65-aa9db704d75c",
+  "run_id": "R1",
+  "port_id": "64df3304-c22a-4707-867c-c1deea960bca",
+  "vm_ips": [
+    "10.0.2.172",
+    "192.168.100.164"
+  ],
+  "iface": "tap64df3304-c2",
+  "bpf": "(host 10.0.2.172 or host 192.168.100.164) and (tcp port 502 or udp port 34964 or udp port 34962 or tcp or udp)",
+  "protos": [
+    "modbus",
+    "profinet",
+    "tcp",
+    "udp",
+    "icmp"
+  ],
+  "start_epoch": 1781010974.0803533,
+  "start_utc": "2026-06-09T13:16:23Z",
+  "pcap_file": "pcap_16583180-627d-4c40-bd65-aa9db704d75c_R1_20260609_131623Z.pcap",
+  "industrial_export_file": null,
+  "pcap_rel": null,
+  "meta_rel": null
+}

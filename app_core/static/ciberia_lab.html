@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CiberIA Lab</title>
+  <link rel="stylesheet" href="/api/ciberia/ui/static/css/ciberia_lab.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <aside class="sidebar">
+      <div class="brand-block">
+        <div class="brand-badge">AI</div>
+        <div>
+          <h1>CiberIA Lab</h1>
+          <p>Framework artifact reproduction and controlled inference</p>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h2>Profile selection</h2>
+        <label for="dataset-select" class="field-label">Framework profile</label>
+        <select id="dataset-select">
+          <option value="2017">CIC-IDS2017</option>
+          <option value="2018">CIC-IDS2018</option>
+          <option value="unsw">UNSW-NB15</option>
+        </select>
+
+        <div class="sidebar-actions">
+          <button id="btn-profiles">Load profiles</button>
+          <button id="btn-status" class="secondary">Load status</button>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h2>Custom datasets</h2>
+        <label for="custom-dataset-select" class="field-label">Imported custom dataset</label>
+        <select id="custom-dataset-select">
+          <option value="">No custom dataset selected</option>
+        </select>
+
+        <div class="sidebar-actions">
+          <button id="btn-load-custom-profiles">Load custom profiles</button>
+          <button id="btn-load-custom-status" class="secondary">Load custom status</button>
+        </div>
+
+        <div id="custom-dataset-info" class="profile-card" style="margin-top:12px;">
+          <div class="profile-empty">Load custom datasets to inspect imported dataset artifacts.</div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h2>Execution feedback</h2>
+        <div id="global-feedback" class="feedback idle">Ready.</div>
+      </div>
+
+      <div class="sidebar-section">
+        <h2>Selected dataset</h2>
+        <div id="profile-info" class="profile-card">
+          <div class="profile-empty">Load profiles or select a custom dataset to inspect the active dataset artifact.</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="hero-card">
+        <div>
+          <span class="eyebrow">FRAMEWORK-ORIENTED VALIDATION</span>
+          <h2>Operational validation of CiberIA framework artifacts</h2>
+          <p>
+            This module reproduces framework artifacts, retrains models on prepared splits,
+            runs controlled inference from compatible CSV files, and keeps PCAP conversion
+            as an alternative operational path.
+          </p>
+        </div>
+      </header>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <span class="panel-tag">STATUS</span>
+            <h3>Artifact and runtime status</h3>
+          </div>
+        </div>
+        <div class="panel-body">
+          <pre id="status-output" class="output-box"></pre>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <span class="panel-tag">CUSTOM DATASETS</span>
+            <h3>Import custom prepared dataset splits</h3>
+            <p class="subtext">
+              Import a prepared <span class="mono">data_split.pkl</span> file so the dataset can behave like the built-in profiles for evaluation, retraining, and sample export.
+            </p>
+          </div>
+        </div>
+
+        <div class="panel-body grid-2">
+          <div>
+            <label class="field-label">Dataset display name</label>
+            <input id="custom-dataset-name" type="text" placeholder="Example: CIC-DDoS2019 custom" />
+
+            <label class="field-label">Dataset internal id</label>
+            <input id="custom-dataset-id" type="text" placeholder="Example: cic_ddos2019_custom" />
+
+            <label class="field-label">Label column name</label>
+            <input id="custom-label-column" type="text" value="Attack Type" />
+
+            <label class="field-label">Prepared split file</label>
+            <input id="custom-split-file" type="file" accept=".pkl" />
+
+            <div class="upload-row" style="margin-top:12px;">
+              <button id="btn-import-custom-dataset">Import dataset</button>
+            </div>
+          </div>
+
+          <div>
+            <h4 class="subheading">Import result</h4>
+            <pre id="custom-dataset-output" class="output-box"></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <span class="panel-tag">PCAP DATASET GENERATION</span>
+            <h3>Generate custom dataset from uploaded PCAP</h3>
+            <p class="subtext">
+              Upload a PCAP file and convert it into a reusable custom dataset split stored inside the module.
+            </p>
+          </div>
+        </div>
+
+        <div class="panel-body grid-2">
+          <div>
+            <label class="field-label">Dataset display name</label>
+            <input id="pcap-dataset-name" type="text" placeholder="Example: CIC-DDoS2019 from PCAP" />
+
+            <label class="field-label">Dataset internal id</label>
+            <input id="pcap-dataset-id" type="text" placeholder="Example: cic_ddos2019_from_pcap" />
+
+            <label class="field-label">Fixed label</label>
+            <input id="pcap-dataset-label" type="text" placeholder="Example: DDoS" />
+
+            <label class="field-label">Auto-label</label>
+            <select id="pcap-auto-label">
+              <option value="0">Disabled</option>
+              <option value="1">Enabled</option>
+            </select>
+
+            <label class="field-label">Label column name</label>
+            <input id="pcap-label-column" type="text" value="Attack Type" />
+
+            <label class="field-label">Test size</label>
+            <input id="pcap-test-size" type="number" step="0.01" value="0.30" />
+
+            <label class="field-label">Flow timeout seconds</label>
+            <input id="pcap-flow-timeout" type="number" step="1" value="120" />
+
+            <label class="field-label">Activity timeout seconds</label>
+            <input id="pcap-activity-timeout" type="number" step="1" value="5" />
+
+            <label class="field-label">PCAP file</label>
+            <input id="pcap-dataset-file" type="file" accept=".pcap" />
+
+            <div class="upload-row" style="margin-top:12px;">
+              <button id="btn-import-pcap-dataset">Generate dataset from PCAP</button>
+            </div>
+          </div>
+
+          <div>
+            <h4 class="subheading">Generation result</h4>
+            <pre id="pcap-dataset-output" class="output-box"></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <span class="panel-tag">BASELINE AND RETRAINING</span>
+            <h3>Framework reproduction and retraining workflow</h3>
+          </div>
+          <div class="panel-actions">
+            <button id="btn-evaluate">Reproduce baseline results</button>
+            <button id="btn-train">Retrain framework model</button>
+            <button id="btn-export-sample" class="secondary">Export prepared framework CSV</button>
+          </div>
+        </div>
+        <div class="panel-body grid-2">
+          <div>
+            <h4 class="subheading">Structured interpretation</h4>
+            <div id="explanation-box"></div>
+          </div>
+          <div>
+            <h4 class="subheading">Raw execution payload</h4>
+            <pre id="train-output" class="output-box"></pre>
+          </div>
+        </div>
+        <div class="panel-body">
+          <h4 class="subheading">Per-class evaluation table</h4>
+          <div id="metrics-container"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <span class="panel-tag">PREPARED CSV INFERENCE</span>
+            <h3>Inference on framework-compatible feature tables</h3>
+            <p class="subtext">
+              Primary validation route. Use prepared CSV files derived from framework splits
+              or schema-compatible CSV files.
+            </p>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="upload-row">
+            <input type="file" id="csv-file" accept=".csv" />
+            <button id="btn-predict-csv">Run CSV inference</button>
+          </div>
+        </div>
+        <div class="panel-body grid-2">
+          <div>
+            <h4 class="subheading">Inference interpretation</h4>
+            <div id="csv-explanation"></div>
+            <div id="csv-summary"></div>
+          </div>
+          <div>
+            <h4 class="subheading">Raw execution payload</h4>
+            <pre id="csv-output" class="output-box"></pre>
+          </div>
+        </div>
+        <div class="panel-body">
+          <h4 class="subheading">Prediction rows</h4>
+          <div id="csv-results"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <span class="panel-tag">ALTERNATIVE PCAP CONVERSION</span>
+            <h3>PCAP to compatible CSV generation</h3>
+            <p class="subtext">
+              Secondary path when prepared CSV files are not available.
+            </p>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="upload-row">
+            <input type="file" id="pcap-file-extract" accept=".pcap" />
+            <button id="btn-extract-pcap">Convert PCAP to compatible CSV</button>
+          </div>
+        </div>
+        <div class="panel-body grid-2">
+          <div>
+            <h4 class="subheading">Execution payload</h4>
+            <pre id="pcap-extract-output" class="output-box"></pre>
+          </div>
+          <div>
+            <h4 class="subheading">Conversion summary</h4>
+            <div id="pcap-preview"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <span class="panel-tag">ALTERNATIVE PCAP INFERENCE</span>
+            <h3>Inference from generated traffic features</h3>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="upload-row">
+            <input type="file" id="pcap-file-predict" accept=".pcap" />
+            <button id="btn-predict-pcap">Run alternative PCAP inference</button>
+          </div>
+        </div>
+        <div class="panel-body grid-2">
+          <div>
+            <h4 class="subheading">Inference interpretation</h4>
+            <div id="pcap-explanation"></div>
+            <div id="pcap-summary"></div>
+          </div>
+          <div>
+            <h4 class="subheading">Raw execution payload</h4>
+            <pre id="pcap-predict-output" class="output-box"></pre>
+          </div>
+        </div>
+        <div class="panel-body">
+          <h4 class="subheading">Prediction rows</h4>
+          <div id="pcap-results"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/api/ciberia/ui/static/js/ciberia_lab.js"></script>
+</body>
+</html>

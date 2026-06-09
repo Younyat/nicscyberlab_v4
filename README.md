@@ -1,3 +1,14 @@
+![Fondos_INCIBE](Images_readme/logo_fondos_incibe.png)
+
+This repository is part of 
+- The project "CiberIA: Investigación e Innovación para la Integración de Ciberseguridad e Inteligencia Artificial" (Proyecto C079/23), financed by "European Union NextGeneration-EU, the Recovery Plan, Transformation and Resilience", through INCIBE.
+- The Programa Global de Innovación en Seguridad for the promotion of Cátedras de Ciberseguridad en España, funded by the European Union NextGeneration-EU Funds, through the Instituto Nacional de Ciberseguridad (INCIBE).
+
+
+
+
+---
+
 # NICS CyberLab
 
 NICS CyberLab is a reproducible cybersecurity experimentation and training platform for **IT and hybrid IT/OT environments**. It combines automated infrastructure deployment, visual scenario construction, node-level tool installation, role-oriented operational access, attack-and-detection exercises, and forensic acquisition, preservation, analysis, and reporting inside a single workflow.
@@ -240,12 +251,171 @@ The user can:
 
 Typical offensive actions include:
 
-- tactical ping
-- multi-attack execution
-- unauthorized SSH
-- port scan reconnaissance
-- data exfiltration
-- Modbus manipulation
+- categorized scientific attack profiles
+- target-oriented operational launch
+- dual visibility of victim-side and monitoring-side telemetry
+- alignment between attack execution and alert generation
+
+### Scientific attack taxonomy
+
+The dashboard no longer treats offensive actions as a flat list of buttons only. Instead, it organizes the operational attack surface into scientific categories that better support experimentation, evaluation, and reporting.
+
+The current taxonomy is:
+
+- **Reconnaissance**
+  - ICMP Reconnaissance
+  - Port Scan Reconnaissance
+- **Unauthorized Access**
+  - Unauthorized SSH Attempt
+- **Integrity / FIM**
+  - Controlled File Tamper
+- **Exfiltration**
+  - Data Exfiltration over SCP
+- **ICS / OT**
+  - Modbus Register Manipulation
+- **Multi-Vector Exercise**
+  - Multi-Vector Detection Validation
+
+This taxonomy is implemented through a backend attack catalog that decouples:
+
+- the **scientific attack identity**
+- the **frontend presentation**
+- the **backend execution script**
+
+The taxonomy is also reflected in the tactical interface itself. Offensive actions are grouped by scientific category rather than exposed as a flat undifferentiated arsenal. This improves:
+
+- experimental clarity
+- operator situational awareness
+- reproducibility of attack selection
+- consistency between the interface and the analytical model described in a paper
+
+The catalog is currently defined in:
+
+```bash
+app_core/infrastructure/attack/catalog.py
+```
+
+Each attack profile is represented through an `attack_id` and associated metadata such as:
+
+- display name
+- scientific category
+- attack stage
+- ATT&CK or ATT&CK for ICS references
+- backend script mapping
+- expected alert families
+- expected evidence artifacts
+- realism vs. validation-simulation semantics
+
+This allows the platform to distinguish between:
+
+- **realistic controlled attack actions**
+- **detection-validation exercises**
+- **forensic expectations associated with each technique**
+
+### OT-aware category visibility
+
+The tactical dashboard now applies category visibility rules based on the selected target role.
+
+In particular:
+
+- **ICS / OT** attack actions are only exposed when the selected target is an OT asset
+- OT assets are currently modeled as:
+  - **PLC**
+  - **SCADA**
+
+This means that techniques such as **Modbus Register Manipulation** are not presented for purely IT nodes such as attacker, victim, or monitor systems.
+
+This design strengthens the scientific coherence of the interface because:
+
+- techniques are presented only when they are operationally meaningful
+- IT and OT attack surfaces are not mixed without context
+- the visual layer better matches the experimental assumptions of hybrid IT/OT studies
+
+### Attack execution model
+
+Attack execution is now conceptually organized as:
+
+1. **Frontend attack profile**
+2. **Scientific `attack_id`**
+3. **Backend catalog resolution**
+4. **Concrete script execution**
+
+The launcher preserves backward compatibility with the previous script-based model while supporting the new scientific abstraction. This means the platform can still execute legacy script calls, but the preferred experimental model is now:
+
+```text
+attack_id -> catalog metadata -> script_name -> execution
+```
+
+This improves reproducibility, interpretability, and experimental consistency when the platform is used in a scientific or technical evaluation setting.
+
+### Pre-attack node intelligence
+
+The tactical dashboard has also been extended with a richer **pre-attack node intelligence** panel. Before launching an attack, the operator can inspect a structured node profile containing the most relevant operational and experimental context.
+
+The panel now includes:
+
+- status
+- primary IP
+- private IP
+- floating IP
+- operating system
+- installed tools count
+- image reference
+- flavor reference
+- instance UUID
+- creation timestamp
+- update timestamp
+- network topology metadata
+- security groups
+- firewall and exposure surface
+- attached volumes
+- forensic acquisition readiness flags
+
+This information is intended to support a stronger decision process before action execution. Instead of launching attacks only from topology intuition, the operator can validate whether the target is:
+
+- reachable
+- externally exposed
+- instrumented with security tooling
+- appropriate for IT or OT actions
+- suitable for later forensic acquisition
+
+### Real data source strategy
+
+The tactical dashboard now uses a hybrid data strategy in order to preserve both graph semantics and operational accuracy.
+
+It combines:
+
+- **`/api/hud/instances`**
+  - graph-oriented structure
+  - node roles
+  - attack/defense/prevention mappings
+  - logical topology edges
+- **`/api/openstack/instances/full`**
+  - real OpenStack inventory state
+  - private and floating IPs
+  - flavor metadata
+  - network metadata
+  - security groups
+  - attached volumes
+  - forensic readiness indicators
+
+This prevents the tactical dashboard from relying only on reduced HUD metadata when presenting node state.
+
+### Tool registry consistency with Instance Tools Manager
+
+To avoid discrepancies in the displayed tool inventory, the tactical dashboard now aligns its tool registry with the same backend source used by the **Instance Tools Manager** (`index-tools.html`).
+
+The tool count and tool registry shown in the tactical node profile are synchronized through:
+
+```bash
+/api/get_tools_for_instance?instance=<instance_name>
+```
+
+This choice is important scientifically and operationally because it ensures that:
+
+- the tactical dashboard and the tools management dashboard report the same installed-tool view
+- the operator does not make decisions on conflicting tooling metadata
+- pre-attack node readiness is evaluated against the same source of truth used for tool orchestration
 
 ![Tactical Cyber Operations Dashboard](Images_readme/tactical_cyber_operations_dashboard.png)
 ![Tactical Cyber Operations Dashboard](Images_readme/tactical_cyber_operations_dashboard_2.png)
@@ -255,6 +425,7 @@ Typical offensive actions include:
 This service makes the relationship between attack generation and detection explicit. After attacks are executed, the resulting events and alerts are registered and can be reviewed through the operational monitoring dashboard, which shows the active IT and OT components together with the generated indicators. This is especially useful for training, demonstrations, and controlled exercises in which the user must understand both sides of the event.
 
 ![Operational Monitoring Dashboard](Images_readme/it_ot_environment_dashboard.png)
+
 ---
 
 ## Forensic Acquisition and Analysis Dashboard
@@ -285,17 +456,27 @@ The manual dashboard reflects that same logic in an inspectable form and also gi
 ![Forensic Acquisition and Analysis Dashboard](Images_readme/forensic_acquisition_dashboard.png)
 ![Forensic Acquisition and Analysis Dashboard](Images_readme/forensic_acquisition_dashboard_2.png)
 
-### Live traffic preservation inside the case
+### Traffic capture
 
-The dashboard also supports **manual live traffic capture** for a selected instance. When the operator launches traffic capture manually, the captured traffic is shown in the live analyzer window and is also **preserved automatically inside the active forensic case**.
+NICS CyberLab supports complementary traffic capture mechanisms at scenario level.
 
-This means the resulting network evidence becomes part of the same structured case context as disk and memory artifacts.
+The platform performs periodic rolling traffic capture automatically. Traffic is collected every 120 seconds from the relevant host-side interfaces and stored as time-bounded PCAP segments. This allows continuous observation of network activity across the scenario even when no incident has been detected. In future versions, the capture frequency may be adjusted dynamically according to the operational state of the scenario and the level of risk measured within it.
+
+The platform also provides user-triggered traffic capture from the interface. In this mode, the user selects the instance of interest and can observe and capture its traffic on demand for as long as needed.
+
+Together, these mechanisms support both continuous background traffic collection and flexible operator-driven inspection.
+
+### Traffic preservation inside the forensic case
+
+When an incident requires forensic analysis, network traffic can be preserved as part of the active case. This preservation is not limited to the traffic captured at the time of detection. It may also include traffic collected periodically before and after the incident, so the case retains a broader network context.
+
+This makes it possible to reconstruct network activity before, during, and after the incident. As a result, network evidence becomes part of the same structured case context as disk and memory artifacts, improving traceability, contextual reconstruction, and forensic analysis.
 
 ![Live Traffic Analyzer](Images_readme/forensic_live_traffic_analyzer.png)
 
 ### Why it matters
 
-This service connects alerting with evidence preservation and analysis. It provides a structured environment for handling traffic, disk, and memory artifacts while maintaining case context, integrity visibility, and operational traceability.
+This design separates operational traffic acquisition from forensic preservation while allowing both to work together. It supports continuous observability, user-driven inspection, and stronger case reconstruction through the integration of traffic, disk, and memory artifacts within a unified investigative context.
 
 ---
 
@@ -337,13 +518,43 @@ It also reflects the preserved evidence directories, including case content such
 
 ![Digital Forensics Report and Analysis Dashboard](Images_readme/forensic_report.png)
 ![Digital Forensics Report and Analysis Dashboard](Images_readme/forensic_report_2.png)
+
 ### Why it matters
 
 This service turns the forensic case into an inspectable analytical object. It helps the user move from raw evidence preservation to structured forensic interpretation by exposing artifact inventory, provenance, integrity context, and operational chronology in a single view.
 
 ---
 
-## 4. End-to-end usage sequence
+
+## 4. Remote Lab Exchange
+
+**Remote Lab Exchange** is a platform capability that allows NICS CyberLab to exchange data with external machines or remote laboratory environments for later processing and structured feedback recovery.
+
+This capability is designed to support workflows in which selected artifacts must be transferred outside the local scenario for specialized analysis and then returned to the platform in the form of reports, extracted results, or other derived outputs. The exchanged data may include network traffic captures, suspicious files, malware samples, structured datasets, logs, or other artifacts generated during experimentation.
+
+Instead of treating this exchange as an isolated external workflow, NICS CyberLab incorporates it as an operational bridge between the local platform and remote processing environments. In this way, artifacts produced inside the platform can be exported to other analysis machines or partner labs, processed remotely, and then reintroduced into NICS CyberLab together with the corresponding feedback.
+
+Typical actions supported through this capability include:
+
+- selecting and preparing artifacts for exchange
+- packaging files when needed
+- transferring artifacts to remote machines or labs
+- launching remote processing tasks
+- verifying remote execution status
+- receiving processed outputs or analysis reports
+- visualizing returned feedback inside the platform
+
+This makes it possible to use NICS CyberLab not only as a local experimentation environment, but also as a coordination point for distributed analysis workflows involving external machines or remote labs.
+
+![Remote Lab Exchange](Images_readme/LAB_EXCHANGE_DASHBOARD.png)
+
+### Why it matters
+
+This capability extends NICS CyberLab beyond local execution boundaries. It allows the platform to send traffic captures, suspicious files, malware-related artifacts, logs, datasets, or other experiment outputs to external systems for remote processing, and then recover the resulting feedback in an inspectable way. As a result, NICS CyberLab can participate in distributed experimentation and analysis workflows without breaking the continuity of the platform experience.
+
+---
+
+## 5. End-to-end usage sequence
 
 A typical end-to-end workflow is:
 
@@ -393,7 +604,7 @@ Review the preserved case, artifact inventory, manifest, chain of custody, and p
 
 ---
 
-## 5. Key platform strengths
+## 6. Key platform strengths
 
 NICS CyberLab brings together capabilities that are often separated across multiple environments:
 
@@ -419,7 +630,7 @@ This combination makes the platform suitable for:
 
 ---
 
-## 6. Important paths
+## 7. Important paths
 
 ### Infrastructure deployment
 
@@ -458,5 +669,7 @@ industrial-scenario/PLC/plc_programs/TankControl.st
 ```
 
 ---
- 
-                                 NICS LAB — NICS | CyberLab
+
+## 📝 Acknowledgments
+
+This repository has been partially supported by the project "CiberIA: Investigación e Innovación para la Integración de Ciberseguridad e Inteligencia Artificial" (Proyecto C079/23), financed by "European Union NextGeneration-EU, the Recovery Plan, Transformation and Resilience", through INCIBE. It has also been partially supported by the project SecAI (PID2022-139268OB-I00) funded by the Spanish Ministerio de Ciencia e Innovacion, and Agencia Estatal de Investigacion.

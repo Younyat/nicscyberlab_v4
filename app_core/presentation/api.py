@@ -2236,6 +2236,51 @@ api_bp.register_blueprint(forensics_report_bp)
         
 
 
+#-------------------------------------------honeyv windows_lab_exchange_bp----------------------------------------------------
+
+
+
+from honeyv_app_core.presentation.api.routes.windows_lab_exchange_routes import windows_lab_exchange_bp
+
+
+api_bp.register_blueprint(windows_lab_exchange_bp)
+
+#------------------------------------------- honeyv windows_lab_exchange_bp end----------------------------------------------------
+
+
+
+#-------------------------------------------packet-level-etc---------------------------------------------------
+
+
+
+from etc_lab.routes.etc_lab_routes import etc_lab_bp
+
+api_bp.register_blueprint(etc_lab_bp, url_prefix="/api")
+
+#------------------------------------------- packet-level-etc end----------------------------------------------------
+
+
+
+#------------------------------------------- ciberia_bp
+
+
+
+from ciberia_lab.routes import bp as ciberia_bp
+
+api_bp.register_blueprint(ciberia_bp)
+
+#------------------------------------------- ciberia_bp end----------------------------------------------------
+
+#------------------------------------------- adv_detection
+
+from adv_detection.routes import adv_detection_bp
+
+api_bp.register_blueprint(adv_detection_bp)
+#------------------------------------------- adv_detection end----------------------------------------------------
+
+
+
+
 @api_bp.route("/")
 def index():
     return send_from_directory(os.path.join(REPO_ROOT, "app_core", "static"), "index.html")

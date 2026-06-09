@@ -117,7 +117,7 @@ export OS_PASSWORD=$PASSWORD
 export OS_INTERFACE=$INTERFACE
 export OS_IDENTITY_API_VERSION=3
 export OS_REGION_NAME=${REGION_NAME:-RegionOne}
-export HF_TOKEN="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"
+export HF_TOKEN="hf_Put_your_token_here"
 echo "[✔] Credenciales OpenStack cargadas para \$OS_PROJECT_NAME (\$OS_USERNAME)"
 EOF
 

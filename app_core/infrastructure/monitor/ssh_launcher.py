@@ -403,3 +403,61 @@ def stop_monitor_listener():
         )
 
 
+
+
+
+#---------------------------------------------------------- open_nmap_terminal
+
+
+
+@monitor_infra_bp.route('/tools/open_nmap_terminal', methods=['POST'])
+def open_nmap_terminal():
+    try:
+        env = os.environ.copy()
+        data = request.get_json(silent=True) or {}
+
+        target_ip = (data.get("ip") or "").strip()
+        target_os = (data.get("os") or "").strip().lower()
+
+        ssh_user = None
+
+        if "ubuntu" in target_os:
+            ssh_user = "ubuntu"
+        elif "kali" in target_os:
+            ssh_user = "kali"
+        elif "debian" in target_os:
+            ssh_user = "debian"
+
+        if target_ip and ssh_user:
+            command = (
+                f"echo 'Opening SSH session to {ssh_user}@{target_ip}'; "
+                f"ssh -o StrictHostKeyChecking=no {ssh_user}@{target_ip}; "
+                f"exec bash"
+            )
+
+            subprocess.Popen([
+                "gnome-terminal",
+                "--",
+                "bash",
+                "-c",
+                command
+            ], env=env)
+
+            return jsonify({
+                "message": f"SSH terminal launched for {ssh_user}@{target_ip}"
+            }), 200
+
+        subprocess.Popen([
+            "gnome-terminal",
+            "--",
+            "bash",
+            "-c",
+            "if command -v nmap >/dev/null 2>&1; then nmap --version; else echo 'nmap is not installed'; fi; exec bash"
+        ], env=env)
+
+        return jsonify({
+            "message": "Local Nmap terminal launched"
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

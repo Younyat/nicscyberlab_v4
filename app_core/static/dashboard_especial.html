@@ -250,6 +250,141 @@ aside {
     padding-top: 1rem;
 }
 
+.attack-category-block {
+    border: 1px solid rgba(255, 51, 102, 0.20);
+    background: rgba(255, 51, 102, 0.05);
+    border-radius: 14px;
+    padding: 12px;
+}
+
+.attack-category-title {
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #ffffff;
+}
+
+.attack-category-meta {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 51, 102, 0.65);
+    margin-top: 4px;
+    margin-bottom: 10px;
+}
+
+.attack-category-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.attack-context-group {
+    border: 1px solid rgba(255, 51, 102, 0.18);
+    background: rgba(255, 51, 102, 0.04);
+    border-radius: 12px;
+    padding: 10px;
+}
+
+.attack-context-group-title {
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #ff9db4;
+    margin-bottom: 8px;
+}
+
+.attack-category-hidden {
+    display: none !important;
+}
+
+.target-intel-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.target-intel-card {
+    border: 1px solid rgba(0, 255, 136, 0.16);
+    background: rgba(0, 255, 136, 0.04);
+    border-radius: 12px;
+    padding: 10px;
+    min-height: 76px;
+}
+
+.target-intel-label {
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(0, 255, 136, 0.58);
+    margin-bottom: 6px;
+}
+
+.target-intel-value {
+    font-size: 12px;
+    font-weight: 800;
+    color: #ffffff;
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+.target-section {
+    border-top: 1px solid rgba(0, 255, 136, 0.16);
+    padding-top: 12px;
+    margin-bottom: 16px;
+}
+
+.target-section-title {
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #00ff88;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.target-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(0, 255, 136, 0.22);
+    background: rgba(0, 255, 136, 0.06);
+    font-size: 10px;
+    font-weight: 800;
+    color: #d8ffe8;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.target-tool-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(0, 255, 136, 0.14);
+    background: rgba(0, 255, 136, 0.04);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+}
+
+.target-tool-name {
+    color: #ffffff;
+    font-weight: 800;
+}
+
+.target-tool-meta {
+    color: rgba(0, 255, 136, 0.62);
+    text-align: right;
+}
+
 
 
     </style>
@@ -294,50 +429,95 @@ aside {
                 <i class="fas fa-skull-crossbones"></i>
             </div>
             <div class="flex-1">
-                <h3 class="text-lg font-black text-white truncate">ATTACK STACK</h3>
-                <p class="text-[10px] font-bold text-[#ff3366]/70 uppercase tracking-widest">OFFENSIVE ARSENAL</p>
+                <h3 class="text-lg font-black text-white truncate">SCIENTIFIC ATTACK TAXONOMY</h3>
+                <p class="text-[10px] font-bold text-[#ff3366]/70 uppercase tracking-widest">CATEGORIZED OPERATIONAL PROFILES</p>
             </div>
         </div>
 
         <div class="mb-6 space-y-3">
-        <button onclick="launchFromSidebar()"
-                class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
-            <i class="fas fa-satellite-dish animate-pulse"></i>
-            LAUNCH TACTICAL PING
-            <i class="fas fa-chevron-right opacity-0 group-hover:opacity-100 transition-all"></i>
-        </button>
+            <div class="attack-category-block" data-attack-category="reconnaissance">
+                <div class="attack-category-title">Reconnaissance</div>
+                <div class="attack-category-meta">Discovery and target profiling</div>
+                <div class="attack-category-actions">
+                    <button onclick="launchFromSidebar()"
+                            class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
+                        <i class="fas fa-satellite-dish animate-pulse"></i>
+                        ICMP RECONNAISSANCE
+                        <i class="fas fa-chevron-right opacity-0 group-hover:opacity-100 transition-all"></i>
+                    </button>
+                    <button onclick="launchPortScanFromSidebar()"
+                            class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
+                        <i class="fas fa-network-wired"></i>
+                        PORT SCAN RECONNAISSANCE
+                    </button>
+                </div>
+            </div>
 
-        <button onclick="launchFileTamperFromSidebar()"
-                class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
-            <i class="fas fa-file-signature"></i>
-            LAUNCH MULTI ATTACK
-            <i class="fas fa-chevron-right opacity-0 group-hover:opacity-100 transition-all"></i>
-        </button>
+            <div class="attack-category-block" data-attack-category="unauthorized-access">
+                <div class="attack-category-title">Unauthorized Access</div>
+                <div class="attack-category-meta">Credential abuse and failed access attempts</div>
+                <div class="attack-category-actions">
+                    <button onclick="launchUnauthorizedSSH(currentLockedTarget.ip, currentLockedTarget.os)"
+                            class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
+                        <i class="fas fa-user-secret"></i>
+                        UNAUTHORIZED SSH ATTEMPT
+                    </button>
+                </div>
+            </div>
+
+            <div class="attack-category-block" data-attack-category="integrity-fim">
+                <div class="attack-category-title">Integrity / FIM</div>
+                <div class="attack-category-meta">Controlled file manipulation and integrity monitoring</div>
+                <div class="attack-category-actions">
+                    <button onclick="launchFileTamperFromSidebar()"
+                            class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
+                        <i class="fas fa-file-signature"></i>
+                        CONTROLLED FILE TAMPER
+                        <i class="fas fa-chevron-right opacity-0 group-hover:opacity-100 transition-all"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="attack-category-block" data-attack-category="exfiltration">
+                <div class="attack-category-title">Exfiltration</div>
+                <div class="attack-category-meta">Collection and outbound data movement</div>
+                <div class="attack-category-actions">
+                    <button onclick="launchDataExfilFromSidebar()"
+                            class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
+                        <i class="fas fa-download"></i>
+                        DATA EXFILTRATION
+                    </button>
+                </div>
+            </div>
+
+            <div class="attack-category-block" data-attack-category="ics-ot">
+                <div class="attack-category-title">ICS / OT</div>
+                <div class="attack-category-meta">Industrial protocol manipulation and process impact</div>
+                <div class="attack-category-actions">
+                    <button onclick="launchModbusAttackFromSidebar()"
+                            class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
+                        <i class="fas fa-microchip"></i>
+                        MODBUS REGISTER MANIPULATION
+                    </button>
+                </div>
+            </div>
+
+            <div class="attack-category-block" data-attack-category="multi-vector">
+                <div class="attack-category-title">Multi-Vector Exercise</div>
+                <div class="attack-category-meta">Detection validation across multiple alert families</div>
+                <div class="attack-category-actions">
+                    <button onclick="launchMultiVectorFromSidebar()"
+                            class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
+                        <i class="fas fa-layer-group"></i>
+                        MULTI-VECTOR VALIDATION
+                        <i class="fas fa-chevron-right opacity-0 group-hover:opacity-100 transition-all"></i>
+                    </button>
+                </div>
+            </div>
         </div>
-        <button onclick="launchUnauthorizedSSH(currentLockedTarget.ip, currentLockedTarget.os)"
-                class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
-            <i class="fas fa-user-secret"></i>
-            UNAUTHORIZED SSH
-        </button>
-
-        <button onclick="launchPortScanFromSidebar()"
-        class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
-        <i class="fas fa-network-wired"></i>
-        PORT SCAN RECON
-        </button>
-        <button onclick="launchDataExfilFromSidebar()"
-        class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
-        <i class="fas fa-download"></i>
-        DATA EXFILTRATION
-        </button>
-        <button onclick="launchModbusAttackFromSidebar()"
-        class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
-        <i class="fas fa-microchip"></i>
-        MODBUS MANIPULATION
-        </button>
         <div id="attack-stack" class="flex-1 overflow-y-auto space-y-3 font-mono text-[11px]">
             <div class="opacity-40 text-center text-[10px] uppercase tracking-widest">
-                Select a node to see available exploits
+                Select a node to inspect categorized offensive mappings
             </div>
         </div>
     </div>
@@ -404,6 +584,8 @@ aside {
             <i class="fas fa-network-wired"></i>
             <span>NMAP</span>
         </button>
+
+
 
     </div>
 </div>
@@ -540,6 +722,78 @@ aside {
         let selectedNodes = [];
 
         const API_BASE = "http://127.0.0.1:5001/api";
+        const ATTACK_CATALOG = {
+            recon_icmp: {
+                id: "recon_icmp",
+                displayName: "ICMP Reconnaissance",
+                label: "TACTICAL PING",
+                category: "Reconnaissance",
+                stage: "Discovery",
+                mitre: "T1046",
+                scriptName: "ping_target.sh",
+                scriptMode: "legacy"
+            },
+            recon_portscan: {
+                id: "recon_portscan",
+                displayName: "Port Scan Reconnaissance",
+                label: "PORT SCAN RECON",
+                category: "Reconnaissance",
+                stage: "Discovery",
+                mitre: "T1046",
+                scriptName: "port_scan_recon.sh",
+                scriptMode: "legacy"
+            },
+            credential_unauthorized_ssh: {
+                id: "credential_unauthorized_ssh",
+                displayName: "Unauthorized SSH Attempt",
+                label: "UNAUTHORIZED SSH",
+                category: "Credential Access",
+                stage: "Initial Access",
+                mitre: "T1110/T1078",
+                scriptName: "unauthorized_ssh_attempt.sh",
+                scriptMode: "legacy"
+            },
+            collection_data_exfiltration: {
+                id: "collection_data_exfiltration",
+                displayName: "Data Exfiltration over SCP",
+                label: "DATA EXFILTRATION",
+                category: "Collection/Exfiltration",
+                stage: "Actions on Objectives",
+                mitre: "T1005/T1048",
+                scriptName: "data_exfiltration.sh",
+                scriptMode: "legacy"
+            },
+            impact_file_tamper: {
+                id: "impact_file_tamper",
+                displayName: "Controlled File Tamper",
+                label: "FILE TAMPER (FIM)",
+                category: "Impact",
+                stage: "Impact",
+                mitre: "T1565.001",
+                scriptName: "file_tamper_sim.sh",
+                scriptMode: "legacy"
+            },
+            ics_modbus_register_write: {
+                id: "ics_modbus_register_write",
+                displayName: "Modbus Register Manipulation",
+                label: "MODBUS MANIPULATION",
+                category: "ICS Manipulation",
+                stage: "Impact",
+                mitre: "ATT&CK ICS T0831",
+                scriptName: "modbus_register_attack.sh",
+                scriptMode: "legacy"
+            },
+            validation_multi_vector: {
+                id: "validation_multi_vector",
+                displayName: "Multi-Vector Detection Validation",
+                label: "MULTI-VECTOR VALIDATION",
+                category: "Detection Validation",
+                stage: "Exercise",
+                mitre: "T1110/T1565.001/T1046",
+                scriptName: "multi_Attack_sim.sh",
+                scriptMode: "legacy"
+            }
+        };
 
         const ROLE_CONFIG = {
             plc:       { icon: "fa-microchip", color: "#00aaff", label: "PLC CONTROLLER" },
@@ -550,6 +804,80 @@ aside {
             unknown:   { icon: "fa-question-circle", color: "#888888", label: "UNKNOWN" }
         };
 let monitorStream = null;
+const OT_ROLES = new Set(["plc", "scada"]);
+
+function isOtRole(role) {
+    return OT_ROLES.has(String(role || "").toLowerCase());
+}
+
+async function fetchJSON(url, label) {
+    const res = await fetch(url);
+    const contentType = res.headers.get("content-type") || "";
+    if (!res.ok) {
+        throw new Error(`${label}: HTTP ${res.status}`);
+    }
+    if (!contentType.includes("application/json")) {
+        throw new Error(`${label}: non-JSON response`);
+    }
+    return await res.json();
+}
+
+function normalizeName(name) {
+    return String(name || "").trim().toLowerCase();
+}
+
+function buildInstanceIndex(instances) {
+    const byName = new Map();
+    (instances || []).forEach(vm => {
+        byName.set(normalizeName(vm.name), vm);
+    });
+    return byName;
+}
+
+function mergeHudNodeWithInventory(inst, inventoryVm) {
+    if (!inventoryVm) return inst;
+    return {
+        ...inst,
+        instance_id: inventoryVm.id || inst.instance_id || null,
+        ip: inventoryVm.ip_floating || inventoryVm.ip_private || inst.ip || "N/A",
+        ip_private: inventoryVm.ip_private || inst.ip_private || null,
+        ip_floating: inventoryVm.ip_floating || inst.ip_floating || null,
+        image: inventoryVm.image || inst.image || null,
+        flavor: inventoryVm.flavor || inst.flavor || null,
+        networks: inventoryVm.networks || inst.networks || [],
+        security_groups: inventoryVm.security_groups || inst.security_groups || [],
+        volumes: inventoryVm.volumes || inst.volumes || [],
+        tools: inventoryVm.tools || inst.tools || {},
+        created_at: inventoryVm.created_at || inst.created_at || null,
+        updated_at: inventoryVm.updated_at || inst.updated_at || null,
+        evidence: inventoryVm.evidence || inst.evidence || null,
+    };
+}
+
+async function fetchToolsFromIndexTools(instanceName) {
+    if (!instanceName) return {};
+    try {
+        const data = await fetchJSON(
+            `/api/get_tools_for_instance?instance=${encodeURIComponent(instanceName)}`,
+            "Index-tools instance tools"
+        );
+        return data?.tools && typeof data.tools === "object" ? data.tools : {};
+    } catch (e) {
+        console.warn("Tool sync failed for dashboard_especial:", e);
+        return {};
+    }
+}
+
+function updateAttackCategoryVisibility(targetData = null) {
+    const currentRole = String(targetData?.role || "").toLowerCase();
+    const showOt = isOtRole(currentRole);
+
+    document.querySelectorAll("[data-attack-category]").forEach(section => {
+        const category = section.getAttribute("data-attack-category");
+        const shouldShow = category !== "ics-ot" || showOt;
+        section.classList.toggle("attack-category-hidden", !shouldShow);
+    });
+}
 
 function startLiveMonitoring(ip) {
     // Evitar duplicados
@@ -590,6 +918,7 @@ function startLiveMonitoring(ip) {
 
 
         document.addEventListener("DOMContentLoaded", () => {
+            updateAttackCategoryVisibility(null);
             cy = cytoscape({
                 container: document.getElementById("cy"),
                 style: [
@@ -640,6 +969,8 @@ cy.on("tap", "node", e => {
     // 2. UI UPDATE: Actualizamos los paneles de la derecha
     renderTargetDetails(e.target);
     renderAttackStack(e.target);
+    updateAttackCategoryVisibility(data);
+    syncTargetToolsFromIndexTools(e.target);
     
     // 3. LOG DE SISTEMA: Registro de actividad en la terminal de monitoreo
     logCombat("INTERACT", `Nodo fijado: ${data.name} [${data.ip}]`);
@@ -709,14 +1040,17 @@ cy.on("tap", "node", e => {
     logCombat("SCAN", "Escaneo táctico iniciado");
 
     try {
-        const res = await fetch(`${API_BASE}/hud/instances`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const data = await res.json();
+        const [hudData, inventoryData] = await Promise.all([
+            fetchJSON(`${API_BASE}/hud/instances`, "HUD instances"),
+            fetchJSON(`/api/openstack/instances/full`, "Inventory instances/full")
+        ]);
         cy.elements().remove();
 
-        const instances = data.instances || [];
-        const edges = data.edges || [];
+        const inventoryIndex = buildInstanceIndex(inventoryData.instances || []);
+        const instances = (hudData.instances || []).map(inst =>
+            mergeHudNodeWithInventory(inst, inventoryIndex.get(normalizeName(inst.name)))
+        );
+        const edges = hudData.edges || [];
 
         // =========================
         // NODOS
@@ -734,9 +1068,21 @@ cy.on("tap", "node", e => {
                     name: inst.name,
                     role: inst.role,
                     status: inst.status,
+                    instance_id: inst.instance_id,
                     ip: inst.ip,
+                    ip_private: inst.ip_private,
+                    ip_floating: inst.ip_floating,
                     os: inst.os,
+                    image: inst.image,
+                    flavor: inst.flavor,
+                    networks: inst.networks,
+                    security_groups: inst.security_groups,
+                    volumes: inst.volumes,
                     allowed_ports: inst.allowed_ports,
+                    tools: inst.tools || {},
+                    created_at: inst.created_at,
+                    updated_at: inst.updated_at,
+                    evidence: inst.evidence,
                     strategies: inst.strategies
                 },
                 position: pos
@@ -868,13 +1214,46 @@ function toggleConnectionMode() {
 
 
 
-async function runAttack(attackerIp, targetIp, targetOs, scriptName) {
+function getAttackDescriptor(attackRef) {
+    if (typeof attackRef === "string") {
+        return ATTACK_CATALOG[attackRef] || {
+            id: "",
+            label: attackRef,
+            displayName: attackRef,
+            category: "Unclassified",
+            stage: "Operational",
+            mitre: "N/A",
+            scriptName: attackRef,
+            scriptMode: "legacy"
+        };
+    }
+    return attackRef || null;
+}
+
+async function runAttack(attackerIp, targetIp, targetOs, attackRef) {
+    const attack = getAttackDescriptor(attackRef);
+    if (!attack) {
+        terminalWrite("!! ATTACK PROFILE NOT FOUND", 'text-red-500 font-black');
+        return;
+    }
+
     terminalWrite(`ESTABLISHING SECURE SSH TUNNEL...`, 'text-sky-300 animate-pulse');
 
     try {
-        const response = await fetch(
-            `${API_BASE}/hud/attack/launch?target=${encodeURIComponent(targetIp)}&os=${encodeURIComponent(targetOs || '')}&script=${encodeURIComponent(scriptName)}`
-        );
+        const params = new URLSearchParams({
+            target: targetIp,
+            os: targetOs || ""
+        });
+
+        if (attack.id) {
+            params.set("attack_id", attack.id);
+        }
+
+        if (attack.scriptMode === "legacy" && attack.scriptName) {
+            params.set("script", attack.scriptName);
+        }
+
+        const response = await fetch(`${API_BASE}/hud/attack/launch?${params.toString()}`);
 
         if (!response.ok) {
             throw new Error(`ENLACE FALLIDO: Status ${response.status}`);
@@ -947,8 +1326,8 @@ function initiateTacticalPing(targetIp) {
     terminalWrite(`║ TARGET:  ${targetName.padEnd(20)} [${targetIp}]   ║`, 'text-yellow-400 font-bold');
     terminalWrite(`╚══════════════════════════════════════════════════════╝`, 'text-sky-400');
 
-    logCombat("ACTION", `Iniciando túnel táctico hacia ${targetIp}`);
-    runAttack(attackerIp, targetIp, targetOs, 'ping_target.sh');
+    logCombat("ACTION", `Iniciando ${ATTACK_CATALOG.recon_icmp.displayName} hacia ${targetIp}`);
+    runAttack(attackerIp, targetIp, targetOs, ATTACK_CATALOG.recon_icmp);
 }
 function initiateFileTamper(targetIp) {
   if (!targetIp || targetIp === "N/A" || targetIp === "undefined" || targetIp === "") {
@@ -977,8 +1356,75 @@ function initiateFileTamper(targetIp) {
   terminalWrite(`║ TARGET:  ${targetName.padEnd(20)} [${targetIp}]   ║`, 'text-yellow-400 font-bold');
   terminalWrite(`╚══════════════════════════════════════════════════════╝`, 'text-[#ff3366]');
 
-  logCombat("ACTION", `Iniciando FILE TAMPER hacia ${targetIp}`);
-  runAttack(attackerIp, targetIp, targetOs, 'multi_Attack_sim.sh');
+  logCombat("ACTION", `Iniciando ${ATTACK_CATALOG.impact_file_tamper.displayName} hacia ${targetIp}`);
+  runAttack(attackerIp, targetIp, targetOs, ATTACK_CATALOG.impact_file_tamper);
+}
+
+function normalizeToolsMap(tools) {
+    if (!tools || typeof tools !== "object") return [];
+    return Object.entries(tools)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function formatNetworkList(networks) {
+    if (!Array.isArray(networks) || !networks.length) {
+        return '<span class="opacity-30">NO NETWORK METADATA</span>';
+    }
+    return networks.map(n => {
+        const network = n?.network || "unknown-net";
+        const ip = n?.ip || "--";
+        const type = (n?.type || "fixed").toUpperCase();
+        return `<span class="target-pill">${network} · ${type} · ${ip}</span>`;
+    }).join(" ");
+}
+
+function formatToolsList(tools) {
+    const items = normalizeToolsMap(tools);
+    if (!items.length) {
+        return `<div class="opacity-40 text-[10px] uppercase tracking-widest">No installed tools recorded</div>`;
+    }
+    return items.map(item => `
+        <div class="target-tool-item">
+            <div class="target-tool-name">${item.name}</div>
+            <div class="target-tool-meta">${item.value || "registered"}</div>
+        </div>
+    `).join("");
+}
+
+function formatSecurityGroups(groups) {
+    if (!Array.isArray(groups) || !groups.length) {
+        return '<span class="opacity-30">NO SECURITY GROUPS</span>';
+    }
+    return groups.map(group => `<span class="target-pill">${group}</span>`).join(" ");
+}
+
+function formatVolumesList(volumes) {
+    if (!Array.isArray(volumes) || !volumes.length) {
+        return `<div class="opacity-40 text-[10px] uppercase tracking-widest">No attached volumes</div>`;
+    }
+    return volumes.map(vol => `
+        <div class="target-tool-item">
+            <div class="target-tool-name">${vol.name || vol.id || "volume"}</div>
+            <div class="target-tool-meta">${vol.size_gb ?? "?"} GB · ${vol.status || "unknown"}</div>
+        </div>
+    `).join("");
+}
+
+function formatTimestamp(value) {
+    return value || "N/A";
+}
+
+async function syncTargetToolsFromIndexTools(node) {
+    if (!node || !node.data) return;
+    const data = node.data();
+    const tools = await fetchToolsFromIndexTools(data.name);
+    node.data("tools", tools);
+
+    if (currentLockedTarget && currentLockedTarget.id === data.id) {
+        currentLockedTarget = { ...currentLockedTarget, tools };
+        renderTargetDetails(node);
+    }
 }
 
 function renderTargetDetails(node) {
@@ -987,6 +1433,29 @@ function renderTargetDetails(node) {
     const data = node.data() || {};
     const role = (data.role || "").toLowerCase();
     const config = ROLE_CONFIG[role] || ROLE_CONFIG.unknown;
+    const toolsCount = normalizeToolsMap(data.tools).length;
+    const floatingIp = data.ip_floating || "N/A";
+    const privateIp = data.ip_private || "N/A";
+    const primaryIp = data.ip || floatingIp || privateIp || "N/A";
+    const imageName = data.image || "N/A";
+    const flavorName = data.flavor?.name || data.flavor || "N/A";
+    const instanceId = data.instance_id || "N/A";
+    const networkHtml = formatNetworkList(data.networks);
+    const toolsHtml = formatToolsList(data.tools);
+    const securityGroupsHtml = formatSecurityGroups(data.security_groups);
+    const volumesHtml = formatVolumesList(data.volumes);
+    const createdAt = formatTimestamp(data.created_at);
+    const updatedAt = formatTimestamp(data.updated_at);
+    const flavorSpec = data.flavor && typeof data.flavor === "object"
+        ? `${data.flavor.vcpus ?? "?"} vCPU · ${data.flavor.ram_mb ?? "?"} MB RAM · ${data.flavor.disk_gb ?? "?"} GB disk`
+        : "N/A";
+    const evidenceHtml = data.evidence
+        ? [
+            data.evidence.memory ? "memory" : null,
+            data.evidence.disk ? "disk" : null,
+            data.evidence.network ? "network" : null
+          ].filter(Boolean).map(x => `<span class="target-pill">${x}</span>`).join(" ")
+        : '<span class="opacity-30">NO EVIDENCE FLAGS</span>';
 
     const portsHtml =
         Array.isArray(data.allowed_ports) && data.allowed_ports.length > 0
@@ -1006,18 +1475,107 @@ function renderTargetDetails(node) {
         }`;
 
     document.getElementById("target-details").innerHTML = `
-        <div class="grid grid-cols-2 gap-4 text-[11px] font-mono mb-4">
-            <div><span class="opacity-50">IP</span><br>${data.ip ?? "N/A"}</div>
-            <div><span class="opacity-50">STATUS</span><br>${data.status ?? "UNKNOWN"}</div>
-            <div><span class="opacity-50">OS</span><br>${data.os ?? "LINUX"}</div>
+        <div class="target-section">
+            <span class="target-section-title">Pre-Attack Node Intelligence</span>
+            <div class="target-intel-grid">
+                <div class="target-intel-card">
+                    <div class="target-intel-label">Status</div>
+                    <div class="target-intel-value">${data.status ?? "UNKNOWN"}</div>
+                </div>
+                <div class="target-intel-card">
+                    <div class="target-intel-label">Primary IP</div>
+                    <div class="target-intel-value">${primaryIp}</div>
+                </div>
+                <div class="target-intel-card">
+                    <div class="target-intel-label">Private IP</div>
+                    <div class="target-intel-value">${privateIp}</div>
+                </div>
+                <div class="target-intel-card">
+                    <div class="target-intel-label">Floating IP</div>
+                    <div class="target-intel-value">${floatingIp}</div>
+                </div>
+                <div class="target-intel-card">
+                    <div class="target-intel-label">Operating System</div>
+                    <div class="target-intel-value">${data.os ?? "LINUX"}</div>
+                </div>
+                <div class="target-intel-card">
+                    <div class="target-intel-label">Installed Tools</div>
+                    <div class="target-intel-value">${toolsCount}</div>
+                </div>
+                <div class="target-intel-card">
+                    <div class="target-intel-label">Image</div>
+                    <div class="target-intel-value">${imageName}</div>
+                </div>
+                <div class="target-intel-card">
+                    <div class="target-intel-label">Flavor</div>
+                    <div class="target-intel-value">${flavorName}</div>
+                </div>
+                <div class="target-intel-card">
+                    <div class="target-intel-label">Created At</div>
+                    <div class="target-intel-value">${createdAt}</div>
+                </div>
+                <div class="target-intel-card">
+                    <div class="target-intel-label">Updated At</div>
+                    <div class="target-intel-value">${updatedAt}</div>
+                </div>
+            </div>
         </div>
 
-        <div class="border-t border-[#00ff88]/20 pt-3 mb-4">
-            <span class="text-[9px] font-black text-[#00ff88] tracking-widest block mb-2">
-                FIREWALL RULES
-            </span>
+        <div class="target-section">
+            <span class="target-section-title">Compute Profile</span>
+            <div class="target-intel-card">
+                <div class="target-intel-label">Flavor Specification</div>
+                <div class="target-intel-value">${flavorSpec}</div>
+            </div>
+        </div>
+
+        <div class="target-section">
+            <span class="target-section-title">Network Topology Metadata</span>
+            <div class="flex flex-wrap gap-2 font-mono">
+                ${networkHtml}
+            </div>
+        </div>
+
+        <div class="target-section">
+            <span class="target-section-title">Security Groups</span>
+            <div class="flex flex-wrap gap-2 font-mono">
+                ${securityGroupsHtml}
+            </div>
+        </div>
+
+        <div class="target-section">
+            <span class="target-section-title">Firewall and Exposure Surface</span>
             <div class="flex flex-wrap gap-1 font-mono">
                 ${portsHtml}
+            </div>
+        </div>
+
+        <div class="target-section">
+            <span class="target-section-title">Installed Tools Registry</span>
+            <div class="space-y-2">
+                ${toolsHtml}
+            </div>
+        </div>
+
+        <div class="target-section">
+            <span class="target-section-title">Platform Identification</span>
+            <div class="target-intel-card">
+                <div class="target-intel-label">Instance UUID</div>
+                <div class="target-intel-value">${instanceId}</div>
+            </div>
+        </div>
+
+        <div class="target-section">
+            <span class="target-section-title">Attached Volumes</span>
+            <div class="space-y-2">
+                ${volumesHtml}
+            </div>
+        </div>
+
+        <div class="target-section">
+            <span class="target-section-title">Forensic Acquisition Readiness</span>
+            <div class="flex flex-wrap gap-2 font-mono">
+                ${evidenceHtml}
             </div>
         </div>
 
@@ -1183,11 +1741,10 @@ function launchDataExfilFromSidebar() {
 
   const attackerIp = attackerNode.data('ip');
 
-  terminalWrite("MISSION: DATA EXFILTRATION","text-[#ff3366]");
+  terminalWrite(`MISSION: ${ATTACK_CATALOG.collection_data_exfiltration.displayName}`,"text-[#ff3366]");
   terminalWrite(`TARGET: ${currentLockedTarget.ip}`,"text-yellow-400");
 
-  
-  runAttack(attackerIp, currentLockedTarget.ip, currentLockedTarget.os || '', 'data_exfiltration.sh');
+  runAttack(attackerIp, currentLockedTarget.ip, currentLockedTarget.os || '', ATTACK_CATALOG.collection_data_exfiltration);
 }
 
 function launchPortScanFromSidebar() {
@@ -1206,11 +1763,10 @@ function launchPortScanFromSidebar() {
 
   const attackerIp = attackerNode.data('ip');
 
-  terminalWrite("MISSION: PORT SCAN RECON","text-[#ff3366]");
+  terminalWrite(`MISSION: ${ATTACK_CATALOG.recon_portscan.displayName}`,"text-[#ff3366]");
   terminalWrite(`TARGET: ${currentLockedTarget.ip}`,"text-yellow-400");
 
-  
-  runAttack(attackerIp, currentLockedTarget.ip, currentLockedTarget.os || '', 'port_scan_recon.sh');
+  runAttack(attackerIp, currentLockedTarget.ip, currentLockedTarget.os || '', ATTACK_CATALOG.recon_portscan);
 }
 function launchModbusAttackFromSidebar() {
 
@@ -1228,10 +1784,10 @@ function launchModbusAttackFromSidebar() {
 
   const attackerIp = attackerNode.data('ip');
 
-  terminalWrite("MISSION: MODBUS REGISTER ATTACK","text-[#ff3366]");
+  terminalWrite(`MISSION: ${ATTACK_CATALOG.ics_modbus_register_write.displayName}`,"text-[#ff3366]");
   terminalWrite(`TARGET PLC: ${currentLockedTarget.ip}`,"text-yellow-400");
 
-  runAttack(attackerIp, currentLockedTarget.ip, currentLockedTarget.os || '', 'modbus_register_attack.sh');
+  runAttack(attackerIp, currentLockedTarget.ip, currentLockedTarget.os || '', ATTACK_CATALOG.ics_modbus_register_write);
 }
 
 function launchUnauthorizedSSH(targetIp, targetOs = "") {
@@ -1255,7 +1811,7 @@ function launchUnauthorizedSSH(targetIp, targetOs = "") {
   terminalWrite("╚══════════════════════════════════════╝", 'text-[#ff3366]');
 
   
-  runAttack(attackerIp, targetIp, targetOs, 'unauthorized_ssh_attempt.sh');
+  runAttack(attackerIp, targetIp, targetOs, ATTACK_CATALOG.credential_unauthorized_ssh);
 }
 
 
@@ -1403,7 +1959,7 @@ async function stopMonitorListener(monitorIp) {
     }
 }
 
-function renderAttackStack(node) {
+        function renderAttackStack(node) {
     const stack = document.getElementById("attack-stack");
     stack.innerHTML = "";
 
@@ -1421,31 +1977,63 @@ function renderAttackStack(node) {
     if (!attacks.length) {
         stack.innerHTML = `
             <div class="opacity-40 text-center text-[10px] uppercase tracking-widest">
-                No offensive capabilities
+                No categorized offensive techniques mapped to this node
             </div>`;
         return;
     }
 
+    const groups = new Map();
+
     attacks.forEach(att => {
-        const div = document.createElement("div");
-        div.className = `
-            p-3 rounded-lg border
-            border-[#ff3366]/40
-            bg-[#ff3366]/10
-            hover:bg-[#ff3366]/20
-            cursor-pointer transition-all
-        `;
-        div.innerHTML = `
-            <div class="flex items-center gap-3">
-                <i class="fas fa-bolt text-[#ff3366]"></i>
-                <span class="font-bold text-white">${att}</span>
-            </div>
-            <div class="text-[9px] text-[#ff3366]/60 mt-1">
-                Ready to deploy
-            </div>
-        `;
-        div.onclick = () => executeAction(data.id, att, att);
-        stack.appendChild(div);
+        const mapped = Object.values(ATTACK_CATALOG).find(item => item.label === att || item.displayName === att);
+        const category = mapped?.category || "Uncategorized";
+        if (category === "ICS Manipulation" && !isOtRole(data?.role)) {
+            return;
+        }
+        if (!groups.has(category)) groups.set(category, []);
+        groups.get(category).push({ label: att, mapped });
+    });
+
+    if (!groups.size) {
+        stack.innerHTML = `
+            <div class="opacity-40 text-center text-[10px] uppercase tracking-widest">
+                No categorized offensive techniques applicable to this node
+            </div>`;
+        return;
+    }
+
+    groups.forEach((items, category) => {
+        const group = document.createElement("div");
+        group.className = "attack-context-group";
+        group.innerHTML = `<div class="attack-context-group-title">${category}</div>`;
+
+        items.forEach(({ label, mapped }) => {
+            const div = document.createElement("div");
+            const subtitle = mapped
+                ? `${mapped.stage} · ${mapped.mitre}`
+                : "Operational mapping available";
+            div.className = `
+                p-3 rounded-lg border
+                border-[#ff3366]/40
+                bg-[#ff3366]/10
+                hover:bg-[#ff3366]/20
+                cursor-pointer transition-all
+                mb-2 last:mb-0
+            `;
+            div.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-bolt text-[#ff3366]"></i>
+                    <span class="font-bold text-white">${label}</span>
+                </div>
+                <div class="text-[9px] text-[#ff3366]/60 mt-1">
+                    ${subtitle}
+                </div>
+            `;
+            div.onclick = () => executeAction(data.id, label, label);
+            group.appendChild(div);
+        });
+
+        stack.appendChild(group);
     });
 }
 
@@ -1468,9 +2056,8 @@ function toolAction(tool) {
         case "snort":
             showToast("Snort engine status");
             break;
-
         case "nmap":
-            showToast("Nmap reconnaissance module");
+            openNmapTerminal();
             break;
 
         default:
@@ -1580,10 +2167,34 @@ function launchFileTamperFromSidebar() {
     return;
   }
 
-  logCombat("LAUNCH", `Manual trigger: File Tamper -> ${currentLockedTarget.ip}`);
+  logCombat("LAUNCH", `Manual trigger: ${ATTACK_CATALOG.impact_file_tamper.displayName} -> ${currentLockedTarget.ip}`);
   clearTerminal('victim');
 
   initiateFileTamper(currentLockedTarget.ip);
+}
+
+function launchMultiVectorFromSidebar() {
+  if (!currentLockedTarget || !currentLockedTarget.ip || currentLockedTarget.ip === "N/A") {
+    logCombat("ERROR", "No target locked in HUD. Select a node first.");
+    writeDualTerminal('victim', "!! TARGET ACQUISITION FAILED: SELECT A NODE ON THE MAP", "text-red-500 font-bold");
+    return;
+  }
+
+  const attackerNode = cy.nodes('[role = "attacker"]')[0];
+  if (!attackerNode) {
+    writeDualTerminal('victim', "ATTACKER NODE NOT FOUND", "text-red-500");
+    return;
+  }
+
+  const attackerIp = attackerNode.data('ip');
+  const targetIp = currentLockedTarget.ip;
+  const targetOs = currentLockedTarget.os || '';
+
+  logCombat("LAUNCH", `Manual trigger: ${ATTACK_CATALOG.validation_multi_vector.displayName} -> ${targetIp}`);
+  clearTerminal('victim');
+  terminalWrite(`MISSION: ${ATTACK_CATALOG.validation_multi_vector.displayName}`, "text-[#ff3366]");
+  terminalWrite(`TARGET: ${targetIp}`, "text-yellow-400");
+  runAttack(attackerIp, targetIp, targetOs, ATTACK_CATALOG.validation_multi_vector);
 }
 
 
@@ -1592,8 +2203,50 @@ function launchFileTamperFromSidebar() {
 
 
 
+async function openNmapTerminal() {
+    try {
+        const selectedNode = currentLockedTarget && currentLockedTarget.ip ? currentLockedTarget : null;
 
+        const payload = selectedNode
+            ? {
+                ip: selectedNode.ip,
+                os: selectedNode.os || ""
+            }
+            : {};
 
+        const res = await fetch(`http://127.0.0.1:5001/api/hud/monitor/tools/open_nmap_terminal`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        const raw = await res.text();
+
+        let data;
+        try {
+            data = JSON.parse(raw);
+        } catch {
+            throw new Error(`Server returned non-JSON response. HTTP ${res.status}`);
+        }
+
+        if (!res.ok) {
+            throw new Error(data.error || "Cannot open terminal");
+        }
+
+        writeDualTerminal(
+            'monitoring',
+            data.message || "Terminal launched",
+            "text-[#ff3366]"
+        );
+
+    } catch (err) {
+        writeDualTerminal(
+            'monitoring',
+            `NMAP/SSH ERROR: ${err.message}`,
+            "text-red-500 font-bold"
+        );
+    }
+}
 
 
 

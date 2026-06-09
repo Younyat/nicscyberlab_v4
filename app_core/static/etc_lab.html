@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ETC Lab</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      width: 100%;
+      min-height: 100%;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(71, 85, 105, 0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(59, 130, 246, 0.10), transparent 22%),
+        linear-gradient(180deg, #0b1120 0%, #111827 45%, #0f172a 100%);
+      color: #e5e7eb;
+    }
+
+    .glass {
+      background: rgba(15, 23, 42, 0.78);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    #installLog {
+      white-space: pre-wrap;
+      overflow: auto;
+      max-height: 280px;
+      background: rgba(2, 6, 23, 0.95);
+      color: #a7f3d0;
+      border: 1px solid rgba(148, 163, 184, 0.10);
+      border-radius: 1rem;
+      padding: 1rem;
+      font-size: 12px;
+    }
+
+    #dashFrame,
+    #dashFrameInstall {
+      width: 100%;
+      height: 82vh;
+      border: none;
+      border-radius: 1.5rem;
+      background: #ffffff;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      background: rgba(15, 23, 42, 0.82);
+      color: #e5e7eb;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+    }
+
+    .dot.gray { background: #94a3b8; }
+    .dot.green { background: #34d399; }
+    .dot.orange { background: #fbbf24; }
+    .dot.red { background: #fb7185; }
+
+    .field-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: #94a3b8;
+      margin-bottom: 8px;
+    }
+
+    .field-input {
+      width: 100%;
+      border-radius: 1rem;
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      background: rgba(15, 23, 42, 0.72);
+      color: #e5e7eb;
+      padding: 0.9rem 1rem;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .field-input::placeholder {
+      color: #64748b;
+    }
+
+    .field-input:focus {
+      border-color: rgba(125, 211, 252, 0.42);
+      box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.10);
+    }
+
+    .btn {
+      padding: 1rem 1rem;
+      border-radius: 1rem;
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      color: #f8fafc;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      transition: transform .08s ease, opacity .15s ease, border-color .15s ease;
+    }
+
+    .btn:hover {
+      opacity: 0.95;
+      border-color: rgba(255,255,255,0.20);
+    }
+
+    .btn:active {
+      transform: scale(0.985);
+    }
+
+    .btn-install {
+      background: rgba(96, 165, 250, 0.18);
+      color: #dbeafe;
+    }
+
+    .btn-start {
+      background: rgba(52, 211, 153, 0.16);
+      color: #d1fae5;
+    }
+
+    .btn-stop {
+      background: rgba(251, 191, 36, 0.16);
+      color: #fef3c7;
+    }
+
+    .btn-open {
+      background: rgba(167, 139, 250, 0.16);
+      color: #ede9fe;
+    }
+
+    .btn-refresh {
+      background: rgba(148, 163, 184, 0.16);
+      color: #e2e8f0;
+    }
+
+    .muted-title {
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: #94a3b8;
+    }
+
+    .panel-title {
+      font-size: 1.25rem;
+      font-weight: 900;
+      color: #f8fafc;
+      margin-top: 8px;
+    }
+
+    .state-panel {
+      border: 1px solid rgba(148, 163, 184, 0.10);
+      background: rgba(2, 6, 23, 0.34);
+      color: #cbd5e1;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="min-h-screen w-full p-6">
+    <div class="w-full space-y-6">
+
+      <div class="glass rounded-[2rem] p-6">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <div class="muted-title">Encrypted Traffic Classification</div>
+            <h1 class="text-3xl font-black tracking-tight text-slate-50 mt-2">ETC Lab</h1>
+            <p class="text-sm text-slate-300 mt-2">AI-based encrypted traffic classification system.</p>
+          </div>
+
+          <div class="flex items-center gap-3 flex-wrap">
+            <div id="statusPill" class="pill">
+              <span id="statusDot" class="dot gray"></span>
+              <span id="statusText">Checking</span>
+            </div>
+            <button id="refreshBtn" class="btn btn-refresh">Refresh</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- INSTALLATION VIEW -->
+      <div id="installationView" class="grid w-full grid-cols-12 gap-6">
+        <div class="col-span-12 2xl:col-span-3 xl:col-span-4">
+          <div class="glass rounded-[2rem] p-6 space-y-5 h-full">
+            <div>
+              <div class="muted-title">Module Control</div>
+              <h2 class="panel-title">Installation and Runtime</h2>
+            </div>
+
+            <div class="space-y-3">
+              <label class="block">
+                <span class="field-label">Capture Interface</span>
+                <input id="captureIface" class="field-input" placeholder="eth0">
+              </label>
+
+              <label class="block">
+                <span class="field-label">Capture Seconds</span>
+                <input id="captureSeconds" type="number" value="60" class="field-input">
+              </label>
+
+              <label class="block">
+                <span class="field-label">Base Directory</span>
+                <input id="baseDir" class="field-input mono" placeholder="etc_lab/runtime">
+              </label>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <button id="installBtn" class="btn btn-install">Install</button>
+              <button id="startBtn" class="btn btn-start">Start</button>
+              <button id="stopBtn" class="btn btn-stop">Stop</button>
+              <button id="openBtn" class="btn btn-open">Open Dash</button>
+            </div>
+
+            <div class="state-panel rounded-[1.5rem] p-4">
+              <div class="muted-title mb-3">State</div>
+              <div id="stateBox" class="space-y-2 text-sm"></div>
+            </div>
+
+            <div>
+              <div class="muted-title mb-3">Install Log</div>
+              <div id="installLog" class="mono">Waiting...</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-span-12 2xl:col-span-9 xl:col-span-8">
+          <div class="glass rounded-[2rem] p-6">
+            <div class="flex items-center justify-between gap-4 flex-wrap mb-5">
+              <div>
+                <div class="muted-title">Dashboard View</div>
+                <h2 class="panel-title">Embedded ETC Dashboard</h2>
+              </div>
+              <div id="dashUrlInstall" class="mono text-xs text-slate-400">http://127.0.0.1:8050/</div>
+            </div>
+
+            <iframe
+              id="dashFrameInstall"
+              src="about:blank"
+              class="w-full border-none rounded-[1.5rem] bg-white">
+            </iframe>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIRECT DASHBOARD VIEW -->
+      <div id="dashboardView" class="hidden w-full">
+        <div class="glass rounded-[2rem] p-6">
+          <div class="flex items-center justify-between gap-4 flex-wrap mb-5">
+            <div>
+              <div class="muted-title">Dashboard View</div>
+              <h2 class="panel-title">Embedded ETC Dashboard</h2>
+            </div>
+            <div class="flex items-center gap-3 flex-wrap">
+              <div id="dashUrl" class="mono text-xs text-slate-400">http://127.0.0.1:8050/</div>
+              <button id="backToInstallBtn" class="btn btn-refresh">Show Control Panel</button>
+            </div>
+          </div>
+
+          <iframe id="dashFrame" src="about:blank"></iframe>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const API = "/api/etc";
+    const installLog = document.getElementById("installLog");
+    const baseDirInput = document.getElementById("baseDir");
+    const installationView = document.getElementById("installationView");
+    const dashboardView = document.getElementById("dashboardView");
+    const dashFrame = document.getElementById("dashFrame");
+    const dashFrameInstall = document.getElementById("dashFrameInstall");
+
+    let installStream = null;
+    let lastState = null;
+
+    function setDefaultBaseDir() {
+      if (!baseDirInput.value.trim()) {
+        baseDirInput.value = "etc_lab/runtime";
+      }
+    }
+
+    function repoDirToBaseDir(repoDir) {
+      if (!repoDir) return "";
+      const normalized = String(repoDir).replace(/\\/g, "/");
+      if (normalized.endsWith("/packet-level-etc")) {
+        return normalized.slice(0, -"/packet-level-etc".length);
+      }
+      return normalized;
+    }
+
+    function setStatus(state) {
+      const dot = document.getElementById("statusDot");
+      const text = document.getElementById("statusText");
+
+      dot.className = "dot";
+      if (state.installing) {
+        dot.classList.add("orange");
+        text.textContent = "Installing";
+      } else if (state.running) {
+        dot.classList.add("green");
+        text.textContent = "Running";
+      } else if (state.model_ready) {
+        dot.classList.add("green");
+        text.textContent = "Ready";
+      } else if (state.installed) {
+        dot.classList.add("orange");
+        text.textContent = "Installed";
+      } else {
+        dot.classList.add("gray");
+        text.textContent = "Not Installed";
+      }
+    }
+
+    function showInstallationView() {
+      installationView.classList.remove("hidden");
+      dashboardView.classList.add("hidden");
+    }
+
+    function showDashboardView(url) {
+      installationView.classList.add("hidden");
+      dashboardView.classList.remove("hidden");
+      dashFrame.src = url || "http://127.0.0.1:8050/";
+      document.getElementById("dashUrl").textContent = url || "http://127.0.0.1:8050/";
+    }
+
+    async function ensureDashboardRunning(state) {
+      if (state.running) {
+        return state;
+      }
+
+      const res = await fetch(`${API}/start`, { method: "POST" });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "The ETC dashboard could not be started");
+      }
+
+      return await refreshStatus(false);
+    }
+
+    async function decideMainView(state) {
+      if (state.installed && state.model_ready) {
+        try {
+          const readyState = await ensureDashboardRunning(state);
+          showDashboardView(readyState.dashboard_url || "http://127.0.0.1:8050/");
+          return;
+        } catch (err) {
+          console.error(err);
+          showInstallationView();
+          installLog.textContent = `[ERROR] ${String(err.message || err)}\n`;
+          return;
+        }
+      }
+
+      showInstallationView();
+    }
+
+    function renderState(state) {
+      lastState = state;
+      setStatus(state);
+
+      const dashUrl = state.dashboard_url || "http://127.0.0.1:8050/";
+      document.getElementById("dashUrlInstall").textContent = dashUrl;
+      document.getElementById("dashUrl").textContent = dashUrl;
+
+      if (state.repo_dir) {
+        const derivedBaseDir = repoDirToBaseDir(state.repo_dir);
+        if (derivedBaseDir) {
+          baseDirInput.value = derivedBaseDir;
+        }
+      } else {
+        setDefaultBaseDir();
+      }
+
+      const stateBox = document.getElementById("stateBox");
+      stateBox.innerHTML = `
+        <div><strong>Installed:</strong> ${state.installed ? "yes" : "no"}</div>
+        <div><strong>Model Ready:</strong> ${state.model_ready ? "yes" : "no"}</div>
+        <div><strong>Installing:</strong> ${state.installing ? "yes" : "no"}</div>
+        <div><strong>Running:</strong> ${state.running ? "yes" : "no"}</div>
+        <div><strong>Repo:</strong> ${state.repo_dir || "-"}</div>
+        <div><strong>PCAP Directory:</strong> ${state.pcap_dir || "-"}</div>
+        <div><strong>Last Install:</strong> ${state.last_install_at || "-"}</div>
+        <div><strong>Last Start:</strong> ${state.last_start_at || "-"}</div>
+        <div><strong>Message:</strong> ${state.message || "-"}</div>
+      `;
+
+      if (state.running) {
+        dashFrameInstall.src = dashUrl;
+      } else {
+        dashFrameInstall.src = "about:blank";
+      }
+    }
+
+    async function refreshStatus(decideView = true) {
+      const res = await fetch(`${API}/status`);
+      const data = await res.json();
+      renderState(data);
+
+      if (decideView) {
+        await decideMainView(data);
+      }
+
+      return data;
+    }
+
+    function startInstallStream() {
+      if (installStream) {
+        installStream.close();
+      }
+
+      installLog.textContent = "";
+      installStream = new EventSource(`${API}/install/log`);
+
+      installStream.onmessage = (e) => {
+        installLog.textContent += e.data + "\n";
+        installLog.scrollTop = installLog.scrollHeight;
+      };
+
+      installStream.addEventListener("done", async () => {
+        installLog.textContent += "\n[INFO] Installation stream finished\n";
+        installStream.close();
+        installStream = null;
+        await refreshStatus(true);
+      });
+
+      installStream.onerror = () => {
+        if (installStream) {
+          installStream.close();
+          installStream = null;
+        }
+      };
+    }
+
+    async function installModule() {
+      installLog.textContent = "[INFO] Install button clicked\n";
+
+      const baseDir = baseDirInput.value.trim() || "etc_lab/runtime";
+
+      const payload = {
+        capture_iface: document.getElementById("captureIface").value.trim(),
+        capture_seconds: Number(document.getElementById("captureSeconds").value || 60),
+        base_dir: baseDir
+      };
+
+      try {
+        const res = await fetch(`${API}/install`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const text = await res.text();
+        installLog.textContent += `[INFO] HTTP ${res.status}\n${text}\n`;
+
+        let data = {};
+        try {
+          data = JSON.parse(text);
+        } catch (_) {}
+
+        if (!res.ok && res.status !== 202) {
+          installLog.textContent += `[ERROR] ${data.message || "Installation could not start"}\n`;
+          await refreshStatus(true);
+          return;
+        }
+
+        installLog.textContent += "[INFO] ETC installation started\n";
+        showInstallationView();
+        startInstallStream();
+        await refreshStatus(false);
+
+      } catch (err) {
+        installLog.textContent += `[ERROR] ${String(err)}\n`;
+        console.error(err);
+      }
+    }
+
+    async function startDash() {
+      try {
+        const res = await fetch(`${API}/start`, { method: "POST" });
+        const data = await res.json();
+        await refreshStatus(false);
+
+        if (res.ok) {
+          showDashboardView(data.url || "http://127.0.0.1:8050/");
+        } else {
+          alert(data.message || "The ETC dashboard could not start");
+        }
+      } catch (err) {
+        alert(String(err));
+      }
+    }
+
+    async function stopDash() {
+      await fetch(`${API}/stop`, { method: "POST" });
+      dashFrame.src = "about:blank";
+      dashFrameInstall.src = "about:blank";
+      await refreshStatus(true);
+    }
+
+    async function openDash() {
+      const state = await refreshStatus(false);
+
+      if (!state.installed) {
+        alert("The ETC module is not installed");
+        showInstallationView();
+        return;
+      }
+
+      if (!state.model_ready) {
+        alert("The ETC module is installed, but the model is not ready yet. Add PCAP files to the repo pcaps directory and run extraction and training first.");
+        showInstallationView();
+        return;
+      }
+
+      try {
+        const readyState = await ensureDashboardRunning(state);
+        showDashboardView(readyState.dashboard_url || "http://127.0.0.1:8050/");
+      } catch (err) {
+        alert(String(err.message || err));
+        showInstallationView();
+      }
+    }
+
+    document.getElementById("installBtn").addEventListener("click", installModule);
+    document.getElementById("startBtn").addEventListener("click", startDash);
+    document.getElementById("stopBtn").addEventListener("click", stopDash);
+    document.getElementById("openBtn").addEventListener("click", openDash);
+    document.getElementById("refreshBtn").addEventListener("click", () => refreshStatus(true));
+    document.getElementById("backToInstallBtn").addEventListener("click", showInstallationView);
+
+    window.addEventListener("load", async () => {
+      setDefaultBaseDir();
+      await refreshStatus(true);
+      setInterval(async () => {
+        await refreshStatus(false);
+      }, 4000);
+    });
+  </script>
+</body>
+</html>

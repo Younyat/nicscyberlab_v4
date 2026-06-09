@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ETC Lab</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+    }
+
+    .glass {
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(15,23,42,0.08);
+      box-shadow: 0 20px 60px rgba(2,6,23,0.08);
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    #installLog {
+      white-space: pre-wrap;
+      overflow: auto;
+      max-height: 280px;
+      background: #020617;
+      color: #34d399;
+      border-radius: 1rem;
+      padding: 1rem;
+      font-size: 12px;
+    }
+
+    #dashFrame {
+      width: 100%;
+      height: 72vh;
+      border: none;
+      border-radius: 1.5rem;
+      background: white;
+      box-shadow: 0 20px 60px rgba(2,6,23,0.08);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      border: 1px solid rgba(15,23,42,0.08);
+      background: white;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+    }
+
+    .dot.gray { background: #94a3b8; }
+    .dot.green { background: #22c55e; }
+    .dot.orange { background: #f59e0b; }
+    .dot.red { background: #ef4444; }
+  </style>
+</head>
+<body>
+  <div class="min-h-screen p-6">
+    <div class="max-w-[1600px] mx-auto space-y-6">
+
+      <div class="glass rounded-[2rem] p-6">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <div class="text-[11px] font-black tracking-[0.28em] uppercase text-slate-400">Encrypted Traffic Classification</div>
+            <h1 class="text-3xl font-black tracking-tight text-slate-900 mt-2">ETC Lab</h1>
+            <p class="text-sm text-slate-600 mt-2">Sistema de clasificación de tráfico cifrado mediante IA.</p>
+          </div>
+
+          <div class="flex items-center gap-3 flex-wrap">
+            <div id="statusPill" class="pill">
+              <span id="statusDot" class="dot gray"></span>
+              <span id="statusText">Checking</span>
+            </div>
+            <button id="refreshBtn" class="px-4 py-3 rounded-2xl bg-slate-900 text-white text-xs font-black tracking-[0.18em] uppercase">Refresh</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-12 gap-6">
+        <div class="col-span-12 xl:col-span-4">
+          <div class="glass rounded-[2rem] p-6 space-y-5">
+            <div>
+              <div class="text-[11px] font-black tracking-[0.22em] uppercase text-slate-400">Module control</div>
+              <h2 class="text-xl font-black text-slate-900 mt-2">Installation and runtime</h2>
+            </div>
+
+            <div class="space-y-3">
+              <label class="block">
+                <span class="block text-[11px] font-black tracking-[0.18em] uppercase text-slate-500 mb-2">Capture interface</span>
+                <input id="captureIface" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm" placeholder="eth0">
+              </label>
+
+              <label class="block">
+                <span class="block text-[11px] font-black tracking-[0.18em] uppercase text-slate-500 mb-2">Capture seconds</span>
+                <input id="captureSeconds" type="number" value="60" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm">
+              </label>
+
+              <label class="block">
+                <span class="block text-[11px] font-black tracking-[0.18em] uppercase text-slate-500 mb-2">Base directory</span>
+                <input id="baseDir" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm" placeholder="/home/user/integracion_packet_level_etc">
+              </label>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <button id="installBtn" class="px-4 py-4 rounded-2xl bg-blue-600 text-white text-xs font-black tracking-[0.18em] uppercase">Install</button>
+              <button id="startBtn" class="px-4 py-4 rounded-2xl bg-emerald-600 text-white text-xs font-black tracking-[0.18em] uppercase">Start</button>
+              <button id="stopBtn" class="px-4 py-4 rounded-2xl bg-rose-600 text-white text-xs font-black tracking-[0.18em] uppercase">Stop</button>
+              <button id="openBtn" class="px-4 py-4 rounded-2xl bg-slate-900 text-white text-xs font-black tracking-[0.18em] uppercase">Open Dash</button>
+            </div>
+
+            <div class="rounded-[1.5rem] border border-slate-200 p-4 bg-slate-50">
+              <div class="text-[11px] font-black tracking-[0.18em] uppercase text-slate-500 mb-3">State</div>
+              <div id="stateBox" class="space-y-2 text-sm text-slate-700"></div>
+            </div>
+
+            <div>
+              <div class="text-[11px] font-black tracking-[0.18em] uppercase text-slate-500 mb-3">Install log</div>
+              <div id="installLog" class="mono">Waiting...</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-span-12 xl:col-span-8">
+          <div class="glass rounded-[2rem] p-6">
+            <div class="flex items-center justify-between gap-4 flex-wrap mb-5">
+              <div>
+                <div class="text-[11px] font-black tracking-[0.22em] uppercase text-slate-400">Dashboard view</div>
+                <h2 class="text-xl font-black text-slate-900 mt-2">Embedded ETC Dashboard</h2>
+              </div>
+              <div id="dashUrl" class="mono text-xs text-slate-500">http://127.0.0.1:8050/</div>
+            </div>
+
+            <iframe id="dashFrame" src="about:blank"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = "/api/etc";
+    const dashFrame = document.getElementById("dashFrame");
+    const installLog = document.getElementById("installLog");
+    let installStream = null;
+
+    function setStatus(state) {
+      const dot = document.getElementById("statusDot");
+      const text = document.getElementById("statusText");
+
+      dot.className = "dot";
+      if (state.installing) {
+        dot.classList.add("orange");
+        text.textContent = "Installing";
+      } else if (state.running) {
+        dot.classList.add("green");
+        text.textContent = "Running";
+      } else if (state.installed) {
+        dot.classList.add("green");
+        text.textContent = "Installed";
+      } else {
+        dot.classList.add("gray");
+        text.textContent = "Not installed";
+      }
+    }
+
+    function renderState(state) {
+      setStatus(state);
+
+      document.getElementById("dashUrl").textContent = state.dashboard_url || "http://127.0.0.1:8050/";
+
+      const stateBox = document.getElementById("stateBox");
+      stateBox.innerHTML = `
+        <div><strong>Installed:</strong> ${state.installed ? "yes" : "no"}</div>
+        <div><strong>Installing:</strong> ${state.installing ? "yes" : "no"}</div>
+        <div><strong>Running:</strong> ${state.running ? "yes" : "no"}</div>
+        <div><strong>Repo:</strong> ${state.repo_dir || "-"}</div>
+        <div><strong>Last install:</strong> ${state.last_install_at || "-"}</div>
+        <div><strong>Last start:</strong> ${state.last_start_at || "-"}</div>
+        <div><strong>Message:</strong> ${state.message || "-"}</div>
+      `;
+
+      if (state.running) {
+        dashFrame.src = state.dashboard_url || "http://127.0.0.1:8050/";
+      }
+    }
+
+    async function refreshStatus() {
+      const res = await fetch(`${API}/status`);
+      const data = await res.json();
+      renderState(data);
+      return data;
+    }
+
+    function startInstallStream() {
+      if (installStream) {
+        installStream.close();
+      }
+
+      installLog.textContent = "";
+      installStream = new EventSource(`${API}/install/log`);
+
+      installStream.onmessage = (e) => {
+        installLog.textContent += e.data + "\n";
+        installLog.scrollTop = installLog.scrollHeight;
+      };
+
+      installStream.addEventListener("done", async () => {
+        installLog.textContent += "\n[INFO] Installation stream finished\n";
+        installStream.close();
+        installStream = null;
+        await refreshStatus();
+      });
+
+      installStream.onerror = () => {
+        if (installStream) {
+          installStream.close();
+          installStream = null;
+        }
+      };
+    }
+
+    async function installModule() {
+      const payload = {
+        capture_iface: document.getElementById("captureIface").value.trim(),
+        capture_seconds: Number(document.getElementById("captureSeconds").value || 60),
+        base_dir: document.getElementById("baseDir").value.trim() || undefined
+      };
+
+      const res = await fetch(`${API}/install`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (!res.ok && res.status !== 202) {
+        installLog.textContent = `[ERROR] ${data.message || "Installation could not start"}`;
+        await refreshStatus();
+        return;
+      }
+
+      installLog.textContent = "[INFO] ETC installation started\n";
+      startInstallStream();
+      await refreshStatus();
+    }
+
+    async function startDash() {
+      const res = await fetch(`${API}/start`, { method: "POST" });
+      const data = await res.json();
+      await refreshStatus();
+
+      if (res.ok) {
+        dashFrame.src = data.url || "http://127.0.0.1:8050/";
+      } else {
+        alert(data.message || "ETC dashboard could not start");
+      }
+    }
+
+    async function stopDash() {
+      const res = await fetch(`${API}/stop`, { method: "POST" });
+      await res.json();
+      dashFrame.src = "about:blank";
+      await refreshStatus();
+    }
+
+    async function openDash() {
+      const state = await refreshStatus();
+      if (!state.running) {
+        alert("The ETC dashboard is not running");
+        return;
+      }
+      dashFrame.src = state.dashboard_url || "http://127.0.0.1:8050/";
+    }
+
+    document.getElementById("installBtn").addEventListener("click", installModule);
+    document.getElementById("startBtn").addEventListener("click", startDash);
+    document.getElementById("stopBtn").addEventListener("click", stopDash);
+    document.getElementById("openBtn").addEventListener("click", openDash);
+    document.getElementById("refreshBtn").addEventListener("click", refreshStatus);
+
+    window.addEventListener("load", async () => {
+      await refreshStatus();
+      setInterval(refreshStatus, 4000);
+    });
+  </script>
+</body>
+</html>
