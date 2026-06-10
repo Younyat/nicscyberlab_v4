@@ -36,10 +36,10 @@ function esc(value) {
 
 function statusClass(status) {
   const normalized = String(status || "").toLowerCase().replace(/\s+/g, "_");
-  if (["confirmed", "complete", "valid", "active", "bound", "present", "available"].includes(normalized)) return "status-confirmed";
-  if (["inferred", "partial", "bootstrap", "updated", "warning", "warnings"].includes(normalized)) return "status-inferred";
+  if (["confirmed", "complete", "valid", "active", "bound", "present", "available", "completed"].includes(normalized)) return "status-confirmed";
+  if (["inferred", "partial", "bootstrap", "updated", "warning", "warnings", "mostly_available"].includes(normalized)) return "status-inferred";
   if (["missing", "critical", "insufficient", "unresolved", "error", "bootstrap_required"].includes(normalized)) return "status-missing";
-  if (["unknown", "not_available", "degraded"].includes(normalized)) return "status-unknown";
+  if (["unknown", "not_available", "degraded", "not_completed", "not_generated"].includes(normalized)) return "status-unknown";
   if (["not_generated_yet"].includes(normalized)) return "status-updated";
   return "status-updated";
 }
@@ -96,6 +96,66 @@ function sourceLabel(source) {
   return source || "Unknown";
 }
 
+function nodeNameMap() {
+  const out = new Map();
+  (FOC.scenario?.nodes || []).forEach(node => {
+    out.set(node.node_id, node.name || node.node_id);
+  });
+  return out;
+}
+
+function aggregateTimelineEvents(events) {
+  const grouped = new Map();
+  const passthrough = [];
+
+  for (const ev of events) {
+    if (!["detection_alert", "triage_result"].includes(ev.event_type)) {
+      passthrough.push({ ...ev, aggregate_count: 1, aggregate: false });
+      continue;
+    }
+    const details = ev.details || {};
+    const ts = parseEventTime(ev.timestamp);
+    const bucket = ts ? Math.floor(ts / 60000) * 60000 : 0;
+    const agent = (details.agent || {}).name || "unknown";
+    const src = (details.src || {}).ip || "unknown";
+    const dst = (details.dst || {}).ip || "unknown";
+    const key = [
+      ev.event_type,
+      bucket,
+      details.rule_id || "unknown",
+      agent,
+      ev.related_node_id || "unresolved",
+      src,
+      dst,
+      details.signature || ev.description || "unknown",
+    ].join("|");
+
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        ...ev,
+        aggregate: true,
+        aggregate_count: 0,
+        first_seen: ev.timestamp,
+        last_seen: ev.timestamp,
+        affected_nodes: new Set(),
+        example_alert_id: ev.related_alert_id || "unresolved",
+      });
+    }
+    const item = grouped.get(key);
+    item.aggregate_count += 1;
+    if (parseEventTime(ev.timestamp) < parseEventTime(item.first_seen)) item.first_seen = ev.timestamp;
+    if (parseEventTime(ev.timestamp) > parseEventTime(item.last_seen)) item.last_seen = ev.timestamp;
+    if (ev.related_node_id && !["unknown", "unresolved"].includes(ev.related_node_id)) item.affected_nodes.add(ev.related_node_id);
+  }
+
+  const aggregates = [...grouped.values()].map(item => ({
+    ...item,
+    affected_nodes: [...item.affected_nodes],
+  }));
+
+  return [...passthrough, ...aggregates].sort((a, b) => parseEventTime(b.last_seen || b.timestamp) - parseEventTime(a.last_seen || a.timestamp));
+}
+
 function sourceExists(type) {
   return (FOC.sources?.sources || []).some(src => src.source_type === type && src.status === "present");
 }
@@ -132,6 +192,7 @@ function hasCases() {
 }
 
 function buildModelRows() {
+  const status = FOC.status || {};
   const scenarioNodes = (FOC.scenario?.nodes || []).length;
   const scenarioEdges = (FOC.scenario?.edges || []).length;
   const toolNodes = (FOC.tools?.nodes || []).length;
@@ -144,14 +205,14 @@ function buildModelRows() {
   const analysisCount = artifactCount(["vol3_output_dir", "tsk_output_dir"]);
   const acquisitionCount = artifactCount(["network_pcap", "disk_image", "memory_dump", "industrial_capture", "ir_input", "ir_snapshot"]);
   const preservationCount = artifactCount(["network_pcap", "disk_image", "memory_dump", "custody_log", "time_sync", "case_digest", "ir_input", "ir_snapshot", "fsr_eval"]);
-  const attackAlertLinks = relationshipCount("produced_alert");
-  const resolvedAttackAlertLinks = relationshipResolvedCount("produced_alert");
-  const alertEvidenceLinks = relationshipCountByFromType("alert", ["linked_evidence", "supports_evidence"]);
-  const evidenceAnalysisLinks = relationshipCount("supports_analysis");
-  const resolvedDetectionEvents = (FOC.timeline?.events || []).filter(ev => {
-    if (!["detection_alert", "triage_result"].includes(ev.event_type)) return false;
-    return ev.related_node_id && ev.related_node_id !== "unresolved" && ev.related_node_id !== "unknown";
-  }).length;
+  const relSummary = status.relationship_summary || {};
+  const detSummary = status.detection_summary || {};
+  const artSummary = status.artifact_summary || {};
+  const attackAlertLinks = relSummary.attack_alert_candidate_links || 0;
+  const resolvedAttackAlertLinks = relSummary.attack_alert_confirmed_links || 0;
+  const alertEvidenceLinks = relSummary.alert_evidence_links || 0;
+  const evidenceAnalysisLinks = relSummary.evidence_analysis_links || 0;
+  const resolvedDetectionEvents = detSummary.resolved_alerts || 0;
 
   const rows = [];
 
@@ -176,52 +237,52 @@ function buildModelRows() {
   rows.push({
     component: "Attack Attestation",
     meaning: "What attack was executed, when, from where, and against which target.",
-    status: attackEvents === 0 ? "not generated yet" : (resolvedAttackAlertLinks > 0 ? "available" : "partial"),
+    status: attackEvents === 0 ? "not generated yet" : (resolvedAttackAlertLinks > 0 ? "partial" : "partial"),
     evidence: attackEvents > 0 ? "attack result.json files and timeline attack_execution events" : "none",
     next: attackEvents > 0 && resolvedAttackAlertLinks === 0 ? "correlate attack executions to resolved alerts" : (attackEvents === 0 ? "execute an ATT&CK-aligned technique" : "none"),
-    detail: attackEvents > 0 ? `${attackEvents} attack events indexed, ${attackAlertLinks} attack→alert links, ${resolvedAttackAlertLinks} confirmed.` : "No attack execution has been preserved yet.",
+    detail: attackEvents > 0 ? `${attackEvents} attack events indexed, ${attackAlertLinks} candidate links, ${resolvedAttackAlertLinks} confirmed, ${relSummary.attack_alert_inferred_links || 0} inferred.` : "No attack execution has been preserved yet.",
   });
 
   rows.push({
     component: "Detection Attestation",
     meaning: "What sensor detected activity, which rule fired, and which alert was generated.",
-    status: detectionEvents === 0 ? "not generated yet" : (resolvedAttackAlertLinks > 0 && resolvedDetectionEvents > 0 ? "available" : "partial"),
+    status: detectionEvents === 0 ? "not generated yet" : (detSummary.relationship_quality || "partial"),
     evidence: detectionEvents > 0 ? "alerts.jsonl, triage.jsonl, detection timeline events" : "none",
     next: detectionEvents > 0 && (resolvedAttackAlertLinks === 0 || resolvedDetectionEvents === 0) ? "resolve node, instance, or attack correlation" : (detectionEvents === 0 ? "generate or ingest alert records" : "none"),
-    detail: detectionEvents > 0 ? `${detectionEvents} detection or triage events indexed, ${resolvedDetectionEvents} with resolved node correlation.` : "No alert or triage sequence has been preserved yet.",
+    detail: detectionEvents > 0 ? `data availability: ${detSummary.data_availability || "available"} | relationship quality: ${detSummary.relationship_quality || "partial"} | resolved ratio: ${detSummary.resolved_ratio_text || "0/0"} | confirmed attack correlation: ${detSummary.confirmed_ratio_text || "0/0"}.` : "No alert or triage sequence has been preserved yet.",
   });
 
   rows.push({
     component: "Acquisition Manifest",
     meaning: "What evidence was acquired, from which node, for which alert, and with which acquisition process.",
-    status: acquisitionCount > 0 ? (caseCount > 0 ? "available" : "partial") : "not generated yet",
-    evidence: acquisitionCount > 0 ? "case manifest artifacts, PCAP, memory, disk, and IR inputs" : "none",
+    status: artSummary.preserved_evidence > 0 ? (alertEvidenceLinks > 0 ? "available" : "partial") : (acquisitionCount > 0 ? "partial" : "not generated yet"),
+    evidence: acquisitionCount > 0 ? "case manifest artifacts, preserved evidence, and acquisition metadata" : "none",
     next: acquisitionCount > 0 ? (alertEvidenceLinks > 0 ? "none" : "link acquired evidence to alerts or cases") : "run network, memory, disk, or industrial evidence acquisition",
-    detail: acquisitionCount > 0 ? `${acquisitionCount} acquisition-related artifacts indexed.` : "No forensic acquisition has been executed yet.",
+    detail: acquisitionCount > 0 ? `${artSummary.preserved_evidence || 0} preserved evidence, ${artSummary.acquisition_metadata || 0} acquisition metadata, ${artSummary.forensic_inputs || 0} forensic inputs.` : "No forensic acquisition has been executed yet.",
   });
 
   rows.push({
     component: "Preservation Manifest",
     meaning: "How evidence was preserved: hashes, paths, timestamps, formats, and preservation state.",
-    status: preservationCount > 0 ? (custodyCount > 0 ? "available" : "partial") : "not generated yet",
+    status: preservationCount > 0 ? ((artSummary.preserved_evidence > 0 && custodyCount > 0) ? "available" : "partial") : "not generated yet",
     evidence: preservationCount > 0 ? "manifest.json, hashes, indexed preserved artifacts" : "none",
     next: preservationCount > 0 ? (custodyCount > 0 ? "none" : "append custody and preservation context") : "preserve evidence inside a forensic case",
-    detail: preservationCount > 0 ? `${preservationCount} preservation-oriented artifacts indexed.` : "No forensic preservation has been executed yet.",
+    detail: preservationCount > 0 ? `${artSummary.preserved_evidence || 0} preserved evidence artifacts, ${custodyCount} custody logs, ${alertEvidenceLinks} alert→evidence links.` : "No forensic preservation has been executed yet.",
   });
 
   rows.push({
     component: "Chain of Custody",
     meaning: "Who or which process handled each evidence item and when that handling occurred.",
-    status: custodyCount > 0 ? "available" : (caseCount > 0 ? "missing" : "not generated yet"),
+    status: custodyCount > 0 ? (alertEvidenceLinks > 0 ? "available" : "partial") : (caseCount > 0 ? "missing" : "not generated yet"),
     evidence: custodyCount > 0 ? "chain_of_custody.log" : "none",
     next: custodyCount > 0 ? "none" : (caseCount > 0 ? "verify case generation and custody logging" : "create a forensic case"),
-    detail: custodyCount > 0 ? `${custodyCount} custody artifacts indexed.` : (caseCount > 0 ? "Forensic cases exist, but custody was not indexed." : "No forensic case has been created yet."),
+    detail: custodyCount > 0 ? (alertEvidenceLinks > 0 ? `${custodyCount} custody artifacts indexed and linked through evidential preservation.` : `${custodyCount} custody artifacts indexed, but cases are not linked to alerts.`) : (caseCount > 0 ? "Forensic cases exist, but custody was not indexed." : "No forensic case has been created yet."),
   });
 
   rows.push({
     component: "Forensic Analysis Report",
     meaning: "The technical results produced by disk, memory, or related forensic analysis workflows.",
-    status: analysisCount > 0 ? (evidenceAnalysisLinks > 0 ? "available" : "partial") : "not generated yet",
+    status: analysisCount > 0 ? (evidenceAnalysisLinks > 0 ? "available" : "partial") : "not completed",
     evidence: analysisCount > 0 ? "Volatility and TSK output directories" : "none",
     next: analysisCount > 0 ? (evidenceAnalysisLinks > 0 ? "none" : "link analysis outputs to evidence and cases") : "run memory or disk analysis",
     detail: analysisCount > 0 ? `${analysisCount} forensic analysis outputs indexed.` : "No forensic analysis has been executed yet.",
@@ -230,7 +291,7 @@ function buildModelRows() {
   rows.push({
     component: "Semantic Observation Report",
     meaning: "The high-level interpretation of what occurred across the scenario, detections, evidence, and analysis results.",
-    status: analysisCount === 0 ? "not generated yet" : "unresolved",
+    status: analysisCount === 0 ? "not generated" : "unresolved",
     evidence: "none",
     next: analysisCount === 0 ? "generate after forensic analysis is available" : "produce a higher-level interpretation report from analysis outputs",
     detail: analysisCount === 0 ? "No semantic interpretation is expected before forensic analysis exists." : "Analysis outputs exist, but no semantic observation report is indexed yet.",
@@ -240,11 +301,15 @@ function buildModelRows() {
 }
 
 function buildMaturityStates(modelRows) {
+  if (FOC.status?.maturity) {
+    return FOC.status.maturity;
+  }
   const getStatus = (name) => (modelRows.find(row => row.component === name) || {}).status || "unknown";
   const structural = ["Scenario BOM", "Tools BOM"].map(getStatus);
   const operational = ["Attack Attestation", "Detection Attestation"].map(getStatus);
   const evidential = ["Acquisition Manifest", "Preservation Manifest"].map(getStatus);
-  const forensic = ["Chain of Custody", "Forensic Analysis Report", "Semantic Observation Report"].map(getStatus);
+  const forensic = ["Chain of Custody", "Forensic Analysis Report"].map(getStatus);
+  const semantic = getStatus("Semantic Observation Report");
 
   function reduceStage(statuses) {
     if (statuses.every(s => s === "available")) return "available";
@@ -259,6 +324,7 @@ function buildMaturityStates(modelRows) {
     operational: reduceStage(operational),
     evidential: reduceStage(evidential),
     forensic: reduceStage(forensic),
+    semantic,
   };
 }
 
@@ -313,13 +379,19 @@ function renderOverview() {
     metricCard("Bindings", components.node_instance_bindings || 0, 10),
     metricCard("Attack→Alert", components.attack_alert_links || 0, 10),
     metricCard("Alert→Evidence", components.alert_evidence_links || 0, 10),
-    metricCard("Case/Custody", components.case_manifest_and_custody || 0, 10),
+    metricCard("Evidence/Custody", components.evidence_custody_chain || 0, 10),
+    metricCard("Analysis", components.analysis_outputs || 0, 10),
   ].join("");
 
   byId("overview-flags").innerHTML = [
     tag("Mode", status.mode || "unknown", statusClass(status.mode)),
     tag("Initialized", String(status.initialized ?? false), status.initialized ? "status-confirmed" : "status-missing"),
     tag("Critical gaps", String(status.critical_gaps ?? 0), Number(status.critical_gaps || 0) > 0 ? "status-missing" : "status-confirmed"),
+    tag("Structural", status.maturity?.structural || "unknown", statusClass(status.maturity?.structural)),
+    tag("Operational", status.maturity?.operational || "unknown", statusClass(status.maturity?.operational)),
+    tag("Evidential", status.maturity?.evidential || "unknown", statusClass(status.maturity?.evidential)),
+    tag("Forensic", status.maturity?.forensic || "unknown", statusClass(status.maturity?.forensic)),
+    tag("Semantic", status.maturity?.semantic || "unknown", statusClass(status.maturity?.semantic)),
   ].join("");
 }
 
@@ -335,6 +407,7 @@ function renderModel() {
     tag("Operational reconstruction", maturity.operational, statusClass(maturity.operational)),
     tag("Evidential reconstruction", maturity.evidential, statusClass(maturity.evidential)),
     tag("Forensic reconstruction", maturity.forensic, statusClass(maturity.forensic)),
+    tag("Semantic reconstruction", maturity.semantic, statusClass(maturity.semantic)),
   ].join("");
 
   byId("model-phase-note").innerHTML = noForensicsYet
@@ -369,12 +442,13 @@ function renderAnalytics() {
 }
 
 function renderAnalyticsKpis() {
+  const artifactSummary = FOC.status?.artifact_summary || {};
   const events = FOC.timeline?.events || [];
   const detectionAlerts = events.filter(ev => ev.event_type === "detection_alert").length;
   const attacks = events.filter(ev => ev.event_type === "attack_execution").length;
   const triage = events.filter(ev => ev.event_type === "triage_result").length;
   const cases = (FOC.cases?.cases || []).length;
-  const evidence = (FOC.artifacts?.artifacts || []).filter(item => ["network_pcap", "disk_image", "memory_dump", "industrial_capture"].includes(item.artifact_type)).length;
+  const evidence = artifactSummary.preserved_evidence || 0;
   const mitreCount = new Set(
     events
       .filter(ev => ev.event_type === "attack_execution")
@@ -537,6 +611,7 @@ function renderNodeBars() {
   const host = byId("chart-bars");
   const summary = byId("chart-bars-summary");
   const counts = new Map();
+  const names = nodeNameMap();
   (FOC.timeline?.events || []).forEach(ev => {
     const key = ev.related_node_id && ev.related_node_id !== "unknown" ? ev.related_node_id : null;
     if (!key) return;
@@ -553,7 +628,7 @@ function renderNodeBars() {
   host.innerHTML = rows.map(([label, value]) => `
     <div class="mb-3">
       <div class="flex items-center justify-between gap-3 text-sm mb-1">
-        <div class="mono">${esc(label)}</div>
+        <div>${esc(names.get(label) || label)}</div>
         <div class="mono text-xs text-slate-300">${esc(value)} events</div>
       </div>
       <div class="w-full h-3 rounded-full bg-slate-900/80 overflow-hidden">
@@ -615,70 +690,103 @@ function renderTechniqueRanking() {
 function renderNetworkGraph() {
   const host = byId("chart-network");
   const summary = byId("chart-network-summary");
-  const edges = FOC.relationships?.edges || [];
-  const relevant = edges.filter(edge => ["binds_instance", "desired_tool", "installed_tool", "produced_alert", "supports_evidence", "linked_evidence", "supports_analysis"].includes(edge.relation)).slice(0, 18);
-  if (!relevant.length) {
+  const scenario = FOC.scenario || {};
+  const rels = FOC.relationships?.edges || [];
+  const nodes = (scenario.nodes || []).slice(0, 8);
+  const nodeById = new Map(nodes.map(node => [node.node_id, node]));
+  if (!nodes.length) {
     summary.textContent = "No data";
     host.innerHTML = `<div class="text-sm text-slate-400">No causal relationship graph available.</div>`;
     return;
   }
-
-  const buckets = {
-    scenario: [],
-    node: [],
-    attack_execution: [],
-    alert: [],
-    evidence: [],
-    case: [],
-    analysis: [],
-  };
-
-  relevant.forEach(edge => {
-    if (buckets[edge.from_type]) buckets[edge.from_type].push(edge.from_id);
-    if (buckets[edge.to_type]) buckets[edge.to_type].push(edge.to_id);
+  const attackCounts = new Map();
+  const alertCounts = new Map();
+  const nodeAttackEvents = (FOC.timeline?.events || []).filter(ev => ev.event_type === "attack_execution");
+  const nodeAlertEvents = (FOC.timeline?.events || []).filter(ev => ev.event_type === "detection_alert");
+  nodeAttackEvents.forEach(ev => {
+    const nodeId = ev.related_node_id;
+    if (nodeId && nodeById.has(nodeId)) attackCounts.set(nodeId, (attackCounts.get(nodeId) || 0) + 1);
+  });
+  nodeAlertEvents.forEach(ev => {
+    const nodeId = ev.related_node_id;
+    if (nodeId && nodeById.has(nodeId)) alertCounts.set(nodeId, (alertCounts.get(nodeId) || 0) + 1);
   });
 
-  const unique = Object.fromEntries(Object.entries(buckets).map(([k, vals]) => [k, [...new Set(vals)].slice(0, 4)]));
-  const columns = [
-    { key: "scenario", x: 70, color: "#38bdf8" },
-    { key: "node", x: 220, color: "#22c55e" },
-    { key: "attack_execution", x: 380, color: "#f59e0b" },
-    { key: "alert", x: 540, color: "#ef4444" },
-    { key: "evidence", x: 700, color: "#a855f7" },
-    { key: "analysis", x: 860, color: "#f97316" },
+  const layout = [
+    { x: 180, y: 80 },
+    { x: 420, y: 80 },
+    { x: 660, y: 80 },
+    { x: 300, y: 220 },
+    { x: 540, y: 220 },
+    { x: 780, y: 220 },
+    { x: 180, y: 360 },
+    { x: 420, y: 360 },
   ];
   const positions = new Map();
-  columns.forEach(col => {
-    (unique[col.key] || []).forEach((id, idx) => {
-      positions.set(id, { x: col.x, y: 48 + idx * 78, color: col.color, kind: col.key });
-    });
+  nodes.forEach((node, idx) => {
+    const pos = layout[idx] || { x: 180 + (idx * 120), y: 80 };
+    const type = String(node.type || "").toLowerCase();
+    const color = type.includes("attack") ? "#f59e0b" : (type.includes("monitor") ? "#38bdf8" : (type.includes("plc") ? "#22c55e" : (type.includes("scada") ? "#a855f7" : "#ef4444")));
+    positions.set(node.node_id, { ...pos, color, node });
   });
 
-  const svgEdges = relevant
-    .filter(edge => positions.has(edge.from_id) && positions.has(edge.to_id))
-    .map(edge => {
-      const a = positions.get(edge.from_id);
-      const b = positions.get(edge.to_id);
-      return `
-        <path d="M ${a.x + 44} ${a.y} C ${a.x + 88} ${a.y}, ${b.x - 88} ${b.y}, ${b.x - 44} ${b.y}" fill="none" stroke="rgba(148,163,184,0.35)" stroke-width="2" />
-        <text x="${(a.x + b.x) / 2}" y="${((a.y + b.y) / 2) - 6}" text-anchor="middle" fill="#8fa3bf" font-size="9">${esc(edge.relation)}</text>
-      `;
-    }).join("");
+  const structuralEdges = (scenario.edges || [])
+    .filter(edge => positions.has(edge.source_node_id) && positions.has(edge.target_node_id))
+    .map(edge => ({
+      from: edge.source_node_id,
+      to: edge.target_node_id,
+      label: "network",
+      color: "rgba(148,163,184,0.35)",
+    }));
+  const industrialEdges = (scenario.industrial_linkages || [])
+    .filter(link => positions.has(link.ot_node_id) && positions.has(link.linked_to))
+    .map(link => ({
+      from: link.linked_to,
+      to: link.ot_node_id,
+      label: "it↔ot",
+      color: "rgba(34,197,94,0.5)",
+    }));
+  const detectionEdges = rels
+    .filter(edge => edge.relation === "produced_alert" && edge.details?.node_id && positions.has(edge.details.node_id))
+    .slice(0, 12)
+    .map(edge => ({
+      from: edge.details.node_id,
+      to: edge.details.node_id,
+      label: edge.correlation_status || "alert",
+      color: edge.correlation_status === "confirmed" ? "rgba(239,68,68,0.6)" : "rgba(234,179,8,0.5)",
+    }));
 
-  const svgNodes = [...positions.entries()].map(([id, meta]) => `
+  const allEdges = [...structuralEdges, ...industrialEdges];
+  const svgEdges = allEdges.map(edge => {
+    const a = positions.get(edge.from);
+    const b = positions.get(edge.to);
+    if (!a || !b) return "";
+    const midX = (a.x + b.x) / 2;
+    const midY = (a.y + b.y) / 2;
+    return `
+      <line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${edge.color}" stroke-width="3" />
+      <text x="${midX}" y="${midY - 8}" text-anchor="middle" fill="#8fa3bf" font-size="10">${esc(edge.label)}</text>
+    `;
+  }).join("");
+
+  const svgNodes = [...positions.values()].map(meta => `
     <g>
-      <circle cx="${meta.x}" cy="${meta.y}" r="22" fill="${meta.color}" opacity="0.9"></circle>
-      <text x="${meta.x}" y="${meta.y - 30}" text-anchor="middle" fill="#8fa3bf" font-size="10">${esc(meta.kind.replaceAll("_", " "))}</text>
-      <text x="${meta.x}" y="${meta.y + 4}" text-anchor="middle" fill="#08101b" font-size="9" font-weight="800">${esc(String(id).slice(0, 10))}</text>
+      <circle cx="${meta.x}" cy="${meta.y}" r="34" fill="${meta.color}" opacity="0.9"></circle>
+      <text x="${meta.x}" y="${meta.y - 46}" text-anchor="middle" fill="#8fa3bf" font-size="10">${esc(meta.node.type || "node")}</text>
+      <text x="${meta.x}" y="${meta.y - 4}" text-anchor="middle" fill="#08101b" font-size="11" font-weight="800">${esc(meta.node.name || meta.node.node_id)}</text>
+      <text x="${meta.x}" y="${meta.y + 14}" text-anchor="middle" fill="#08101b" font-size="9">${esc((meta.node.name || "").length > 16 ? "" : (meta.node.linked_to ? "linked" : ""))}</text>
+      <text x="${meta.x}" y="${meta.y + 54}" text-anchor="middle" fill="#8fa3bf" font-size="10">A:${esc(attackCounts.get(meta.node.node_id) || 0)} | D:${esc(alertCounts.get(meta.node.node_id) || 0)}</text>
     </g>
   `).join("");
 
-  summary.textContent = `${relevant.length} edges visualized`;
+  const legend = detectionEdges.length ? `<div class="text-xs text-slate-400 mt-3">Node counters: A = attack executions targeting the node, D = detection alerts resolved to the node.</div>` : `<div class="text-xs text-slate-400 mt-3">Node counters: A = attack executions targeting the node, D = detection alerts resolved to the node.</div>`;
+  summary.textContent = `${nodes.length} nodes | ${allEdges.length} structural edges | ${nodeAlertEvents.length} detection events`;
   host.innerHTML = `
-    <svg viewBox="0 0 940 320" class="w-full h-auto">
+    <svg viewBox="0 0 920 420" class="w-full h-auto">
       ${svgEdges}
       ${svgNodes}
     </svg>
+    ${legend}
   `;
 }
 
@@ -809,6 +917,7 @@ function renderTools() {
 function timelineCard(ev) {
   const details = ev.details || {};
   let detailHtml = "";
+  const nodeNames = nodeNameMap();
 
   if (ev.event_type === "attack_execution") {
     detailHtml = `
@@ -829,6 +938,8 @@ function timelineCard(ev) {
         <div>Severity: <span class="mono">${esc(details.triage_severity || "not_available")}</span></div>
         <div>Agent: <span class="mono">${esc((details.agent || {}).name || "unknown")} @ ${esc((details.agent || {}).ip || "unknown")}</span></div>
         <div>Correlated attack: <span class="mono">${esc(details.correlated_attack_display || "unresolved")} (${esc(details.correlated_attack_mitre_id || "unresolved")})</span></div>
+        <div>Correlation: <span class="mono">${esc(details.correlation_status || "unresolved")} / ${esc(details.correlation_confidence || "low")}</span></div>
+        <div>Reason: <span class="mono">${esc(details.correlation_reason || "not_available")}</span></div>
       </div>`;
   } else if (ev.event_type === "triage_result") {
     detailHtml = `
@@ -840,16 +951,27 @@ function timelineCard(ev) {
       </div>`;
   }
 
+  if (ev.aggregate) {
+    detailHtml += `
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3 text-[11px] text-slate-300">
+        <div>Count: <span class="mono">${esc(ev.aggregate_count || 1)}</span></div>
+        <div>Example alert: <span class="mono">${esc(ev.example_alert_id || "unresolved")}</span></div>
+        <div>First seen: <span class="mono">${esc(ev.first_seen || ev.timestamp || "unknown")}</span></div>
+        <div>Last seen: <span class="mono">${esc(ev.last_seen || ev.timestamp || "unknown")}</span></div>
+        <div class="md:col-span-2">Affected nodes: <span class="mono">${esc((ev.affected_nodes || []).map(id => nodeNames.get(id) || id).join(", ") || "unresolved")}</span></div>
+      </div>`;
+  }
+
   return `
     <div class="glass-soft rounded-2xl p-4">
       <div class="flex items-center justify-between gap-3">
-        <div class="text-sm font-black">${esc(ev.event_type || "event")}</div>
-        <div class="mono text-xs text-slate-400">${esc(ev.timestamp || "unknown")}</div>
+        <div class="text-sm font-black">${esc(eventTypeLabel(ev.event_type || "event"))}</div>
+        <div class="mono text-xs text-slate-400">${esc(ev.aggregate ? (ev.last_seen || ev.timestamp || "unknown") : (ev.timestamp || "unknown"))}</div>
       </div>
       <div class="text-sm text-slate-300 mt-2">${esc(ev.description || "No description")}</div>
       <div class="flex flex-wrap gap-2 mt-3">
         ${tag("source", ev.source_type || "unknown")}
-        ${tag("node", ev.related_node_id || "unresolved", statusClass(ev.related_node_id))}
+        ${tag("node", nodeNames.get(ev.related_node_id) || ev.related_node_id || "unresolved", statusClass(ev.related_node_id))}
         ${tag("instance", ev.related_instance_id || "unresolved", statusClass(ev.related_instance_id))}
         ${tag("phase", ev.phase || "unknown", statusClass(ev.phase))}
         ${tag("status", ev.status || "unknown", statusClass(ev.status))}
@@ -860,27 +982,42 @@ function timelineCard(ev) {
 }
 
 function renderTimeline() {
-  const events = [...(FOC.timeline?.events || [])].sort((a, b) => parseEventTime(b.timestamp) - parseEventTime(a.timestamp));
+  const events = aggregateTimelineEvents(FOC.timeline?.events || []);
   const phases = new Set(events.map(ev => ev.phase).filter(Boolean));
-  byId("timeline-summary").textContent = `${events.length} events | ${phases.size} phases`;
+  const aggregates = events.filter(ev => ev.aggregate).length;
+  byId("timeline-summary").textContent = `${events.length} display events | ${aggregates} aggregated groups | ${phases.size} phases`;
   byId("timeline-events").innerHTML = events.slice(0, 80).map(timelineCard).join("") || `<div class="text-sm text-slate-400">No timeline available.</div>`;
 }
 
 function renderAlerts() {
-  const events = [...(FOC.timeline?.events || [])]
+  const events = aggregateTimelineEvents(
+    [...(FOC.timeline?.events || [])]
     .filter(ev => ["detection_alert", "triage_result", "case_created", "dfir_orchestration_start", "dfir_orchestration_done", "case_opened", "case_attached"].includes(ev.event_type))
-    .sort((a, b) => parseEventTime(b.timestamp) - parseEventTime(a.timestamp));
+  );
   const detectionCount = events.filter(ev => ev.event_type === "detection_alert").length;
   const triageCount = events.filter(ev => ev.event_type === "triage_result").length;
   const escalationCount = events.filter(ev => ["case_created", "dfir_orchestration_start", "dfir_orchestration_done", "case_opened", "case_attached"].includes(ev.event_type)).length;
-  byId("alerts-summary").textContent = `${events.length} events | ${detectionCount} alerts | ${triageCount} triage | ${escalationCount} escalation`;
+  const aggregateCount = events.filter(ev => ev.aggregate).length;
+  byId("alerts-summary").textContent = `${events.length} display events | ${aggregateCount} aggregated | ${detectionCount} alerts | ${triageCount} triage | ${escalationCount} escalation`;
   byId("alerts-events").innerHTML = events.slice(0, 60).map(timelineCard).join("") || `<div class="text-sm text-slate-400">No alert or escalation events available.</div>`;
 }
 
 function renderCases() {
   const cases = FOC.cases?.cases || [];
   const artifacts = FOC.artifacts?.artifacts || [];
-  byId("cases-panel").innerHTML = cases.map(entry => {
+  const artifactSummary = FOC.status?.artifact_summary || {};
+  const summaryHtml = `
+    <div class="glass-soft rounded-3xl p-4">
+      <div class="text-xs uppercase tracking-[0.2em] text-slate-400 font-black">Evidence Class Summary</div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 text-sm">
+        <div>Acquisition metadata: <span class="mono text-slate-300">${esc(artifactSummary.acquisition_metadata || 0)}</span></div>
+        <div>Preserved evidence: <span class="mono text-slate-300">${esc(artifactSummary.preserved_evidence || 0)}</span></div>
+        <div>Forensic inputs: <span class="mono text-slate-300">${esc(artifactSummary.forensic_inputs || 0)}</span></div>
+        <div>Analysis outputs: <span class="mono text-slate-300">${esc(artifactSummary.analysis_outputs || 0)}</span></div>
+      </div>
+    </div>
+  `;
+  const casesHtml = cases.map(entry => {
     const caseArtifacts = artifacts.filter(a => a.case_id === entry.case_id).slice(0, 6);
     return `
       <div class="glass-soft rounded-3xl p-4">
@@ -900,6 +1037,7 @@ function renderCases() {
       </div>
     `;
   }).join("") || `<div class="text-sm text-slate-400">No forensic cases indexed.</div>`;
+  byId("cases-panel").innerHTML = summaryHtml + casesHtml;
 }
 
 function renderGaps() {

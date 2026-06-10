@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NICS CyberLab | Cyber Range Story Mode</title>
+  <title>NICS CyberLab</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -264,12 +264,38 @@
     border-radius: 14px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 12px;
     padding: 0 13px;
     color: rgba(226, 232, 240, 0.76);
     font-size: 13px;
     font-weight: 700;
     border: 1px solid transparent;
+  }
+  .side-item[data-view] {
+    cursor: pointer;
+  }
+
+  .side-item-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .side-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .side-sub {
+    font-size: 9px;
+    color: rgba(148, 163, 184, 0.72);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 800;
   }
 
   .side-item.active {
@@ -284,6 +310,49 @@
     color: var(--blue);
     font-weight: 900;
     text-align: center;
+  }
+
+  .side-state {
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 5px 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    background: rgba(2, 8, 23, 0.52);
+    white-space: nowrap;
+  }
+
+  .status-ready,
+  .status-active,
+  .status-present,
+  .status-installed,
+  .status-synced {
+    color: #4ade80;
+    border-color: rgba(74, 222, 128, 0.24);
+  }
+
+  .status-incomplete,
+  .status-idle,
+  .status-pending,
+  .status-stale {
+    color: var(--yellow);
+    border-color: rgba(250, 204, 21, 0.24);
+  }
+
+  .status-missing,
+  .status-offline,
+  .status-failed {
+    color: #f87171;
+    border-color: rgba(248, 113, 113, 0.24);
+  }
+
+  .status-unknown,
+  .status-no-data,
+  .status-not-available {
+    color: rgba(203, 213, 225, 0.72);
+    border-color: rgba(148, 163, 184, 0.18);
   }
 
   .side-status {
@@ -632,6 +701,131 @@
     color: rgba(226, 232, 240, 0.86);
     font-size: 12px;
     font-weight: 800;
+  }
+
+  .panel-note {
+    margin: -4px 0 14px 0;
+    color: rgba(148, 163, 184, 0.78);
+    font-size: 10px;
+    line-height: 1.35;
+    font-weight: 700;
+  }
+
+  .panel-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .panel-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(3, 10, 23, 0.46);
+    border: 1px solid rgba(148, 163, 184, 0.12);
+  }
+
+  .panel-row strong {
+    color: rgba(241, 245, 249, 0.94);
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .panel-row span {
+    color: rgba(148, 163, 184, 0.78);
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .panel-status {
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 5px 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(2, 8, 23, 0.55);
+    white-space: nowrap;
+  }
+
+  .panel-empty {
+    color: rgba(148, 163, 184, 0.76);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.45;
+  }
+  .live-alert-bar {
+    margin-top: 18px;
+    border: 1px solid rgba(239, 68, 68, 0.18);
+    background:
+      linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(3, 10, 23, 0.92)),
+      rgba(3, 10, 23, 0.92);
+    border-radius: 18px;
+    padding: 14px 16px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 14px;
+    align-items: center;
+  }
+  .live-alert-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .live-alert-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--red);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45);
+    animation: pulseAlert 1.8s infinite;
+  }
+  @keyframes pulseAlert {
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45); }
+    70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  }
+  .live-alert-title {
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: rgba(226, 232, 240, 0.78);
+  }
+  .live-alert-body strong {
+    display: block;
+    color: rgba(248, 250, 252, 0.96);
+    font-size: 14px;
+    font-weight: 900;
+  }
+  .live-alert-body span {
+    display: block;
+    margin-top: 4px;
+    color: rgba(148, 163, 184, 0.82);
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .live-alert-meta {
+    text-align: right;
+  }
+  .live-alert-meta strong {
+    display: block;
+    color: rgba(248, 250, 252, 0.96);
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .live-alert-meta span {
+    display: block;
+    margin-top: 4px;
+    color: rgba(148, 163, 184, 0.82);
+    font-size: 11px;
+    font-weight: 700;
   }
 
   .donut {
@@ -1303,7 +1497,7 @@
         <div class="brand-mark">N</div>
         <div class="brand-title">
           <h1>NICS <span>CyberLab</span></h1>
-          <p>Cyber Range Platform</p>
+          <p>NICS | CyberLab Platform</p>
         </div>
       </div>
 
@@ -1311,48 +1505,48 @@
         <div class="kpi-card">
           <div class="kpi-icon">RG</div>
           <div>
-            <div class="kpi-label">Active Ranges</div>
-            <div class="kpi-value">7 <span class="kpi-delta">+16%</span></div>
+            <div class="kpi-label">OpenStack Instances</div>
+            <div id="kpi-openstack-instances" class="kpi-value">-- <span class="kpi-delta">Unknown</span></div>
           </div>
         </div>
 
         <div class="kpi-card">
           <div class="kpi-icon">US</div>
           <div>
-            <div class="kpi-label">Active Users</div>
-            <div class="kpi-value">24 <span class="kpi-delta">+9%</span></div>
+            <div class="kpi-label">Installed Tools</div>
+            <div id="kpi-installed-tools" class="kpi-value">-- <span class="kpi-delta">Unknown</span></div>
           </div>
         </div>
 
         <div class="kpi-card">
           <div class="kpi-icon">SC</div>
           <div>
-            <div class="kpi-label">Scenarios</div>
-            <div class="kpi-value">32 <span class="kpi-delta">+22%</span></div>
+            <div class="kpi-label">Detected Alerts</div>
+            <div id="kpi-detected-alerts" class="kpi-value">-- <span class="kpi-delta">No data</span></div>
           </div>
         </div>
 
         <div class="kpi-card">
           <div class="kpi-icon" style="color:var(--red);border-color:rgba(239,68,68,.28);background:rgba(239,68,68,.08);">AL</div>
           <div>
-            <div class="kpi-label">Alerts</div>
-            <div class="kpi-value">12 <span class="kpi-delta" style="color:#f87171;">-8%</span></div>
+            <div class="kpi-label">Forensic Cases</div>
+            <div id="kpi-forensic-cases" class="kpi-value">-- <span class="kpi-delta">No data</span></div>
           </div>
         </div>
 
         <div class="kpi-card">
           <div class="kpi-icon">TL</div>
           <div>
-            <div class="kpi-label">Tools Deployed</div>
-            <div class="kpi-value">58 <span class="kpi-delta">+13%</span></div>
+            <div class="kpi-label">Evidence Artifacts</div>
+            <div id="kpi-evidence-artifacts" class="kpi-value">-- <span class="kpi-delta">Not available</span></div>
           </div>
         </div>
 
         <div class="kpi-card">
           <div class="kpi-icon">DF</div>
           <div>
-            <div class="kpi-label">Data Ingested</div>
-            <div class="kpi-value">1.24 TB <span class="kpi-delta">+27%</span></div>
+            <div class="kpi-label">FOC Readiness</div>
+            <div id="kpi-foc-readiness" class="kpi-value">-- <span class="kpi-delta">Unknown</span></div>
           </div>
         </div>
       </div>
@@ -1367,22 +1561,82 @@
 
     <aside class="sidebar">
       <nav class="side-nav">
-        <div class="side-item"><span class="side-glyph">01</span><span>Dashboard</span></div>
-        <div class="side-item active"><span class="side-glyph">02</span><span>Story Mode</span></div>
-        <div class="side-item"><span class="side-glyph">03</span><span>Scenarios</span></div>
-        <div class="side-item"><span class="side-glyph">04</span><span>Inventory</span></div>
-        <div class="side-item"><span class="side-glyph">05</span><span>Tools</span></div>
-        <div class="side-item"><span class="side-glyph">06</span><span>Attack Lab</span></div>
-        <div class="side-item"><span class="side-glyph">07</span><span>Detection</span></div>
-        <div class="side-item"><span class="side-glyph">08</span><span>Forensics</span></div>
-        <div class="side-item"><span class="side-glyph">09</span><span>Reports</span></div>
-        <div class="side-item"><span class="side-glyph">10</span><span>Comparisons</span></div>
+        <div class="side-item" data-view="index-scenario" tabindex="0" role="button">
+          <div class="side-item-main">
+            <span class="side-glyph">01</span>
+            <div class="side-text"><span>IT Scenario</span><span class="side-sub">Scenario creation</span></div>
+          </div>
+          <span id="wf-it-scenario" class="side-state status-unknown">Unknown</span>
+        </div>
+        <div class="side-item active" data-view="index-tools" tabindex="0" role="button">
+          <div class="side-item-main">
+            <span class="side-glyph">02</span>
+            <div class="side-text"><span>Tool Deployment</span><span class="side-sub">Node instrumentation</span></div>
+          </div>
+          <span id="wf-tool-deployment" class="side-state status-unknown">Unknown</span>
+        </div>
+        <div class="side-item" data-view="industrial" tabindex="0" role="button">
+          <div class="side-item-main">
+            <span class="side-glyph">03</span>
+            <div class="side-text"><span>OT Scenario</span><span class="side-sub">PLC and SCADA</span></div>
+          </div>
+          <span id="wf-ot-scenario" class="side-state status-unknown">Unknown</span>
+        </div>
+        <div class="side-item" data-view="inventory" tabindex="0" role="button">
+          <div class="side-item-main">
+            <span class="side-glyph">04</span>
+            <div class="side-text"><span>Inventory</span><span class="side-sub">OpenStack synchronization</span></div>
+          </div>
+          <span id="wf-inventory" class="side-state status-unknown">Unknown</span>
+        </div>
+        <div class="side-item" data-view="dashboard_especial" tabindex="0" role="button">
+          <div class="side-item-main">
+            <span class="side-glyph">05</span>
+            <div class="side-text"><span>Attack Lab</span><span class="side-sub">ATT&CK execution</span></div>
+          </div>
+          <span id="wf-attack-lab" class="side-state status-unknown">Unknown</span>
+        </div>
+        <div class="side-item" data-view="dashboard" tabindex="0" role="button">
+          <div class="side-item-main">
+            <span class="side-glyph">06</span>
+            <div class="side-text"><span>Detection Layer</span><span class="side-sub">Monitoring and alerts</span></div>
+          </div>
+          <span id="wf-detection-layer" class="side-state status-unknown">Unknown</span>
+        </div>
+        <div class="side-item" data-view="forensics" tabindex="0" role="button">
+          <div class="side-item-main">
+            <span class="side-glyph">07</span>
+            <div class="side-text"><span>Forensic Lab</span><span class="side-sub">Acquisition and preservation</span></div>
+          </div>
+          <span id="wf-forensic-lab" class="side-state status-unknown">Unknown</span>
+        </div>
+        <div class="side-item" data-view="forensic_report_analysis" tabindex="0" role="button">
+          <div class="side-item-main">
+            <span class="side-glyph">08</span>
+            <div class="side-text"><span>Forensic Report</span><span class="side-sub">Technical findings</span></div>
+          </div>
+          <span id="wf-forensic-report" class="side-state status-unknown">Unknown</span>
+        </div>
+        <div class="side-item" data-view="foc_reconstruction" tabindex="0" role="button">
+          <div class="side-item-main">
+            <span class="side-glyph">09</span>
+            <div class="side-text"><span>FOC Reconstruction</span><span class="side-sub">Scientific validation</span></div>
+          </div>
+          <span id="wf-foc-reconstruction" class="side-state status-unknown">Unknown</span>
+        </div>
+        <div class="side-item" data-view="nicscyberlab_dashboard" tabindex="0" role="button">
+          <div class="side-item-main">
+            <span class="side-glyph">10</span>
+            <div class="side-text"><span>Comparisons</span><span class="side-sub">Scenario comparison</span></div>
+          </div>
+          <span id="wf-comparisons" class="side-state status-unknown">Unknown</span>
+        </div>
       </nav>
 
       <div class="side-status">
-        <h3><span class="dot"></span>Range Status</h3>
-        <strong>Operational</strong>
-        <p>All systems normal</p>
+        <h3><span class="dot"></span>Lab Workflow Status</h3>
+        <strong id="workflow-status-title">Unknown</strong>
+        <p id="workflow-status-meta">No workflow state available yet.</p>
       </div>
     </aside>
 
@@ -1390,7 +1644,7 @@
       <div class="workspace-inner">
         <section class="story-header" id="mainHeader">
           <div>
-            <h2>Cyber Range Story Mode</h2>
+            <h2>Nics | Cyber Lab</h2>
             <p id="sub-title"
                class="text-content"
                data-es="Flujo progresivo para crear escenarios, desplegar herramientas, ejecutar ataques, validar defensas y reconstruir evidencias forenses."
@@ -1401,20 +1655,35 @@
 
           <div class="range-summary">
             <div>
-              <span>Range</span>
-              <strong>NICS-CR-01</strong>
+              <span>Scenario</span>
+              <strong id="summary-scenario">None</strong>
             </div>
             <div>
-              <span>Environment</span>
-              <strong>Isolated</strong>
+              <span>Infrastructure</span>
+              <strong id="summary-infrastructure">Unknown</strong>
             </div>
             <div>
-              <span>Mode</span>
-              <strong>Story</strong>
+              <span>Monitoring</span>
+              <strong id="summary-monitoring">Unknown</strong>
             </div>
             <div>
-              <span>State</span>
-              <strong>Ready</strong>
+              <span>Active Case</span>
+              <strong id="summary-active-case">None</strong>
+            </div>
+          </div>
+
+          <div class="live-alert-bar">
+            <div class="live-alert-head">
+              <span class="live-alert-dot"></span>
+              <div class="live-alert-title">Live Alert Indicator</div>
+            </div>
+            <div class="live-alert-body">
+              <strong id="live-alert-title">No live alert telemetry</strong>
+              <span id="live-alert-detail">No recent detection signal is available yet.</span>
+            </div>
+            <div class="live-alert-meta">
+              <strong id="live-alert-source">Unknown</strong>
+              <span id="live-alert-time">--</span>
             </div>
           </div>
         </section>
@@ -1571,48 +1840,42 @@
 
         <section class="bottom-grid">
           <div class="bottom-panel">
-            <h3>Scenario Progress</h3>
-            <div class="donut"><strong>65%</strong></div>
+            <h3>Scenario Readiness</h3>
+            <p class="panel-note">Current readiness of the active laboratory scenario.</p>
+            <div id="panel-scenario-readiness" class="panel-list">
+              <div class="panel-empty">Unknown</div>
+            </div>
           </div>
 
           <div class="bottom-panel">
             <h3>Recent Activity</h3>
-            <div class="activity-list">
-              <div class="activity-item"><span>01</span><b>Attack simulation started</b><time>10:42:18</time></div>
-              <div class="activity-item"><span>02</span><b>New alert generated</b><time>10:41:05</time></div>
-              <div class="activity-item"><span>03</span><b>Tool deployed</b><time>10:39:47</time></div>
-              <div class="activity-item"><span>04</span><b>Evidence collected</b><time>10:38:22</time></div>
+            <p class="panel-note">Latest observable events from scenario, tooling, detection, forensics, and FOC.</p>
+            <div id="panel-recent-activity" class="activity-list">
+              <div class="panel-empty">No recent activity detected</div>
             </div>
           </div>
 
           <div class="bottom-panel">
-            <h3>Threat Landscape</h3>
-            <div class="mini-map"></div>
-          </div>
-
-          <div class="bottom-panel">
-            <h3>Top Attack Tactics</h3>
-            <div class="mini-chart">
-              <div class="bar" style="height:82%;"></div>
-              <div class="bar" style="height:68%;"></div>
-              <div class="bar" style="height:58%;"></div>
-              <div class="bar" style="height:48%;"></div>
-              <div class="bar" style="height:38%;"></div>
-              <div class="bar" style="height:28%;"></div>
+            <h3>Detection Coverage</h3>
+            <p class="panel-note">Real or prudently inferred detector and telemetry availability.</p>
+            <div id="panel-detection-coverage" class="panel-list">
+              <div class="panel-empty">Unknown</div>
             </div>
           </div>
 
           <div class="bottom-panel">
-            <h3>Defense Status</h3>
-            <div class="gauge">
-              <div class="gauge-ring"><strong>78</strong></div>
-              <ul>
-                <li><span>Network</span><b>82</b></li>
-                <li><span>Host</span><b>76</b></li>
-                <li><span>Monitoring</span><b>74</b></li>
-                <li><span>Detection</span><b>81</b></li>
-                <li><span>Response</span><b>80</b></li>
-              </ul>
+            <h3>Attack Catalog Status</h3>
+            <p class="panel-note">Operational state of the ATT&CK-aligned attack techniques available in the lab.</p>
+            <div id="panel-attack-catalog" class="panel-list">
+              <div class="panel-empty">Unknown</div>
+            </div>
+          </div>
+
+          <div class="bottom-panel">
+            <h3>Forensic / FOC Readiness</h3>
+            <p class="panel-note">Scientific and forensic reconstruction readiness of the current experiment.</p>
+            <div id="panel-forensic-foc" class="panel-list">
+              <div class="panel-empty">Unknown</div>
             </div>
           </div>
         </section>
@@ -2590,6 +2853,431 @@
         DFIR.running = false;
       };
     }
+
+    function homeSetValue(id, main, delta) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.innerHTML = `${main} <span class="kpi-delta">${delta}</span>`;
+    }
+
+    function homeStatusClass(value) {
+      const normalized = String(value || "unknown").toLowerCase().replace(/\s+/g, "-");
+      if ([
+        "ready", "active", "present", "installed", "synced", "available",
+        "complete", "connected", "listening", "executed", "detected"
+      ].includes(normalized)) {
+        return "status-ready";
+      }
+      if ([
+        "idle", "incomplete", "pending", "stale", "partial",
+        "mostly_available", "reconnecting", "no-case"
+      ].includes(normalized)) {
+        return "status-incomplete";
+      }
+      if (["missing", "offline", "failed", "error"].includes(normalized)) {
+        return "status-missing";
+      }
+      return "status-unknown";
+    }
+
+    function homeBadge(label, value, clsType = "panel-status") {
+      return `<span class="${clsType} ${homeStatusClass(value)}">${label ? `${label}: ` : ""}${String(value ?? "Unknown")}</span>`;
+    }
+
+    async function homeFetchJson(url) {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error(`${url} -> ${res.status}`);
+      return res.json();
+    }
+
+    function homeToolSummary(instances) {
+      let installed = 0;
+      let pending = 0;
+      let failed = 0;
+      const toolNames = new Set();
+
+      (instances || []).forEach(instance => {
+        const tools = instance.tools || instance.installed_tools || {};
+        Object.entries(tools).forEach(([name, value]) => {
+          toolNames.add(String(name || "").toLowerCase());
+          const state = String(value || "").toLowerCase();
+          if (["pending", "uninstalling"].includes(state)) pending += 1;
+          else if (["error", "failed"].includes(state)) failed += 1;
+          else installed += 1;
+        });
+      });
+
+      return { installed, pending, failed, toolNames };
+    }
+
+    function homeLatestEvent(timeline, eventTypes) {
+      const events = (timeline?.events || []).filter(ev => eventTypes.includes(ev.event_type));
+      events.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+      return events[0] || null;
+    }
+
+    function homeRenderWorkflowStatus(data) {
+      const items = [
+        ["wf-it-scenario", data.itScenarioStatus],
+        ["wf-tool-deployment", data.toolDeploymentStatus],
+        ["wf-ot-scenario", data.otScenarioStatus],
+        ["wf-inventory", data.inventoryStatus],
+        ["wf-attack-lab", data.attackLabStatus],
+        ["wf-detection-layer", data.detectionLayerStatus],
+        ["wf-forensic-lab", data.forensicLabStatus],
+        ["wf-forensic-report", data.forensicReportStatus],
+        ["wf-foc-reconstruction", data.focStatusLabel],
+        ["wf-comparisons", data.comparisonsStatus],
+      ];
+
+      items.forEach(([id, value]) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = value;
+        el.className = `side-state ${homeStatusClass(value)}`;
+      });
+
+      const title = document.getElementById("workflow-status-title");
+      const meta = document.getElementById("workflow-status-meta");
+      if (title) title.textContent = data.workflowHeadline;
+      if (meta) meta.textContent = data.workflowMeta;
+    }
+
+    function homeRenderScenarioReadiness(data) {
+      const host = document.getElementById("panel-scenario-readiness");
+      if (!host) return;
+      const rows = [
+        ["IT scenario", data.itScenarioPresent ? "present" : "missing", data.scenarioName || "none"],
+        ["OT scenario", data.otScenarioPresent ? "present" : "missing", data.otScenarioMeta],
+        ["Inventory", data.inventoryStatusPanel, data.inventoryMeta],
+        ["Tools", data.toolsStatusPanel, data.toolsMeta],
+        ["Detection", data.detectionStatusPanel, data.detectionMeta],
+        ["Forensics", data.forensicsStatusPanel, data.forensicsMeta],
+        ["FOC", data.focPanelStatus, data.focMeta],
+      ];
+      host.innerHTML = rows.map(([label, status, meta]) => `
+        <div class="panel-row">
+          <div>
+            <strong>${label}</strong>
+            <span>${meta}</span>
+          </div>
+          ${homeBadge("", status)}
+        </div>
+      `).join("");
+    }
+
+    function homeRenderRecentActivity(data) {
+      const host = document.getElementById("panel-recent-activity");
+      if (!host) return;
+      const events = data.recentActivity || [];
+      if (!events.length) {
+        host.innerHTML = `<div class="panel-empty">No recent activity detected</div>`;
+        return;
+      }
+      host.innerHTML = events.map((item, idx) => `
+        <div class="activity-item">
+          <span>${String(idx + 1).padStart(2, "0")}</span>
+          <b>${item.label}</b>
+          <time>${item.time}</time>
+        </div>
+      `).join("");
+    }
+
+    function homeRenderDetectionCoverage(data) {
+      const host = document.getElementById("panel-detection-coverage");
+      if (!host) return;
+      host.innerHTML = data.detectionCoverage.map(item => `
+        <div class="panel-row">
+          <div>
+            <strong>${item.label}</strong>
+            <span>${item.meta}</span>
+          </div>
+          ${homeBadge("", item.status)}
+        </div>
+      `).join("");
+    }
+
+    function homeRenderAttackCatalog(data) {
+      const host = document.getElementById("panel-attack-catalog");
+      if (!host) return;
+      host.innerHTML = data.attackCatalog.map(item => `
+        <div class="panel-row">
+          <div>
+            <strong>${item.label}</strong>
+            <span>${item.meta}</span>
+          </div>
+          ${homeBadge("", item.status)}
+        </div>
+      `).join("");
+    }
+
+    function homeRenderForensicFoc(data) {
+      const host = document.getElementById("panel-forensic-foc");
+      if (!host) return;
+      host.innerHTML = data.forensicFoc.map(item => `
+        <div class="panel-row">
+          <div>
+            <strong>${item.label}</strong>
+            <span>${item.meta}</span>
+          </div>
+          ${homeBadge("", item.status)}
+        </div>
+      `).join("");
+    }
+
+    function homeRenderSummary(data) {
+      const scenario = document.getElementById("summary-scenario");
+      const infra = document.getElementById("summary-infrastructure");
+      const monitoring = document.getElementById("summary-monitoring");
+      const activeCase = document.getElementById("summary-active-case");
+      if (scenario) scenario.textContent = data.scenarioName || "None";
+      if (infra) infra.textContent = data.infrastructureSummary;
+      if (monitoring) monitoring.textContent = data.monitoringSummary;
+      if (activeCase) activeCase.textContent = data.activeCaseSummary;
+    }
+
+    function homeRenderLiveAlert(alert) {
+      const title = document.getElementById("live-alert-title");
+      const detail = document.getElementById("live-alert-detail");
+      const source = document.getElementById("live-alert-source");
+      const time = document.getElementById("live-alert-time");
+
+      if (!title || !detail || !source || !time) return;
+
+      if (!alert) {
+        title.textContent = "No live alert telemetry";
+        detail.textContent = "No recent detection signal is available yet.";
+        source.textContent = "Unknown";
+        time.textContent = "--";
+        return;
+      }
+
+      const agentName = alert.agent?.name || alert.agent_name || alert.hostname || "Unknown node";
+      const rule = alert.rule?.description || alert.signature || alert.event_id || "Detection alert";
+      const severity = alert.severity || alert.rule?.level || alert.level || "Unknown";
+      const detector = alert.decoder?.name || alert.rule?.groups?.[0] || alert.source || "Wazuh / Suricata";
+      const src = alert.data?.srcip || alert.srcip || alert.src_ip || "unknown";
+      const dst = alert.data?.dstip || alert.dstip || alert.dst_ip || "unknown";
+
+      title.textContent = rule;
+      detail.textContent = `${agentName} | severity ${severity} | src ${src} -> dst ${dst}`;
+      source.textContent = detector;
+      time.textContent = alert.timestamp || alert.ts || "--";
+    }
+
+    function homeBindSidebarNavigation() {
+      document.querySelectorAll(".side-item[data-view]").forEach(item => {
+        if (item.dataset.bound === "1") return;
+        item.dataset.bound = "1";
+
+        const activate = () => {
+          document.querySelectorAll(".side-item").forEach(el => el.classList.remove("active"));
+          item.classList.add("active");
+          const view = item.dataset.view;
+          if (view) openView(view);
+        };
+
+        item.addEventListener("click", activate);
+        item.addEventListener("keydown", (ev) => {
+          if (ev.key === "Enter" || ev.key === " ") {
+            ev.preventDefault();
+            activate();
+          }
+        });
+      });
+    }
+
+    async function loadHomeOperationalSummary() {
+      const settled = await Promise.allSettled([
+        homeFetchJson("/api/openstack/instances/full"),
+        homeFetchJson("/api/get_active_scenario"),
+        homeFetchJson("/api/industrial/state"),
+        homeFetchJson("/api/foc/status"),
+        homeFetchJson("/api/foc/timeline"),
+        homeFetchJson("/api/forensics/report/cases"),
+        homeFetchJson("/api/hud/attack/catalog"),
+        homeFetchJson("/api/forensics/alerts/latest?limit=1"),
+      ]);
+
+      const [instancesRes, scenarioRes, industrialRes, focStatusRes, focTimelineRes, reportCasesRes, attackCatalogRes, latestAlertsRes] = settled;
+      const instancesPayload = instancesRes.status === "fulfilled" ? instancesRes.value : null;
+      const scenarioPayload = scenarioRes.status === "fulfilled" ? scenarioRes.value : null;
+      const industrialPayload = industrialRes.status === "fulfilled" ? industrialRes.value : null;
+      const focStatus = focStatusRes.status === "fulfilled" ? focStatusRes.value : null;
+      const focTimeline = focTimelineRes.status === "fulfilled" ? focTimelineRes.value : null;
+      const reportCases = reportCasesRes.status === "fulfilled" ? reportCases.value : null;
+      const attackCatalog = attackCatalogRes.status === "fulfilled" ? attackCatalogRes.value : null;
+      const latestAlerts = latestAlertsRes.status === "fulfilled" ? latestAlertsRes.value : null;
+
+      const instances = instancesPayload?.instances || [];
+      const scenarioName = scenarioPayload?.scenario_name || scenarioPayload?.name || "None";
+      const scenarioNodes = scenarioPayload?.nodes || [];
+      const otNodes = scenarioNodes.filter(node => String(node.type || "").includes("industrial_"));
+      const toolSummary = homeToolSummary(instances);
+      const activeCaseDir = (reportCases?.active_case_dir || localStorage.getItem("nics_active_case_dir") || "").trim();
+      const caseCount = Array.isArray(reportCases?.cases) ? reportCases.cases.length : 0;
+      const latestAlert = latestAlerts?.alerts?.[0] || null;
+      const alertCount = focStatus?.detection_summary?.alerts_total ?? latestAlerts?.alerts?.length ?? null;
+      const evidenceCount = focStatus?.artifact_summary?.preserved_evidence;
+      const workflowHeadline = focStatus?.initialized ? "Operational context indexed" : "Partial operational context";
+
+      homeSetValue("kpi-openstack-instances", instances.length ? String(instances.length) : "--", instancesRes.status === "fulfilled" ? "Connected" : "Unknown");
+      homeSetValue(
+        "kpi-installed-tools",
+        Number.isFinite(toolSummary.installed) ? String(toolSummary.installed) : "--",
+        toolSummary.pending ? `${toolSummary.pending} pending` : (toolSummary.failed ? `${toolSummary.failed} failed` : "No data")
+      );
+      homeSetValue("kpi-detected-alerts", alertCount != null ? String(alertCount) : "--", focStatus?.detection_summary?.relationship_quality || "No data");
+      homeSetValue("kpi-forensic-cases", caseCount ? String(caseCount) : "--", activeCaseDir ? "Active case" : "No data");
+      homeSetValue(
+        "kpi-evidence-artifacts",
+        evidenceCount != null ? String(evidenceCount) : "--",
+        focStatus?.artifact_summary?.analysis_outputs ? `${focStatus.artifact_summary.analysis_outputs} analysis` : "Not available"
+      );
+      homeSetValue(
+        "kpi-foc-readiness",
+        focStatus?.reproducibility_score != null ? String(Math.round(focStatus.reproducibility_score)) : "--",
+        focStatus?.completeness || "Unknown"
+      );
+
+      const monitoringSummary = RT.state === "LISTENING"
+        ? "listening"
+        : (RT.state === "RECONNECTING" ? "reconnecting" : "off");
+
+      const detectionAlerts = focTimeline?.events?.filter(ev => ev.event_type === "detection_alert") || [];
+      const attackEvents = focTimeline?.events?.filter(ev => ev.event_type === "attack_execution") || [];
+      const executedDisplays = new Set(attackEvents.map(ev => String(ev.details?.display_name || ev.description || "").toLowerCase()));
+      const detectedDisplays = new Set(
+        detectionAlerts
+          .map(ev => String(ev.details?.correlated_attack_display || "").toLowerCase())
+          .filter(v => v && v !== "unresolved")
+      );
+
+      const lastScenario = homeLatestEvent(focTimeline, ["scenario_deployment_status", "industrial_state"]);
+      const lastTool = homeLatestEvent(focTimeline, ["tool_installed"]);
+      const lastAlert = homeLatestEvent(focTimeline, ["detection_alert"]);
+      const lastAcquire = homeLatestEvent(focTimeline, ["acquire_preserved", "pcap_preserved", "memory_preserved", "disk_preserved", "ot_export_preserved"]);
+      const lastAnalysis = homeLatestEvent(focTimeline, ["disk_analysis_done", "memory_analysis_done"]);
+
+      const data = {
+        scenarioName,
+        infrastructureSummary: instancesRes.status === "fulfilled" ? "OpenStack connected" : "offline",
+        monitoringSummary,
+        activeCaseSummary: activeCaseDir ? activeCaseDir.split("/").pop() : "none",
+        itScenarioPresent: Boolean(scenarioPayload && Array.isArray(scenarioNodes) && scenarioNodes.length > 0),
+        otScenarioPresent: otNodes.length > 0 || Boolean(industrialPayload && Object.keys(industrialPayload || {}).length),
+        otScenarioMeta: otNodes.length ? `${otNodes.length} OT nodes` : "no industrial nodes",
+        inventoryStatus: instancesRes.status === "fulfilled" ? "Ready" : "Unknown",
+        inventoryStatusPanel: instancesRes.status === "fulfilled" ? "synced" : "unknown",
+        inventoryMeta: instances.length ? `${instances.length} instances observed` : "no instance data",
+        toolDeploymentStatus: toolSummary.installed > 0 ? (toolSummary.pending || toolSummary.failed ? "Incomplete" : "Ready") : (toolSummary.pending ? "Incomplete" : "No data"),
+        toolsStatusPanel: toolSummary.failed ? "failed" : (toolSummary.pending ? "pending" : (toolSummary.installed ? "installed" : "unknown")),
+        toolsMeta: toolSummary.installed ? `${toolSummary.installed} installed` : "no confirmed installations",
+        itScenarioStatus: scenarioNodes.length ? "Ready" : "Missing",
+        otScenarioStatus: otNodes.length ? "Ready" : (scenarioPayload ? "Idle" : "No data"),
+        attackLabStatus: attackEvents.length ? "Active" : ((attackCatalog?.profiles || attackCatalog?.attacks || []).length ? "Ready" : "Unknown"),
+        detectionLayerStatus: RT.state === "LISTENING" ? "Active" : (alertCount ? "Idle" : "Unknown"),
+        forensicLabStatus: activeCaseDir ? "Active" : (caseCount ? "Idle" : "No data"),
+        forensicReportStatus: caseCount ? "Ready" : "No data",
+        focStatusLabel: focStatus?.status ? (String(focStatus.status).charAt(0).toUpperCase() + String(focStatus.status).slice(1)) : "Unknown",
+        comparisonsStatus: "Unknown",
+        workflowHeadline,
+        workflowMeta: focStatus?.initialized
+          ? `FOC ${focStatus.completeness || "unknown"} | ${instances.length} instances | ${caseCount} cases`
+          : "No reconstruction state available yet.",
+        detectionStatusPanel: RT.state === "LISTENING" ? "active" : (alertCount ? "inactive" : "unknown"),
+        detectionMeta: alertCount != null ? `${alertCount} alerts indexed` : "no alert telemetry",
+        forensicsStatusPanel: activeCaseDir ? "case available" : "no case",
+        forensicsMeta: activeCaseDir ? activeCaseDir.split("/").pop() : "no active case",
+        focPanelStatus: focStatus?.completeness || "unknown",
+        focMeta: focStatus ? `${focStatus.status} | score ${Math.round(focStatus.reproducibility_score || 0)}` : "no foc status",
+        recentActivity: [
+          lastScenario ? { label: `Last scenario activity: ${lastScenario.description || "scenario event"}`, time: lastScenario.timestamp || "--" } : null,
+          lastTool ? { label: `Last tool installed: ${lastTool.details?.tool_name || lastTool.description || "tool event"}`, time: lastTool.timestamp || "--" } : null,
+          lastAlert ? { label: `Last alert detected: ${lastAlert.description || "alert"}`, time: lastAlert.timestamp || "--" } : null,
+          lastAcquire ? { label: `Last forensic acquisition: ${lastAcquire.description || "acquisition event"}`, time: lastAcquire.timestamp || "--" } : null,
+          lastAnalysis ? { label: `Last report-generating analysis: ${lastAnalysis.description || "analysis event"}`, time: lastAnalysis.timestamp || "--" } : null,
+          focStatus ? { label: `Last FOC reconstruction: ${focStatus.status || "unknown"}`, time: focStatus.last_update || "--" } : null,
+        ].filter(Boolean),
+        detectionCoverage: [
+          { label: "Wazuh Agent", status: toolSummary.toolNames.has("wazuh") || toolSummary.toolNames.has("wazuh-agent") ? "Installed" : "Unknown", meta: "host-visible telemetry" },
+          { label: "Suricata", status: toolSummary.toolNames.has("suricata") ? "Installed" : "Unknown", meta: "network and ICS detection" },
+          { label: "FIM Realtime", status: toolSummary.toolNames.has("wazuh_fim_realtime") || toolSummary.toolNames.has("wazuh-fim-realtime") ? "Installed" : "Unknown", meta: "file integrity monitoring" },
+          {
+            label: "Ping Detection",
+            status: detectionAlerts.some(ev => /ping/i.test(ev.description || "")) || /ping/i.test(latestAlert?.rule?.description || latestAlert?.signature || "") ? "Active" : "Unknown",
+            meta: "icmp-related alerts"
+          },
+          {
+            label: "Modbus Detection",
+            status: detectionAlerts.some(ev => /modbus/i.test(ev.description || "") || /modbus/i.test(ev.details?.signature || "")) || /modbus/i.test(latestAlert?.rule?.description || latestAlert?.signature || "") ? "Active" : "Unknown",
+            meta: "ics protocol visibility"
+          },
+          { label: "Traffic Capture", status: (focStatus?.artifact_summary?.preserved_evidence || 0) > 0 ? "Active" : "Inactive", meta: "preserved evidence available" },
+        ],
+        attackCatalog: [
+          "ICMP Reconnaissance",
+          "Port Scan Reconnaissance",
+          "Unauthorized SSH Attempt",
+          "Controlled File Tamper",
+          "Data Exfiltration",
+          "Modbus Register Manipulation",
+          "Multi-Vector Validation",
+        ].map(label => {
+          const lower = label.toLowerCase();
+          let status = "Unknown";
+          if (executedDisplays.has(lower)) status = "Executed";
+          else if (detectedDisplays.has(lower)) status = "Detected";
+          else if ((attackCatalog?.profiles || attackCatalog?.attacks || []).length) status = "Available";
+          return {
+            label,
+            status,
+            meta: status === "Executed" ? "execution indexed" : (status === "Detected" ? "detection observed" : "catalog availability")
+          };
+        }),
+        forensicFoc: [
+          { label: "Scenario BOM", status: focStatus?.components?.scenario_bom ? "Ready" : "Missing", meta: "structural scenario model" },
+          { label: "Tools BOM", status: focStatus?.components?.tools_bom ? "Ready" : "Missing", meta: "node instrumentation state" },
+          { label: "Alerts available", status: alertCount ? "Ready" : "Unknown", meta: `${alertCount ?? "--"} alerts indexed` },
+          { label: "Evidence artifacts", status: evidenceCount ? "Ready" : "Incomplete", meta: `${evidenceCount ?? 0} preserved evidence` },
+          { label: "Timeline", status: focStatus?.components?.timeline ? "Ready" : "Missing", meta: "lifecycle and incident chronology" },
+          { label: "Hashes", status: focStatus?.components?.hashes ? "Ready" : "Missing", meta: "artifact integrity references" },
+          {
+            label: "Relationships",
+            status: focStatus?.relationship_summary?.attack_alert_candidate_links ? "Incomplete" : "Unknown",
+            meta: "correlation graph available"
+          },
+          { label: "FOC manifest", status: focStatus?.initialized ? "Ready" : "Missing", meta: focStatus?.status || "unknown" },
+        ],
+      };
+
+      homeRenderSummary(data);
+      homeRenderWorkflowStatus(data);
+      homeRenderScenarioReadiness(data);
+      homeRenderRecentActivity(data);
+      homeRenderDetectionCoverage(data);
+      homeRenderAttackCatalog(data);
+      homeRenderForensicFoc(data);
+      homeRenderLiveAlert(latestAlert);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      homeBindSidebarNavigation();
+      loadHomeOperationalSummary().catch(() => {});
+
+      setInterval(() => {
+        const monitoring = document.getElementById("summary-monitoring");
+        if (monitoring) {
+          monitoring.textContent = RT.state === "LISTENING"
+            ? "listening"
+            : (RT.state === "RECONNECTING" ? "reconnecting" : "off");
+        }
+      }, 3000);
+
+      setInterval(() => {
+        loadHomeOperationalSummary().catch(() => {});
+      }, 10000);
+    });
   </script>
 </body>
 </html>

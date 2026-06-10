@@ -966,6 +966,14 @@ The maturity summary is presented in four analytical layers:
 - **Forensic reconstruction**
   - custody, analysis, and higher-level interpretation can be reconstructed
 
+The dashboard does not treat these layers as equivalent. In particular:
+
+- structural availability does not imply evidential completeness
+- evidential indexing does not imply forensic analysis
+- forensic analysis does not imply semantic interpretation
+
+This prevents the reconstruction layer from overstating the maturity of an experiment simply because artifacts exist on disk.
+
 ### Tools BOM consistency model
 
 The FOC reconstruction layer treats the active scenario nodes as the canonical scope of the **Tools BOM**. In methodological terms, the main node list is aligned with the same operational logic used by the tool-management surface of the platform.
@@ -995,6 +1003,21 @@ The Tools BOM also separates non-canonical tool artifacts into dedicated classes
 
 This separation is important because it prevents historical or auxiliary artifacts from being misrepresented as active scenario nodes. As a result, the Tools BOM becomes more coherent with the node population exposed by the tool-management workflow and by the tactical dashboards.
 
+### Evidence-class semantics
+
+The reconstruction layer also distinguishes between several artifact classes inside the forensic space:
+
+- **acquisition metadata**
+  - custody logs, digest files, capture metadata, synchronization metadata
+- **preserved evidence**
+  - primary preserved artifacts such as PCAP, raw disk, memory dump, or OT export
+- **forensic inputs**
+  - preserved contextual inputs such as scenario snapshots or tool-state snapshots
+- **analysis outputs**
+  - technical analysis directories such as Volatility or TSK outputs
+
+This distinction is necessary because not every indexed artifact should be interpreted as primary evidence. A case may contain rich metadata and preserved inputs without yet containing technical forensic analysis or explicit alert-to-evidence linkage.
+
 ### Chronology versus detection surface
 
 The dashboard distinguishes between two related but non-equivalent temporal views:
@@ -1007,6 +1030,8 @@ The dashboard distinguishes between two related but non-equivalent temporal view
   - focuses on alerts, triage, DFIR escalation, and case creation without repeating the full offensive chronology
 
 This distinction reduces analytical ambiguity. The timeline answers the question **what happened and in which order**, while the detection surface answers **what the platform detected, how it classified the event, and whether escalation followed**.
+
+The primary timeline view also aggregates repeated detection events so that the user does not have to inspect thousands of near-identical alerts one by one. Aggregation uses the detection signature, node, agent, rule, source, destination, and a time bucket in order to preserve operational meaning while improving readability.
 
 ### Analytical visualization layer
 
@@ -1034,6 +1059,8 @@ The initial visualization set includes:
 
 These visualizations are intentionally conservative. They are produced from the same normalized FOC artifacts already used by the rest of the dashboard and do not introduce additional dependencies or operational requirements.
 
+The causal graph uses the structural scenario model as its visual base. Instead of showing abstract relationship IDs only, it uses the IT/OT node composition of the active scenario and overlays attack and detection activity on top of that topology. This makes the graph more interpretable for hybrid scenarios involving victim, monitor, PLC, and SCADA nodes.
+
 ### Reproducibility scoring
 
 The dashboard includes a reproducibility score on a 0 to 100 scale. The initial model evaluates whether the following reconstruction components are available:
@@ -1049,6 +1076,21 @@ The dashboard includes a reproducibility score on a 0 to 100 scale. The initial 
 - case manifest and chain of custody
 
 This makes the score a structural indicator of reconstruction strength rather than a decorative UI element.
+
+The score is intentionally conservative. A high score requires more than artifact presence. In particular:
+
+- attack-to-alert linkage is not treated as confirmed if it is only inferred
+- case and custody presence do not compensate for missing alert-to-evidence linkage
+- forensic reconstruction is not treated as complete until technical analysis outputs exist
+- semantic interpretation is not treated as generated until technical forensic outputs exist first
+
+This means the reconstruction layer distinguishes between:
+
+- what is indexed
+- what is linked
+- what is analyzed
+- what is confirmed
+- what remains unresolved
 
 ### Reconstruction gaps
 
@@ -1071,6 +1113,14 @@ Each gap is presented with:
 - recommended action
 
 This gives the operator a practical path to improve reproducibility instead of only inspecting artifacts passively.
+
+Typical high-value unresolved states include:
+
+- a case exists but is not linked to alerts
+- evidence is preserved but not related to a triggering alert
+- detections are available but attack correlation is only inferred
+- analysis has not yet been executed on preserved evidence
+- semantic interpretation has not yet been generated from technical findings
 
 ### Live update model
 
@@ -1098,6 +1148,23 @@ The update model also makes it possible to refresh the analytical layer as the i
 - updated reconstruction gaps and reproducibility score
 
 The live model remains non-critical. If the reconstruction stream degrades or disconnects, the rest of the platform continues operating and the reconstruction dashboard still supports manual refresh and regeneration.
+
+### Correlation quality semantics
+
+The reconstruction layer distinguishes between several correlation levels when linking alerts to attacks or other entities:
+
+- **confirmed**
+  - the relation is strongly supported by the indexed sources
+- **inferred_high**
+  - the relation is likely, based on target or timing alignment
+- **inferred_medium**
+  - the relation is plausible, but weaker
+- **inferred_low**
+  - the relation is tentative
+- **unresolved**
+  - no reliable relation could be established
+
+This distinction is essential for scientific acceptability because the dashboard must not present inferred correlations as confirmed findings.
 
 ### FOC API surface
 

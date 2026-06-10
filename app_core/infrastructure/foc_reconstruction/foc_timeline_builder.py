@@ -103,6 +103,23 @@ def _resolve_runtime(runtime_map: dict, *, name: str = "", ip: str = "") -> dict
     return {}
 
 
+def _correlation_payload(*, same_target: bool, same_ip: bool, signature_match: bool) -> tuple[str, str, str]:
+    reasons = []
+    if same_target:
+        reasons.append("same_target_node")
+    if same_ip:
+        reasons.append("same_target_ip")
+    if signature_match:
+        reasons.append("expected_alert_match")
+    if len(reasons) >= 2:
+        return "confirmed", "high", ",".join(reasons)
+    if same_target or same_ip:
+        return "inferred_high", "high", ",".join(reasons) or "target_proximity"
+    if signature_match:
+        return "inferred_medium", "medium", "expected_alert_match"
+    return "unresolved", "low", "no_strong_match"
+
+
 def build_timeline(scenario_context: dict, id_mapping: dict | None = None) -> dict:
     warnings: list[dict] = []
     events: list[dict] = []
@@ -279,6 +296,9 @@ def build_timeline(scenario_context: dict, id_mapping: dict | None = None) -> di
             normalized_signature = _normalize_indicator(signature)
             alert_epoch = float(alert.get("ts_epoch") or _epoch_from_any(alert.get("ts_utc") or ""))
             correlated_attack = None
+            correlation_status = "unresolved"
+            correlation_confidence = "low"
+            correlation_reason = "no_strong_match"
             for attack in reversed(sorted(attack_windows, key=lambda item: item.get("end_epoch", 0.0))):
                 if alert_epoch and attack.get("start_epoch") and alert_epoch < attack["start_epoch"]:
                     continue
@@ -287,8 +307,16 @@ def build_timeline(scenario_context: dict, id_mapping: dict | None = None) -> di
                 same_target = related_node_id != "unresolved" and attack.get("target_node_id") == related_node_id
                 same_ip = bool(agent_ip and attack.get("target_ip") == agent_ip) or bool(dst_ip and attack.get("target_ip") == dst_ip)
                 signature_match = normalized_signature in set(attack.get("expected_alerts") or [])
-                if same_target or same_ip or signature_match:
+                status, confidence, reason = _correlation_payload(
+                    same_target=same_target,
+                    same_ip=same_ip,
+                    signature_match=signature_match,
+                )
+                if status != "unresolved":
                     correlated_attack = attack
+                    correlation_status = status
+                    correlation_confidence = confidence
+                    correlation_reason = reason
                     break
             triage = triage_by_event.get(str(alert.get("event_id") or ""), {})
             _add_event(
@@ -321,7 +349,9 @@ def build_timeline(scenario_context: dict, id_mapping: dict | None = None) -> di
                     "agent": alert.get("agent", {}),
                     "triage_severity": triage.get("severity", "not_available"),
                     "recommend_forensics": triage.get("recommend_forensics", False),
-                    "correlation_status": "confirmed" if correlated_attack else "unresolved",
+                    "correlation_status": correlation_status,
+                    "correlation_confidence": correlation_confidence,
+                    "correlation_reason": correlation_reason,
                     "correlated_attack_display": (correlated_attack or {}).get("display_name", "unresolved"),
                     "correlated_attack_mitre_id": (correlated_attack or {}).get("mitre_id", "unresolved"),
                     "mitre_rule_ids": (((alert.get("raw") or {}).get("rule") or {}).get("mitre") or {}).get("id", []),

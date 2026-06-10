@@ -21,6 +21,8 @@ def empty_artifact_reference() -> dict:
         "evidence_id": "not_available",
         "id_origin": "unknown",
         "artifact_type": "",
+        "artifact_class": "auxiliary",
+        "is_primary_evidence": False,
         "path": "",
         "case_id": "not_available",
         "related_instance_id": "unresolved",
@@ -42,6 +44,9 @@ def empty_relationship_edge() -> dict:
         "to_id": "",
         "status": "ok",
         "relationship_status": "confirmed",
+        "correlation_status": "confirmed",
+        "correlation_confidence": "high",
+        "correlation_reason": "direct_mapping",
         "evidence": [],
         "details": {},
     }

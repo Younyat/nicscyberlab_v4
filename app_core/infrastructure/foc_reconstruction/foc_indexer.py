@@ -22,6 +22,32 @@ def _evidence_id(*parts: str) -> str:
     return make_id("evd", raw)
 
 
+def _artifact_classification(artifact_type: str) -> tuple[str, bool]:
+    normalized = str(artifact_type or "").strip().lower()
+    preserved = {"pcap", "memory_lime", "disk_raw", "industrial_ot_export_modbus_tcp"}
+    metadata = {
+        "pcap_metadata",
+        "memory_metadata",
+        "memory_sha256_file",
+        "disk_metadata",
+        "disk_sha256_file",
+        "time_sync",
+        "case_digest",
+        "custody_log",
+    }
+    forensic_inputs = {"ir_input", "ir_snapshot", "fsr_eval"}
+    analysis_outputs = {"vol3_output_dir", "tsk_output_dir"}
+    if normalized in preserved:
+        return "preserved_evidence", True
+    if normalized in metadata:
+        return "acquisition_metadata", False
+    if normalized in forensic_inputs:
+        return "forensic_inputs", False
+    if normalized in analysis_outputs:
+        return "analysis_outputs", False
+    return "auxiliary", False
+
+
 def _add_edge(edges: list[dict], from_type: str, from_id: str, relation: str, to_type: str, to_id: str, **kwargs) -> None:
     edge = clone(empty_relationship_edge())
     edge.update(
@@ -51,6 +77,8 @@ def _infer_case_artifacts(case_dir: Path, warnings: list[dict]) -> list[dict]:
                 "evidence_id": _evidence_id(case_dir.name, rel_path),
                 "id_origin": "derived_from_path",
                 "artifact_type": entry.get("type", "unknown"),
+                "artifact_class": _artifact_classification(entry.get("type", "unknown"))[0],
+                "is_primary_evidence": _artifact_classification(entry.get("type", "unknown"))[1],
                 "path": f"{relative_path(case_dir)}/{rel_path}" if rel_path else relative_path(case_dir),
                 "case_id": case_id,
                 "related_instance_id": "unresolved",
@@ -107,15 +135,7 @@ def build_indexes(scenario_bom: dict, tools_bom: dict, timeline: dict, sources_b
         entry.get("source_path"): entry
         for entry in (id_mapping.get("mappings", {}).get("attacks", []) or [])
     }
-    timeline_alerts_by_attack = {}
-    for event in timeline.get("events", []):
-        if event.get("event_type") != "detection_alert":
-            continue
-        attack_id = event.get("related_attack_id", "unresolved")
-        alert_id = event.get("related_alert_id", "unresolved")
-        if attack_id in {"", "unresolved", "unknown"}:
-            continue
-        timeline_alerts_by_attack.setdefault(attack_id, set()).add(alert_id)
+    detection_events = [event for event in timeline.get("events", []) if event.get("event_type") == "detection_alert"]
 
     for path in sorted(project_path("app_core", "infrastructure", "attack", "outputs").glob("*/result.json")):
         data = read_json_file(path, warnings)
@@ -131,21 +151,49 @@ def build_indexes(scenario_bom: dict, tools_bom: dict, timeline: dict, sources_b
                 node_id = node.get("node_id", "unresolved")
                 break
         _add_edge(relationships, "node", node_id, "attack_execution", "attack", attack_id, evidence=[relative_path(path)], details={"execution_id": execution_id}, relationship_status="inferred" if node_id == "unresolved" else "confirmed")
-
-        matching_alerts = sorted(timeline_alerts_by_attack.get(attack_id, set()))
+        matching_alerts = [
+            event for event in detection_events
+            if event.get("related_attack_id") == attack_id
+        ]
         if matching_alerts:
-            for alert_id in matching_alerts:
+            for event in matching_alerts:
+                details = event.get("details", {}) if isinstance(event.get("details"), dict) else {}
+                correlation_status = details.get("correlation_status", "inferred")
+                correlation_confidence = details.get("correlation_confidence", "medium")
+                relationship_status = "confirmed" if correlation_status == "confirmed" else "inferred"
                 _add_edge(
                     relationships,
-                    "attack_execution",
-                    execution_id,
+                    "attack",
+                    attack_id,
                     "produced_alert",
                     "alert",
-                    alert_id,
-                    relationship_status="confirmed" if alert_id not in {"unresolved", "unknown"} else "inferred",
+                    event.get("related_alert_id", "unresolved"),
+                    relationship_status=relationship_status,
+                    correlation_status=correlation_status,
+                    correlation_confidence=correlation_confidence,
+                    correlation_reason=details.get("correlation_reason", "timeline_correlation"),
+                    evidence=[event.get("source_path", "")],
+                    details={
+                        "node_id": event.get("related_node_id", "unresolved"),
+                        "instance_id": event.get("related_instance_id", "unresolved"),
+                        "signature": details.get("signature", "unknown"),
+                        "rule_id": details.get("rule_id", "unknown"),
+                    },
                 )
         else:
-            _add_edge(relationships, "attack", attack_id, "produced_alert", "alert", "unresolved", status="unresolved", relationship_status="inferred")
+            _add_edge(
+                relationships,
+                "attack",
+                attack_id,
+                "produced_alert",
+                "alert",
+                "unresolved",
+                status="unresolved",
+                relationship_status="inferred",
+                correlation_status="unresolved",
+                correlation_confidence="low",
+                correlation_reason="no_matching_detection_event",
+            )
 
     triage_events = {}
     for event in timeline.get("events", []):
@@ -189,6 +237,8 @@ def build_indexes(scenario_bom: dict, tools_bom: dict, timeline: dict, sources_b
                 "evidence_id": "not_available",
                 "id_origin": "derived_from_path",
                 "artifact_type": src.get("source_type", "source_file"),
+                "artifact_class": "auxiliary",
+                "is_primary_evidence": False,
                 "path": src.get("path", ""),
                 "case_id": "not_available",
                 "related_instance_id": "unresolved",
