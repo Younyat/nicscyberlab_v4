@@ -96,6 +96,15 @@ def persist_execution_result(output_dir: str, result: Dict[str, Any]) -> None:
         json.dump(result, fh, indent=2, sort_keys=True)
 
 
+def _safe_notify_foc(event_type: str, payload: Dict[str, Any]) -> None:
+    try:
+        from app_core.infrastructure.foc_reconstruction import safe_notify_foc
+
+        safe_notify_foc(event_type, payload)
+    except Exception:
+        return
+
+
 def stream_attack_execution(
     manager: Any,
     attack: Dict[str, Any],
@@ -116,6 +125,18 @@ def stream_attack_execution(
         output_dir=output_dir,
     )
     persist_execution_result(output_dir, result)
+    _safe_notify_foc(
+        "attack_executed",
+        {
+            "attack_id": result.get("attack_id"),
+            "display_name": result.get("display_name"),
+            "mitre_id": result.get("mitre_id"),
+            "target_ip": result.get("target_ip"),
+            "target_role": result.get("target_role"),
+            "output_dir": output_dir,
+            "started_at": result.get("started_at"),
+        },
+    )
 
     args: List[str] = [
         payload.get("target_ip") or payload.get("target") or "",
@@ -161,6 +182,21 @@ def stream_attack_execution(
         }
     )
     persist_execution_result(output_dir, result)
+    _safe_notify_foc(
+        "attack_execution_completed",
+        {
+            "attack_id": result.get("attack_id"),
+            "display_name": result.get("display_name"),
+            "mitre_id": result.get("mitre_id"),
+            "target_ip": result.get("target_ip"),
+            "target_role": result.get("target_role"),
+            "output_dir": output_dir,
+            "completed_at": result.get("completed_at"),
+            "success": result.get("success"),
+            "exit_code": result.get("exit_code"),
+            "expected_alerts": result.get("expected_alerts", []),
+        },
+    )
 
 
 def resolve_requested_attack(payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:

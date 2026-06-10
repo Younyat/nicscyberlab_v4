@@ -1,0 +1,1517 @@
+{
+  "generated_at": "2026-06-10T11:01:32.042768+00:00",
+  "status": "ok",
+  "warnings": [],
+  "sources": [
+    {
+      "source_id": "src::scenario::scenario/scenario_file.json",
+      "source_type": "scenario",
+      "path": "scenario/scenario_file.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1767379978.6000197,
+      "size": 2164,
+      "sha256": "f2ecdb507bf342f57adb5cb037356ce0bb74bfba866bf4bf48132a4df8167ac4",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::deployment_status::scenario/deployment_status.json",
+      "source_type": "deployment_status",
+      "path": "scenario/deployment_status.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1767379978.5991197,
+      "size": 2470,
+      "sha256": "9f270585917e037cbf059e726cf4ceaca32c7fa40eb557dbe2f84cdbda37658e",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::destroy_status::scenario/destroy_status.json",
+      "source_type": "destroy_status",
+      "path": "scenario/destroy_status.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1767379978.5991197,
+      "size": 525,
+      "sha256": "ee18e39fce7640c34b3091ca40be28796042f53d879f20e2a643377199427e60",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::industrial_scenario::industrial-scenario/scenarios/industrial_industrial_file.json",
+      "source_type": "industrial_scenario",
+      "path": "industrial-scenario/scenarios/industrial_industrial_file.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1767534007.169851,
+      "size": 2841,
+      "sha256": "9532556db52ea3f3582e6368947147325abdd40b570517b1137a976772a87248",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::industrial_state::industrial-scenario/state/industrial_state.json",
+      "source_type": "industrial_state",
+      "path": "industrial-scenario/state/industrial_state.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1767541957.2857904,
+      "size": 453,
+      "sha256": "aee48f5397f9a6a03c84c00358e3348e3b8fa9fcbdbf2bc538381b7f68b50377",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_tmp::tools-installer-tmp/attack_22_tools.json",
+      "source_type": "tools_tmp",
+      "path": "tools-installer-tmp/attack_22_tools.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1775569833.2466218,
+      "size": 260,
+      "sha256": "78a4e23e1e93d046f86190d3901909d33296651a7d4472e95083882fc3efa6f2",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_tmp::tools-installer-tmp/attack_2_tools.json",
+      "source_type": "tools_tmp",
+      "path": "tools-installer-tmp/attack_2_tools.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1774360879.1331456,
+      "size": 385,
+      "sha256": "ada74f8805a6e79234c288b19c3c7921a7097d516adef671ab511eb8bfc53d58",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_tmp::tools-installer-tmp/fuxa_instance_tools.json",
+      "source_type": "tools_tmp",
+      "path": "tools-installer-tmp/fuxa_instance_tools.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1774542132.0470057,
+      "size": 478,
+      "sha256": "f14b49a3e87516cfaa164af776ee6fe6cf0186a0b547bbfc0c519a728da89079",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_tmp::tools-installer-tmp/monitor_1_tools.json",
+      "source_type": "tools_tmp",
+      "path": "tools-installer-tmp/monitor_1_tools.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1775568171.564718,
+      "size": 297,
+      "sha256": "4e6d359fb27b26905662c6e41a15b532e529f16ba654e7a4788c4e0a891971a3",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_tmp::tools-installer-tmp/monitor_1_tools_07_04_2026_test.json",
+      "source_type": "tools_tmp",
+      "path": "tools-installer-tmp/monitor_1_tools_07_04_2026_test.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1775568166.7143297,
+      "size": 294,
+      "sha256": "ce3896749093ed9983ef1968ab7fe21b9d5f3ce7d69726d3303bf0797754a414",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_tmp::tools-installer-tmp/plc_instance_tools.json",
+      "source_type": "tools_tmp",
+      "path": "tools-installer-tmp/plc_instance_tools.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1774541937.8684397,
+      "size": 480,
+      "sha256": "60bbc8d3df639ff5a05e0b1af99d00a1ab1efe768826771ddfa428ffff7fcfdf",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_tmp::tools-installer-tmp/victim_33_tools.json",
+      "source_type": "tools_tmp",
+      "path": "tools-installer-tmp/victim_33_tools.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1775569854.9099169,
+      "size": 294,
+      "sha256": "9da35d04587585bbccacd72311d881be4160dec8bdb945dcd8ed432effa5b8a9",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_tmp::tools-installer-tmp/victim_3_tools.json",
+      "source_type": "tools_tmp",
+      "path": "tools-installer-tmp/victim_3_tools.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1775568141.8212264,
+      "size": 388,
+      "sha256": "6a2bf2ee1eedc338260a6d99c31b55a699cb5afbaedc6933de1bfc85b39445b7",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_installed::tools-installer/installed/16583180-627d-4c40-bd65-aa9db704d75c.json",
+      "source_type": "tools_installed",
+      "path": "tools-installer/installed/16583180-627d-4c40-bd65-aa9db704d75c.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1774612080.1657588,
+      "size": 301,
+      "sha256": "73e56d6508aedc49c72305a90f0ad6d7240db5cf99e5f46d769f4e06ade78156",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_installed::tools-installer/installed/787e728c-5303-42eb-9d3d-e6dfd2d28a97.json",
+      "source_type": "tools_installed",
+      "path": "tools-installer/installed/787e728c-5303-42eb-9d3d-e6dfd2d28a97.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1775569857.3631327,
+      "size": 165,
+      "sha256": "2751f54298fef1522e14bceb96a2b25c626d243ba0d3c7af97544dba9f2ecd60",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_installed::tools-installer/installed/8c0c86c9-2c69-424b-9080-f6c07d798787.json",
+      "source_type": "tools_installed",
+      "path": "tools-installer/installed/8c0c86c9-2c69-424b-9080-f6c07d798787.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1774541940.791224,
+      "size": 408,
+      "sha256": "b15b2dd82e57baf57977d97dd09e35ec555f34f017b8eb1871833273cf541caf",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_installed::tools-installer/installed/995d7668-24d6-4d21-92fe-83fdf61cdc05.json",
+      "source_type": "tools_installed",
+      "path": "tools-installer/installed/995d7668-24d6-4d21-92fe-83fdf61cdc05.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1775559774.074701,
+      "size": 205,
+      "sha256": "0a45eb58b6eb85f05ae4d8f188d445d35f5fe6d263688cc2ec48d978eb7b0be2",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_installed::tools-installer/installed/a495cfe7-b55b-41d0-95bf-78f9093f7fe2.json",
+      "source_type": "tools_installed",
+      "path": "tools-installer/installed/a495cfe7-b55b-41d0-95bf-78f9093f7fe2.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1774542143.6021042,
+      "size": 409,
+      "sha256": "f2be4d7e7347dab73d0a3e63fd1e274d152658a8d72365eafde1759d118c90d2",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_installed::tools-installer/installed/fd472bac-f010-4bf9-9a15-89e95998f4f1.json",
+      "source_type": "tools_installed",
+      "path": "tools-installer/installed/fd472bac-f010-4bf9-9a15-89e95998f4f1.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1774360886.9453454,
+      "size": 300,
+      "sha256": "e5ba66754b62dd5ab1644ec38d801f44032dc5f95640268b21d28e396014960b",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/FUXA_Instance_rollback_suricata_ping_detection.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/FUXA_Instance_rollback_suricata_ping_detection.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1774450973.5497818,
+      "size": 2192,
+      "sha256": "d898358dd5f5b765ce197a188940db415b614c1aa4010ccb6468f33e01a2142a",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/FUXA_Instance_rollback_wazuh_suricata_integration.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/FUXA_Instance_rollback_wazuh_suricata_integration.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1774453207.5854042,
+      "size": 2384,
+      "sha256": "fa7e41da038c2054728d0eb685e7697c5b23fbc15b6b471a79c0167a166eeeda",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/FUXA_Instance_suricata.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/FUXA_Instance_suricata.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1774451039.453737,
+      "size": 1830,
+      "sha256": "01765cf38d268fcf26c583804a7426cf5e358373df944c054b0c8a052919dff5",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/FUXA_Instance_wazuh_agent.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/FUXA_Instance_wazuh_agent.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1774451237.5359075,
+      "size": 2984,
+      "sha256": "e77681d35a5adcb2a584139bd10c549a6fb1845f113eb4a90ed103e5038285c6",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/FUXA_Instance_wazuh_fim_realtime.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/FUXA_Instance_wazuh_fim_realtime.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1774542132.0217059,
+      "size": 2429,
+      "sha256": "57599c1aad04aadd1c3553c51b13486b2c292b48fc8d555fb0a281741904362b",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/PLC_Instance_rollback_suricata_ping_detection.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/PLC_Instance_rollback_suricata_ping_detection.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1774521396.3726306,
+      "size": 2209,
+      "sha256": "094bb7424b757869d020d1c632029f18cc9bc1ce909d3e6f26538c09be23ae5e",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/PLC_Instance_rollback_wazuh_suricata_integration.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/PLC_Instance_rollback_wazuh_suricata_integration.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1774521498.5386076,
+      "size": 2399,
+      "sha256": "0cf3a608ad122ab3f2867e9f4241bf0246bd0c8f42cf90e7a1a940f41d08d4df",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/PLC_Instance_suricata.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/PLC_Instance_suricata.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1774521138.9090168,
+      "size": 1852,
+      "sha256": "57087975f10c0f167965e95b3930a11df1a1ed79bc89b3d1427e698eea4b84fc",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/PLC_Instance_wazuh_agent.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/PLC_Instance_wazuh_agent.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1774521305.951156,
+      "size": 5011,
+      "sha256": "327c27901ef8a0195be083e717d9e13093cca608da8b87df6eea81e9b10ab99e",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/PLC_Instance_wazuh_fim_realtime.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/PLC_Instance_wazuh_fim_realtime.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1774541937.8565598,
+      "size": 2444,
+      "sha256": "a372022b518ef1a4d9794d40c2679cc4b29a1f8cc08ed2f13495c1e2a9cea68b",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/attack 22_nmap.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/attack 22_nmap.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1775569833.239302,
+      "size": 1731,
+      "sha256": "fd02d4fad5db69e34c1e5b1b0277833c1e03363d5fb9395b99215e8e011dae23",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/attack 2_caldera.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/attack 2_caldera.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1768472779.1139777,
+      "size": 2635,
+      "sha256": "9f2684e83254259f57372b9434eb8903e27cc6ad90c62ce781be7fa4cc35dc1a",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/attack 2_caldera_agent.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/attack 2_caldera_agent.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1768401319.645044,
+      "size": 1129,
+      "sha256": "31a1cfca07bd4575a659ffe26045c7b1484b598dfd30c864f6a71993bb470802",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/attack 2_caldera_ot_plugins.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/attack 2_caldera_ot_plugins.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1768820901.037152,
+      "size": 1544,
+      "sha256": "b783f7186ddeb56f32216836542db6e93e5cd83920bd35b7056b8a97be41d707",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/attack 2_mbpoll.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/attack 2_mbpoll.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1774360879.1243458,
+      "size": 1417,
+      "sha256": "cc2978914a2359eb4682b155d7a1b72e4ca3840566259810a11eb0ef12a09422",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/attack 2_nmap.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/attack 2_nmap.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1774359246.078224,
+      "size": 1734,
+      "sha256": "58aa24f5880e4c41f4c62df324e6e61d2130319a1f71e8422d7e064ce4f92814",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/attack_22_nmap.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/attack_22_nmap.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1775572471.973506,
+      "size": 1709,
+      "sha256": "ac8c9e3539b4ffb50ced4af3b8b9a9695b4a82819e4ab103a80ec816bdd8b5c7",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/host_manage.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/host_manage.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1768832345.5961337,
+      "size": 28896,
+      "sha256": "7ba5d948909ae3a38f6e6112a61b27851eca73abc6797ebd0aefb36b670d5e58",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/mbpoll_install.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/mbpoll_install.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1768907368.7595894,
+      "size": 2866,
+      "sha256": "b4a07fc14e71f088bb575f2646d09f458b1cedc846a043ed84643f46a5f5ac11",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/monitor 1_nmap.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/monitor 1_nmap.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1775559768.9603183,
+      "size": 1809,
+      "sha256": "0709fa8571d35a742396ed268b453093d786d7837de2f4166003214de2681707",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/monitor 1_wazuh.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/monitor 1_wazuh.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1769160312.4242787,
+      "size": 30943,
+      "sha256": "70e1157d6cc798e125186c04ec91af927abad1964bac714df8e0158cd717adf1",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/monitor_11_mbpoll.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/monitor_11_mbpoll.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1775572518.261727,
+      "size": 1410,
+      "sha256": "83befad6ae0566562778322e2add28c97c51d28da807f90a017fb098b601ce65",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/victim 33_nmap.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/victim 33_nmap.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1775569854.9009888,
+      "size": 1726,
+      "sha256": "8796cfe09eac659baf711cd0eae4085feb36b5c6aaa95eda5d17b305b2260823",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/victim 3_caldera_agent.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/victim 3_caldera_agent.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1768472849.782016,
+      "size": 1129,
+      "sha256": "b94ee7d4a9d014840c79965a21c803ed83b18915f68dde47b6bb22ced3857322",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/victim 3_nmap.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/victim 3_nmap.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1774612080.1151636,
+      "size": 1731,
+      "sha256": "880480203772f4af2e7c7edadf43af51d03f0d42d1f7aa948cbfe57742771194",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/victim 3_snort.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/victim 3_snort.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1767471482.4129035,
+      "size": 2109,
+      "sha256": "17d5f7901e83e92bb133bb906b70c19ea61dfcc727ffc553e74bde099bc85147",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/victim 3_suricata.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/victim 3_suricata.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1769349468.3654163,
+      "size": 1867,
+      "sha256": "77630cf5427fbc2e028741bb79ea6bc54c488bbfc19bcddf9d6fbfe208779f4c",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/victim 3_wazuh_agent.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/victim 3_wazuh_agent.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1769162611.0801618,
+      "size": 2994,
+      "sha256": "6237e1b85631cdbb8d40d0d02131ce80747c9130495a942f7448f1386cd3a62a",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/victim 3_zeek.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/victim 3_zeek.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1767476536.3489041,
+      "size": 39329,
+      "sha256": "e3474dcaabf2a35ac747e65fae6235b400cc494041b681bdc2b99781952b2407",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::tools_log::tools-installer/logs/victim_33_nmap.log",
+      "source_type": "tools_log",
+      "path": "tools-installer/logs/victim_33_nmap.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1775572574.3914,
+      "size": 1720,
+      "sha256": "03b30ea746dc83d0b8ff7be29abd133a182299e4f5778fabd8f3f727541f5360",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::industrial_log::industrial-scenario/logs/plc/deploy_2026-01-04_15-55-22.log",
+      "source_type": "industrial_log",
+      "path": "industrial-scenario/logs/plc/deploy_2026-01-04_15-55-22.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1767538524.0704615,
+      "size": 32,
+      "sha256": "b7d861e8a9c6709dc1f97917e6bca97d2634b43cc26e7168787b8b7f6de318b5",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::industrial_log::industrial-scenario/logs/plc/deploy_2026-01-04_16-01-40.log",
+      "source_type": "industrial_log",
+      "path": "industrial-scenario/logs/plc/deploy_2026-01-04_16-01-40.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1767538905.1963098,
+      "size": 129,
+      "sha256": "6fa5dce0a47efddcd07252d9626f913b9f17bd35824ee5e0f27fda92f4dc5aa6",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::industrial_log::industrial-scenario/logs/plc/deploy_2026-01-04_16-05-03.log",
+      "source_type": "industrial_log",
+      "path": "industrial-scenario/logs/plc/deploy_2026-01-04_16-05-03.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1767539125.086317,
+      "size": 482,
+      "sha256": "e1b510d49402f5749140fcc17d648a7f6df24fac8ba7b991b17471fa58737135",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::industrial_log::industrial-scenario/logs/plc/deploy_2026-01-04_16-07-12.log",
+      "source_type": "industrial_log",
+      "path": "industrial-scenario/logs/plc/deploy_2026-01-04_16-07-12.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1767539705.3994915,
+      "size": 123825,
+      "sha256": "280f176ab465f2ec9165a44c88357b633d705a995233be2f0983c863ef73347e",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::industrial_log::industrial-scenario/logs/scada/deploy_2026-01-04_16-16-04.log",
+      "source_type": "industrial_log",
+      "path": "industrial-scenario/logs/scada/deploy_2026-01-04_16-16-04.log",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1767540057.3048189,
+      "size": 89931,
+      "sha256": "a5c7f1b51dc67c427c1642736b26aa35f8c998549b168d276987c1311b32657b",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::attack_output::app_core/infrastructure/attack/outputs/20260609T142910Z_T1046_NETWORK_SERVICE_DISCOVERY_PORT_SCAN/result.json",
+      "source_type": "attack_output",
+      "path": "app_core/infrastructure/attack/outputs/20260609T142910Z_T1046_NETWORK_SERVICE_DISCOVERY_PORT_SCAN/result.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015351.25305,
+      "size": 1857,
+      "sha256": "77ccb8c562c8a9301f1ee363d0e510f77692c99918d17f0b884bf7356b2e77bc",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::attack_output::app_core/infrastructure/attack/outputs/20260609T142919Z_T1110_001_SSH_PASSWORD_GUESSING/result.json",
+      "source_type": "attack_output",
+      "path": "app_core/infrastructure/attack/outputs/20260609T142919Z_T1110_001_SSH_PASSWORD_GUESSING/result.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015360.3188415,
+      "size": 1886,
+      "sha256": "53e936df86f5f0e2c0170ab28417f38e8e27f59997d4e77db5be561b1f10fd01",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::attack_output::app_core/infrastructure/attack/outputs/20260609T142926Z_T1565_001_STORED_DATA_MANIPULATION_FIM/result.json",
+      "source_type": "attack_output",
+      "path": "app_core/infrastructure/attack/outputs/20260609T142926Z_T1565_001_STORED_DATA_MANIPULATION_FIM/result.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015366.7023494,
+      "size": 1906,
+      "sha256": "6c0b13df0d453f6b5f9353801adab9199b23f4aabac307bceaf93d8d76039912",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::attack_output::app_core/infrastructure/attack/outputs/20260609T142935Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
+      "source_type": "attack_output",
+      "path": "app_core/infrastructure/attack/outputs/20260609T142935Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015376.5789857,
+      "size": 2081,
+      "sha256": "f739adb38a7aadbe314667d2a8f50345df118a5933336f9045bc9702be2d8422",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::attack_output::app_core/infrastructure/attack/outputs/20260609T143159Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
+      "source_type": "attack_output",
+      "path": "app_core/infrastructure/attack/outputs/20260609T143159Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015520.9949174,
+      "size": 2206,
+      "sha256": "f9d83180541c9b367f5c326793ca8a62bec421714b0d4c9b189c38a45d2335fc",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::attack_output::app_core/infrastructure/attack/outputs/20260609T143334Z_T1595_ACTIVE_SCANNING_ICMP_RECON/result.json",
+      "source_type": "attack_output",
+      "path": "app_core/infrastructure/attack/outputs/20260609T143334Z_T1595_ACTIVE_SCANNING_ICMP_RECON/result.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015619.5922241,
+      "size": 3482,
+      "sha256": "9e19e44cec40100e1463435a3213d28922ea6cae99390410c3ee6dd523f50da9",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::attack_output::app_core/infrastructure/attack/outputs/20260609T143346Z_T1046_NETWORK_SERVICE_DISCOVERY_PORT_SCAN/result.json",
+      "source_type": "attack_output",
+      "path": "app_core/infrastructure/attack/outputs/20260609T143346Z_T1046_NETWORK_SERVICE_DISCOVERY_PORT_SCAN/result.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015677.8439877,
+      "size": 3541,
+      "sha256": "6460e6e26cdaa6ccc4845e94402036e3fffb98fa7e58b3c7acc8cc9995bec196",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::attack_output::app_core/infrastructure/attack/outputs/20260609T143456Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
+      "source_type": "attack_output",
+      "path": "app_core/infrastructure/attack/outputs/20260609T143456Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015701.111539,
+      "size": 3333,
+      "sha256": "4ce44abc795bae3b1e6d43a20e388ca45f9ec0898ed7dbd81b490fd557d1ecec",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::attack_output::app_core/infrastructure/attack/outputs/20260609T143519Z_T1595_ACTIVE_SCANNING_ICMP_RECON/result.json",
+      "source_type": "attack_output",
+      "path": "app_core/infrastructure/attack/outputs/20260609T143519Z_T1595_ACTIVE_SCANNING_ICMP_RECON/result.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015724.3982418,
+      "size": 3482,
+      "sha256": "de23ce320ac30508b5d22d1b422d699812b7ff0ce8a9a4b04ea110f32de6b596",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::attack_output::app_core/infrastructure/attack/outputs/20260609T143544Z_T1110_001_SSH_PASSWORD_GUESSING/result.json",
+      "source_type": "attack_output",
+      "path": "app_core/infrastructure/attack/outputs/20260609T143544Z_T1110_001_SSH_PASSWORD_GUESSING/result.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015753.3873322,
+      "size": 4358,
+      "sha256": "1b5d2795e8d103f37b7f21598347e9d7d182177401f4ff1f123aef2c00c02f6d",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::attack_output::app_core/infrastructure/attack/outputs/20260609T143611Z_T1565_001_STORED_DATA_MANIPULATION_FIM/result.json",
+      "source_type": "attack_output",
+      "path": "app_core/infrastructure/attack/outputs/20260609T143611Z_T1565_001_STORED_DATA_MANIPULATION_FIM/result.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015774.3861551,
+      "size": 7124,
+      "sha256": "c0188bc0c6269a7aecb603725a07838fced2e0bd13a801dd248b716f0e06c5d4",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::attack_output::app_core/infrastructure/attack/outputs/20260609T143623Z_T1048_EXFILTRATION_OVER_ALTERNATIVE_PROTOCOL/result.json",
+      "source_type": "attack_output",
+      "path": "app_core/infrastructure/attack/outputs/20260609T143623Z_T1048_EXFILTRATION_OVER_ALTERNATIVE_PROTOCOL/result.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015784.8110952,
+      "size": 2904,
+      "sha256": "bd6f73ae3e85bcbc2424d62b9182cf761c642a60c7d0a9081648ff6f065a76d7",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::attack_output::app_core/infrastructure/attack/outputs/20260609T143634Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
+      "source_type": "attack_output",
+      "path": "app_core/infrastructure/attack/outputs/20260609T143634Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015798.1188142,
+      "size": 3333,
+      "sha256": "13f399100784de13be26c913ed338d6244efeb147c7f5b4a4279a92b170f1195",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::attack_output::app_core/infrastructure/attack/outputs/20260609T143645Z_T0861_POINT_AND_TAG_IDENTIFICATION/result.json",
+      "source_type": "attack_output",
+      "path": "app_core/infrastructure/attack/outputs/20260609T143645Z_T0861_POINT_AND_TAG_IDENTIFICATION/result.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015808.3160763,
+      "size": 2792,
+      "sha256": "d7e94fcc21fa5ff65cec695e466581fb29cf2438e16dc6f145c317a98e49e20a",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::attack_output::app_core/infrastructure/attack/outputs/20260609T143710Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE/result.json",
+      "source_type": "attack_output",
+      "path": "app_core/infrastructure/attack/outputs/20260609T143710Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE/result.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015831.5593047,
+      "size": 3365,
+      "sha256": "10c9347772d0aa21735ef9c88f8ebab33fdd8f088ecf6b607cc296fb39081bf4",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-085104Z/alerts.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-085104Z/alerts.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1780997070.9636302,
+      "size": 181059,
+      "sha256": "172aabe284b2ebc3fffc252ce3897deceac4b409709ce7b78efd3776faa9fcd4",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-085104Z/triage.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-085104Z/triage.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1780997070.9636302,
+      "size": 26799,
+      "sha256": "a52fe6cc68bad9d08a7b8396d294736d0eacf1c453d59f856fd084764927d1f0",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-085105Z/alerts.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-085105Z/alerts.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1780997070.9612074,
+      "size": 216272,
+      "sha256": "ae0b95d40755d192b51db759624cf2032cff966a16fb9d5a48a37f04a9eab352",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-085105Z/triage.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-085105Z/triage.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1780997070.9612074,
+      "size": 32583,
+      "sha256": "930f754802f4e8b0a3ad20bc3c4b265b264f306d85bdb89b6570639b8201a455",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-092520Z/alerts.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-092520Z/alerts.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1780997276.0703351,
+      "size": 18304,
+      "sha256": "a8ff3f516c4fcd9c741f53c7085ff535d93244a8c5ee60a888ca993c8040e4d8",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-092520Z/session.json",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-092520Z/session.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1780997120.3603966,
+      "size": 160,
+      "sha256": "1fd7aee77b9906863b512ef997a697b00ea71b9dabdd6498bcd099b278f52f3b",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-092520Z/triage.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-092520Z/triage.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1780997276.0703351,
+      "size": 2892,
+      "sha256": "5eb2f84f6e3aa48b63e1ff7ae9c8dcfd2fd6655860d8fb119e75629c94f0db4f",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-093506Z/alerts.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-093506Z/alerts.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781007543.584562,
+      "size": 315102,
+      "sha256": "f3c791516e7aa99f062f8b362d07b27eec6ab73690a35ab360a7a7db8b4e0e60",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-093506Z/session.json",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-093506Z/session.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1780997706.739035,
+      "size": 160,
+      "sha256": "5a20dc944ea75ef9ee8d03558650a8d8744959f9025020f17383edfdff64fea9",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-093506Z/triage.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-093506Z/triage.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781007543.5861728,
+      "size": 49887,
+      "sha256": "afdaa956e04c9870cf6b84043ee56da8d7745e9dbb4f046453ddee280460ecef",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-093507Z/alerts.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-093507Z/alerts.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781003863.227847,
+      "size": 31924,
+      "sha256": "d2d78eea60d2218d9996e8750d2cccf825e9ab78f2711515f04e5171af64ca47",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-093507Z/session.json",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-093507Z/session.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1780997707.1941435,
+      "size": 160,
+      "sha256": "0bbaf6a87cbbd148e5984a4b45234549fc41d017b90cf4404eb0fd1cc64bad98",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-093507Z/triage.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-093507Z/triage.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781003863.228826,
+      "size": 5061,
+      "sha256": "48c1ec0f831601742c1401ca73387ed7c2dbc1482afda7f06e9430ed6d042592",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-122914Z/alerts.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-122914Z/alerts.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781011350.8461688,
+      "size": 311813,
+      "sha256": "905c3ccd4a6cafef087a08f0fc9caa672256ba2dbbeab58e22928452728444c0",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-122914Z/session.json",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-122914Z/session.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781008154.473904,
+      "size": 160,
+      "sha256": "43facb8eb1b693c0e775c738e35f5e925088e0b26e7b1057b61727b057f975fe",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-122914Z/triage.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-122914Z/triage.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781011350.8480968,
+      "size": 47766,
+      "sha256": "8c15cd8d08e4dad601da61868063b05106f9e6576a260c145c080258f6bf7990",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-122915Z/alerts.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-122915Z/alerts.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781010655.0992842,
+      "size": 36503,
+      "sha256": "a200c1dbfd8b32ffa6883ed4158c3bf0301c34c822aa080aa5b79cdf1efadc32",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-122915Z/session.json",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-122915Z/session.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781008155.1506765,
+      "size": 160,
+      "sha256": "3c82f33a68d6f2e5b5d5f9edbaedcdc9e261c6d265e9ab779fb924a7189f54d2",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-122915Z/triage.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-122915Z/triage.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781010655.0992842,
+      "size": 5784,
+      "sha256": "66d15863552b1309a781f4d62be1aaceb5215ccf8757e76497874c90d5ec6ab8",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-122916Z/alerts.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-122916Z/alerts.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781009391.201733,
+      "size": 116748,
+      "sha256": "c856338aebac496f6763145d723d8fadfe4967adbed5610e997b6cff8f9931fe",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-122916Z/session.json",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-122916Z/session.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781008156.2403798,
+      "size": 160,
+      "sha256": "c0e702658b341a32e5a86de4c0df5543a1098a3c5496f9646262fe2ec50ee027",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-122916Z/triage.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-122916Z/triage.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781009391.2027204,
+      "size": 17143,
+      "sha256": "d68c2ff9ad51378294113bb20a1db9d33c76c55d0591d74261d80af03db399bc",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-132340Z/alerts.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-132340Z/alerts.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781012915.3422399,
+      "size": 143445,
+      "sha256": "8758b1ed76524edb66d1b5759d25567761d7a1cd32dac7cf002140bdc7e71146",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-132340Z/session.json",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-132340Z/session.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781011420.801439,
+      "size": 160,
+      "sha256": "526291eec13e5e86fc8ee5526700c1bfe8c926941e89b66929677c5fede9c8bb",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-132340Z/triage.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-132340Z/triage.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781012915.3422399,
+      "size": 20902,
+      "sha256": "46548605db55e0d1eb81bb03c3c6c455aa9e2a928529a51f52baf35efc002108",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-132341Z/alerts.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-132341Z/alerts.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015152.000001,
+      "size": 859831,
+      "sha256": "b886c6cbdf7b7019c890967b0b0be4f09ed9abba05752652cf2b480f1b221651",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-132341Z/session.json",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-132341Z/session.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781011421.2099204,
+      "size": 160,
+      "sha256": "3bb218fc7291a0c8afd897364aff54d6ee6d909cbdb8934a7fb9450ae1161ce8",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-132341Z/triage.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-132341Z/triage.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015152.000001,
+      "size": 129043,
+      "sha256": "73e8ba018988224fe2d37aaf29799d7e3c3db6bb3ad88297d0d11747065ddfa4",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-142754Z/session.json",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-142754Z/session.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015274.4368184,
+      "size": 160,
+      "sha256": "f51ac598d7a914e62892482025a9035115c985164376407e2176719550afd58a",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-142755Z/session.json",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-142755Z/session.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015275.1242445,
+      "size": 160,
+      "sha256": "402b972a07f5908cb66dd88e9a2866c3e342a9216fd07f58425d572d7366df88",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-143134Z/alerts.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-143134Z/alerts.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015512.5378208,
+      "size": 9152,
+      "sha256": "95df6fb528f1d4187af0379103a8f50e94036898cdd62717b7c09126adcbbd28",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-143134Z/session.json",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-143134Z/session.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015494.208606,
+      "size": 160,
+      "sha256": "4d33e53bf14ea2ec31d9da97c6345d95cc4a0234fb62dd016bf2a7283fae1c2f",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-143134Z/triage.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-143134Z/triage.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015512.538757,
+      "size": 1446,
+      "sha256": "9143a9ecd65a0dd1f2ba3327ee991ef925541f8bdafccffa713d4bd3fa4c374e",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-143135Z/session.json",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-143135Z/session.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015495.0023842,
+      "size": 160,
+      "sha256": "0903db4c86e4d08a212e313a5da4d0fc8e8eff48ff9c77b4461db6453b27f8b6",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-143309Z/alerts.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-143309Z/alerts.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781021713.747059,
+      "size": 123288,
+      "sha256": "b8c5a27d7f110de3357c22e9e2cbf396c7fa33a6ccb3bd5621b9111e0a8d8dbc",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-143309Z/session.json",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-143309Z/session.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015589.863039,
+      "size": 160,
+      "sha256": "ded79a0de86a9ff57bf4dd46b9b3be14a167f8c2e3b4d8ea97bcd4602c3ce7f0",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-143309Z/triage.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-143309Z/triage.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781021713.747059,
+      "size": 19521,
+      "sha256": "350f6433a0fc09ae22b95546cee819b6c528248e0dd34181bda666581d10a0a1",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-143310Z/alerts.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-143310Z/alerts.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781021713.7478938,
+      "size": 554369,
+      "sha256": "a68ab3eec39309261c92ce47fb72172a613c9046d209c46e327b1e8ad905896c",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-143310Z/session.json",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-143310Z/session.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781015590.0627708,
+      "size": 160,
+      "sha256": "03cc490a66b8af5551a40bdfe8c918636d78f24dc387ab3f3a352eeded628a99",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-143310Z/triage.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260609-143310Z/triage.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781021713.7478938,
+      "size": 84171,
+      "sha256": "aede4bb3d4d267f80793eed531da766cd04fea3c0263d98f246657f766664fa3",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260610-082319Z/alerts.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260610-082319Z/alerts.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781089235.396498,
+      "size": 191802,
+      "sha256": "52a5a8ade71cf9505c07a7be4eafd659b72ccea23ac0c4d2c7d586e1f5b354f9",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260610-082319Z/session.json",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260610-082319Z/session.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781079799.4254093,
+      "size": 160,
+      "sha256": "e7daecafe82ed9b6e471078da51e3fb76e758dbb447fbd7a035e455927827892",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260610-082319Z/triage.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260610-082319Z/triage.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781089235.396498,
+      "size": 30366,
+      "sha256": "b19a4615e7864b72a2990a4b4dab036895bc6cfc6be5313b843f7e3456662e38",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260610-082320Z/alerts.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260610-082320Z/alerts.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781089235.395408,
+      "size": 191802,
+      "sha256": "a60589fbd0bb89911fa0a248e9f511af4259ca0a9a187b0ed10771809275612a",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260610-082320Z/session.json",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260610-082320Z/session.json",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781079800.0525281,
+      "size": 160,
+      "sha256": "f3b1bf10084e8fee912b234bb426f74a5f542822885494a7535ba05759b1f1b8",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::alerts_session_file::app_core/infrastructure/forensics/alerts_store/ALERTS-20260610-082320Z/triage.jsonl",
+      "source_type": "alerts_session_file",
+      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260610-082320Z/triage.jsonl",
+      "kind": "file",
+      "status": "present",
+      "mtime": 1781089235.395408,
+      "size": 30366,
+      "sha256": "7bbe19bb1769b3c98760fad11ddccd13ec0ea55f3ba640711ab1e226ae2d2559",
+      "details": {
+        "hash_reason": "textual_small"
+      }
+    },
+    {
+      "source_id": "src::forensics_case_dir::app_core/infrastructure/forensics/evidence_store/CASE-*",
+      "source_type": "forensics_case_dir",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-*",
+      "kind": "dir",
+      "status": "empty",
+      "mtime": null,
+      "size": null,
+      "sha256": null,
+      "details": {
+        "pattern": "app_core/infrastructure/forensics/evidence_store/CASE-*",
+        "base_dir": "app_core/infrastructure/forensics/evidence_store"
+      }
+    }
+  ],
+  "cases": []
+}

@@ -1,0 +1,275 @@
+{
+  "scenario_id": "scn-24ce2296",
+  "generated_at": "2026-06-10T11:00:14.560622+00:00",
+  "nodes": [
+    {
+      "instance_id": "inst-a495cfe7",
+      "instance_name": "FUXA_Instance",
+      "node_type": "industrial_scada",
+      "desired_tools": [
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "installed_tools": [
+        "tool-wazuh_agent",
+        "tool-suricata",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-wazuh_fim_realtime"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [
+        "tools-installer/logs/FUXA_Instance_rollback_suricata_ping_detection.log",
+        "tools-installer/logs/FUXA_Instance_rollback_wazuh_suricata_integration.log",
+        "tools-installer/logs/FUXA_Instance_suricata.log",
+        "tools-installer/logs/FUXA_Instance_wazuh_agent.log",
+        "tools-installer/logs/FUXA_Instance_wazuh_fim_realtime.log"
+      ],
+      "openstack_instance_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-8c0c86c9",
+      "instance_name": "PLC_Instance",
+      "node_type": "industrial_plc",
+      "desired_tools": [
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "installed_tools": [
+        "tool-wazuh_agent",
+        "tool-suricata",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-wazuh_fim_realtime"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [
+        "tools-installer/logs/PLC_Instance_rollback_suricata_ping_detection.log",
+        "tools-installer/logs/PLC_Instance_rollback_wazuh_suricata_integration.log",
+        "tools-installer/logs/PLC_Instance_suricata.log",
+        "tools-installer/logs/PLC_Instance_wazuh_agent.log",
+        "tools-installer/logs/PLC_Instance_wazuh_fim_realtime.log"
+      ],
+      "openstack_instance_id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-fd472bac",
+      "instance_name": "attack 2",
+      "node_type": "attack",
+      "desired_tools": [
+        "tool-caldera",
+        "tool-caldera_ot_plugins",
+        "tool-nmap",
+        "tool-mbpoll"
+      ],
+      "installed_tools": [
+        "tool-caldera",
+        "tool-caldera_ot_plugins",
+        "tool-nmap",
+        "tool-mbpoll"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [
+        "tools-installer/logs/attack 2_caldera.log",
+        "tools-installer/logs/attack 2_caldera_agent.log",
+        "tools-installer/logs/attack 2_caldera_ot_plugins.log",
+        "tools-installer/logs/attack 2_mbpoll.log",
+        "tools-installer/logs/attack 2_nmap.log"
+      ],
+      "openstack_instance_id": "fd472bac-f010-4bf9-9a15-89e95998f4f1",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-jj",
+      "instance_name": "attack 22",
+      "node_type": "attack",
+      "desired_tools": [
+        "tool-nmap"
+      ],
+      "installed_tools": [],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [
+        "tools-installer/logs/attack 22_nmap.log",
+        "tools-installer/logs/attack_22_nmap.log"
+      ],
+      "openstack_instance_id": "jj",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-ed1b7dc8",
+      "instance_name": "host_manage",
+      "node_type": "unknown",
+      "desired_tools": [],
+      "installed_tools": [],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [
+        "tools-installer/logs/host_manage.log"
+      ],
+      "openstack_instance_id": "not_available",
+      "id_origin": "derived_from_hash"
+    },
+    {
+      "instance_id": "inst-fb357484",
+      "instance_name": "mbpoll_install",
+      "node_type": "unknown",
+      "desired_tools": [],
+      "installed_tools": [],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [
+        "tools-installer/logs/mbpoll_install.log"
+      ],
+      "openstack_instance_id": "not_available",
+      "id_origin": "derived_from_hash"
+    },
+    {
+      "instance_id": "inst-995d7668",
+      "instance_name": "monitor 1",
+      "node_type": "monitor",
+      "desired_tools": [
+        "tool-wazuh",
+        "tool-nmap"
+      ],
+      "installed_tools": [
+        "tool-wazuh",
+        "tool-nmap"
+      ],
+      "failed_tools": [
+        "tool-nmap"
+      ],
+      "pending_tools": [],
+      "installation_logs": [
+        "tools-installer/logs/monitor 1_nmap.log",
+        "tools-installer/logs/monitor 1_wazuh.log"
+      ],
+      "openstack_instance_id": "995d7668-24d6-4d21-92fe-83fdf61cdc05",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-4ea4a41a",
+      "instance_name": "monitor_11_mbpoll",
+      "node_type": "monitor",
+      "desired_tools": [],
+      "installed_tools": [],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [
+        "tools-installer/logs/monitor_11_mbpoll.log"
+      ],
+      "openstack_instance_id": "not_available",
+      "id_origin": "derived_from_hash"
+    },
+    {
+      "instance_id": "inst-16583180",
+      "instance_name": "victim 3",
+      "node_type": "victim",
+      "desired_tools": [
+        "tool-caldera_agent",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-nmap"
+      ],
+      "installed_tools": [
+        "tool-caldera_agent",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-nmap"
+      ],
+      "failed_tools": [
+        "tool-zeek"
+      ],
+      "pending_tools": [],
+      "installation_logs": [
+        "tools-installer/logs/victim 3_caldera_agent.log",
+        "tools-installer/logs/victim 3_nmap.log",
+        "tools-installer/logs/victim 3_snort.log",
+        "tools-installer/logs/victim 3_suricata.log",
+        "tools-installer/logs/victim 3_wazuh_agent.log",
+        "tools-installer/logs/victim 3_zeek.log"
+      ],
+      "openstack_instance_id": "16583180-627d-4c40-bd65-aa9db704d75c",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-787e728c",
+      "instance_name": "victim 33",
+      "node_type": "victim",
+      "desired_tools": [
+        "tool-nmap"
+      ],
+      "installed_tools": [
+        "tool-nmap"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [
+        "tools-installer/logs/victim 33_nmap.log",
+        "tools-installer/logs/victim_33_nmap.log"
+      ],
+      "openstack_instance_id": "787e728c-5303-42eb-9d3d-e6dfd2d28a97",
+      "id_origin": "derived_from_existing_id"
+    }
+  ],
+  "host_tool_inventory": [],
+  "source_files": [
+    "tools-installer-tmp/attack_22_tools.json",
+    "tools-installer-tmp/attack_2_tools.json",
+    "tools-installer-tmp/fuxa_instance_tools.json",
+    "tools-installer-tmp/monitor_1_tools.json",
+    "tools-installer-tmp/monitor_1_tools_07_04_2026_test.json",
+    "tools-installer-tmp/plc_instance_tools.json",
+    "tools-installer-tmp/victim_33_tools.json",
+    "tools-installer-tmp/victim_3_tools.json",
+    "tools-installer/installed/16583180-627d-4c40-bd65-aa9db704d75c.json",
+    "tools-installer/installed/787e728c-5303-42eb-9d3d-e6dfd2d28a97.json",
+    "tools-installer/installed/8c0c86c9-2c69-424b-9080-f6c07d798787.json",
+    "tools-installer/installed/995d7668-24d6-4d21-92fe-83fdf61cdc05.json",
+    "tools-installer/installed/a495cfe7-b55b-41d0-95bf-78f9093f7fe2.json",
+    "tools-installer/installed/fd472bac-f010-4bf9-9a15-89e95998f4f1.json",
+    "tools-installer/logs/FUXA_Instance_rollback_suricata_ping_detection.log",
+    "tools-installer/logs/FUXA_Instance_rollback_wazuh_suricata_integration.log",
+    "tools-installer/logs/FUXA_Instance_suricata.log",
+    "tools-installer/logs/FUXA_Instance_wazuh_agent.log",
+    "tools-installer/logs/FUXA_Instance_wazuh_fim_realtime.log",
+    "tools-installer/logs/PLC_Instance_rollback_suricata_ping_detection.log",
+    "tools-installer/logs/PLC_Instance_rollback_wazuh_suricata_integration.log",
+    "tools-installer/logs/PLC_Instance_suricata.log",
+    "tools-installer/logs/PLC_Instance_wazuh_agent.log",
+    "tools-installer/logs/PLC_Instance_wazuh_fim_realtime.log",
+    "tools-installer/logs/attack 22_nmap.log",
+    "tools-installer/logs/attack 2_caldera.log",
+    "tools-installer/logs/attack 2_caldera_agent.log",
+    "tools-installer/logs/attack 2_caldera_ot_plugins.log",
+    "tools-installer/logs/attack 2_mbpoll.log",
+    "tools-installer/logs/attack 2_nmap.log",
+    "tools-installer/logs/attack_22_nmap.log",
+    "tools-installer/logs/host_manage.log",
+    "tools-installer/logs/mbpoll_install.log",
+    "tools-installer/logs/monitor 1_nmap.log",
+    "tools-installer/logs/monitor 1_wazuh.log",
+    "tools-installer/logs/monitor_11_mbpoll.log",
+    "tools-installer/logs/victim 33_nmap.log",
+    "tools-installer/logs/victim 3_caldera_agent.log",
+    "tools-installer/logs/victim 3_nmap.log",
+    "tools-installer/logs/victim 3_snort.log",
+    "tools-installer/logs/victim 3_suricata.log",
+    "tools-installer/logs/victim 3_wazuh_agent.log",
+    "tools-installer/logs/victim 3_zeek.log",
+    "tools-installer/logs/victim_33_nmap.log",
+    "logs/host_manage.log"
+  ],
+  "warnings": []
+}

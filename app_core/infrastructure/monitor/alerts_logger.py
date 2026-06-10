@@ -10,6 +10,15 @@ from typing import Any, Dict, Optional
 FORENSICS_ALERTS_BASE = os.path.abspath("app_core/infrastructure/forensics/alerts_store")
 
 
+def _safe_notify_foc(event_type: str, payload: Dict[str, Any]) -> None:
+    try:
+        from app_core.infrastructure.foc_reconstruction import safe_notify_foc
+
+        safe_notify_foc(event_type, payload)
+    except Exception:
+        return
+
+
 def _utc_now_compact() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%SZ")
 
@@ -181,6 +190,22 @@ class AlertsLogger:
             case_rel = _write_case_alert(case_dir, primary)
 
         # 7) Respuesta
+        _safe_notify_foc(
+            "alert_detected",
+            {
+                "event_id": event_id,
+                "session_id": self.session_id,
+                "ts_utc": ts_utc,
+                "source": primary.get("source"),
+                "alert_type": primary.get("alert_type"),
+                "signature": primary.get("signature"),
+                "rule_id": primary.get("rule_id"),
+                "rule_level": primary.get("rule_level"),
+                "severity": triage.get("severity"),
+                "recommend_forensics": triage.get("recommend_forensics"),
+                "case_rel": case_rel,
+            },
+        )
         return {
             "primary": primary,
             "triage": triage,

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FOC Reconstruction</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg: #09111f;
+      --panel: rgba(14, 25, 44, 0.86);
+      --panel-2: rgba(10, 18, 32, 0.92);
+      --line: rgba(148, 163, 184, 0.16);
+      --ink: #e2e8f0;
+      --muted: #8fa3bf;
+      --ok: #22c55e;
+      --warn: #eab308;
+      --bad: #ef4444;
+      --info: #38bdf8;
+      --upd: #3b82f6;
+    }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(56,189,248,0.16), transparent 30%),
+        radial-gradient(circle at top right, rgba(59,130,246,0.14), transparent 24%),
+        linear-gradient(180deg, #060b14, #0a1322 58%, #08101b);
+      color: var(--ink);
+    }
+    .glass { background: var(--panel); backdrop-filter: blur(14px); border: 1px solid var(--line); }
+    .glass-soft { background: var(--panel-2); border: 1px solid var(--line); }
+    .status-confirmed { color: var(--ok); }
+    .status-inferred { color: var(--warn); }
+    .status-missing { color: var(--bad); }
+    .status-unknown { color: var(--muted); }
+    .status-updated { color: var(--upd); }
+    .grid-panel { min-height: 290px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .scroll-panel { max-height: 420px; overflow: auto; }
+    .scroll-panel::-webkit-scrollbar { width: 8px; height: 8px; }
+    .scroll-panel::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.24); border-radius: 999px; }
+    .tag { border: 1px solid rgba(148,163,184,0.18); background: rgba(15,23,42,0.7); }
+    .btn-primary { background: linear-gradient(135deg, #0ea5e9, #2563eb); }
+    .btn-secondary { background: rgba(15,23,42,0.84); border: 1px solid rgba(148,163,184,0.16); }
+  </style>
+</head>
+<body>
+  <div class="px-6 py-6 md:px-10 md:py-8">
+    <header class="glass rounded-[28px] p-6 md:p-8 mb-6">
+      <div class="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+        <div>
+          <div class="text-[11px] tracking-[0.35em] uppercase text-sky-300 font-extrabold">FOC Reconstruction</div>
+          <h1 class="text-3xl md:text-4xl font-black mt-3">Forensic Observational Context Reconstruction</h1>
+          <p class="text-sm text-slate-300 mt-3 max-w-3xl">Scientific validation surface for scenario composition, installed tooling, timeline integrity, evidential traceability, reconstruction gaps, and reproducibility readiness.</p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <button id="btn-bootstrap" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Bootstrap FOC</button>
+          <button id="btn-regenerate" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Regenerate Reconstruction</button>
+          <button id="btn-refresh" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Refresh</button>
+        </div>
+      </div>
+    </header>
+
+    <section class="grid grid-cols-1 xl:grid-cols-12 gap-5 mb-6">
+      <div class="glass rounded-[28px] p-6 xl:col-span-8">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">FOC Overview</div>
+            <h2 class="text-2xl font-black mt-2">Reconstruction Readiness</h2>
+          </div>
+          <div id="stream-state" class="tag rounded-full px-3 py-2 text-[11px] font-black tracking-[0.2em] uppercase text-sky-300">Stream: Initializing</div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
+          <div class="glass-soft rounded-3xl p-5">
+            <div class="text-xs uppercase tracking-[0.25em] text-slate-400 font-black">FOC Status</div>
+            <div id="ov-status" class="text-2xl font-black mt-3">Not initialized</div>
+            <div id="ov-completeness" class="text-sm mt-2 text-slate-300">Completeness: unknown</div>
+          </div>
+          <div class="glass-soft rounded-3xl p-5">
+            <div class="text-xs uppercase tracking-[0.25em] text-slate-400 font-black">Scenario</div>
+            <div id="ov-scenario-id" class="mono text-lg font-bold mt-3">unknown</div>
+            <div id="ov-scenario-name" class="text-sm mt-2 text-slate-300">unknown</div>
+          </div>
+          <div class="glass-soft rounded-3xl p-5">
+            <div class="text-xs uppercase tracking-[0.25em] text-slate-400 font-black">Reproducibility Score</div>
+            <div id="ov-score" class="text-4xl font-black mt-3">0</div>
+            <div id="ov-updated" class="text-sm mt-2 text-slate-300">Updated: unknown</div>
+          </div>
+        </div>
+        <div class="mt-5">
+          <div class="w-full h-4 rounded-full bg-slate-900/70 overflow-hidden">
+            <div id="score-bar" class="h-full bg-gradient-to-r from-red-500 via-amber-400 to-emerald-400" style="width:0%"></div>
+          </div>
+          <div id="score-breakdown" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 mt-4 text-xs"></div>
+        </div>
+      </div>
+
+      <div class="glass rounded-[28px] p-6 xl:col-span-4">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Exports</div>
+            <h2 class="text-xl font-black mt-2">Manifest and BOM Artifacts</h2>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 gap-3 mt-5">
+          <button data-export="manifest" class="export-btn btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Export Manifest</button>
+          <button data-export="scenario-bom" class="export-btn btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Export Scenario BOM</button>
+          <button data-export="tools-bom" class="export-btn btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Export Tools BOM</button>
+          <button data-export="timeline" class="export-btn btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Export Timeline</button>
+        </div>
+        <div id="overview-flags" class="mt-5 space-y-2 text-sm"></div>
+      </div>
+    </section>
+
+    <section class="glass rounded-[28px] p-6 mb-6">
+      <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div>
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">FOC Reconstruction Model</div>
+          <h2 class="text-2xl font-black mt-2">Conceptual Reconstruction State</h2>
+          <p class="text-sm text-slate-300 mt-3 max-w-4xl">This panel explains what each reconstruction component represents, whether it is already available, partially connected, not generated yet, missing, or unresolved, and what remains to be done to reach stronger scientific reproducibility.</p>
+        </div>
+        <div id="maturity-summary" class="flex flex-wrap gap-2"></div>
+      </div>
+
+      <div id="model-phase-note" class="glass-soft rounded-2xl p-4 mt-5 text-sm text-slate-300"></div>
+
+      <div class="mt-5 overflow-x-auto">
+        <table class="w-full text-sm min-w-[980px]">
+          <thead>
+            <tr class="text-left text-slate-400 uppercase tracking-[0.16em] text-[11px]">
+              <th class="pb-3 pr-4">Component</th>
+              <th class="pb-3 pr-4">Meaning</th>
+              <th class="pb-3 pr-4">Status</th>
+              <th class="pb-3 pr-4">Current Evidence</th>
+              <th class="pb-3">Missing / Next Step</th>
+            </tr>
+          </thead>
+          <tbody id="model-table" class="align-top"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="glass rounded-[28px] p-6 mb-6">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Analytical Visualizations</div>
+          <h2 class="text-2xl font-black mt-2">Reconstruction Analytics Surface</h2>
+          <p class="text-sm text-slate-300 mt-3 max-w-4xl">Scientific visual summaries derived from the current FOC state. These panels help compare event intensity, detection concentration, evidential coverage, and causal relationships without changing the underlying reconstruction sources.</p>
+        </div>
+      </div>
+
+      <div id="analytics-kpis" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mt-5"></div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 mt-6">
+        <div class="glass-soft rounded-[28px] p-5 xl:col-span-7">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Time-Series Line Chart</div>
+              <h3 class="text-lg font-black mt-2">Incident Evolution</h3>
+            </div>
+            <div id="chart-timeseries-summary" class="text-xs text-slate-300">No data</div>
+          </div>
+          <div id="chart-timeseries" class="mt-4"></div>
+        </div>
+
+        <div class="glass-soft rounded-[28px] p-5 xl:col-span-5">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Donut Chart</div>
+              <h3 class="text-lg font-black mt-2">Detection Source Distribution</h3>
+            </div>
+            <div id="chart-donut-summary" class="text-xs text-slate-300">No data</div>
+          </div>
+          <div id="chart-donut" class="mt-4"></div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 mt-5">
+        <div class="glass-soft rounded-[28px] p-5 xl:col-span-6">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Horizontal Bar Chart</div>
+              <h3 class="text-lg font-black mt-2">Most Affected Nodes</h3>
+            </div>
+            <div id="chart-bars-summary" class="text-xs text-slate-300">No data</div>
+          </div>
+          <div id="chart-bars" class="mt-4"></div>
+        </div>
+
+        <div class="glass-soft rounded-[28px] p-5 xl:col-span-6">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Ranking Table</div>
+              <h3 class="text-lg font-black mt-2">Most Frequent MITRE Techniques</h3>
+            </div>
+            <div id="chart-ranking-summary" class="text-xs text-slate-300">No data</div>
+          </div>
+          <div id="chart-ranking" class="mt-4"></div>
+        </div>
+      </div>
+
+      <div class="glass-soft rounded-[28px] p-5 mt-5">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Network Graph</div>
+            <h3 class="text-lg font-black mt-2">Causal Reconstruction Graph</h3>
+          </div>
+          <div id="chart-network-summary" class="text-xs text-slate-300">No data</div>
+        </div>
+        <div id="chart-network" class="mt-4"></div>
+      </div>
+    </section>
+
+    <section class="grid grid-cols-1 xl:grid-cols-2 gap-5 mb-6">
+      <div class="glass rounded-[28px] p-6 grid-panel">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Scenario BOM</div>
+            <h3 class="text-xl font-black mt-2">IT / OT Structural Composition</h3>
+          </div>
+          <div id="scenario-summary" class="text-sm text-slate-300">No data</div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
+          <div class="glass-soft rounded-3xl p-4">
+            <div class="text-xs uppercase tracking-[0.22em] text-slate-400 font-black mb-3">Nodes</div>
+            <div id="scenario-nodes" class="scroll-panel text-sm space-y-3"></div>
+          </div>
+          <div class="glass-soft rounded-3xl p-4">
+            <div class="text-xs uppercase tracking-[0.22em] text-slate-400 font-black mb-3">IT ↔ OT Links</div>
+            <div id="scenario-links" class="scroll-panel text-sm space-y-3"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass rounded-[28px] p-6 grid-panel">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Tools BOM</div>
+            <h3 class="text-xl font-black mt-2">Node-Level Instrumentation State</h3>
+          </div>
+          <div id="tools-summary" class="text-sm text-slate-300">No data</div>
+        </div>
+        <div id="tools-nodes" class="scroll-panel mt-5 space-y-4"></div>
+      </div>
+    </section>
+
+    <section class="grid grid-cols-1 xl:grid-cols-2 gap-5 mb-6">
+      <div class="glass rounded-[28px] p-6 grid-panel">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Timeline</div>
+            <h3 class="text-xl font-black mt-2">Lifecycle and Incident Sequence</h3>
+            <p class="text-sm text-slate-300 mt-3 max-w-2xl">Complete experiment chronology. This list combines lifecycle, tooling, attacks, detections, escalation, and forensic pipeline events in strict reverse time order.</p>
+          </div>
+          <div id="timeline-summary" class="text-sm text-slate-300">No data</div>
+        </div>
+        <div id="timeline-events" class="scroll-panel mt-5 space-y-3"></div>
+      </div>
+
+      <div class="glass rounded-[28px] p-6 grid-panel">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Alerts and Events</div>
+            <h3 class="text-xl font-black mt-2">Detection and Escalation Surface</h3>
+            <p class="text-sm text-slate-300 mt-3 max-w-2xl">Detection-focused view. This panel shows alerts, triage, DFIR escalation, and case creation, without repeating the full offensive chronology.</p>
+          </div>
+          <div id="alerts-summary" class="text-sm text-slate-300">No data</div>
+        </div>
+        <div id="alerts-events" class="scroll-panel mt-5 space-y-3"></div>
+      </div>
+    </section>
+
+    <section class="grid grid-cols-1 xl:grid-cols-2 gap-5 mb-6">
+      <div class="glass rounded-[28px] p-6 grid-panel">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Evidence and Cases</div>
+            <h3 class="text-xl font-black mt-2">Preserved Artifacts and Forensic Cases</h3>
+          </div>
+        </div>
+        <div id="cases-panel" class="scroll-panel mt-5 space-y-4"></div>
+      </div>
+
+      <div class="glass rounded-[28px] p-6 grid-panel">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Reconstruction Gaps</div>
+            <h3 class="text-xl font-black mt-2">Reproducibility Weaknesses</h3>
+          </div>
+          <div id="gaps-summary" class="text-sm text-slate-300">No data</div>
+        </div>
+        <div id="gaps-panel" class="scroll-panel mt-5 space-y-3"></div>
+      </div>
+    </section>
+
+    <section class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+      <div class="glass rounded-[28px] p-6 grid-panel">
+        <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Sources and Hashes</div>
+        <h3 class="text-xl font-black mt-2">Evidence Provenance Matrix</h3>
+        <div id="sources-panel" class="scroll-panel mt-5 space-y-3"></div>
+      </div>
+      <div class="glass rounded-[28px] p-6 grid-panel">
+        <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Relationships</div>
+        <h3 class="text-xl font-black mt-2">Confirmed and Inferred Correlations</h3>
+        <div id="relationships-panel" class="scroll-panel mt-5 space-y-3"></div>
+      </div>
+    </section>
+  </div>
+
+  <script src="/js/foc_reconstruction.js"></script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+{
+  "foc_id": "foc-scn-b83dbbfb",
+  "scenario_id": "scn-b83dbbfb",
+  "scenario_name": "industrial_file",
+  "created_at": "2026-06-10T10:46:25.396668+00:00",
+  "updated_at": "2026-06-10T11:01:32.294553+00:00",
+  "reconstructed_at": "2026-06-10T11:01:32.294568+00:00",
+  "lifecycle_state": "active",
+  "read_only_reconstruction": true,
+  "bootstrap_mode": true,
+  "scenario_bom": {
+    "path": "foc-reconstruction/scenario_bom.json",
+    "sha256": "203d5e6a43ddef79bc285e5c496fcd4d22f6ceef0c00f550abbae9c9f8ced1af"
+  },
+  "tools_bom": {
+    "path": "foc-reconstruction/tools_bom.json",
+    "sha256": "d436191ee9b4aa10ec3744df60ac7ec7838f954f3dd64e163178864b7b4478ca"
+  },
+  "timeline": {
+    "path": "foc-reconstruction/timeline.json",
+    "sha256": "293463a7d8073f93f65c9999ae42ac8f7442a1894c26e181ee99626cb75b24c5"
+  },
+  "id_mapping_path": "foc-reconstruction/indexes/id_mapping.json",
+  "source_indexes": {
+    "sources": "foc-reconstruction/indexes/sources_index.json",
+    "artifacts": "foc-reconstruction/indexes/artifacts_index.json",
+    "relationships": "foc-reconstruction/indexes/relationships_index.json",
+    "cases": "foc-reconstruction/indexes/cases_index.json"
+  },
+  "warnings": [],
+  "generation_status": "ok"
+}

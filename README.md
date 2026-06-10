@@ -94,6 +94,7 @@ NICS CyberLab follows a progressive workflow:
 7. **Execute attack-and-detection exercises**
 8. **Preserve and analyze evidence when incidents require forensic escalation**
 9. **Review the preserved case, artifact inventory, manifest, chain of custody, and pipeline events**
+10. **Validate reconstruction completeness, traceability, and reproducibility through the FOC layer**
 
 This design allows the user to move from infrastructure provisioning to full cybersecurity experimentation and case-centered forensic review without leaving the platform.
 
@@ -825,6 +826,320 @@ This service turns the forensic case into an inspectable analytical object. It h
 
 ---
 
+## FOC Reconstruction Dashboard
+
+The **FOC Reconstruction Dashboard** is the scientific validation surface of the platform. Its role is not to deploy infrastructure, execute attacks, or acquire evidence. Its role is to determine whether the active experiment is **reconstructible, traceable, and reproducible** from the artifacts already produced by the platform.
+
+The dashboard is backed by the independent module:
+
+```bash
+app_core/infrastructure/foc_reconstruction/
+```
+
+The generated reconstruction artifacts are written to a root-level, removable output directory:
+
+```bash
+foc-reconstruction/
+```
+
+This design is intentionally read-only with respect to the rest of the platform. The reconstruction layer:
+
+- reads existing scenario, OT, tools, attack, alert, and forensic sources
+- normalizes identifiers and relationships
+- generates its own manifest, indexes, BOMs, and timeline
+- does not modify the original operational or forensic artifacts
+
+If the module or the output directory is removed, the rest of NICS CyberLab continues to operate normally.
+
+### Scientific purpose
+
+The dashboard answers questions such as:
+
+- can the current scenario be reconstructed with scientific rigor
+- which structural, operational, evidential, and analytical sources exist
+- which relationships are confirmed and which are only inferred
+- which reconstruction gaps remain unresolved
+- which new alerts, evidence items, or case artifacts have appeared
+
+In that sense, the dashboard functions as a **reproducibility and reconstruction-readiness surface**, not as a generic JSON viewer.
+
+### Reconstruction model
+
+The reconstruction layer is centered on a **FOC Reconstruction Manifest** that references the active experiment through a normalized `scenario_id`.
+
+Its principal outputs are:
+
+- `foc-reconstruction/foc_manifest.json`
+- `foc-reconstruction/scenario_bom.json`
+- `foc-reconstruction/tools_bom.json`
+- `foc-reconstruction/timeline.json`
+- `foc-reconstruction/indexes/id_mapping.json`
+- `foc-reconstruction/indexes/sources_index.json`
+- `foc-reconstruction/indexes/artifacts_index.json`
+- `foc-reconstruction/indexes/relationships_index.json`
+- `foc-reconstruction/indexes/cases_index.json`
+- `foc-reconstruction/hashes/hashes_index.json`
+
+These artifacts do not duplicate heavy evidence such as PCAPs, disk images, or memory dumps. Instead, they preserve:
+
+- normalized identifiers
+- source paths
+- hashes where feasible
+- timestamps
+- states
+- relationship edges
+- reconstruction warnings
+
+### Bootstrap and regeneration semantics
+
+The module supports two reconstruction modes:
+
+- **native**
+  - the reconstruction layer exists before the experiment and can preserve IDs from the beginning
+- **bootstrap**
+  - the reconstruction layer is initialized after the experiment already has scenario, OT, tools, alert, attack, or forensic artifacts
+
+Bootstrap mode is designed for passive adoption of the existing laboratory state. It reads the current project sources, derives normalized FOC identifiers, creates `id_mapping.json`, and reconstructs the manifest, BOMs, and timeline without altering the original files.
+
+### Panels exposed by the dashboard
+
+The user-facing reconstruction view is:
+
+```bash
+app_core/static/foc_reconstruction.html
+```
+
+with controller:
+
+```bash
+app_core/static/js/foc_reconstruction.js
+```
+
+The dashboard exposes these scientific panels:
+
+- **FOC Overview**
+  - reconstruction status, scenario ID, last update, mode, reproducibility score, completeness
+- **FOC Reconstruction Model**
+  - conceptual status of Scenario BOM, Tools BOM, Attack Attestation, Detection Attestation, Acquisition Manifest, Preservation Manifest, Chain of Custody, Forensic Analysis Report, and Semantic Observation Report
+- **Scenario BOM**
+  - IT nodes, OT nodes, edges, roles, node-instance bindings, industrial linkages, deployment state
+- **Tools BOM**
+  - desired tools, installed tools, pending tools, failed tools, installation logs
+- **Timeline**
+  - normalized lifecycle, alert, escalation, acquisition, preservation, and analysis events
+- **Alerts and Events**
+  - attack, alert, triage, and DFIR escalation context
+- **Evidence and Cases**
+  - case manifests, custody logs, pipeline references, and indexed case artifacts
+- **Reconstruction Gaps**
+  - unresolved or missing elements that reduce reproducibility
+- **Sources and Hashes**
+  - indexed source paths, states, sizes, timestamps, and hashes
+- **Relationships**
+  - confirmed or inferred links between scenario, nodes, tools, attacks, alerts, evidence, and cases
+
+### Reconstruction maturity model
+
+The dashboard makes an explicit distinction between reconstruction phases that are:
+
+- **available**
+  - the artifact exists and is indexed
+- **partial**
+  - some information exists, but key fields or relationships remain incomplete
+- **not generated yet**
+  - the corresponding phase has not been executed yet
+- **missing**
+  - the phase is expected for the current state, but the artifact was not found
+- **unresolved**
+  - information exists, but correlation or interpretation remains incomplete
+
+This distinction is important scientifically. For example, if no forensic acquisition has been launched yet, the dashboard treats acquisition, preservation, custody, and analysis as **not generated yet**, not as a reconstruction failure. This avoids conflating missing evidence with a simple absence of execution.
+
+The maturity summary is presented in four analytical layers:
+
+- **Structural reconstruction**
+  - scenario and tool composition can be reconstructed
+- **Operational reconstruction**
+  - attack execution, alerts, and incident chronology can be reconstructed
+- **Evidential reconstruction**
+  - alerts can be linked to acquired and preserved evidence
+- **Forensic reconstruction**
+  - custody, analysis, and higher-level interpretation can be reconstructed
+
+### Tools BOM consistency model
+
+The FOC reconstruction layer treats the active scenario nodes as the canonical scope of the **Tools BOM**. In methodological terms, the main node list is aligned with the same operational logic used by the tool-management surface of the platform.
+
+The principal node-level section contains only active or scenario-bound nodes and preserves, for each node:
+
+- node name
+- instance name
+- normalized FOC instance ID
+- OpenStack instance UUID when available
+- private and floating IPs
+- desired tools
+- installed tools
+- pending tools
+- failed tools
+- installation logs
+- resolved tool states
+
+The Tools BOM also separates non-canonical tool artifacts into dedicated classes:
+
+- **orphan tool artifacts**
+  - tool JSON or logs that exist on disk but do not map to an active node
+- **historical tool artifacts**
+  - older execution records that belong to previous runs or non-active nodes
+- **host tool artifacts**
+  - host-level logs or inventories that are not scenario nodes
+
+This separation is important because it prevents historical or auxiliary artifacts from being misrepresented as active scenario nodes. As a result, the Tools BOM becomes more coherent with the node population exposed by the tool-management workflow and by the tactical dashboards.
+
+### Chronology versus detection surface
+
+The dashboard distinguishes between two related but non-equivalent temporal views:
+
+- **Timeline / Lifecycle and Incident Sequence**
+  - the complete reverse-time chronology of the experiment
+  - includes lifecycle transitions, tool instrumentation, attack execution, detections, escalation, and forensic pipeline events
+- **Alerts and Events / Detection and Escalation Surface**
+  - a filtered detection-oriented surface
+  - focuses on alerts, triage, DFIR escalation, and case creation without repeating the full offensive chronology
+
+This distinction reduces analytical ambiguity. The timeline answers the question **what happened and in which order**, while the detection surface answers **what the platform detected, how it classified the event, and whether escalation followed**.
+
+### Analytical visualization layer
+
+The reconstruction dashboard also includes a first analytical visualization layer derived from the indexed FOC data. Its purpose is not to replace the textual reconstruction objects, but to provide a compact scientific summary of their current state.
+
+The initial visualization set includes:
+
+- **KPI cards**
+  - alert count
+  - attack count
+  - triage count
+  - evidence count
+  - forensic case count
+  - distinct MITRE technique count
+- **Time-series incident chart**
+  - temporal evolution of attacks, detections, triage, and DFIR/evidence events
+- **Detection distribution donut chart**
+  - relative contribution of detection sources such as Wazuh and Suricata families
+- **Most affected nodes chart**
+  - concentration of indexed events by normalized node
+- **MITRE ranking table**
+  - most frequent ATT&CK techniques observed in execution outputs
+- **Causal reconstruction graph**
+  - simplified relational view of scenario, nodes, attacks, alerts, evidence, and analysis links
+
+These visualizations are intentionally conservative. They are produced from the same normalized FOC artifacts already used by the rest of the dashboard and do not introduce additional dependencies or operational requirements.
+
+### Reproducibility scoring
+
+The dashboard includes a reproducibility score on a 0 to 100 scale. The initial model evaluates whether the following reconstruction components are available:
+
+- Scenario BOM
+- Tools BOM
+- Timeline
+- source index
+- hash index
+- node-instance bindings
+- attack-to-alert links
+- alert-to-evidence links
+- case manifest and chain of custody
+
+This makes the score a structural indicator of reconstruction strength rather than a decorative UI element.
+
+### Reconstruction gaps
+
+One of the most important functions of the dashboard is to reveal what is still missing. Typical gaps include:
+
+- missing scenario identifiers
+- unresolved node-instance bindings
+- pending or failed tool installations
+- missing attack-to-alert correlation
+- missing alert-to-evidence correlation
+- missing evidence hashes
+- missing chain of custody
+- missing forensic analysis outputs
+
+Each gap is presented with:
+
+- severity
+- status
+- expected source
+- recommended action
+
+This gives the operator a practical path to improve reproducibility instead of only inspecting artifacts passively.
+
+### Live update model
+
+The reconstruction dashboard supports live refresh through a server-sent events stream:
+
+```bash
+GET /api/foc/events/stream
+```
+
+This allows the interface to refresh when the indexed source state changes, for example after:
+
+- new tool installation records
+- new attack outputs
+- new alert sessions
+- new forensic cases
+- new custody or pipeline events
+
+The update model also makes it possible to refresh the analytical layer as the incident develops. In practice, this allows the dashboard to expose:
+
+- newly detected alerts
+- new triage outcomes
+- updated attack-to-alert correlations
+- new case creation
+- newly indexed evidence and analysis outputs
+- updated reconstruction gaps and reproducibility score
+
+The live model remains non-critical. If the reconstruction stream degrades or disconnects, the rest of the platform continues operating and the reconstruction dashboard still supports manual refresh and regeneration.
+
+### FOC API surface
+
+The reconstruction layer exposes a dedicated, isolated API:
+
+- `GET /api/foc/status`
+- `GET /api/foc/manifest`
+- `GET /api/foc/scenario-bom`
+- `GET /api/foc/tools-bom`
+- `GET /api/foc/timeline`
+- `GET /api/foc/gaps`
+- `GET /api/foc/sources`
+- `GET /api/foc/relationships`
+- `GET /api/foc/id-mapping`
+- `POST /api/foc/bootstrap`
+- `POST /api/foc/regenerate`
+- `GET /api/foc/events/stream`
+
+These endpoints are optional services for reconstruction and do not act as dependencies for scenario creation, OT deployment, tool installation, attack execution, or forensic acquisition.
+
+### Export and comparative value
+
+Because the FOC layer produces normalized BOMs, indexes, and a timeline, the reconstruction state is exportable in a form that supports both **single-scenario reconstruction** and **cross-scenario comparison**.
+
+At a methodological level, this enables later comparison of:
+
+- scenario composition
+- node instrumentation
+- ATT&CK techniques executed
+- detection volume and detector families
+- forensic case creation
+- evidence preservation state
+- reconstruction completeness and reproducibility score
+
+This makes the FOC layer useful not only as a validation dashboard for the active scenario, but also as a foundation for longitudinal or comparative experimental studies.
+
+### Why it matters
+
+This dashboard turns the experiment into a scientifically inspectable object. It connects infrastructure composition, instrumentation state, attack outputs, alerts, evidence preservation, and analytical results into a single reconstruction surface. As a result, the platform can be evaluated not only by what it executes, but also by how completely and rigorously the resulting experiment can be reconstructed afterward.
+
+---
+
 
 ## 4. Remote Lab Exchange
 
@@ -902,6 +1217,10 @@ When the incident severity justifies it, preserve and analyze evidence through t
 
 Review the preserved case, artifact inventory, manifest, chain of custody, and pipeline events in the **Digital Forensics Report and Analysis Dashboard**.
 
+### Step 10
+
+Validate reconstruction completeness, evidential traceability, and reproducibility through the **FOC Reconstruction Dashboard**.
+
 ---
 
 ## 6. Key platform strengths
@@ -916,6 +1235,7 @@ NICS CyberLab brings together capabilities that are often separated across multi
 - **Integrated attack-and-detection exercises**
 - **Case-aware forensic acquisition and analysis**
 - **Case-centered forensic reporting and evidence review**
+- **Scientific reconstruction and reproducibility validation**
 - **Educational and professional usability**
 - **Operational traceability across the workflow**
 
@@ -966,6 +1286,18 @@ restart_openstack.sh
 
 ```bash
 industrial-scenario/PLC/plc_programs/TankControl.st
+```
+
+### FOC reconstruction module
+
+```bash
+app_core/infrastructure/foc_reconstruction/
+```
+
+### FOC reconstruction artifacts
+
+```bash
+foc-reconstruction/
 ```
 
 ---

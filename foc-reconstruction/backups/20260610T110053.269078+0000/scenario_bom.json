@@ -1,0 +1,399 @@
+{
+  "scenario_id": "scn-24ce2296",
+  "scenario_name": "industrial_file",
+  "generated_at": "2026-06-10T11:00:14.559692+00:00",
+  "base_scenario_path": "scenario/scenario_file.json",
+  "nodes": [
+    {
+      "id": "node1",
+      "name": "monitor 1",
+      "type": "monitor",
+      "industrial": false,
+      "installed": true,
+      "installable": false,
+      "linked_to": null,
+      "position": {
+        "x": 719,
+        "y": 124
+      },
+      "node_id": "node-4e09b076",
+      "source_node_id": "node1",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "id": "node2",
+      "name": "attack 2",
+      "type": "attack",
+      "industrial": false,
+      "installed": true,
+      "installable": false,
+      "linked_to": null,
+      "position": {
+        "x": 1025,
+        "y": 306
+      },
+      "node_id": "node-45d20749",
+      "source_node_id": "node2",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "id": "node3",
+      "name": "victim 3",
+      "type": "victim",
+      "industrial": false,
+      "installed": true,
+      "installable": false,
+      "linked_to": null,
+      "position": {
+        "x": 960,
+        "y": 146
+      },
+      "node_id": "node-c800d431",
+      "source_node_id": "node3",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "id": "plc_1767533920429",
+      "name": "PLC",
+      "type": "industrial_plc",
+      "industrial": true,
+      "installed": false,
+      "installable": true,
+      "linked_to": "node3",
+      "position": {
+        "x": 1080,
+        "y": 266
+      },
+      "node_id": "node-f9ca9bfc",
+      "source_node_id": "plc_1767533920429",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "id": "scada_1767534004810",
+      "name": "SCADA",
+      "type": "industrial_scada",
+      "industrial": true,
+      "installed": false,
+      "installable": true,
+      "linked_to": "node3",
+      "position": {
+        "x": 1083.7,
+        "y": 156.58571428571426
+      },
+      "node_id": "node-e1ac03b8",
+      "source_node_id": "scada_1767534004810",
+      "id_origin": "derived_from_existing_id"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_node3_plc_1767533920429",
+      "source": "node3",
+      "target": "plc_1767533920429",
+      "source_node_id": "node-c800d431",
+      "target_node_id": "node-f9ca9bfc"
+    },
+    {
+      "id": "edge_node1_node3",
+      "source": "node1",
+      "target": "node3",
+      "source_node_id": "node-4e09b076",
+      "target_node_id": "node-c800d431"
+    },
+    {
+      "id": "edge_node3_node1",
+      "source": "node3",
+      "target": "node1",
+      "source_node_id": "node-c800d431",
+      "target_node_id": "node-4e09b076"
+    },
+    {
+      "id": "edge_node2_node3",
+      "source": "node2",
+      "target": "node3",
+      "source_node_id": "node-45d20749",
+      "target_node_id": "node-c800d431"
+    },
+    {
+      "id": "edge_node3_scada_1767534004810",
+      "source": "node3",
+      "target": "scada_1767534004810",
+      "source_node_id": "node-c800d431",
+      "target_node_id": "node-e1ac03b8"
+    }
+  ],
+  "it_nodes": [
+    {
+      "id": "node1",
+      "name": "monitor 1",
+      "type": "monitor",
+      "industrial": false,
+      "installed": true,
+      "installable": false,
+      "linked_to": null,
+      "position": {
+        "x": 719,
+        "y": 124
+      },
+      "node_id": "node-4e09b076",
+      "source_node_id": "node1",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "id": "node2",
+      "name": "attack 2",
+      "type": "attack",
+      "industrial": false,
+      "installed": true,
+      "installable": false,
+      "linked_to": null,
+      "position": {
+        "x": 1025,
+        "y": 306
+      },
+      "node_id": "node-45d20749",
+      "source_node_id": "node2",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "id": "node3",
+      "name": "victim 3",
+      "type": "victim",
+      "industrial": false,
+      "installed": true,
+      "installable": false,
+      "linked_to": null,
+      "position": {
+        "x": 960,
+        "y": 146
+      },
+      "node_id": "node-c800d431",
+      "source_node_id": "node3",
+      "id_origin": "derived_from_existing_id"
+    }
+  ],
+  "ot_nodes": [
+    {
+      "id": "plc_1767533920429",
+      "name": "PLC",
+      "type": "industrial_plc",
+      "industrial": true,
+      "installed": false,
+      "installable": true,
+      "linked_to": "node3",
+      "position": {
+        "x": 1080,
+        "y": 266
+      },
+      "node_id": "node-f9ca9bfc",
+      "source_node_id": "plc_1767533920429",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "id": "scada_1767534004810",
+      "name": "SCADA",
+      "type": "industrial_scada",
+      "industrial": true,
+      "installed": false,
+      "installable": true,
+      "linked_to": "node3",
+      "position": {
+        "x": 1083.7,
+        "y": 156.58571428571426
+      },
+      "node_id": "node-e1ac03b8",
+      "source_node_id": "scada_1767534004810",
+      "id_origin": "derived_from_existing_id"
+    }
+  ],
+  "node_roles": [
+    "attack",
+    "industrial_plc",
+    "industrial_scada",
+    "monitor",
+    "victim"
+  ],
+  "node_types": [
+    "attack",
+    "industrial_plc",
+    "industrial_scada",
+    "monitor",
+    "victim"
+  ],
+  "deployment_properties": {
+    "node1": {
+      "os": "ubuntu-22.04",
+      "ip": "192.168.1.101",
+      "network": "net_private_01",
+      "subnet": "subnet_net_private_01",
+      "flavor": "S_2CPU_4GB",
+      "image": "ubuntu-22.04",
+      "security_group": "sg_basic",
+      "keypair": "my_key"
+    },
+    "node2": {
+      "os": "debian-12",
+      "ip": "192.168.1.102",
+      "network": "net_private_01",
+      "subnet": "subnet_net_private_01",
+      "flavor": "T_1CPU_2GB",
+      "image": "debian-12",
+      "security_group": "sg_basic",
+      "keypair": "my_key"
+    },
+    "node3": {
+      "os": "debian-12",
+      "ip": "192.168.1.103",
+      "network": "net_private_01",
+      "subnet": "subnet_net_private_01",
+      "flavor": "T_1CPU_2GB",
+      "image": "debian-12",
+      "security_group": "sg_basic",
+      "keypair": "my_key"
+    }
+  },
+  "ot_extensions": [
+    {
+      "id": "plc_1767533920429",
+      "name": "PLC",
+      "type": "industrial_plc",
+      "industrial": true,
+      "installed": false,
+      "installable": true,
+      "linked_to": "node3",
+      "position": {
+        "x": 1080,
+        "y": 266
+      },
+      "node_id": "node-f9ca9bfc",
+      "source_node_id": "plc_1767533920429",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "id": "scada_1767534004810",
+      "name": "SCADA",
+      "type": "industrial_scada",
+      "industrial": true,
+      "installed": false,
+      "installable": true,
+      "linked_to": "node3",
+      "position": {
+        "x": 1083.7,
+        "y": 156.58571428571426
+      },
+      "node_id": "node-e1ac03b8",
+      "source_node_id": "scada_1767534004810",
+      "id_origin": "derived_from_existing_id"
+    }
+  ],
+  "industrial_linkages": [
+    {
+      "ot_node_id": "node-f9ca9bfc",
+      "ot_node_name": "PLC",
+      "linked_to": "node-c800d431",
+      "relationship_status": "confirmed"
+    },
+    {
+      "ot_node_id": "node-e1ac03b8",
+      "ot_node_name": "SCADA",
+      "linked_to": "node-c800d431",
+      "relationship_status": "confirmed"
+    }
+  ],
+  "node_instance_bindings": [
+    {
+      "node_id": "node-4e09b076",
+      "node_name": "monitor 1",
+      "instance_id": "inst-995d7668",
+      "openstack_instance_id": "995d7668-24d6-4d21-92fe-83fdf61cdc05",
+      "instance_name": "monitor 1",
+      "id_origin": "derived_from_existing_id",
+      "status": "bound"
+    },
+    {
+      "node_id": "node-45d20749",
+      "node_name": "attack 2",
+      "instance_id": "inst-fd472bac",
+      "openstack_instance_id": "fd472bac-f010-4bf9-9a15-89e95998f4f1",
+      "instance_name": "attack 2",
+      "id_origin": "derived_from_existing_id",
+      "status": "bound"
+    },
+    {
+      "node_id": "node-c800d431",
+      "node_name": "victim 3",
+      "instance_id": "inst-16583180",
+      "openstack_instance_id": "16583180-627d-4c40-bd65-aa9db704d75c",
+      "instance_name": "victim 3",
+      "id_origin": "derived_from_existing_id",
+      "status": "bound"
+    },
+    {
+      "node_id": "node-f9ca9bfc",
+      "node_name": "PLC",
+      "instance_id": "inst-8c0c86c9",
+      "openstack_instance_id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
+      "instance_name": "PLC_Instance",
+      "id_origin": "derived_from_existing_id",
+      "status": "bound"
+    },
+    {
+      "node_id": "node-e1ac03b8",
+      "node_name": "SCADA",
+      "instance_id": "inst-a495cfe7",
+      "openstack_instance_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "instance_name": "FUXA_Instance",
+      "id_origin": "derived_from_existing_id",
+      "status": "bound"
+    }
+  ],
+  "scenario_state": {
+    "industrial_state": {
+      "plc": {
+        "instance": {
+          "status": "created",
+          "ip_floating": "10.0.2.22",
+          "last_error": null
+        },
+        "tool": {
+          "name": "openplc",
+          "status": "installed",
+          "last_error": null
+        }
+      },
+      "scada": {
+        "instance": {
+          "status": "created",
+          "ip_floating": "10.0.2.9",
+          "last_error": null
+        },
+        "tool": {
+          "name": "fuxa",
+          "status": "installed",
+          "last_error": null
+        }
+      }
+    },
+    "industrial_deployment": {
+      "plc_instance": {
+        "exists": true,
+        "name": "plc-1",
+        "ip": null,
+        "openplc_installed": false
+      },
+      "scada_instance": {
+        "exists": true,
+        "name": "scada-1",
+        "ip": null,
+        "fuxa_installed": false
+      }
+    }
+  },
+  "source_files": [
+    "scenario/scenario_file.json",
+    "industrial-scenario/scenarios/industrial_industrial_file.json",
+    "industrial-scenario/state/industrial_state.json"
+  ],
+  "warnings": [],
+  "id_origin": "derived_from_hash"
+}

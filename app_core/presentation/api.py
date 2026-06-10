@@ -2230,6 +2230,13 @@ api_bp.register_blueprint(ALERTS_API_BP)
 from app_core.infrastructure.forensics.forensics_report_api import forensics_report_bp
 api_bp.register_blueprint(forensics_report_bp)
 
+#------------------------------------------- FOC reconstruction
+try:
+    from app_core.infrastructure.foc_reconstruction.foc_endpoints import foc_bp
+    api_bp.register_blueprint(foc_bp)
+except Exception:
+    pass
+
 
 #-------------------------------------------Forensics new one  end----------------------------------------------------
 
@@ -2290,7 +2297,6 @@ def index():
 def static_files(path):
     return send_from_directory(os.path.join(REPO_ROOT, "app_core", "static"), path)
     #return send_from_directory(os.path.join(REPO_ROOT, 'static'), path)
-
 
 
 
