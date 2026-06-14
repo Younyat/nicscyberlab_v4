@@ -13,6 +13,8 @@ from .foc_quality import build_gaps, build_status
 logger = logging.getLogger(__name__)
 
 foc_bp = Blueprint("foc_reconstruction", __name__)
+FOC_STREAM_POLL_INTERVAL_SECONDS = 5.0
+FOC_AUTO_REFRESH_MIN_INTERVAL_SECONDS = 30.0
 
 
 def _read_or_404(path_key: str):
@@ -114,6 +116,9 @@ def api_foc_events_stream():
     def event_stream():
         last_offset = 0
         last_watch = snapshot_watch_state()
+        pending_watch = None
+        pending_changed: list[str] = []
+        last_regen_ts = 0.0
         yield f"event: snapshot\ndata: {json.dumps({'status': build_status(), 'ts_utc': time.time()})}\n\n"
         while True:
             try:
@@ -124,18 +129,24 @@ def api_foc_events_stream():
 
                 current_watch = snapshot_watch_state()
                 if current_watch != last_watch:
-                    changed = [key for key, value in current_watch.items() if last_watch.get(key) != value]
+                    pending_watch = current_watch
+                    pending_changed = [key for key, value in current_watch.items() if last_watch.get(key) != value]
+
+                if pending_watch is not None and (time.time() - last_regen_ts) >= FOC_AUTO_REFRESH_MIN_INTERVAL_SECONDS:
                     try:
                         manifest = regenerate_foc(bootstrap_mode=bool((read_generated_json(GENERATED_FILES['manifest']) or {}).get('bootstrap_mode')))
-                        safe_notify_foc("foc_auto_refresh", {"changed_sources": changed, "scenario_id": manifest.get("scenario_id", "unknown")})
-                        yield f"event: foc_refresh\ndata: {json.dumps({'changed_sources': changed, 'status': build_status()})}\n\n"
+                        safe_notify_foc("foc_auto_refresh", {"changed_sources": pending_changed, "scenario_id": manifest.get("scenario_id", "unknown")})
+                        yield f"event: foc_refresh\ndata: {json.dumps({'changed_sources': pending_changed, 'status': build_status()})}\n\n"
+                        last_watch = pending_watch
+                        pending_watch = None
+                        pending_changed = []
+                        last_regen_ts = time.time()
                     except Exception as exc:
                         logger.warning("FOC auto refresh failed: %s", exc, exc_info=True)
                         yield f"event: degraded\ndata: {json.dumps({'warning': str(exc)})}\n\n"
-                    last_watch = current_watch
 
                 yield f"event: heartbeat\ndata: {json.dumps({'ts_utc': time.time()})}\n\n"
-                time.sleep(2)
+                time.sleep(FOC_STREAM_POLL_INTERVAL_SECONDS)
             except GeneratorExit:
                 break
             except Exception as exc:

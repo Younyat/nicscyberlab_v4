@@ -37,6 +37,32 @@ def _artifact_classification(artifact_type: str) -> tuple[str, bool]:
     }
     forensic_inputs = {"ir_input", "ir_snapshot", "fsr_eval"}
     analysis_outputs = {"vol3_output_dir", "tsk_output_dir"}
+    if normalized in {
+        "causal_graph.json",
+        "causal_path_recoverability.json",
+        "uncertainty_report.json",
+        "scenario_attack_chain.json",
+    }:
+        return "analysis_outputs", False
+    if normalized in {
+        "industrial_asset_register_map.json",
+        "industrial_modbus_validation.json",
+        "industrial_plc_map.json",
+        "industrial_scada_map.json",
+        "ics_attack_policy.json",
+        "discovery_scan.json",
+        "observed_services.json",
+        "register_map.json",
+        "read_register_log.json",
+        "collection_summary.json",
+        "collection_session.jsonl",
+        "process_state_snapshot.json",
+        "modbus_transaction_log.json",
+        "rollback_log.json",
+        "unauthorized_command_message.json",
+        "causal_edges.json",
+    }:
+        return "acquisition_metadata", False
     if normalized in preserved:
         return "preserved_evidence", True
     if normalized in metadata:
@@ -230,14 +256,18 @@ def build_indexes(scenario_bom: dict, tools_bom: dict, timeline: dict, sources_b
             continue
         if src.get("kind") != "file":
             continue
+        source_type = src.get("source_type", "source_file")
+        artifact_type = source_type
+        if source_type in {"attack_output_artifact", "industrial_attack_runtime", "industrial_attack_policy"}:
+            artifact_type = Path(src.get("path", "")).name
         artifact = clone(empty_artifact_reference())
         artifact.update(
             {
                 "artifact_id": _artifact_id(src.get("path", "")),
                 "evidence_id": "not_available",
                 "id_origin": "derived_from_path",
-                "artifact_type": src.get("source_type", "source_file"),
-                "artifact_class": "auxiliary",
+                "artifact_type": artifact_type,
+                "artifact_class": _artifact_classification(artifact_type)[0],
                 "is_primary_evidence": False,
                 "path": src.get("path", ""),
                 "case_id": "not_available",

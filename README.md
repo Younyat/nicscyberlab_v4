@@ -196,7 +196,8 @@ The same node-level catalog also exposes prepared configuration-oriented entries
 
 - **Wazuh-oriented configuration profile**
   - Wazuh FIM Realtime
-- **Rollback / restoration profiles**
+- **Suricata-oriented detection and rollback profiles**
+  - Suricata Modbus Register Manipulation Detection
   - Wazuh + Suricata Integration Rollback
   - Suricata ICMP Rule Rollback
 
@@ -214,6 +215,120 @@ This means the installation surface is not limited to generic tools only. It inc
 - OT protocol utilities
 - prepared configuration profiles
 - controlled rollback entries
+
+The Suricata-oriented detection configuration profile for Modbus manipulation installs a dedicated rule file:
+
+```bash
+/var/lib/suricata/rules/nics-modbus-register-manipulation.rules
+```
+
+The production rule set is intentionally narrow. It is designed to detect only high-confidence Modbus write operations relevant to industrial ATT&CK control manipulation experiments, including:
+
+- single-register writes associated with `T0836` and `T1692.001`
+- multiple-register writes associated with `T0836` and `T1692.001`
+- single-coil writes associated with Modbus control manipulation
+- multiple-coil writes associated with Modbus control manipulation
+
+This production profile does **not** alert on normal SCADA polling, holding-register reads, coil reads, or generic TCP/502 visibility. The goal is to answer a strict question:
+
+- did a Modbus write occur that could modify the PLC state?
+
+For temporary troubleshooting, the project also distinguishes a separate conceptual profile:
+
+- **Production Modbus Register Manipulation Detection**
+  - persistent deployment profile
+  - detects only write operations
+  - avoids noise from normal Modbus traffic
+- **Debug Modbus Visibility**
+  - temporary diagnostic mode
+  - may alert on generic TCP/502 visibility or read activity
+  - should not be used as the permanent detection profile
+
+These Suricata alerts are written to:
+
+```bash
+/var/log/suricata/eve.json
+```
+
+If the existing Wazuh + Suricata integration profile is already deployed, the same events are also ingested by Wazuh without requiring additional changes to `ossec.conf` or the Wazuh agent installation path.
+
+The integration profile also installs a focused local Wazuh rule override for the OT Modbus write signatures emitted by the NICS CyberLab Suricata rules. This means the telemetry path preserves two layers of meaning:
+
+- the original Suricata alert stored in `eve.json`
+- a higher-priority Wazuh rule match for:
+  - `910836101`
+  - `910836102`
+  - `910836103`
+  - `910836104`
+
+The local override is applied through:
+
+```bash
+/var/ossec/etc/rules/local_rules.xml
+```
+
+and is intended to prevent high-confidence OT control-manipulation events from appearing with the same low generic wrapper level used for ordinary JSON-ingested alerts.
+
+The practical telemetry chain for these OT detections is:
+
+1. `Suricata` on the observing node matches the Modbus write rule.
+2. The alert is written into `/var/log/suricata/eve.json`.
+3. `Wazuh Agent` on that same node ingests `eve.json` through the prepared localfile integration.
+4. `Wazuh Manager` on the monitoring node receives and reports the event.
+5. `FOC Reconstruction` can index that alert and correlate it with:
+   - the attack execution
+   - the targeted PLC or SCADA node
+   - the reconstructed timeline
+   - later evidential and forensic artifacts
+
+This also explains an important distinction in scoring:
+
+- before the OT-specific local Wazuh rule is applied, the raw `Wazuh rule level` can remain low because the generic JSON ingestion rule is broad
+- after the OT-specific local Wazuh rule is applied, the same Modbus write signatures are escalated to a more appropriate Wazuh level for operational visibility
+- independently of that, the underlying Suricata event still represents the authoritative network detection
+- the platform therefore preserves both:
+  - the native Wazuh level
+  - the higher-level derived severity used by the reconstruction and triage layers
+
+For verified Modbus write detections, the intended causal relation is:
+
+- `attack execution -> Suricata write alert -> Wazuh event -> FOC produced_alert relation`
+
+When the target node, timing window, and ATT&CK-aligned signature all match, the reconstruction should explicitly preserve:
+
+- the `related_attack_id`
+- the `correlation_status`
+- the `correlation_confidence`
+- the `correlation_reason`
+
+This makes the attack-to-detection relationship inspectable as a cause-and-effect chain rather than as an isolated alert.
+
+The paired removal workflow is exposed through the regular **Uninstall** action of the Instance Tools Manager rather than as a separate installable catalog entry. It only removes:
+
+- `/var/lib/suricata/rules/nics-modbus-register-manipulation.rules`
+- the corresponding `nics-modbus-register-manipulation.rules` entry inside `suricata.yaml`
+
+It does **not** remove:
+
+- Suricata itself
+- the Wazuh Agent
+- the Suricata → Wazuh integration path
+- `eve.json`
+- `ossec.conf`
+- any other Suricata rule file such as `local.rules`, `suricata.rules`, `nics-ping.rules`, or third-party rule bundles
+
+The recommended installation order for OT telemetry validation is:
+
+1. Install Suricata
+2. Install Wazuh Agent
+3. Install Wazuh + Suricata Integration Rollback
+4. Install Suricata Modbus Register Manipulation Detection
+5. Execute the controlled Modbus register manipulation attack
+6. Verify the alert in `eve.json` and in Wazuh
+
+If the Wazuh + Suricata integration profile was installed before the OT-specific local rules were introduced, rerun that same integration profile once on the PLC or SCADA node so the updated `local_rules.xml` block is applied.
+
+If the Modbus-specific rule set must be withdrawn without affecting the rest of the monitoring stack, the corresponding **Uninstall** action can be executed afterward for the same tool identifier. The removal action validates `suricata.yaml`, restores a backup automatically if validation fails, and preserves the rest of the Suricata and Wazuh telemetry path.
 
 At the host level, the control node inventory service exposes prepared install and uninstall workflows for:
 
@@ -486,6 +601,177 @@ At a methodological level, this section groups techniques whose primary observab
 - Modbus reads and writes
 
 This is why these profiles are presented as **Suricata-detectable techniques** rather than generic attacks. Their selection is driven by the kind of evidence the platform aims to generate and validate.
+
+### Industrial attack adaptation for the tank-control scenario
+
+The OT attack layer includes a dedicated **industrial resolution and validation path** for the real tank-control assets packaged with the laboratory:
+
+- `industrial-scenario/PLC/plc_programs/TankControl.st`
+- `industrial-scenario/FUXA/fuxa_mi_proyecto_simple.json`
+
+The implementation objective is to prevent unsafe or scientifically weak Modbus execution. In methodological terms, the platform does **not** treat the PLC address space, the SCADA tag map, or the OpenStack OT endpoints as fixed constants. Instead, it derives a runtime industrial model before allowing control-oriented ATT&CK execution.
+
+The industrial resolver is implemented in:
+
+```bash
+app_core/infrastructure/attack/industrial_resolver.py
+```
+
+Its role is to construct a unified industrial context from four classes of source:
+
+- **PLC structured-text source**
+  - parses IEC 61131-3 declarations such as `level AT %QW2 : INT` and `level_max AT %QW3 : INT`
+- **FUXA project source**
+  - parses ModbusTCP device configuration, tag inventory, tag addresses, and HMI variable references
+- **industrial runtime state**
+  - reads `industrial-scenario/state/industrial_state.json` to recover OT deployment state and installed OT tool status
+- **OpenStack runtime inventory**
+  - resolves the actual PLC and SCADA instances, their current IP addresses, and their runtime accessibility
+
+The resolver writes a set of runtime artifacts under:
+
+```bash
+app_core/infrastructure/attack/runtime/
+```
+
+including:
+
+- `industrial_plc_map.json`
+- `industrial_scada_map.json`
+- `industrial_runtime_assets.json`
+- `industrial_asset_register_map.json`
+
+This industrial asset register map is the canonical OT execution substrate. It fuses:
+
+- PLC variables
+- SCADA tags
+- semantic roles
+- current PLC and SCADA IPs
+- Modbus endpoint candidates
+- attack usage roles
+- write eligibility
+- validation notes
+
+An important scientific constraint follows from this design: **FUXA tag numbering and OpenPLC internal register numbering are not assumed to be identical**. For example, the PLC program may define `level` at `%QW2` while FUXA references the same signal with address `3`. This difference is treated as an uncertainty that requires live validation rather than a hardcoded equivalence.
+
+### Live Modbus validation and safety policy
+
+Before any Modbus write-oriented ATT&CK technique is executed, the platform can validate the real tank map using:
+
+```bash
+app_core/infrastructure/attack/scripts/validate_tank_modbus_map.py
+```
+
+This validator:
+
+- reads `industrial_asset_register_map.json`
+- connects to the runtime PLC endpoint
+- probes candidate holding registers and coils
+- records validated Modbus addresses
+- records endpoint conflicts when FUXA visual metadata diverges from runtime OT connectivity
+
+The resulting validation evidence is written to:
+
+```bash
+app_core/infrastructure/attack/runtime/industrial_modbus_validation.json
+```
+
+The write policy is then generated from the validated map into:
+
+```bash
+app_core/infrastructure/attack/ics_attack_policy.json
+```
+
+This policy is intentionally restrictive:
+
+- default write posture is **deny**
+- writes require live validation
+- writes require read-before-write
+- writes require read-after-write
+- writes require rollback
+- writes require restored-state verification
+
+For the current tank scenario, the main write target is the setpoint-like variable:
+
+- `level_max`
+
+By contrast, the following variables are treated as read-only by default:
+
+- `level`
+- `openOutletValve`
+- `outletValveOpenStatus`
+- `openInletValve`
+- `inletValveOpenStatus`
+- `airValveOpenStatus`
+
+This distinction is scientifically important. `level_max` functions as a threshold or setpoint parameter and is therefore suitable for controlled parameter-manipulation experiments. `level`, valve commands, and valve-state variables are not accepted as generic write targets unless a separate explicitly bounded experiment is defined.
+
+The practical consequence is strict:
+
+- if the industrial map is not validated, write techniques do not report a simulated success
+- they terminate in a degraded or failed state instead
+
+### Controlled tank setpoint manipulation
+
+The OT attack strategy for this scenario is organized around a reproducible control-manipulation chain:
+
+- `T0846_ICS_REMOTE_SYSTEM_DISCOVERY`
+  - bounded OT service validation against the runtime PLC and SCADA assets
+- `T0861_POINT_AND_TAG_IDENTIFICATION`
+  - live read-oriented identification of tank variables and their SCADA counterparts
+- `T0802_AUTOMATED_COLLECTION`
+  - short-window collection of process-state observations
+- `T0877_IO_IMAGE`
+  - I/O snapshot of level, threshold, valve commands, valve states, and enable conditions
+- `T0836_MODIFY_PARAMETER`
+  - controlled modification of `level_max`
+- `T1692_001_UNAUTHORIZED_COMMAND_MESSAGE`
+  - the same bounded target represented as an unauthorized Modbus command event
+- `T0831_MANIPULATION_OF_CONTROL_MODBUS`
+  - wrapper-level causal chain covering discovery, mapping, pre-state capture, manipulation, rollback, and recoverability
+
+The principal experimental scenario is therefore:
+
+- **Controlled Tank Setpoint Manipulation**
+  - PLC source: `TankControl.st`
+  - SCADA source: `fuxa_mi_proyecto_simple.json`
+  - principal parameter target: `level_max`
+  - principal ATT&CK technique: `T0836`
+  - control-impact wrapper: `T0831`
+  - command-oriented representation: `T1692.001`
+
+### Structured OT evidence generated by the attack layer
+
+The industrial ATT&CK layer is accepted as successful only when it produces structured OT evidence rather than a terminal transcript alone.
+
+Typical outputs include:
+
+- `industrial_asset_register_map.json`
+- `industrial_modbus_validation.json`
+- `plc_state_before.json`
+- `plc_state_after.json`
+- `plc_state_restored.json`
+- `modbus_transaction_log.json`
+- `rollback_log.json`
+- `causal_edges.json`
+- `causal_graph.json`
+- `causal_path_recoverability.json`
+- `uncertainty_report.json`
+
+These artifacts preserve:
+
+- attack identity
+- MITRE identity
+- scenario identity
+- target IP and target role
+- source IP when available
+- execution parameters
+- observed pre-state and post-state
+- rollback outcome
+- causal dependencies
+- uncertainty statements
+
+This makes the OT layer scientifically stronger than a simple “write register X” workflow. The experiment can be evaluated as a causal chain from Modbus action to process-visible effect, SCADA observability, and restoration behavior.
 
 ### Advanced Wazuh-detectable profiles
 
@@ -889,6 +1175,18 @@ These artifacts do not duplicate heavy evidence such as PCAPs, disk images, or m
 - states
 - relationship edges
 - reconstruction warnings
+
+The reconstruction layer also indexes industrial runtime and OT attack-support artifacts when present, including:
+
+- `industrial_plc_map.json`
+- `industrial_scada_map.json`
+- `industrial_runtime_assets.json`
+- `industrial_asset_register_map.json`
+- `industrial_modbus_validation.json`
+- `ics_attack_policy.json`
+- OT attack outputs such as `causal_graph.json`, `uncertainty_report.json`, `modbus_transaction_log.json`, and restored-state snapshots
+
+This is important for hybrid IT/OT experiments because it allows the FOC layer to reconstruct not only the existence of an industrial attack, but also the variable-resolution model, the validated register mapping, the policy boundary that allowed or denied a write, and the resulting causal evidence chain.
 
 ### Bootstrap and regeneration semantics
 

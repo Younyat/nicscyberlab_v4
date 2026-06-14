@@ -1,0 +1,24 @@
+{
+  "attack_id": "T0831_MANIPULATION_OF_CONTROL_MODBUS",
+  "confidence": "high",
+  "generated_at_utc": "2026-06-14T18:15:59.138918+00:00",
+  "mitre_id": "T0831",
+  "scenario_id": "scn-f2ecdb50",
+  "uncertainties": [
+    {
+      "canonical_name": "level_max_before",
+      "reason": "pre_state_read",
+      "status": "confirmed"
+    },
+    {
+      "canonical_name": "level_max_after",
+      "reason": "post_state_read",
+      "status": "confirmed"
+    },
+    {
+      "canonical_name": "restored_state",
+      "reason": "rollback_verification",
+      "status": "confirmed"
+    }
+  ]
+}

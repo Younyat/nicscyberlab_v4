@@ -132,6 +132,15 @@ const TOOL_CATALOG = [
         detector: "Suricata",
         scope: "ICMP signature rollback",
         summary: "Rollback profile for ICMP-oriented Suricata detection rules."
+    },
+    {
+        id: "rollback_suricata_modbus_register_detection",
+        label: "Suricata Modbus Register Manipulation Detection",
+        category: "Suricata Configuration Profiles",
+        class: "Detection Configuration",
+        detector: "Suricata",
+        scope: "Modbus register and coil manipulation detection",
+        summary: "Installs Suricata rules for Modbus register reads, writes, coil writes, and ICS register manipulation alerts used in OT attack detection."
     }
 ];
 

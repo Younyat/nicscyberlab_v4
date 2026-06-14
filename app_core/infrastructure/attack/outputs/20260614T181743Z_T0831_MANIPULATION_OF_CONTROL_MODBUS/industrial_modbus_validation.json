@@ -1,0 +1,101 @@
+{
+  "conflicts": [
+    {
+      "configured_endpoint": "10.0.2.22:502",
+      "decision": "ignore_svg_text",
+      "svg_text_endpoint": "10.0.2.67:502",
+      "type": "fuxa_svg_endpoint_conflict"
+    }
+  ],
+  "notes": [],
+  "status": "validated",
+  "target_ip": "10.0.2.22",
+  "target_port": 502,
+  "validated_at_utc": "2026-06-14T17:49:26.653571+00:00",
+  "validated_registers": [
+    {
+      "canonical_name": "level",
+      "confidence": "observed",
+      "fuxa_address": 3,
+      "modbus_table": "holding_register",
+      "plc_iec_address": "%QW2",
+      "read_status": "ok",
+      "stderr": "",
+      "stdout": "mbpoll 1.0-0 - FieldTalk(tm) Modbus(R) Master Simulator\nCopyright \u00a9 2015-2019 Pascal JEAN, https://github.com/epsilonrt/mbpoll\nThis program comes with ABSOLUTELY NO WARRANTY.\nThis is free software, and you are welcome to redistribute it\nunder certain conditions; type 'mbpoll -w' for details.\n\nProtocol configuration: Modbus TCP\nSlave configuration...: address = [1]\n                        start reference = 3, count = 1\nCommunication.........: 10.0.2.22, port 502, t/o 1.00 s, poll rate 1000 ms\nData type.............: 32-bit integer (little endian), output (holding) register table\n\n-- Polling slave 1...\n[3]: \t3276850\n\n",
+      "validated_modbus_address": 3,
+      "value": 3276850
+    },
+    {
+      "canonical_name": "level_max",
+      "confidence": "observed",
+      "fuxa_address": 4,
+      "modbus_table": "holding_register",
+      "plc_iec_address": "%QW3",
+      "read_status": "ok",
+      "stderr": "",
+      "stdout": "mbpoll 1.0-0 - FieldTalk(tm) Modbus(R) Master Simulator\nCopyright \u00a9 2015-2019 Pascal JEAN, https://github.com/epsilonrt/mbpoll\nThis program comes with ABSOLUTELY NO WARRANTY.\nThis is free software, and you are welcome to redistribute it\nunder certain conditions; type 'mbpoll -w' for details.\n\nProtocol configuration: Modbus TCP\nSlave configuration...: address = [1]\n                        start reference = 4, count = 1\nCommunication.........: 10.0.2.22, port 502, t/o 1.00 s, poll rate 1000 ms\nData type.............: 32-bit integer (little endian), output (holding) register table\n\n-- Polling slave 1...\n[4]: \t50\n\n",
+      "validated_modbus_address": 4,
+      "value": 50
+    },
+    {
+      "canonical_name": "airValveOpenStatus",
+      "confidence": "observed",
+      "fuxa_address": 7,
+      "modbus_table": "coil",
+      "plc_iec_address": "%QX0.6",
+      "read_status": "ok",
+      "stderr": "",
+      "stdout": "mbpoll 1.0-0 - FieldTalk(tm) Modbus(R) Master Simulator\nCopyright \u00a9 2015-2019 Pascal JEAN, https://github.com/epsilonrt/mbpoll\nThis program comes with ABSOLUTELY NO WARRANTY.\nThis is free software, and you are welcome to redistribute it\nunder certain conditions; type 'mbpoll -w' for details.\n\nProtocol configuration: Modbus TCP\nSlave configuration...: address = [1]\n                        start reference = 7, count = 1\nCommunication.........: 10.0.2.22, port 502, t/o 1.00 s, poll rate 1000 ms\nData type.............: discrete output (coil)\n\n-- Polling slave 1...\n[7]: \t1\n\n",
+      "validated_modbus_address": 7,
+      "value": 1
+    },
+    {
+      "canonical_name": "openOutletValve",
+      "confidence": "observed",
+      "fuxa_address": 2,
+      "modbus_table": "coil",
+      "plc_iec_address": "%QX0.1",
+      "read_status": "ok",
+      "stderr": "",
+      "stdout": "mbpoll 1.0-0 - FieldTalk(tm) Modbus(R) Master Simulator\nCopyright \u00a9 2015-2019 Pascal JEAN, https://github.com/epsilonrt/mbpoll\nThis program comes with ABSOLUTELY NO WARRANTY.\nThis is free software, and you are welcome to redistribute it\nunder certain conditions; type 'mbpoll -w' for details.\n\nProtocol configuration: Modbus TCP\nSlave configuration...: address = [1]\n                        start reference = 2, count = 1\nCommunication.........: 10.0.2.22, port 502, t/o 1.00 s, poll rate 1000 ms\nData type.............: discrete output (coil)\n\n-- Polling slave 1...\n[2]: \t0\n\n",
+      "validated_modbus_address": 2,
+      "value": 0
+    },
+    {
+      "canonical_name": "outletValveOpenStatus",
+      "confidence": "observed",
+      "fuxa_address": 4,
+      "modbus_table": "coil",
+      "plc_iec_address": "%QX0.3",
+      "read_status": "ok",
+      "stderr": "",
+      "stdout": "mbpoll 1.0-0 - FieldTalk(tm) Modbus(R) Master Simulator\nCopyright \u00a9 2015-2019 Pascal JEAN, https://github.com/epsilonrt/mbpoll\nThis program comes with ABSOLUTELY NO WARRANTY.\nThis is free software, and you are welcome to redistribute it\nunder certain conditions; type 'mbpoll -w' for details.\n\nProtocol configuration: Modbus TCP\nSlave configuration...: address = [1]\n                        start reference = 4, count = 1\nCommunication.........: 10.0.2.22, port 502, t/o 1.00 s, poll rate 1000 ms\nData type.............: discrete output (coil)\n\n-- Polling slave 1...\n[4]: \t0\n\n",
+      "validated_modbus_address": 4,
+      "value": 0
+    },
+    {
+      "canonical_name": "openInletValve",
+      "confidence": "observed",
+      "fuxa_address": 5,
+      "modbus_table": "coil",
+      "plc_iec_address": "%QX0.4",
+      "read_status": "ok",
+      "stderr": "",
+      "stdout": "mbpoll 1.0-0 - FieldTalk(tm) Modbus(R) Master Simulator\nCopyright \u00a9 2015-2019 Pascal JEAN, https://github.com/epsilonrt/mbpoll\nThis program comes with ABSOLUTELY NO WARRANTY.\nThis is free software, and you are welcome to redistribute it\nunder certain conditions; type 'mbpoll -w' for details.\n\nProtocol configuration: Modbus TCP\nSlave configuration...: address = [1]\n                        start reference = 5, count = 1\nCommunication.........: 10.0.2.22, port 502, t/o 1.00 s, poll rate 1000 ms\nData type.............: discrete output (coil)\n\n-- Polling slave 1...\n[5]: \t0\n\n",
+      "validated_modbus_address": 5,
+      "value": 0
+    },
+    {
+      "canonical_name": "inletValveOpenStatus",
+      "confidence": "observed",
+      "fuxa_address": 6,
+      "modbus_table": "coil",
+      "plc_iec_address": "%QX0.5",
+      "read_status": "ok",
+      "stderr": "",
+      "stdout": "mbpoll 1.0-0 - FieldTalk(tm) Modbus(R) Master Simulator\nCopyright \u00a9 2015-2019 Pascal JEAN, https://github.com/epsilonrt/mbpoll\nThis program comes with ABSOLUTELY NO WARRANTY.\nThis is free software, and you are welcome to redistribute it\nunder certain conditions; type 'mbpoll -w' for details.\n\nProtocol configuration: Modbus TCP\nSlave configuration...: address = [1]\n                        start reference = 6, count = 1\nCommunication.........: 10.0.2.22, port 502, t/o 1.00 s, poll rate 1000 ms\nData type.............: discrete output (coil)\n\n-- Polling slave 1...\n[6]: \t0\n\n",
+      "validated_modbus_address": 6,
+      "value": 0
+    }
+  ]
+}

@@ -12,6 +12,7 @@ from app_core.infrastructure.attack.catalog import (
 )
 from app_core.infrastructure.attack.executor import (
     resolve_requested_attack,
+    stream_local_attack_execution,
     stream_attack_execution,
 )
 
@@ -278,6 +279,22 @@ def execute_attack():
         "case_dir": payload.get("case_dir", ""),
         "parameters": payload.get("parameters", {}) or {},
     }
+
+    if attack.get("execution_backend") == "local":
+        return Response(
+            stream_with_context(
+                stream_local_attack_execution(
+                    attack=attack,
+                    local_script=local_script,
+                    attacker_ip=attacker_ip,
+                    attacker_user=attacker_user,
+                    target_user=victim_user,
+                    target_image=image_name,
+                    payload=stream_payload,
+                )
+            ),
+            mimetype="text/event-stream",
+        )
 
     return Response(
         stream_with_context(

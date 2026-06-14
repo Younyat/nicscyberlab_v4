@@ -29,6 +29,7 @@ def _attack(**kwargs: Any) -> Dict[str, Any]:
         "parameters_schema": {},
         "card_badges": [],
         "aliases": [],
+        "execution_backend": "remote",
     }
     attack.update(kwargs)
     attack["target_roles"] = [str(role).lower() for role in attack["target_roles"]]
@@ -160,7 +161,7 @@ ATTACK_CATALOG: List[Dict[str, Any]] = [
         target_roles=["plc", "scada"],
         severity="HIGH",
         execution_mode="restore_by_default",
-        script="modbus_register_attack.sh",
+        script="t0831_manipulation_of_control_modbus.py",
         expected_alerts=["modbus_write_register", "unauthorized_control_command", "process_state_change", "control_manipulation"],
         expected_artifacts=["plc_state_before", "plc_state_after", "modbus_transaction_log", "pcap", "suricata_eve_json", "wazuh_alert", "rollback_log", "forensic_case_event"],
         safety_policy="Only allow writes to predefined test registers. Rollback enabled by default.",
@@ -168,6 +169,7 @@ ATTACK_CATALOG: List[Dict[str, Any]] = [
         dfir_escalation=True,
         ui_section="existing",
         aliases=["ics_modbus_register_write"],
+        execution_backend="local",
     ),
     _attack(
         attack_id="CHAIN_MULTI_VECTOR_DETECTION_VALIDATION",
@@ -253,11 +255,12 @@ ATTACK_CATALOG: List[Dict[str, Any]] = [
         target_roles=["plc", "scada"],
         severity="MEDIUM",
         execution_mode="read_only",
-        script="t0846_ics_remote_system_discovery.sh",
+        script="t0846_ics_remote_system_discovery.py",
         expected_alerts=["ot_subnet_probing", "remote_system_discovery", "suricata_scan_alert"],
         expected_artifacts=["discovered_hosts.json", "pcap", "suricata_alert", "wazuh_alert", "scan_output"],
         safety_policy="Only scan the OT lab subnet.",
         ui_section="advanced_suricata",
+        execution_backend="local",
     ),
     _attack(
         attack_id="T0861_POINT_AND_TAG_IDENTIFICATION",
@@ -278,6 +281,28 @@ ATTACK_CATALOG: List[Dict[str, Any]] = [
         expected_artifacts=["register_map.json", "read_register_log.json", "modbus_pcap", "suricata_modbus_alert", "case_timeline_event"],
         safety_policy="Read-only. No register writes.",
         ui_section="advanced_suricata",
+        execution_backend="local",
+    ),
+    _attack(
+        attack_id="T0802_AUTOMATED_COLLECTION",
+        legacy_name="",
+        display_name="Automated Collection",
+        category="Advanced Suricata-Detectable Techniques",
+        description="Collect short-window process-state samples from the tank PLC without modifying control values.",
+        mitre_domain="ICS",
+        mitre_id="T0802",
+        mitre_technique="Automated Collection",
+        tactic="Collection",
+        detection_engine="Suricata + Wazuh",
+        target_roles=["plc", "scada"],
+        severity="MEDIUM",
+        execution_mode="read_only",
+        script="t0802_automated_collection.py",
+        expected_alerts=["modbus_read_pattern", "process_state_collection", "suricata_modbus_alert"],
+        expected_artifacts=["collection_session.jsonl", "collection_summary.json", "uncertainty_report.json"],
+        safety_policy="Read-only collection over a short bounded sampling window.",
+        ui_section="advanced_suricata",
+        execution_backend="local",
     ),
     _attack(
         attack_id="T0877_IO_IMAGE",
@@ -298,6 +323,7 @@ ATTACK_CATALOG: List[Dict[str, Any]] = [
         expected_artifacts=["io_image_before.json", "io_image_after.json", "process_state_snapshot.json", "modbus_pcap", "suricata_alert"],
         safety_policy="Read-only by default.",
         ui_section="advanced_suricata",
+        execution_backend="local",
     ),
     _attack(
         attack_id="T0836_MODIFY_PARAMETER",
@@ -320,6 +346,7 @@ ATTACK_CATALOG: List[Dict[str, Any]] = [
         rollback_required=True,
         dfir_escalation=True,
         ui_section="advanced_suricata",
+        execution_backend="local",
     ),
     _attack(
         attack_id="T1692_001_UNAUTHORIZED_COMMAND_MESSAGE",
@@ -342,6 +369,7 @@ ATTACK_CATALOG: List[Dict[str, Any]] = [
         rollback_required=True,
         dfir_escalation=True,
         ui_section="advanced_suricata",
+        execution_backend="local",
     ),
     _attack(
         attack_id="T1078_VALID_ACCOUNTS_SSH_LOGIN",

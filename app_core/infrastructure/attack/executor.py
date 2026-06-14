@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
+import sys
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
 from app_core.infrastructure.attack.catalog import find_attack_by_id
@@ -94,6 +97,46 @@ def persist_execution_result(output_dir: str, result: Dict[str, Any]) -> None:
     ensure_dir(output_dir)
     with open(os.path.join(output_dir, "result.json"), "w", encoding="utf-8") as fh:
         json.dump(result, fh, indent=2, sort_keys=True)
+
+
+def _collect_generated_artifacts(output_dir: str) -> list[dict]:
+    base = Path(output_dir)
+    artifacts: list[dict] = []
+    if not base.is_dir():
+        return artifacts
+    for path in sorted(base.rglob("*")):
+        if not path.is_file() or path.name == "result.json":
+            continue
+        sha256 = None
+        try:
+            import hashlib
+
+            h = hashlib.sha256()
+            with path.open("rb") as fh:
+                for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+                    h.update(chunk)
+            sha256 = h.hexdigest()
+        except Exception:
+            sha256 = None
+        artifacts.append(
+            {
+                "path": str(path.relative_to(base)).replace("\\", "/"),
+                "size": path.stat().st_size,
+                "sha256": sha256,
+            }
+        )
+    return artifacts
+
+
+def _python_invocation(local_script: str) -> list[str]:
+    path = Path(local_script).resolve()
+    try:
+        project_root = Path(BASE_DIR).parent.parent.parent.resolve()
+        rel = path.relative_to(project_root)
+        module = ".".join(rel.with_suffix("").parts)
+        return [sys.executable, "-m", module]
+    except Exception:
+        return [sys.executable, local_script]
 
 
 def _safe_notify_foc(event_type: str, payload: Dict[str, Any]) -> None:
@@ -195,6 +238,111 @@ def stream_attack_execution(
             "success": result.get("success"),
             "exit_code": result.get("exit_code"),
             "expected_alerts": result.get("expected_alerts", []),
+        },
+    )
+
+
+def stream_local_attack_execution(
+    attack: Dict[str, Any],
+    local_script: str,
+    attacker_ip: str,
+    attacker_user: str,
+    target_user: str,
+    target_image: str,
+    payload: Dict[str, Any],
+) -> Iterable[str]:
+    output_dir = get_output_dir(attack["attack_id"], payload.get("case_dir", ""))
+    result = build_execution_result(
+        attack=attack,
+        payload=payload,
+        attacker_ip=attacker_ip,
+        target_user=target_user,
+        target_image=target_image,
+        output_dir=output_dir,
+    )
+    persist_execution_result(output_dir, result)
+    _safe_notify_foc(
+        "attack_executed",
+        {
+            "attack_id": result.get("attack_id"),
+            "display_name": result.get("display_name"),
+            "mitre_id": result.get("mitre_id"),
+            "target_ip": result.get("target_ip"),
+            "target_role": result.get("target_role"),
+            "output_dir": output_dir,
+            "started_at": result.get("started_at"),
+        },
+    )
+
+    args: List[str] = [
+        payload.get("target_ip") or payload.get("target") or "",
+        target_user,
+        json.dumps(payload.get("parameters", {}) or {}, separators=(",", ":")),
+        output_dir,
+        attacker_ip or "",
+        attacker_user or "",
+    ]
+    command = _python_invocation(local_script) if local_script.endswith(".py") else [local_script]
+    command.extend(args)
+
+    yield f"data: [ATTACK PROFILE] {attack['attack_id']} | {attack['mitre_id']} | {attack['mitre_technique']}\n\n"
+    yield f"data: [DETECTION ENGINE] {attack['detection_engine']}\n\n"
+    yield f"data: [EXECUTION MODE] {attack['execution_mode']}\n\n"
+    yield f"data: [OUTPUT DIR] {output_dir}\n\n"
+    yield f"data: [EXECUTION BACKEND] LOCAL\n\n"
+
+    proc = subprocess.Popen(
+        command,
+        cwd=str(Path(BASE_DIR).parent.parent.parent),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+    )
+    raw_lines: list[str] = []
+    try:
+        assert proc.stdout is not None
+        for line in proc.stdout:
+            clean = line.rstrip("\n")
+            raw_lines.append(clean)
+            if clean.startswith("[FAIL]") or clean.startswith("[SSH ERROR]") or clean.startswith("[CRITICAL]"):
+                result["stderr"].append(clean)
+            elif clean:
+                result["stdout"].append(clean)
+            yield f"data: {clean}\n\n"
+    finally:
+        exit_code = proc.wait()
+
+    yield f"data: [EXIT CODE] {exit_code}\n\n"
+    result["completed_at"] = datetime.now(timezone.utc).isoformat()
+    result["exit_code"] = exit_code
+    result["success"] = exit_code == 0 and not result["stderr"]
+    result["raw_event_stream"] = raw_lines
+    result["generated_artifacts"] = _collect_generated_artifacts(output_dir)
+    result["forensic_case_event"] = result["dfir_escalation"]
+    result["chain_of_custody"].append(
+        {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "action": "attack_execution_completed",
+            "operator": "dashboard_tactical_hud",
+            "artifact": "result.json",
+        }
+    )
+    persist_execution_result(output_dir, result)
+    _safe_notify_foc(
+        "attack_execution_completed",
+        {
+            "attack_id": result.get("attack_id"),
+            "display_name": result.get("display_name"),
+            "mitre_id": result.get("mitre_id"),
+            "target_ip": result.get("target_ip"),
+            "target_role": result.get("target_role"),
+            "output_dir": output_dir,
+            "completed_at": result.get("completed_at"),
+            "success": result.get("success"),
+            "exit_code": result.get("exit_code"),
+            "expected_alerts": result.get("expected_alerts", []),
+            "generated_artifacts": result.get("generated_artifacts", []),
         },
     )
 

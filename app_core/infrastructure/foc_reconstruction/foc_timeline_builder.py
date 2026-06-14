@@ -120,6 +120,57 @@ def _correlation_payload(*, same_target: bool, same_ip: bool, signature_match: b
     return "unresolved", "low", "no_strong_match"
 
 
+def _correlation_rank(status: str, confidence: str, reason: str, attack: dict, alert_epoch: float) -> tuple[int, int, float]:
+    status_rank = {
+        "confirmed": 4,
+        "inferred_high": 3,
+        "inferred_medium": 2,
+        "inferred_low": 1,
+        "unresolved": 0,
+    }.get(str(status or "").lower(), 0)
+    confidence_rank = {
+        "high": 3,
+        "medium": 2,
+        "low": 1,
+    }.get(str(confidence or "").lower(), 0)
+    # Prefer same-target/same-ip explanations over a generic signature-only match.
+    reason_rank = 0
+    lowered_reason = str(reason or "").lower()
+    if "same_target_node" in lowered_reason:
+        reason_rank += 2
+    if "same_target_ip" in lowered_reason:
+        reason_rank += 2
+    if "expected_alert_match" in lowered_reason:
+        reason_rank += 1
+
+    attack_end = float(attack.get("end_epoch") or attack.get("start_epoch") or 0.0)
+    proximity = -abs(alert_epoch - attack_end) if alert_epoch and attack_end else float("-inf")
+    return (status_rank, confidence_rank + reason_rank, proximity)
+
+
+def _expected_alert_match(attack: dict, alert: dict, normalized_signature: str) -> bool:
+    expected = {_normalize_indicator(item) for item in (attack.get("expected_alerts") or [])}
+    if normalized_signature in expected:
+        return True
+
+    raw_alert = (((alert.get("raw") or {}).get("data") or {}).get("alert") or {})
+    metadata = raw_alert.get("metadata") or {}
+    attack_stages = {_normalize_indicator(item) for item in (metadata.get("attack_stage") or [])}
+    mitre_ics = {_normalize_indicator(item) for item in (metadata.get("mitre_ics") or [])}
+
+    if "control_manipulation" in expected and "control_manipulation" in attack_stages:
+        return True
+    if "modbus_write_register" in expected and "modbus_write" in normalized_signature:
+        return True
+    if "unauthorized_control_command" in expected and "modbus_write" in normalized_signature:
+        return True
+    if "t0836" in mitre_ics and ("modbus_write_register" in expected or "control_manipulation" in expected):
+        return True
+    if "t1692_001" in mitre_ics and "unauthorized_control_command" in expected:
+        return True
+    return False
+
+
 def build_timeline(scenario_context: dict, id_mapping: dict | None = None) -> dict:
     warnings: list[dict] = []
     events: list[dict] = []
@@ -299,6 +350,7 @@ def build_timeline(scenario_context: dict, id_mapping: dict | None = None) -> di
             correlation_status = "unresolved"
             correlation_confidence = "low"
             correlation_reason = "no_strong_match"
+            best_rank = (0, 0, float("-inf"))
             for attack in reversed(sorted(attack_windows, key=lambda item: item.get("end_epoch", 0.0))):
                 if alert_epoch and attack.get("start_epoch") and alert_epoch < attack["start_epoch"]:
                     continue
@@ -306,18 +358,19 @@ def build_timeline(scenario_context: dict, id_mapping: dict | None = None) -> di
                     continue
                 same_target = related_node_id != "unresolved" and attack.get("target_node_id") == related_node_id
                 same_ip = bool(agent_ip and attack.get("target_ip") == agent_ip) or bool(dst_ip and attack.get("target_ip") == dst_ip)
-                signature_match = normalized_signature in set(attack.get("expected_alerts") or [])
+                signature_match = _expected_alert_match(attack, alert, normalized_signature)
                 status, confidence, reason = _correlation_payload(
                     same_target=same_target,
                     same_ip=same_ip,
                     signature_match=signature_match,
                 )
-                if status != "unresolved":
-                    correlated_attack = attack
+                rank = _correlation_rank(status, confidence, reason, attack, alert_epoch)
+                if rank > best_rank:
+                    best_rank = rank
+                    correlated_attack = attack if status != "unresolved" else None
                     correlation_status = status
                     correlation_confidence = confidence
                     correlation_reason = reason
-                    break
             triage = triage_by_event.get(str(alert.get("event_id") or ""), {})
             _add_event(
                 events,

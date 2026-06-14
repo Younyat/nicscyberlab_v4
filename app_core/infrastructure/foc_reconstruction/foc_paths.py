@@ -13,6 +13,9 @@ SOURCE_DEFINITIONS = [
     {"source_type": "tools_log", "pattern": "tools-installer/logs/*.log", "kind": "file"},
     {"source_type": "industrial_log", "pattern": "industrial-scenario/logs/*/*.log", "kind": "file"},
     {"source_type": "attack_output", "pattern": "app_core/infrastructure/attack/outputs/*/result.json", "kind": "file"},
+    {"source_type": "attack_output_artifact", "pattern": "app_core/infrastructure/attack/outputs/*/*.json", "kind": "file"},
+    {"source_type": "industrial_attack_runtime", "pattern": "app_core/infrastructure/attack/runtime/*.json", "kind": "file"},
+    {"source_type": "industrial_attack_policy", "pattern": "app_core/infrastructure/attack/ics_attack_policy.json", "kind": "file"},
     {"source_type": "alerts_session_file", "pattern": "app_core/infrastructure/forensics/alerts_store/ALERTS-*/*", "kind": "file"},
     {"source_type": "forensics_case_dir", "pattern": "app_core/infrastructure/forensics/evidence_store/CASE-*", "kind": "dir"},
 ]

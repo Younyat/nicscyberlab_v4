@@ -9,6 +9,9 @@ from .foc_sources import utc_now
 logger = logging.getLogger(__name__)
 
 EVENTS_LOG = FOC_OUTPUT_DIR / "cache" / "foc_events.jsonl"
+SNAPSHOT_CACHE_TTL_SECONDS = 10.0
+_SNAPSHOT_CACHE_TS = 0.0
+_SNAPSHOT_CACHE_VALUE: dict | None = None
 
 WATCHED_PATHS = [
     Path("scenario/scenario_file.json"),
@@ -50,8 +53,20 @@ def _safe_stat_signature(path: Path) -> tuple:
         return ("error", str(exc))
 
 
-def snapshot_watch_state() -> dict:
-    return {str(path): _safe_stat_signature(path) for path in WATCHED_PATHS}
+def snapshot_watch_state(force: bool = False) -> dict:
+    global _SNAPSHOT_CACHE_TS, _SNAPSHOT_CACHE_VALUE
+    now = time.time()
+    if (
+        not force
+        and _SNAPSHOT_CACHE_VALUE is not None
+        and (now - _SNAPSHOT_CACHE_TS) < SNAPSHOT_CACHE_TTL_SECONDS
+    ):
+        return dict(_SNAPSHOT_CACHE_VALUE)
+
+    snapshot = {str(path): _safe_stat_signature(path) for path in WATCHED_PATHS}
+    _SNAPSHOT_CACHE_VALUE = snapshot
+    _SNAPSHOT_CACHE_TS = now
+    return dict(snapshot)
 
 
 def record_foc_event(event_type: str, payload: dict | None = None) -> dict:

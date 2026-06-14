@@ -90,6 +90,20 @@ class AlertsLogger:
 
         if source == "wazuh":
             level = ev.get("rule_level")
+            raw_alert = (((ev.get("raw") or {}).get("data") or {}).get("alert") or {})
+            raw_signature_id = str(raw_alert.get("signature_id") or "")
+            raw_signature = str(raw_alert.get("signature") or ev.get("signature") or "").lower()
+            raw_metadata = raw_alert.get("metadata") or {}
+            attack_stages = {
+                str(item).strip().lower()
+                for item in (raw_metadata.get("attack_stage") or [])
+                if str(item).strip()
+            }
+            confidence_values = {
+                str(item).strip().lower()
+                for item in (raw_metadata.get("confidence") or [])
+                if str(item).strip()
+            }
 
             try:
                 level = int(level)
@@ -97,6 +111,26 @@ class AlertsLogger:
                 level = None
 
             reasons["rule_level"] = level
+            reasons["suricata_signature_id"] = raw_signature_id or None
+            reasons["suricata_attack_stage"] = sorted(attack_stages)
+            reasons["suricata_confidence"] = sorted(confidence_values)
+
+            # Wazuh ingests Suricata eve.json through a generic JSON localfile rule
+            # (commonly level 3 / rule 86601). For ICS Modbus write detections, the
+            # generic Wazuh rule level is too weak to represent the underlying event.
+            if (
+                raw_signature_id in {"910836101", "910836102", "910836103", "910836104"}
+                or "modbus write" in raw_signature
+                or ("control_manipulation" in attack_stages and "high" in confidence_values)
+            ):
+                reasons["derived_policy"] = "ics_modbus_write_override"
+                return {
+                    "native_score": level,
+                    "native_scale": "wazuh_rule_level_0_16",
+                    "severity": "HIGH",
+                    "recommend_forensics": True,
+                    "reasons": reasons,
+                }
 
             if level is None:
                 return {

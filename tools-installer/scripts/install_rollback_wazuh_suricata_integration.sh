@@ -26,6 +26,7 @@ cat > "$BASE_DIR/wazuh-suricata-integration.yml" <<'EOF'
   become: true
   vars:
     remote_ossec: /var/ossec/etc/ossec.conf
+    remote_local_rules: /var/ossec/etc/rules/local_rules.xml
     remote_log: /var/ossec/logs/ossec.log
     suricata_eve: /var/log/suricata/eve.json
 
@@ -62,6 +63,16 @@ cat > "$BASE_DIR/wazuh-suricata-integration.yml" <<'EOF'
         msg: "No existe {{ remote_ossec }}"
       when: not ossec_conf_stat.stat.exists
 
+    - name: Verificar que local_rules.xml existe
+      stat:
+        path: "{{ remote_local_rules }}"
+      register: local_rules_stat
+
+    - name: Fallar si no existe local_rules.xml
+      fail:
+        msg: "No existe {{ remote_local_rules }}"
+      when: not local_rules_stat.stat.exists
+
     - name: Verificar si eve.json ya esta registrado en ossec.conf
       shell: grep -qF '<location>{{ suricata_eve }}</location>' "{{ remote_ossec }}"
       args:
@@ -81,6 +92,25 @@ cat > "$BASE_DIR/wazuh-suricata-integration.yml" <<'EOF'
             <location>{{ suricata_eve }}</location>
           </localfile>
       when: suricata_block_exists.rc != 0
+
+    - name: Añadir reglas locales Wazuh para escrituras Modbus OT de alta criticidad
+      blockinfile:
+        path: "{{ remote_local_rules }}"
+        marker: "<!-- {mark} NICS_SURICATA_OT_MODBUS -->"
+        insertbefore: "</group>"
+        block: |
+          <rule id="100210" level="12">
+            <if_sid>86601</if_sid>
+            <field name="data.alert.signature_id">^91083610[1-4]$</field>
+            <description>NICS CyberLab OT Modbus write detected by Suricata</description>
+            <group>suricata,ids,ics,modbus,control_manipulation,mitre_T0836,mitre_T1692_001,</group>
+          </rule>
+          <rule id="100211" level="12">
+            <if_sid>86601</if_sid>
+            <field name="data.alert.signature">^NICS CyberLab ICS Modbus write .*$</field>
+            <description>NICS CyberLab OT Modbus write detected by Suricata</description>
+            <group>suricata,ids,ics,modbus,control_manipulation,mitre_T0836,mitre_T1692_001,</group>
+          </rule>
 
     - name: Reiniciar wazuh-agent
       service:

@@ -3065,6 +3065,10 @@
       time.textContent = alert.timestamp || alert.ts || "--";
     }
 
+    const HOME_FULL_REFRESH_MS = 45000;
+    const HOME_ALERT_REFRESH_MS = 12000;
+    let homeSummaryInFlight = false;
+
     function homeBindSidebarNavigation() {
       document.querySelectorAll(".side-item[data-view]").forEach(item => {
         if (item.dataset.bound === "1") return;
@@ -3087,9 +3091,23 @@
       });
     }
 
-    async function loadHomeOperationalSummary() {
+    async function refreshHomeLiveAlert(force = false) {
+      if (!force && document.hidden) return;
+      try {
+        const latestAlerts = await homeFetchJson("/api/forensics/alerts/latest?limit=1");
+        homeRenderLiveAlert(latestAlerts?.alerts?.[0] || null);
+      } catch (_) {
+        // Keep the previous alert rendered state.
+      }
+    }
+
+    async function loadHomeOperationalSummary(force = false) {
+      if (homeSummaryInFlight) return;
+      if (!force && document.hidden) return;
+      homeSummaryInFlight = true;
+      try {
       const settled = await Promise.allSettled([
-        homeFetchJson("/api/openstack/instances/full"),
+        homeFetchJson("/api/openstack/instances"),
         homeFetchJson("/api/get_active_scenario"),
         homeFetchJson("/api/industrial/state"),
         homeFetchJson("/api/foc/status"),
@@ -3259,11 +3277,14 @@
       homeRenderAttackCatalog(data);
       homeRenderForensicFoc(data);
       homeRenderLiveAlert(latestAlert);
+      } finally {
+        homeSummaryInFlight = false;
+      }
     }
 
     document.addEventListener("DOMContentLoaded", () => {
       homeBindSidebarNavigation();
-      loadHomeOperationalSummary().catch(() => {});
+      loadHomeOperationalSummary(true).catch(() => {});
 
       setInterval(() => {
         const monitoring = document.getElementById("summary-monitoring");
@@ -3275,8 +3296,19 @@
       }, 3000);
 
       setInterval(() => {
+        refreshHomeLiveAlert().catch(() => {});
+      }, HOME_ALERT_REFRESH_MS);
+
+      setInterval(() => {
         loadHomeOperationalSummary().catch(() => {});
-      }, 10000);
+      }, HOME_FULL_REFRESH_MS);
+
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) {
+          loadHomeOperationalSummary(true).catch(() => {});
+          refreshHomeLiveAlert(true).catch(() => {});
+        }
+      });
     });
   </script>
 </body>

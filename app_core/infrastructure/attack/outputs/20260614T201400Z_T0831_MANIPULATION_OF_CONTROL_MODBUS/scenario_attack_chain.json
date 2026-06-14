@@ -1,0 +1,42 @@
+{
+  "attack_id": "T0831_MANIPULATION_OF_CONTROL_MODBUS",
+  "chain_steps": [
+    {
+      "name": "Remote System Discovery",
+      "status": "completed",
+      "technique": "T0846.001"
+    },
+    {
+      "name": "Point and Tag Identification",
+      "status": "completed",
+      "technique": "T0861"
+    },
+    {
+      "name": "I/O Image Before",
+      "status": "completed",
+      "technique": "T0877"
+    },
+    {
+      "name": "Controlled Unauthorized/Parameter Write",
+      "status": "completed",
+      "technique": "T1692.001/T0836"
+    },
+    {
+      "name": "I/O Image After",
+      "status": "completed",
+      "technique": "T0877"
+    },
+    {
+      "name": "State Restoration",
+      "status": "completed",
+      "technique": "rollback"
+    }
+  ],
+  "generated_at_utc": "2026-06-14T20:14:20.833820+00:00",
+  "mitre_id": "T0831",
+  "run_id": "20260614T201400Z_T0831_MANIPULATION_OF_CONTROL_MODBUS",
+  "scenario_id": "scn-f2ecdb50",
+  "source_ip": "10.0.2.214",
+  "target_ip": "10.0.2.22",
+  "target_role": "industrial_plc"
+}
