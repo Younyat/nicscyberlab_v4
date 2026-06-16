@@ -4,6 +4,8 @@ import logging
 import os
 import re
 import threading
+import time
+from datetime import datetime, timezone
 
 from flask import Blueprint, request, jsonify, send_from_directory, Response
 import openstack
@@ -12,6 +14,13 @@ logger = logging.getLogger("app_logger")
 
 # Blueprint principal con todas las rutas migradas desde app.py
 api_bp = Blueprint("api", __name__)
+
+DASHBOARD_HOME_CACHE_TTL_SECONDS = 8.0
+_dashboard_home_cache_lock = threading.Lock()
+_dashboard_home_cache = {
+    "ts": 0.0,
+    "payload": None,
+}
 
 
 
@@ -1209,6 +1218,105 @@ def get_active_scenario():
     }), 404
 
 
+@api_bp.route("/api/dashboard/home-summary", methods=["GET"])
+def api_dashboard_home_summary():
+    now = time.time()
+    force = str(request.args.get("force", "false")).strip().lower() in {"1", "true", "yes", "on"}
+
+    with _dashboard_home_cache_lock:
+        cached = _dashboard_home_cache.get("payload")
+        cached_ts = float(_dashboard_home_cache.get("ts") or 0.0)
+        if not force and cached and (now - cached_ts) < DASHBOARD_HOME_CACHE_TTL_SECONDS:
+            return jsonify(cached), 200
+
+    started = time.perf_counter()
+    scenario_state = _load_active_scenario_state()
+    industrial_state = _load_industrial_runtime_state()
+    inventory = _collect_openstack_inventory_summary(scenario_state, industrial_state)
+    tools = _summarize_tool_deployment(inventory.get("nodes") or [])
+    detection = _collect_detection_summary()
+    forensics = _collect_forensics_summary(scenario_state.get("scenario_id"))
+    foc = _collect_foc_summary(forensics)
+
+    evidence_state = "available" if forensics.get("artifact_count", 0) > 0 else (
+        "no_artifacts" if forensics.get("state") != "unavailable" else "unavailable"
+    )
+    evidence_message = (
+        f"{forensics.get('artifact_count', 0)} preserved artifact(s) available."
+        if evidence_state == "available"
+        else ("Evidence module is available, but no artifacts are preserved yet." if evidence_state == "no_artifacts"
+              else "Evidence module is unavailable.")
+    )
+
+    payload = {
+        "status": "ok",
+        "last_updated": _utc_now_iso(),
+        "metrics": {
+            "total_ms": round((time.perf_counter() - started) * 1000, 2),
+            "openstack_ms": inventory.get("duration_ms"),
+        },
+        "active_scenario": {
+            "state": scenario_state.get("state"),
+            "message": scenario_state.get("message"),
+            "scenario_id": scenario_state.get("scenario_id"),
+            "scenario_name": scenario_state.get("scenario_name"),
+            "node_count": len(scenario_state.get("nodes") or []),
+            "source": scenario_state.get("source"),
+        },
+        "openstack_inventory_status": {
+            "state": inventory.get("state"),
+            "message": inventory.get("message"),
+            "instance_count": inventory.get("instance_count", 0),
+            "sync_error": inventory.get("sync_error"),
+        },
+        "node_status": inventory.get("nodes") or [],
+        "tool_status": {
+            "state": tools.get("state"),
+            "message": tools.get("message"),
+            "counts": tools.get("counts"),
+            "rows": tools.get("rows"),
+        },
+        "attack_status": {
+            "state": "completed" if int((foc.get("status") or {}).get("detection_summary", {}).get("attack_events", 0)) > 0 else "not_started",
+            "message": (
+                f"{(foc.get('status') or {}).get('detection_summary', {}).get('attack_events', 0)} indexed attack event(s)."
+                if int((foc.get("status") or {}).get("detection_summary", {}).get("attack_events", 0)) > 0
+                else "No attack execution has been indexed yet."
+            ),
+        },
+        "detection_status": detection,
+        "forensic_status": {
+            "state": forensics.get("state"),
+            "message": forensics.get("message"),
+            "case_count": forensics.get("case_count", 0),
+            "active_case": forensics.get("active_case"),
+            "cases": forensics.get("cases"),
+        },
+        "evidence_status": {
+            "state": evidence_state,
+            "message": evidence_message,
+            "artifact_count": forensics.get("artifact_count", 0),
+        },
+        "foc_status": {
+            "state": foc.get("state"),
+            "message": foc.get("message"),
+            "status": (foc.get("status") or {}).get("status"),
+            "completeness": (foc.get("status") or {}).get("completeness"),
+            "reproducibility_score": (foc.get("status") or {}).get("reproducibility_score"),
+            "missing_components": foc.get("missing_components"),
+            "gaps": foc.get("gaps"),
+            "evaluable": foc.get("evaluable"),
+            "raw": foc.get("status"),
+        },
+    }
+
+    with _dashboard_home_cache_lock:
+        _dashboard_home_cache["ts"] = now
+        _dashboard_home_cache["payload"] = payload
+
+    return jsonify(payload), 200
+
+
 @api_bp.route("/api/delete_industrial_scenario", methods=["DELETE"])
 def delete_industrial_scenario():
     path = os.path.join(
@@ -1517,6 +1625,427 @@ def merge_tools_state(instance_id: str, instance_name: str) -> dict:
             merged[tool] = date
 
     return merged
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _safe_read_json(path: str):
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            return json.load(fh)
+    except Exception:
+        return None
+
+
+def _normalize_state_label(value: str | None) -> str:
+    raw = str(value or "unknown").strip().lower().replace("-", "_").replace(" ", "_")
+    allowed = {
+        "not_configured",
+        "not_started",
+        "running",
+        "completed",
+        "failed",
+        "unavailable",
+        "unknown",
+        "pending",
+        "removed",
+        "installed",
+        "available",
+        "no_artifacts",
+        "partial",
+    }
+    return raw if raw in allowed else "unknown"
+
+
+def _human_tool_status(value) -> str:
+    if isinstance(value, str) and re.match(r"^\d{4}-\d{2}-\d{2} ", value):
+        return "installed"
+    return _normalize_state_label(value)
+
+
+def _load_active_scenario_state() -> dict:
+    industrial = os.path.join(
+        REPO_ROOT, "industrial-scenario", "scenarios", "industrial_industrial_file.json"
+    )
+    base = os.path.join(REPO_ROOT, "scenario", "scenario_file.json")
+    candidates = [
+        ("industrial", industrial),
+        ("it", base),
+    ]
+
+    for source, path in candidates:
+        if not os.path.exists(path):
+            continue
+        payload = _safe_read_json(path)
+        if not isinstance(payload, dict):
+            return {
+                "state": "failed",
+                "message": f"Scenario file is invalid: {os.path.basename(path)}",
+                "scenario_id": None,
+                "scenario_name": None,
+                "nodes": [],
+                "source": source,
+                "path": path,
+            }
+        nodes = payload.get("nodes", [])
+        scenario_name = payload.get("scenario_name") or payload.get("name") or "Unnamed scenario"
+        return {
+            "state": "completed",
+            "message": "Active scenario loaded.",
+            "scenario_id": payload.get("scenario_id") or scenario_name,
+            "scenario_name": scenario_name,
+            "nodes": nodes if isinstance(nodes, list) else [],
+            "source": source,
+            "path": path,
+            "payload": payload,
+        }
+
+    return {
+        "state": "not_started",
+        "message": "No active scenario selected.",
+        "scenario_id": None,
+        "scenario_name": None,
+        "nodes": [],
+        "source": None,
+        "path": None,
+        "payload": None,
+    }
+
+
+def _load_industrial_runtime_state() -> dict:
+    state_path = os.path.join(REPO_ROOT, "industrial-scenario", "state", "industrial_state.json")
+    payload = _safe_read_json(state_path)
+    return payload if isinstance(payload, dict) else {}
+
+
+def _infer_node_role(instance_name: str, scenario_nodes: list[dict], industrial_state: dict) -> str:
+    name_l = str(instance_name or "").strip().lower()
+    for node in scenario_nodes:
+        if str(node.get("name") or "").strip().lower() == name_l:
+            return str(node.get("type") or "unknown")
+
+    if "plc" in name_l:
+        return "industrial_plc"
+    if "scada" in name_l or "fuxa" in name_l:
+        return "industrial_scada"
+    if "monitor" in name_l:
+        return "monitor"
+    if "attack" in name_l or "attacker" in name_l:
+        return "attack"
+
+    plc_ip = (((industrial_state.get("plc") or {}).get("instance") or {}).get("ip_floating") or "").strip()
+    scada_ip = (((industrial_state.get("scada") or {}).get("instance") or {}).get("ip_floating") or "").strip()
+    if plc_ip and plc_ip in name_l:
+        return "industrial_plc"
+    if scada_ip and scada_ip in name_l:
+        return "industrial_scada"
+    return "unknown"
+
+
+def _collect_openstack_inventory_summary(scenario_state: dict, industrial_state: dict) -> dict:
+    conn = None
+    started = time.perf_counter()
+    try:
+        conn = get_openstack_connection()
+        nodes = []
+        scenario_nodes = scenario_state.get("nodes") or []
+        for server in conn.compute.servers():
+            ip_private = None
+            ip_floating = None
+            for _net_name, addresses in (server.addresses or {}).items():
+                for addr in addresses:
+                    ip = addr.get("addr")
+                    if addr.get("OS-EXT-IPS:type") == "floating":
+                        ip_floating = ip
+                    else:
+                        ip_private = ip
+
+            merged_tools = merge_tools_state(server.id, server.name)
+            node_role = _infer_node_role(server.name, scenario_nodes, industrial_state)
+            nodes.append(
+                {
+                    "instance_id": server.id,
+                    "name": server.name,
+                    "role": node_role,
+                    "status": str(server.status or "UNKNOWN"),
+                    "status_state": "completed" if str(server.status or "").upper() == "ACTIVE" else "running",
+                    "ip_private": ip_private,
+                    "ip_floating": ip_floating,
+                    "ip": ip_floating or ip_private,
+                    "scenario_id": scenario_state.get("scenario_id"),
+                    "tools_state": merged_tools,
+                }
+            )
+
+        nodes.sort(key=lambda item: (item.get("role") or "", item.get("name") or ""))
+        return {
+            "state": "completed",
+            "message": f"{len(nodes)} instances synchronized from OpenStack.",
+            "sync_error": None,
+            "instance_count": len(nodes),
+            "nodes": nodes,
+            "duration_ms": round((time.perf_counter() - started) * 1000, 2),
+        }
+    except Exception as exc:
+        logger.warning("Dashboard OpenStack inventory sync failed: %s", exc, exc_info=True)
+        return {
+            "state": "failed",
+            "message": "OpenStack inventory synchronization failed.",
+            "sync_error": str(exc),
+            "instance_count": 0,
+            "nodes": [],
+            "duration_ms": round((time.perf_counter() - started) * 1000, 2),
+        }
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+def _summarize_tool_deployment(nodes: list[dict]) -> dict:
+    rows = []
+    counts = {"installed": 0, "pending": 0, "failed": 0, "removed": 0}
+    for node in nodes:
+        for tool_name, raw_status in (node.get("tools_state") or {}).items():
+            state = _human_tool_status(raw_status)
+            if state in counts:
+                counts[state] += 1
+            elif state == "installed":
+                counts["installed"] += 1
+            rows.append(
+                {
+                    "node": node.get("name"),
+                    "role": node.get("role"),
+                    "tool": tool_name,
+                    "state": state,
+                    "timestamp": raw_status if state == "installed" and isinstance(raw_status, str) else None,
+                    "last_error": None,
+                }
+            )
+
+    rows.sort(key=lambda item: (item.get("node") or "", item.get("tool") or ""))
+    if counts["failed"] > 0:
+        state = "failed"
+        message = f"{counts['failed']} tool deployments failed."
+    elif counts["pending"] > 0:
+        state = "running"
+        message = f"{counts['pending']} tool deployments are pending."
+    elif counts["installed"] > 0:
+        state = "completed"
+        message = f"{counts['installed']} tools are installed."
+    else:
+        state = "not_started"
+        message = "No tool deployments are registered yet."
+
+    return {
+        "state": state,
+        "message": message,
+        "counts": counts,
+        "rows": rows,
+    }
+
+
+def _collect_detection_summary() -> dict:
+    from app_core.infrastructure.forensics.alerts_api import (
+        FORENSICS_ALERTS_BASE,
+        _list_sessions,
+        _pick_session_with_data,
+        _summarize_alert,
+        _tail_jsonl,
+    )
+
+    sessions = _list_sessions(FORENSICS_ALERTS_BASE)
+    if not sessions:
+        return {
+            "state": "not_started",
+            "message": "No detection session has been recorded yet.",
+            "alerts_count": 0,
+            "latest_alert": None,
+            "session_id": None,
+        }
+
+    session_id = _pick_session_with_data(FORENSICS_ALERTS_BASE, sessions)
+    if not session_id:
+        return {
+            "state": "not_started",
+            "message": "Detection storage exists, but no alerts have been indexed yet.",
+            "alerts_count": 0,
+            "latest_alert": None,
+            "session_id": sessions[-1],
+        }
+
+    alerts_path = os.path.join(FORENSICS_ALERTS_BASE, session_id, "alerts.jsonl")
+    triage_path = os.path.join(FORENSICS_ALERTS_BASE, session_id, "triage.jsonl")
+    alerts = _tail_jsonl(alerts_path, 1)
+    triage = _tail_jsonl(triage_path, 500)
+    severity_by_event_id = {item.get("event_id"): item for item in triage if item.get("event_id")}
+
+    latest = alerts[-1] if alerts else None
+    latest_alert = None
+    if isinstance(latest, dict):
+        triage_item = severity_by_event_id.get(latest.get("event_id"), {})
+        alert_kind, alert_summary = _summarize_alert(latest)
+        latest_alert = {
+            "event_id": latest.get("event_id"),
+            "rule": latest.get("rule"),
+            "signature": latest.get("signature"),
+            "severity": triage_item.get("severity") or latest.get("severity"),
+            "alert_kind": alert_kind,
+            "alert_summary": alert_summary,
+            "source": "Suricata" if "suricata" in json.dumps(latest, ensure_ascii=False).lower() else "Detection layer",
+            "agent_name": ((latest.get("agent") or {}).get("name")) or latest.get("agent_name"),
+            "src_ip": ((latest.get("src") or {}).get("ip")) or latest.get("src_ip"),
+            "timestamp": latest.get("timestamp") or latest.get("ts"),
+        }
+
+    alert_count = 0
+    try:
+        with open(alerts_path, "r", encoding="utf-8") as fh:
+            for line in fh:
+                if line.strip():
+                    alert_count += 1
+    except Exception:
+        alert_count = 0
+
+    return {
+        "state": "completed" if latest_alert else "not_started",
+        "message": "Detection telemetry is available." if latest_alert else "No alert evidence is available yet.",
+        "alerts_count": alert_count,
+        "latest_alert": latest_alert,
+        "session_id": session_id,
+    }
+
+
+def _summarize_case_dir(case_dir: str, scenario_id: str | None) -> dict:
+    manifest = _safe_read_json(os.path.join(case_dir, "manifest.json")) or {}
+    artifacts = manifest.get("artifacts", []) if isinstance(manifest, dict) else []
+    artifact_types = set()
+    acquisition_types = set()
+    hash_count = 0
+    for item in artifacts:
+        item_type = str(item.get("type") or "").strip()
+        rel_path = str(item.get("rel_path") or "").lower()
+        artifact_types.add(item_type)
+        if item.get("sha256"):
+            hash_count += 1
+        if "pcap" in item_type or "network" in item_type or rel_path.endswith(".pcap"):
+            acquisition_types.add("network")
+        elif "disk" in item_type or "/disk/" in rel_path or ".qcow2" in rel_path or ".raw" in rel_path:
+            acquisition_types.add("disk")
+        elif "memory" in item_type or "memdump" in rel_path or ".lime" in rel_path:
+            acquisition_types.add("memory")
+        elif "ot_" in rel_path or "industrial" in rel_path or "ot_export" in rel_path:
+            acquisition_types.add("OT state")
+        elif "log" in item_type or rel_path.endswith(".log") or "/alerts/" in rel_path:
+            acquisition_types.add("logs")
+
+    custody_present = "custody_log" in artifact_types or os.path.exists(os.path.join(case_dir, "chain_of_custody.log"))
+    return {
+        "forensic_case_id": os.path.basename(case_dir),
+        "scenario_id": scenario_id,
+        "target_node": None,
+        "acquisition_types": sorted(acquisition_types),
+        "preservation_status": "completed" if artifacts else "not_started",
+        "chain_of_custody_status": "completed" if custody_present else "not_started",
+        "hash_sha256_count": hash_count,
+        "artifact_count": len(artifacts),
+        "created_at": manifest.get("created_at"),
+        "case_dir": case_dir,
+    }
+
+
+def _collect_forensics_summary(scenario_id: str | None) -> dict:
+    evidence_root = os.path.join(REPO_ROOT, "app_core", "infrastructure", "forensics", "evidence_store")
+    if not os.path.isdir(evidence_root):
+        return {
+            "state": "unavailable",
+            "message": "Forensic evidence module is unavailable.",
+            "case_count": 0,
+            "artifact_count": 0,
+            "active_case": None,
+            "cases": [],
+        }
+
+    case_dirs = sorted(
+        [
+            os.path.join(evidence_root, name)
+            for name in os.listdir(evidence_root)
+            if name.startswith("CASE-") and os.path.isdir(os.path.join(evidence_root, name))
+        ]
+    )
+    if not case_dirs:
+        return {
+            "state": "not_started",
+            "message": "Forensic module is available, but no case has started yet.",
+            "case_count": 0,
+            "artifact_count": 0,
+            "active_case": None,
+            "cases": [],
+        }
+
+    summaries = [_summarize_case_dir(case_dir, scenario_id) for case_dir in case_dirs]
+    active_case = summaries[-1] if summaries else None
+    artifact_count = sum(item.get("artifact_count", 0) for item in summaries)
+    return {
+        "state": "completed",
+        "message": f"{len(summaries)} forensic case(s) available.",
+        "case_count": len(summaries),
+        "artifact_count": artifact_count,
+        "active_case": active_case,
+        "cases": list(reversed(summaries)),
+    }
+
+
+def _collect_foc_summary(forensics_summary: dict) -> dict:
+    from app_core.infrastructure.foc_reconstruction.foc_quality import build_gaps, build_status
+
+    status = build_status()
+    gaps = build_gaps() or {}
+
+    components = status.get("components") or {}
+    detection_summary = status.get("detection_summary") or {}
+    artifact_summary = status.get("artifact_summary") or {}
+    relationship_summary = status.get("relationship_summary") or {}
+
+    minimum_components = {
+        "Scenario BOM": bool(components.get("scenario_bom")),
+        "Tools BOM": bool(components.get("tools_bom")),
+        "Attack Attestation": int(detection_summary.get("attack_events", 0)) > 0,
+        "Detection Attestation": int(detection_summary.get("alerts_total", 0)) > 0,
+        "Acquisition Manifest": int(artifact_summary.get("acquisition_metadata", 0)) > 0,
+        "Preservation Manifest": int(artifact_summary.get("preserved_evidence", 0)) > 0,
+        "Chain of Custody": int(artifact_summary.get("custody_logs", 0)) > 0,
+        "Forensic Analysis Report": int(artifact_summary.get("analysis_outputs", 0)) > 0,
+        "Semantic Observation Report": int(relationship_summary.get("attack_alert_confirmed_links", 0)) > 0,
+    }
+    missing = [label for label, present in minimum_components.items() if not present]
+
+    if not status.get("initialized"):
+        state = "not_started"
+        message = "FOC reconstruction has not been initialized yet."
+    elif not missing and status.get("status") == "valid":
+        state = "completed"
+        message = "FOC reconstruction is evidentially complete."
+    elif missing:
+        state = "partial"
+        message = f"FOC reconstruction is missing {len(missing)} required component(s)."
+    else:
+        state = "running"
+        message = "FOC reconstruction is available but still maturing."
+
+    return {
+        "state": state,
+        "message": message,
+        "status": status,
+        "missing_components": missing,
+        "gaps": (gaps.get("gaps") or [])[:8],
+        "evaluable": not missing,
+        "forensics_case_count": forensics_summary.get("case_count", 0),
+    }
 
 def extract_subnet_cidr(conn, network_id: str):
     """Obtiene CIDRs de subredes de una network (si existen)."""
@@ -2297,7 +2826,3 @@ def index():
 def static_files(path):
     return send_from_directory(os.path.join(REPO_ROOT, "app_core", "static"), path)
     #return send_from_directory(os.path.join(REPO_ROOT, 'static'), path)
-
-
-
-

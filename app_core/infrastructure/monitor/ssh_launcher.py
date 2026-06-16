@@ -28,6 +28,24 @@ SCRIPT_PATH = os.path.abspath("app_core/infrastructure/monitor/scripts/monitor_a
 SSH_KEY_PATH = os.path.expanduser("~/.ssh/my_key")
 
 
+def _alert_kind_and_summary(normalized: dict) -> tuple[str, str]:
+    signature = str(normalized.get("signature") or "").strip()
+    signature_l = signature.lower()
+    raw_alert = (((normalized.get("raw") or {}).get("data") or {}).get("alert") or {})
+    sig_id = str(raw_alert.get("signature_id") or "").strip()
+    protocol = str(normalized.get("protocol") or "").lower()
+
+    if sig_id in {"910836101", "910836102"} or ("modbus write" in signature_l and "register" in signature_l):
+        return "Modbus_register_write", "PLC register manipulation detected"
+    if sig_id in {"910836103", "910836104"} or ("modbus write" in signature_l and "coil" in signature_l):
+        return "Modbus_coil_write", "PLC control coil manipulation detected"
+    if "ping detectado" in signature_l or protocol in {"icmp", "ipv6-icmp"}:
+        return "ICMP_probing", "Network reconnaissance signal detected"
+    if normalized.get("rule_id") in {"550", "554"}:
+        return "File_integrity_change", "Host file integrity event detected"
+    return "Detection_alert", "Security detection event observed"
+
+
 @monitor_infra_bp.route("/live_wazuh_stream")
 def live_wazuh_stream():
     monitor_ip = request.args.get("ip")
@@ -133,11 +151,13 @@ def live_wazuh_stream():
                             
                             case_rel = out.get("case_rel")
                             case_info = f"case_saved={case_rel}" if case_rel else "case_saved=NO"
+                            alert_kind, _ = _alert_kind_and_summary(normalized)
 
                             human = (
                                 f"[DETECTED] severity={sev} native_score={score} "
                                 f"scale={scale} "
                                 f"forensics={'YES' if rec else 'NO'} "
+                                f"kind={alert_kind} "
                                 f"{case_info} "
                                 f"sig={normalized.get('signature') or 'N/A'} "
                                 f"src={normalized.get('src', {}).get('ip','?')}:{normalized.get('src', {}).get('port','?')} "

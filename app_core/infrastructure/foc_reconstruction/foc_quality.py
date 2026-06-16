@@ -173,14 +173,27 @@ def _maturity_statuses(
     }
 
 
-def build_status() -> dict:
-    manifest = read_generated_json(GENERATED_FILES["manifest"])
-    scenario_bom = read_generated_json(GENERATED_FILES["scenario_bom"]) or {}
-    tools_bom = read_generated_json(GENERATED_FILES["tools_bom"]) or {}
-    timeline = read_generated_json(GENERATED_FILES["timeline"]) or {}
-    sources = read_generated_json(GENERATED_FILES["sources_index"]) or {}
-    relationships = read_generated_json(GENERATED_FILES["relationships_index"]) or {}
-    artifacts = read_generated_json(GENERATED_FILES["artifacts_index"]) or {}
+def load_quality_context() -> dict:
+    return {
+        "manifest": read_generated_json(GENERATED_FILES["manifest"]),
+        "scenario_bom": read_generated_json(GENERATED_FILES["scenario_bom"]) or {},
+        "tools_bom": read_generated_json(GENERATED_FILES["tools_bom"]) or {},
+        "timeline": read_generated_json(GENERATED_FILES["timeline"]) or {},
+        "sources": read_generated_json(GENERATED_FILES["sources_index"]) or {},
+        "relationships": read_generated_json(GENERATED_FILES["relationships_index"]) or {},
+        "artifacts": read_generated_json(GENERATED_FILES["artifacts_index"]) or {},
+    }
+
+
+def build_status(context: dict | None = None) -> dict:
+    context = context or load_quality_context()
+    manifest = context.get("manifest")
+    scenario_bom = context.get("scenario_bom") or {}
+    tools_bom = context.get("tools_bom") or {}
+    timeline = context.get("timeline") or {}
+    sources = context.get("sources") or {}
+    relationships = context.get("relationships") or {}
+    artifacts = context.get("artifacts") or {}
 
     if not isinstance(manifest, dict):
         scenario_exists = Path("scenario/scenario_file.json").exists()
@@ -251,7 +264,7 @@ def build_status() -> dict:
         completeness = "insufficient"
         status = "insufficient"
 
-    gaps_payload = build_gaps()
+    gaps_payload = build_gaps(context=context)
     critical_gaps = int(gaps_payload.get("critical_gaps", 0)) if isinstance(gaps_payload, dict) else 0
 
     return {
@@ -288,13 +301,14 @@ def build_status() -> dict:
     }
 
 
-def build_gaps() -> dict:
-    scenario_bom = read_generated_json(GENERATED_FILES["scenario_bom"]) or {}
-    tools_bom = read_generated_json(GENERATED_FILES["tools_bom"]) or {}
-    timeline = read_generated_json(GENERATED_FILES["timeline"]) or {}
-    sources = read_generated_json(GENERATED_FILES["sources_index"]) or {}
-    relationships = read_generated_json(GENERATED_FILES["relationships_index"]) or {}
-    artifacts = read_generated_json(GENERATED_FILES["artifacts_index"]) or {}
+def build_gaps(context: dict | None = None) -> dict:
+    context = context or load_quality_context()
+    scenario_bom = context.get("scenario_bom") or {}
+    tools_bom = context.get("tools_bom") or {}
+    timeline = context.get("timeline") or {}
+    sources = context.get("sources") or {}
+    relationships = context.get("relationships") or {}
+    artifacts = context.get("artifacts") or {}
 
     gaps: list[dict] = []
 

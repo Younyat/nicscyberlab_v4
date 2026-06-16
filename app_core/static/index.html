@@ -1563,63 +1563,63 @@
       <nav class="side-nav">
         <div class="side-item" data-view="index-scenario" tabindex="0" role="button">
           <div class="side-item-main">
-            <span class="side-glyph">01</span>
+            <span class="side-glyph">1</span>
             <div class="side-text"><span>IT Scenario</span><span class="side-sub">Scenario creation</span></div>
           </div>
           <span id="wf-it-scenario" class="side-state status-unknown">Unknown</span>
         </div>
         <div class="side-item active" data-view="index-tools" tabindex="0" role="button">
           <div class="side-item-main">
-            <span class="side-glyph">02</span>
+            <span class="side-glyph">2</span>
             <div class="side-text"><span>Tool Deployment</span><span class="side-sub">Node instrumentation</span></div>
           </div>
           <span id="wf-tool-deployment" class="side-state status-unknown">Unknown</span>
         </div>
         <div class="side-item" data-view="industrial" tabindex="0" role="button">
           <div class="side-item-main">
-            <span class="side-glyph">03</span>
+            <span class="side-glyph">3</span>
             <div class="side-text"><span>OT Scenario</span><span class="side-sub">PLC and SCADA</span></div>
           </div>
           <span id="wf-ot-scenario" class="side-state status-unknown">Unknown</span>
         </div>
         <div class="side-item" data-view="inventory" tabindex="0" role="button">
           <div class="side-item-main">
-            <span class="side-glyph">04</span>
+            <span class="side-glyph">4</span>
             <div class="side-text"><span>Inventory</span><span class="side-sub">OpenStack synchronization</span></div>
           </div>
           <span id="wf-inventory" class="side-state status-unknown">Unknown</span>
         </div>
         <div class="side-item" data-view="dashboard_especial" tabindex="0" role="button">
           <div class="side-item-main">
-            <span class="side-glyph">05</span>
+            <span class="side-glyph">5</span>
             <div class="side-text"><span>Attack Lab</span><span class="side-sub">ATT&CK execution</span></div>
           </div>
           <span id="wf-attack-lab" class="side-state status-unknown">Unknown</span>
         </div>
         <div class="side-item" data-view="dashboard" tabindex="0" role="button">
           <div class="side-item-main">
-            <span class="side-glyph">06</span>
+            <span class="side-glyph">6</span>
             <div class="side-text"><span>Detection Layer</span><span class="side-sub">Monitoring and alerts</span></div>
           </div>
           <span id="wf-detection-layer" class="side-state status-unknown">Unknown</span>
         </div>
         <div class="side-item" data-view="forensics" tabindex="0" role="button">
           <div class="side-item-main">
-            <span class="side-glyph">07</span>
+            <span class="side-glyph">7</span>
             <div class="side-text"><span>Forensic Lab</span><span class="side-sub">Acquisition and preservation</span></div>
           </div>
           <span id="wf-forensic-lab" class="side-state status-unknown">Unknown</span>
         </div>
         <div class="side-item" data-view="forensic_report_analysis" tabindex="0" role="button">
           <div class="side-item-main">
-            <span class="side-glyph">08</span>
+            <span class="side-glyph">8</span>
             <div class="side-text"><span>Forensic Report</span><span class="side-sub">Technical findings</span></div>
           </div>
           <span id="wf-forensic-report" class="side-state status-unknown">Unknown</span>
         </div>
         <div class="side-item" data-view="foc_reconstruction" tabindex="0" role="button">
           <div class="side-item-main">
-            <span class="side-glyph">09</span>
+            <span class="side-glyph">9</span>
             <div class="side-text"><span>FOC Reconstruction</span><span class="side-sub">Scientific validation</span></div>
           </div>
           <span id="wf-foc-reconstruction" class="side-state status-unknown">Unknown</span>
@@ -2109,6 +2109,7 @@
           severity,
           score: level,
           forensics: (get("forensics") || (level >= 7 ? "YES" : "NO")).toUpperCase(),
+          kind: (get("kind") || "Detection_alert").replaceAll("_", " "),
           signature: (get("sig") || get("signature") || "WAZUH ALERT").replaceAll("_", " "),
           src: get("src") || "--",
           dst: get("dst") || "--",
@@ -2218,6 +2219,7 @@
                 <div class="rt-title">${rtEscape(meta.tag)} · score ${rtEscape(ev.score)} · ${rtEscape(ev.ts)}</div>
                 <div class="rt-main">${rtEscape(ev.signature)}</div>
                 <div class="rt-meta">
+                  TYPE: ${rtEscape(ev.kind || "Detection alert")}<br/>
                   SRC: ${rtEscape(ev.src)}<br/>
                   DST: ${rtEscape(ev.dst)}
                 </div>
@@ -2860,28 +2862,36 @@
       el.innerHTML = `${main} <span class="kpi-delta">${delta}</span>`;
     }
 
+    function homeDisplayStatus(value) {
+      const normalized = String(value ?? "unknown").trim().replace(/[_-]+/g, " ").toLowerCase();
+      if (!normalized) return "Unknown";
+      return normalized.replace(/\b\w/g, (ch) => ch.toUpperCase());
+    }
+
     function homeStatusClass(value) {
-      const normalized = String(value || "unknown").toLowerCase().replace(/\s+/g, "-");
+      const normalized = String(value || "unknown").toLowerCase().replace(/[_\s]+/g, "-");
       if ([
         "ready", "active", "present", "installed", "synced", "available",
-        "complete", "connected", "listening", "executed", "detected"
+        "complete", "connected", "listening", "executed", "detected",
+        "completed"
       ].includes(normalized)) {
         return "status-ready";
       }
       if ([
         "idle", "incomplete", "pending", "stale", "partial",
-        "mostly_available", "reconnecting", "no-case"
+        "mostly-available", "reconnecting", "no-case", "not-started",
+        "not-configured", "running", "no-artifacts"
       ].includes(normalized)) {
         return "status-incomplete";
       }
-      if (["missing", "offline", "failed", "error"].includes(normalized)) {
+      if (["missing", "offline", "failed", "error", "unavailable", "removed"].includes(normalized)) {
         return "status-missing";
       }
       return "status-unknown";
     }
 
     function homeBadge(label, value, clsType = "panel-status") {
-      return `<span class="${clsType} ${homeStatusClass(value)}">${label ? `${label}: ` : ""}${String(value ?? "Unknown")}</span>`;
+      return `<span class="${clsType} ${homeStatusClass(value)}">${label ? `${label}: ` : ""}${homeDisplayStatus(value)}</span>`;
     }
 
     async function homeFetchJson(url) {
@@ -2933,7 +2943,7 @@
       items.forEach(([id, value]) => {
         const el = document.getElementById(id);
         if (!el) return;
-        el.textContent = value;
+        el.textContent = homeDisplayStatus(value);
         el.className = `side-state ${homeStatusClass(value)}`;
       });
 
@@ -3052,17 +3062,18 @@
         return;
       }
 
-      const agentName = alert.agent?.name || alert.agent_name || alert.hostname || "Unknown node";
-      const rule = alert.rule?.description || alert.signature || alert.event_id || "Detection alert";
-      const severity = alert.severity || alert.rule?.level || alert.level || "Unknown";
+      const kind = alert.alert_kind || "Detection alert";
+      const summary = alert.alert_summary || kind;
+      const severity = homeDisplayStatus(alert.severity || alert.rule?.level || alert.level || "Unknown");
       const detector = alert.decoder?.name || alert.rule?.groups?.[0] || alert.source || "Wazuh / Suricata";
-      const src = alert.data?.srcip || alert.srcip || alert.src_ip || "unknown";
-      const dst = alert.data?.dstip || alert.dstip || alert.dst_ip || "unknown";
+      const origin = alert.agent?.name || alert.agent_name || alert.hostname || alert.src?.ip || alert.src_ip || "Unknown source";
+      const ts = alert.timestamp || alert.ts || "--";
+      const briefTime = typeof ts === "string" && ts.includes("T") ? ts.split("T")[1].replace("Z", "").slice(0, 5) : ts;
 
-      title.textContent = rule;
-      detail.textContent = `${agentName} | severity ${severity} | src ${src} -> dst ${dst}`;
+      title.textContent = summary;
+      detail.textContent = `Type: ${kind} | Severity: ${severity} | Source: ${origin}`;
       source.textContent = detector;
-      time.textContent = alert.timestamp || alert.ts || "--";
+      time.textContent = briefTime || "--";
     }
 
     const HOME_FULL_REFRESH_MS = 45000;
@@ -3106,177 +3117,139 @@
       if (!force && document.hidden) return;
       homeSummaryInFlight = true;
       try {
-      const settled = await Promise.allSettled([
-        homeFetchJson("/api/openstack/instances"),
-        homeFetchJson("/api/get_active_scenario"),
-        homeFetchJson("/api/industrial/state"),
-        homeFetchJson("/api/foc/status"),
-        homeFetchJson("/api/foc/timeline"),
-        homeFetchJson("/api/forensics/report/cases"),
-        homeFetchJson("/api/hud/attack/catalog"),
-        homeFetchJson("/api/forensics/alerts/latest?limit=1"),
-      ]);
+        const payload = await homeFetchJson(`/api/dashboard/home-summary${force ? "?force=1" : ""}`);
+        const scenarioState = payload?.active_scenario || {};
+        const inventory = payload?.openstack_inventory_status || {};
+        const nodes = payload?.node_status || [];
+        const toolStatus = payload?.tool_status || {};
+        const detection = payload?.detection_status || {};
+        const forensic = payload?.forensic_status || {};
+        const evidence = payload?.evidence_status || {};
+        const foc = payload?.foc_status || {};
+        const focRaw = foc?.raw || {};
+        const latestAlert = detection?.latest_alert || null;
+        const activeCase = forensic?.active_case || null;
+        const toolRows = toolStatus?.rows || [];
+        const toolNames = new Set(toolRows.map(item => String(item.tool || "").toLowerCase()).filter(Boolean));
+        const otNodes = nodes.filter(node => String(node.role || "").includes("industrial_"));
+        const alertCount = Number.isFinite(detection?.alerts_count) ? detection.alerts_count : 0;
+        const evidenceCount = Number.isFinite(evidence?.artifact_count) ? evidence.artifact_count : 0;
+        const reproducibilityScore = foc?.reproducibility_score ?? focRaw?.reproducibility_score;
+        const focMissing = Array.isArray(foc?.missing_components) ? foc.missing_components : [];
+        const scenarioName = scenarioState?.scenario_name || "No active scenario selected";
+        const workflowHeadline = scenarioState?.state === "completed"
+          ? `Operational summary for ${scenarioName}`
+          : "No active scenario selected";
+        const monitoringSummary = RT.state === "LISTENING"
+          ? "listening"
+          : (RT.state === "RECONNECTING" ? "reconnecting" : "off");
 
-      const [instancesRes, scenarioRes, industrialRes, focStatusRes, focTimelineRes, reportCasesRes, attackCatalogRes, latestAlertsRes] = settled;
-      const instancesPayload = instancesRes.status === "fulfilled" ? instancesRes.value : null;
-      const scenarioPayload = scenarioRes.status === "fulfilled" ? scenarioRes.value : null;
-      const industrialPayload = industrialRes.status === "fulfilled" ? industrialRes.value : null;
-      const focStatus = focStatusRes.status === "fulfilled" ? focStatusRes.value : null;
-      const focTimeline = focTimelineRes.status === "fulfilled" ? focTimelineRes.value : null;
-      const reportCases = reportCasesRes.status === "fulfilled" ? reportCases.value : null;
-      const attackCatalog = attackCatalogRes.status === "fulfilled" ? attackCatalogRes.value : null;
-      const latestAlerts = latestAlertsRes.status === "fulfilled" ? latestAlertsRes.value : null;
+        homeSetValue(
+          "kpi-openstack-instances",
+          inventory?.instance_count ? String(inventory.instance_count) : "--",
+          inventory?.state === "completed" ? "Synchronized" : homeDisplayStatus(inventory?.state || "unknown")
+        );
+        homeSetValue(
+          "kpi-installed-tools",
+          Number.isFinite(toolStatus?.counts?.installed) ? String(toolStatus.counts.installed) : "--",
+          toolStatus?.message || "No deployment data"
+        );
+        homeSetValue(
+          "kpi-detected-alerts",
+          alertCount ? String(alertCount) : "--",
+          detection?.state ? homeDisplayStatus(detection.state) : "No detection data"
+        );
+        homeSetValue(
+          "kpi-forensic-cases",
+          forensic?.case_count ? String(forensic.case_count) : "--",
+          activeCase?.forensic_case_id ? `Active ${activeCase.forensic_case_id}` : homeDisplayStatus(forensic?.state || "not_started")
+        );
+        homeSetValue(
+          "kpi-evidence-artifacts",
+          evidenceCount ? String(evidenceCount) : "--",
+          evidence?.state ? homeDisplayStatus(evidence.state) : "No evidence data"
+        );
+        homeSetValue(
+          "kpi-foc-readiness",
+          reproducibilityScore != null ? String(Math.round(reproducibilityScore)) : "--",
+          foc?.state ? homeDisplayStatus(foc.state) : "Unknown"
+        );
 
-      const instances = instancesPayload?.instances || [];
-      const scenarioName = scenarioPayload?.scenario_name || scenarioPayload?.name || "None";
-      const scenarioNodes = scenarioPayload?.nodes || [];
-      const otNodes = scenarioNodes.filter(node => String(node.type || "").includes("industrial_"));
-      const toolSummary = homeToolSummary(instances);
-      const activeCaseDir = (reportCases?.active_case_dir || localStorage.getItem("nics_active_case_dir") || "").trim();
-      const caseCount = Array.isArray(reportCases?.cases) ? reportCases.cases.length : 0;
-      const latestAlert = latestAlerts?.alerts?.[0] || null;
-      const alertCount = focStatus?.detection_summary?.alerts_total ?? latestAlerts?.alerts?.length ?? null;
-      const evidenceCount = focStatus?.artifact_summary?.preserved_evidence;
-      const workflowHeadline = focStatus?.initialized ? "Operational context indexed" : "Partial operational context";
+        const data = {
+          scenarioName,
+          infrastructureSummary: inventory?.state === "completed" ? "OpenStack synchronized" : (inventory?.message || "Inventory unavailable"),
+          monitoringSummary,
+          activeCaseSummary: activeCase?.forensic_case_id || "None",
+          itScenarioPresent: scenarioState?.state === "completed" && (scenarioState?.source === "it" || nodes.some(node => !String(node.role || "").includes("industrial_"))),
+          otScenarioPresent: scenarioState?.state === "completed" && (scenarioState?.source === "industrial" || otNodes.length > 0),
+          otScenarioMeta: otNodes.length ? `${otNodes.length} OT nodes mapped` : "no industrial nodes mapped",
+          inventoryStatus: inventory?.state || "unknown",
+          inventoryStatusPanel: inventory?.state || "unknown",
+          inventoryMeta: inventory?.sync_error || inventory?.message || "No inventory data",
+          toolDeploymentStatus: toolStatus?.state || "not_started",
+          toolsStatusPanel: toolStatus?.state || "not_started",
+          toolsMeta: toolStatus?.message || "No tool deployment data",
+          itScenarioStatus: scenarioState?.state === "completed" ? "completed" : scenarioState?.state || "not_started",
+          otScenarioStatus: (scenarioState?.source === "industrial" || otNodes.length) ? "completed" : (scenarioState?.state || "not_started"),
+          attackLabStatus: payload?.attack_status?.state || "not_started",
+          detectionLayerStatus: detection?.state || "not_started",
+          forensicLabStatus: forensic?.state || "not_started",
+          forensicReportStatus: activeCase?.artifact_count ? "completed" : (forensic?.state || "not_started"),
+          focStatusLabel: foc?.state || "unknown",
+          comparisonsStatus: foc?.evaluable ? "completed" : "not_started",
+          workflowHeadline,
+          workflowMeta: scenarioState?.state === "completed"
+            ? `${inventory?.instance_count || 0} nodes | ${toolStatus?.counts?.installed || 0} tools | ${alertCount} alerts | updated ${payload?.last_updated || "--"}`
+            : (scenarioState?.message || "No active scenario selected."),
+          detectionStatusPanel: detection?.state || "not_started",
+          detectionMeta: latestAlert?.alert_summary || detection?.message || "No detection telemetry",
+          forensicsStatusPanel: forensic?.state || "not_started",
+          forensicsMeta: activeCase?.forensic_case_id || forensic?.message || "No active case",
+          focPanelStatus: foc?.state || "unknown",
+          focMeta: focMissing.length ? `Missing: ${focMissing.slice(0, 2).join(", ")}` : (foc?.message || "No FOC state"),
+          recentActivity: [
+            scenarioState?.scenario_name ? { label: `Scenario selected: ${scenarioState.scenario_name}`, time: payload?.last_updated || "--" } : null,
+            inventory?.message ? { label: `Inventory status: ${inventory.message}`, time: payload?.last_updated || "--" } : null,
+            latestAlert ? { label: `Latest alert: ${latestAlert.alert_summary || latestAlert.alert_kind || "Detection alert"}`, time: latestAlert.timestamp || "--" } : null,
+            activeCase ? { label: `Active forensic case: ${activeCase.forensic_case_id}`, time: activeCase.created_at || "--" } : null,
+            foc?.message ? { label: `FOC status: ${foc.message}`, time: focRaw?.last_update || payload?.last_updated || "--" } : null,
+          ].filter(Boolean),
+          detectionCoverage: [
+            { label: "Wazuh Agent", status: toolNames.has("wazuh_agent") || toolNames.has("wazuh") ? "installed" : "not_configured", meta: "host-visible telemetry" },
+            { label: "Suricata", status: toolNames.has("suricata") ? "installed" : "not_configured", meta: "network and ICS detection" },
+            { label: "FIM Realtime", status: toolNames.has("wazuh_fim_realtime") || toolNames.has("wazuh-fim-realtime") ? "installed" : "not_configured", meta: "file integrity monitoring" },
+            {
+              label: "Modbus Detection",
+              status: /modbus/i.test(latestAlert?.alert_kind || latestAlert?.alert_summary || "") ? "active" : (toolNames.has("rollback_suricata_modbus_register_detection") ? "installed" : "not_configured"),
+              meta: latestAlert?.alert_kind || "ics protocol write detection"
+            },
+            { label: "Traffic Capture", status: evidenceCount > 0 ? "available" : "not_started", meta: "preserved evidence available on demand" },
+          ],
+          attackCatalog: [
+            { label: "Controlled Tank Setpoint Manipulation", status: payload?.attack_status?.state || "not_started", meta: payload?.attack_status?.message || "No indexed attack execution yet" },
+            { label: "Detection linkage", status: latestAlert ? "detected" : "not_started", meta: latestAlert?.alert_summary || "No detection linked yet" },
+            { label: "Forensic acquisition", status: activeCase ? "completed" : "not_started", meta: activeCase?.acquisition_types?.join(", ") || "No acquisition performed yet" },
+          ],
+          forensicFoc: [
+            { label: "Scenario BOM", status: focRaw?.components?.scenario_bom ? "completed" : "missing", meta: "structural scenario model" },
+            { label: "Tools BOM", status: focRaw?.components?.tools_bom ? "completed" : "missing", meta: "node instrumentation state" },
+            { label: "Detection Attestation", status: alertCount > 0 ? "completed" : "not_started", meta: `${alertCount} alerts indexed` },
+            { label: "Preserved Evidence", status: evidence?.state || "unknown", meta: `${evidenceCount} preserved artifact(s)` },
+            { label: "Chain of Custody", status: activeCase?.chain_of_custody_status || "not_started", meta: activeCase?.forensic_case_id || "No active case" },
+            { label: "FOC Reconstruction", status: foc?.state || "unknown", meta: focMissing.length ? `Missing ${focMissing.length} required component(s)` : (foc?.message || "No FOC state") },
+          ],
+        };
 
-      homeSetValue("kpi-openstack-instances", instances.length ? String(instances.length) : "--", instancesRes.status === "fulfilled" ? "Connected" : "Unknown");
-      homeSetValue(
-        "kpi-installed-tools",
-        Number.isFinite(toolSummary.installed) ? String(toolSummary.installed) : "--",
-        toolSummary.pending ? `${toolSummary.pending} pending` : (toolSummary.failed ? `${toolSummary.failed} failed` : "No data")
-      );
-      homeSetValue("kpi-detected-alerts", alertCount != null ? String(alertCount) : "--", focStatus?.detection_summary?.relationship_quality || "No data");
-      homeSetValue("kpi-forensic-cases", caseCount ? String(caseCount) : "--", activeCaseDir ? "Active case" : "No data");
-      homeSetValue(
-        "kpi-evidence-artifacts",
-        evidenceCount != null ? String(evidenceCount) : "--",
-        focStatus?.artifact_summary?.analysis_outputs ? `${focStatus.artifact_summary.analysis_outputs} analysis` : "Not available"
-      );
-      homeSetValue(
-        "kpi-foc-readiness",
-        focStatus?.reproducibility_score != null ? String(Math.round(focStatus.reproducibility_score)) : "--",
-        focStatus?.completeness || "Unknown"
-      );
-
-      const monitoringSummary = RT.state === "LISTENING"
-        ? "listening"
-        : (RT.state === "RECONNECTING" ? "reconnecting" : "off");
-
-      const detectionAlerts = focTimeline?.events?.filter(ev => ev.event_type === "detection_alert") || [];
-      const attackEvents = focTimeline?.events?.filter(ev => ev.event_type === "attack_execution") || [];
-      const executedDisplays = new Set(attackEvents.map(ev => String(ev.details?.display_name || ev.description || "").toLowerCase()));
-      const detectedDisplays = new Set(
-        detectionAlerts
-          .map(ev => String(ev.details?.correlated_attack_display || "").toLowerCase())
-          .filter(v => v && v !== "unresolved")
-      );
-
-      const lastScenario = homeLatestEvent(focTimeline, ["scenario_deployment_status", "industrial_state"]);
-      const lastTool = homeLatestEvent(focTimeline, ["tool_installed"]);
-      const lastAlert = homeLatestEvent(focTimeline, ["detection_alert"]);
-      const lastAcquire = homeLatestEvent(focTimeline, ["acquire_preserved", "pcap_preserved", "memory_preserved", "disk_preserved", "ot_export_preserved"]);
-      const lastAnalysis = homeLatestEvent(focTimeline, ["disk_analysis_done", "memory_analysis_done"]);
-
-      const data = {
-        scenarioName,
-        infrastructureSummary: instancesRes.status === "fulfilled" ? "OpenStack connected" : "offline",
-        monitoringSummary,
-        activeCaseSummary: activeCaseDir ? activeCaseDir.split("/").pop() : "none",
-        itScenarioPresent: Boolean(scenarioPayload && Array.isArray(scenarioNodes) && scenarioNodes.length > 0),
-        otScenarioPresent: otNodes.length > 0 || Boolean(industrialPayload && Object.keys(industrialPayload || {}).length),
-        otScenarioMeta: otNodes.length ? `${otNodes.length} OT nodes` : "no industrial nodes",
-        inventoryStatus: instancesRes.status === "fulfilled" ? "Ready" : "Unknown",
-        inventoryStatusPanel: instancesRes.status === "fulfilled" ? "synced" : "unknown",
-        inventoryMeta: instances.length ? `${instances.length} instances observed` : "no instance data",
-        toolDeploymentStatus: toolSummary.installed > 0 ? (toolSummary.pending || toolSummary.failed ? "Incomplete" : "Ready") : (toolSummary.pending ? "Incomplete" : "No data"),
-        toolsStatusPanel: toolSummary.failed ? "failed" : (toolSummary.pending ? "pending" : (toolSummary.installed ? "installed" : "unknown")),
-        toolsMeta: toolSummary.installed ? `${toolSummary.installed} installed` : "no confirmed installations",
-        itScenarioStatus: scenarioNodes.length ? "Ready" : "Missing",
-        otScenarioStatus: otNodes.length ? "Ready" : (scenarioPayload ? "Idle" : "No data"),
-        attackLabStatus: attackEvents.length ? "Active" : ((attackCatalog?.profiles || attackCatalog?.attacks || []).length ? "Ready" : "Unknown"),
-        detectionLayerStatus: RT.state === "LISTENING" ? "Active" : (alertCount ? "Idle" : "Unknown"),
-        forensicLabStatus: activeCaseDir ? "Active" : (caseCount ? "Idle" : "No data"),
-        forensicReportStatus: caseCount ? "Ready" : "No data",
-        focStatusLabel: focStatus?.status ? (String(focStatus.status).charAt(0).toUpperCase() + String(focStatus.status).slice(1)) : "Unknown",
-        comparisonsStatus: "Unknown",
-        workflowHeadline,
-        workflowMeta: focStatus?.initialized
-          ? `FOC ${focStatus.completeness || "unknown"} | ${instances.length} instances | ${caseCount} cases`
-          : "No reconstruction state available yet.",
-        detectionStatusPanel: RT.state === "LISTENING" ? "active" : (alertCount ? "inactive" : "unknown"),
-        detectionMeta: alertCount != null ? `${alertCount} alerts indexed` : "no alert telemetry",
-        forensicsStatusPanel: activeCaseDir ? "case available" : "no case",
-        forensicsMeta: activeCaseDir ? activeCaseDir.split("/").pop() : "no active case",
-        focPanelStatus: focStatus?.completeness || "unknown",
-        focMeta: focStatus ? `${focStatus.status} | score ${Math.round(focStatus.reproducibility_score || 0)}` : "no foc status",
-        recentActivity: [
-          lastScenario ? { label: `Last scenario activity: ${lastScenario.description || "scenario event"}`, time: lastScenario.timestamp || "--" } : null,
-          lastTool ? { label: `Last tool installed: ${lastTool.details?.tool_name || lastTool.description || "tool event"}`, time: lastTool.timestamp || "--" } : null,
-          lastAlert ? { label: `Last alert detected: ${lastAlert.description || "alert"}`, time: lastAlert.timestamp || "--" } : null,
-          lastAcquire ? { label: `Last forensic acquisition: ${lastAcquire.description || "acquisition event"}`, time: lastAcquire.timestamp || "--" } : null,
-          lastAnalysis ? { label: `Last report-generating analysis: ${lastAnalysis.description || "analysis event"}`, time: lastAnalysis.timestamp || "--" } : null,
-          focStatus ? { label: `Last FOC reconstruction: ${focStatus.status || "unknown"}`, time: focStatus.last_update || "--" } : null,
-        ].filter(Boolean),
-        detectionCoverage: [
-          { label: "Wazuh Agent", status: toolSummary.toolNames.has("wazuh") || toolSummary.toolNames.has("wazuh-agent") ? "Installed" : "Unknown", meta: "host-visible telemetry" },
-          { label: "Suricata", status: toolSummary.toolNames.has("suricata") ? "Installed" : "Unknown", meta: "network and ICS detection" },
-          { label: "FIM Realtime", status: toolSummary.toolNames.has("wazuh_fim_realtime") || toolSummary.toolNames.has("wazuh-fim-realtime") ? "Installed" : "Unknown", meta: "file integrity monitoring" },
-          {
-            label: "Ping Detection",
-            status: detectionAlerts.some(ev => /ping/i.test(ev.description || "")) || /ping/i.test(latestAlert?.rule?.description || latestAlert?.signature || "") ? "Active" : "Unknown",
-            meta: "icmp-related alerts"
-          },
-          {
-            label: "Modbus Detection",
-            status: detectionAlerts.some(ev => /modbus/i.test(ev.description || "") || /modbus/i.test(ev.details?.signature || "")) || /modbus/i.test(latestAlert?.rule?.description || latestAlert?.signature || "") ? "Active" : "Unknown",
-            meta: "ics protocol visibility"
-          },
-          { label: "Traffic Capture", status: (focStatus?.artifact_summary?.preserved_evidence || 0) > 0 ? "Active" : "Inactive", meta: "preserved evidence available" },
-        ],
-        attackCatalog: [
-          "ICMP Reconnaissance",
-          "Port Scan Reconnaissance",
-          "Unauthorized SSH Attempt",
-          "Controlled File Tamper",
-          "Data Exfiltration",
-          "Modbus Register Manipulation",
-          "Multi-Vector Validation",
-        ].map(label => {
-          const lower = label.toLowerCase();
-          let status = "Unknown";
-          if (executedDisplays.has(lower)) status = "Executed";
-          else if (detectedDisplays.has(lower)) status = "Detected";
-          else if ((attackCatalog?.profiles || attackCatalog?.attacks || []).length) status = "Available";
-          return {
-            label,
-            status,
-            meta: status === "Executed" ? "execution indexed" : (status === "Detected" ? "detection observed" : "catalog availability")
-          };
-        }),
-        forensicFoc: [
-          { label: "Scenario BOM", status: focStatus?.components?.scenario_bom ? "Ready" : "Missing", meta: "structural scenario model" },
-          { label: "Tools BOM", status: focStatus?.components?.tools_bom ? "Ready" : "Missing", meta: "node instrumentation state" },
-          { label: "Alerts available", status: alertCount ? "Ready" : "Unknown", meta: `${alertCount ?? "--"} alerts indexed` },
-          { label: "Evidence artifacts", status: evidenceCount ? "Ready" : "Incomplete", meta: `${evidenceCount ?? 0} preserved evidence` },
-          { label: "Timeline", status: focStatus?.components?.timeline ? "Ready" : "Missing", meta: "lifecycle and incident chronology" },
-          { label: "Hashes", status: focStatus?.components?.hashes ? "Ready" : "Missing", meta: "artifact integrity references" },
-          {
-            label: "Relationships",
-            status: focStatus?.relationship_summary?.attack_alert_candidate_links ? "Incomplete" : "Unknown",
-            meta: "correlation graph available"
-          },
-          { label: "FOC manifest", status: focStatus?.initialized ? "Ready" : "Missing", meta: focStatus?.status || "unknown" },
-        ],
-      };
-
-      homeRenderSummary(data);
-      homeRenderWorkflowStatus(data);
-      homeRenderScenarioReadiness(data);
-      homeRenderRecentActivity(data);
-      homeRenderDetectionCoverage(data);
-      homeRenderAttackCatalog(data);
-      homeRenderForensicFoc(data);
-      homeRenderLiveAlert(latestAlert);
+        homeRenderSummary(data);
+        homeRenderWorkflowStatus(data);
+        homeRenderScenarioReadiness(data);
+        homeRenderRecentActivity(data);
+        homeRenderDetectionCoverage(data);
+        homeRenderAttackCatalog(data);
+        homeRenderForensicFoc(data);
+        if (latestAlert) homeRenderLiveAlert(latestAlert);
+      } catch (_) {
+        // Preserve previous dashboard state if summary refresh fails.
       } finally {
         homeSummaryInFlight = false;
       }

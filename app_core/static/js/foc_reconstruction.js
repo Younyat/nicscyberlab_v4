@@ -10,9 +10,15 @@ const FOC = {
   artifacts: null,
   cases: null,
   stream: null,
+  loadTimer: null,
+  loadInFlight: false,
+  pendingReload: false,
+  firstLoadCompleted: false,
 };
 
 const API = "/api/foc";
+const DASHBOARD_API = `${API}/dashboard`;
+const STREAM_REFRESH_DEBOUNCE_MS = 1200;
 
 async function fetchJson(url, options) {
   const res = await fetch(url, options);
@@ -24,6 +30,30 @@ async function fetchJson(url, options) {
 
 function byId(id) {
   return document.getElementById(id);
+}
+
+function setLoadingState(active, message = "Loading FOC reconstruction…") {
+  const shell = byId("loading-shell");
+  const messageEl = byId("loading-message");
+  const metaEl = byId("loading-meta");
+  if (messageEl) messageEl.textContent = message;
+  if (metaEl && active) {
+    metaEl.textContent = FOC.firstLoadCompleted
+      ? "Refreshing scientific reconstruction artifacts without blocking the page."
+      : "Collecting scenario, tools, timeline, evidence, and reconstruction state.";
+  }
+  if (!shell) return;
+  shell.classList.toggle("is-active", !!active);
+  shell.setAttribute("aria-hidden", active ? "false" : "true");
+}
+
+function scheduleLoadAll(force = false) {
+  if (FOC.loadTimer) {
+    clearTimeout(FOC.loadTimer);
+  }
+  FOC.loadTimer = setTimeout(() => {
+    loadAll(force).catch(() => {});
+  }, force ? 0 : STREAM_REFRESH_DEBOUNCE_MS);
 }
 
 function esc(value) {
@@ -328,34 +358,35 @@ function buildMaturityStates(modelRows) {
   };
 }
 
-async function loadAll() {
-  const loaders = await Promise.allSettled([
-    fetchJson(`${API}/status`),
-    fetchJson(`${API}/manifest`).catch(() => null),
-    fetchJson(`${API}/scenario-bom`).catch(() => null),
-    fetchJson(`${API}/tools-bom`).catch(() => null),
-    fetchJson(`${API}/timeline`).catch(() => null),
-    fetchJson(`${API}/gaps`).catch(() => null),
-    fetchJson(`${API}/sources`).catch(() => null),
-    fetchJson(`${API}/relationships`).catch(() => null),
-    fetchJson(`${API}/artifacts`).catch(() => null),
-    fetchJson(`${API}/cases`).catch(() => null),
-  ]);
-
-  [
-    FOC.status,
-    FOC.manifest,
-    FOC.scenario,
-    FOC.tools,
-    FOC.timeline,
-    FOC.gaps,
-    FOC.sources,
-    FOC.relationships,
-    FOC.artifacts,
-    FOC.cases,
-  ] = loaders.map(item => item.status === "fulfilled" ? item.value : null);
-
-  renderAll();
+async function loadAll(force = false) {
+  if (FOC.loadInFlight) {
+    FOC.pendingReload = true;
+    return;
+  }
+  FOC.loadInFlight = true;
+  setLoadingState(true, FOC.firstLoadCompleted ? "Refreshing FOC reconstruction…" : "Loading FOC reconstruction…");
+  try {
+    const payload = await fetchJson(`${DASHBOARD_API}${force ? "?force=true" : ""}`);
+    FOC.status = payload?.status || null;
+    FOC.manifest = payload?.manifest || null;
+    FOC.scenario = payload?.scenario || null;
+    FOC.tools = payload?.tools || null;
+    FOC.timeline = payload?.timeline || null;
+    FOC.gaps = payload?.gaps || null;
+    FOC.sources = payload?.sources || null;
+    FOC.relationships = payload?.relationships || null;
+    FOC.artifacts = payload?.artifacts || null;
+    FOC.cases = payload?.cases || null;
+    renderAll();
+    FOC.firstLoadCompleted = true;
+  } finally {
+    FOC.loadInFlight = false;
+    setLoadingState(false);
+    if (FOC.pendingReload) {
+      FOC.pendingReload = false;
+      scheduleLoadAll(false);
+    }
+  }
 }
 
 function renderOverview() {
@@ -1110,12 +1141,12 @@ function renderAll() {
 async function doBootstrap(force = false) {
   const url = `${API}/bootstrap${force ? "?force=true" : ""}`;
   await fetchJson(url, { method: "POST" });
-  await loadAll();
+  await loadAll(true);
 }
 
 async function doRegenerate() {
   await fetchJson(`${API}/regenerate`, { method: "POST" });
-  await loadAll();
+  await loadAll(true);
 }
 
 async function exportJson(kind) {
@@ -1143,13 +1174,13 @@ function connectStream() {
   FOC.stream = es;
 
   es.addEventListener("snapshot", async () => {
-    await loadAll();
+    scheduleLoadAll(false);
   });
   es.addEventListener("foc_event", async () => {
-    await loadAll();
+    scheduleLoadAll(false);
   });
   es.addEventListener("foc_refresh", async () => {
-    await loadAll();
+    scheduleLoadAll(true);
   });
   es.addEventListener("degraded", () => {
     streamState.textContent = "Stream: Degraded";
@@ -1162,13 +1193,13 @@ function connectStream() {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  byId("btn-refresh").addEventListener("click", loadAll);
+  byId("btn-refresh").addEventListener("click", () => loadAll(true));
   byId("btn-regenerate").addEventListener("click", doRegenerate);
   byId("btn-bootstrap").addEventListener("click", () => doBootstrap(false));
   document.querySelectorAll(".export-btn").forEach(btn => {
     btn.addEventListener("click", () => exportJson(btn.dataset.export));
   });
 
-  await loadAll();
+  await loadAll(true);
   connectStream();
 });

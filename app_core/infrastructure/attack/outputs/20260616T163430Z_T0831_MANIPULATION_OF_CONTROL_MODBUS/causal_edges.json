@@ -1,0 +1,35 @@
+{
+  "attack_id": "T0831_MANIPULATION_OF_CONTROL_MODBUS",
+  "edges": [
+    {
+      "from": "attacker",
+      "relation": "observed_or_contacted",
+      "status": "confirmed",
+      "to": "plc_modbus_service"
+    },
+    {
+      "from": "plc_modbus_service",
+      "relation": "supports_register_resolution",
+      "status": "confirmed",
+      "to": "industrial_register_map"
+    },
+    {
+      "from": "level_max",
+      "relation": "parameter_change_affects_logic",
+      "status": "confirmed",
+      "to": "process_logic"
+    },
+    {
+      "from": "process_logic",
+      "relation": "state_propagates_to_scada",
+      "status": "inferred_high",
+      "to": "scada_observation"
+    }
+  ],
+  "generated_at_utc": "2026-06-16T16:34:51.946782+00:00",
+  "mitre_id": "T0831",
+  "scenario_id": "scn-f2ecdb50",
+  "source_ip": "10.0.2.214",
+  "target_ip": "10.0.2.22",
+  "target_role": "industrial_plc"
+}

@@ -1,6 +1,7 @@
 import logging
 import json
 import time
+import threading
 
 from flask import Blueprint, Response, jsonify, request
 
@@ -8,13 +9,53 @@ from .foc_config import GENERATED_FILES
 from .foc_bootstrap import bootstrap_existing_context, read_id_mapping
 from .foc_events import iter_events_since, safe_notify_foc, snapshot_watch_state
 from .foc_manifest_manager import read_generated_json, regenerate_foc
-from .foc_quality import build_gaps, build_status
+from .foc_quality import build_gaps, build_status, load_quality_context
 
 logger = logging.getLogger(__name__)
 
 foc_bp = Blueprint("foc_reconstruction", __name__)
 FOC_STREAM_POLL_INTERVAL_SECONDS = 5.0
 FOC_AUTO_REFRESH_MIN_INTERVAL_SECONDS = 30.0
+FOC_DASHBOARD_CACHE_TTL_SECONDS = 5.0
+_FOC_DASHBOARD_CACHE_LOCK = threading.Lock()
+_FOC_DASHBOARD_CACHE = {
+    "ts": 0.0,
+    "payload": None,
+}
+
+
+def _build_dashboard_payload(force: bool = False) -> dict:
+    now = time.time()
+    with _FOC_DASHBOARD_CACHE_LOCK:
+        cached_payload = _FOC_DASHBOARD_CACHE.get("payload")
+        cached_ts = float(_FOC_DASHBOARD_CACHE.get("ts") or 0.0)
+        if not force and cached_payload is not None and (now - cached_ts) < FOC_DASHBOARD_CACHE_TTL_SECONDS:
+            return cached_payload
+
+    started = time.perf_counter()
+    context = load_quality_context()
+    payload = {
+        "status": build_status(context=context),
+        "manifest": context.get("manifest"),
+        "scenario": context.get("scenario_bom"),
+        "tools": context.get("tools_bom"),
+        "timeline": context.get("timeline"),
+        "gaps": build_gaps(context=context),
+        "sources": context.get("sources"),
+        "relationships": context.get("relationships"),
+        "artifacts": read_generated_json(GENERATED_FILES["artifacts_index"]),
+        "cases": read_generated_json(GENERATED_FILES["cases_index"]),
+        "generated_at": time.time(),
+        "render_hint": {
+            "cache_ttl_seconds": FOC_DASHBOARD_CACHE_TTL_SECONDS,
+            "build_ms": round((time.perf_counter() - started) * 1000, 2),
+        },
+    }
+
+    with _FOC_DASHBOARD_CACHE_LOCK:
+        _FOC_DASHBOARD_CACHE["ts"] = now
+        _FOC_DASHBOARD_CACHE["payload"] = payload
+    return payload
 
 
 def _read_or_404(path_key: str):
@@ -77,12 +118,19 @@ def api_foc_id_mapping():
 
 @foc_bp.route("/api/foc/status", methods=["GET"])
 def api_foc_status():
-    return jsonify(build_status()), 200
+    return jsonify(_build_dashboard_payload().get("status") or {}), 200
 
 
 @foc_bp.route("/api/foc/gaps", methods=["GET"])
 def api_foc_gaps():
-    return jsonify(build_gaps()), 200
+    return jsonify(_build_dashboard_payload().get("gaps") or {}), 200
+
+
+@foc_bp.route("/api/foc/dashboard", methods=["GET"])
+def api_foc_dashboard():
+    force_arg = str(request.args.get("force", "false")).strip().lower()
+    force = force_arg in {"1", "true", "yes", "on"}
+    return jsonify(_build_dashboard_payload(force=force)), 200
 
 
 @foc_bp.route("/api/foc/bootstrap", methods=["POST"])
@@ -94,6 +142,9 @@ def api_foc_bootstrap():
         if result.get("status") == "already_initialized":
             return jsonify(result), 200
         manifest = regenerate_foc(bootstrap_mode=True)
+        with _FOC_DASHBOARD_CACHE_LOCK:
+            _FOC_DASHBOARD_CACHE["ts"] = 0.0
+            _FOC_DASHBOARD_CACHE["payload"] = None
         return jsonify({"result": "ok", "bootstrap": result, "manifest": manifest}), 200
     except Exception as exc:
         logger.warning("FOC bootstrap failed: %s", exc, exc_info=True)
@@ -105,6 +156,9 @@ def api_foc_regenerate():
     try:
         current_manifest = read_generated_json(GENERATED_FILES["manifest"]) or {}
         manifest = regenerate_foc(bootstrap_mode=bool(current_manifest.get("bootstrap_mode")))
+        with _FOC_DASHBOARD_CACHE_LOCK:
+            _FOC_DASHBOARD_CACHE["ts"] = 0.0
+            _FOC_DASHBOARD_CACHE["payload"] = None
         return jsonify({"result": "ok", "manifest": manifest}), 200
     except Exception as exc:
         logger.warning("FOC regeneration failed: %s", exc, exc_info=True)
@@ -135,6 +189,9 @@ def api_foc_events_stream():
                 if pending_watch is not None and (time.time() - last_regen_ts) >= FOC_AUTO_REFRESH_MIN_INTERVAL_SECONDS:
                     try:
                         manifest = regenerate_foc(bootstrap_mode=bool((read_generated_json(GENERATED_FILES['manifest']) or {}).get('bootstrap_mode')))
+                        with _FOC_DASHBOARD_CACHE_LOCK:
+                            _FOC_DASHBOARD_CACHE["ts"] = 0.0
+                            _FOC_DASHBOARD_CACHE["payload"] = None
                         safe_notify_foc("foc_auto_refresh", {"changed_sources": pending_changed, "scenario_id": manifest.get("scenario_id", "unknown")})
                         yield f"event: foc_refresh\ndata: {json.dumps({'changed_sources': pending_changed, 'status': build_status()})}\n\n"
                         last_watch = pending_watch

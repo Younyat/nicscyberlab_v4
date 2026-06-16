@@ -43,9 +43,63 @@
     .tag { border: 1px solid rgba(148,163,184,0.18); background: rgba(15,23,42,0.7); }
     .btn-primary { background: linear-gradient(135deg, #0ea5e9, #2563eb); }
     .btn-secondary { background: rgba(15,23,42,0.84); border: 1px solid rgba(148,163,184,0.16); }
+    .loading-shell {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(3, 8, 18, 0.48);
+      backdrop-filter: blur(10px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease;
+      z-index: 60;
+    }
+    .loading-shell.is-active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .loading-card {
+      width: min(92vw, 460px);
+      padding: 22px 22px 18px;
+      border-radius: 24px;
+      background: rgba(8, 15, 28, 0.92);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      box-shadow: 0 24px 70px rgba(2, 8, 23, 0.55);
+    }
+    .loading-bar {
+      position: relative;
+      overflow: hidden;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(148, 163, 184, 0.12);
+    }
+    .loading-bar::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      width: 38%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(56,189,248,0.25), rgba(56,189,248,0.9), rgba(34,197,94,0.55));
+      animation: focLoadingSweep 1.15s ease-in-out infinite;
+    }
+    @keyframes focLoadingSweep {
+      0% { transform: translateX(-120%); }
+      100% { transform: translateX(340%); }
+    }
   </style>
 </head>
 <body>
+  <div id="loading-shell" class="loading-shell is-active" aria-hidden="false">
+    <div class="loading-card">
+      <div class="text-[11px] tracking-[0.35em] uppercase text-sky-300 font-extrabold">FOC Reconstruction</div>
+      <div id="loading-message" class="text-xl font-black mt-3">Loading FOC reconstruction…</div>
+      <div id="loading-meta" class="text-sm text-slate-300 mt-2">Collecting scenario, tools, timeline, evidence, and reconstruction state.</div>
+      <div class="loading-bar mt-5"></div>
+    </div>
+  </div>
   <div class="px-6 py-6 md:px-10 md:py-8">
     <header class="glass rounded-[28px] p-6 md:p-8 mb-6">
       <div class="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">

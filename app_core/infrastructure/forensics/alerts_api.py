@@ -7,6 +7,28 @@ ALERTS_API_BP = Blueprint("alerts_api", __name__)
 FORENSICS_ALERTS_BASE = os.path.abspath("app_core/infrastructure/forensics/alerts_store")
 
 
+def _summarize_alert(alert: dict) -> tuple[str, str]:
+    signature = str(alert.get("signature") or "").strip()
+    signature_l = signature.lower()
+    raw = (((alert.get("raw") or {}).get("data") or {}).get("alert") or {})
+    sig_id = str(raw.get("signature_id") or "").strip()
+    protocol = str(alert.get("protocol") or "").lower()
+
+    if sig_id in {"910836101", "910836102"} or "modbus write" in signature_l and "register" in signature_l:
+        return "Modbus register write", "PLC register manipulation detected"
+    if sig_id in {"910836103", "910836104"} or "modbus write" in signature_l and "coil" in signature_l:
+        return "Modbus coil write", "PLC control coil manipulation detected"
+    if "ping detectado" in signature_l or protocol in {"icmp", "ipv6-icmp"}:
+        return "ICMP probing", "Network reconnaissance signal detected"
+    if alert.get("rule_id") in {"550", "554"} or "syscheck" in json.dumps(alert.get("raw") or {}, ensure_ascii=False).lower():
+        return "File integrity change", "Host file integrity event detected"
+    if "[ids/suricata]" in str(alert.get("alert_type") or "").lower():
+        return "Network intrusion alert", "Suricata detection event observed"
+    if "[auth/ataque]" in str(alert.get("alert_type") or "").lower():
+        return "Attack-related alert", "Attack telemetry event observed"
+    return "Detection alert", "Security detection event observed"
+
+
 def _list_sessions(base_dir: str):
     if not os.path.isdir(base_dir):
         return []
@@ -92,9 +114,21 @@ def latest_alerts():
         eid = a.get("event_id")
         item = dict(a)
         t = triage_by_id.get(eid, {})
+        alert_kind, alert_summary = _summarize_alert(item)
+        src = item.get("src") or {}
+        dst = item.get("dst") or {}
+        agent = item.get("agent") or {}
         item["severity"] = t.get("severity")
         item["score_0_100"] = t.get("score_0_100")
         item["recommend_forensics"] = t.get("recommend_forensics")
+        item["alert_kind"] = alert_kind
+        item["alert_summary"] = alert_summary
+        item["src_ip"] = src.get("ip")
+        item["src_port"] = src.get("port")
+        item["dst_ip"] = dst.get("ip")
+        item["dst_port"] = dst.get("port")
+        item["agent_name"] = agent.get("name")
+        item["agent_ip"] = agent.get("ip")
         enriched.append(item)
 
     # más reciente primero

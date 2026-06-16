@@ -1013,6 +1013,67 @@ This service makes the relationship between attack generation and detection expl
 
 ![Operational Monitoring Dashboard](Images_readme/it_ot_environment_dashboard.png)
 
+### Operational home summary
+
+The main `index.html` home view now consumes a lightweight aggregated backend summary instead of rebuilding the operational state from many independent requests. The goal is to keep the dashboard responsive while making the displayed state explicit and scientifically interpretable.
+
+The aggregated home summary exposes:
+
+- `active_scenario`
+- `openstack_inventory_status`
+- `node_status`
+- `tool_status`
+- `attack_status`
+- `detection_status`
+- `forensic_status`
+- `evidence_status`
+- `foc_status`
+
+The home view differentiates operational states such as:
+
+- `not_configured`
+- `not_started`
+- `running`
+- `completed`
+- `failed`
+- `unavailable`
+- `unknown`
+
+This prevents a missing scenario from being presented as a generic backend failure. For example, when no scenario is active, the home view reports `No active scenario selected` instead of leaving every metric as `Unknown`.
+
+The summary is intentionally compact. It focuses on:
+
+- active scenario
+- OpenStack node count
+- installed tool count
+- detected alert count
+- forensic case count
+- preserved evidence count
+- FOC readiness state
+
+Full details remain inside the dedicated views for monitoring, forensics, and reconstruction.
+
+### Detection, Wazuh, and FOC relationship
+
+For OT experiments, the real-time detection path is:
+
+1. `Suricata` on the observing node detects the network event and writes it to `eve.json`.
+2. `Wazuh Agent` on that same node ingests the Suricata event.
+3. `Wazuh Manager` on the monitoring node receives and reports the alert.
+4. `FOC Reconstruction` indexes the attack event, the detection event, and the forensic artifacts so they can be linked as cause-and-effect evidence.
+
+For Modbus register manipulation in particular, the platform now distinguishes the operational roles more clearly:
+
+- `Suricata` provides the authoritative network detection
+- `Wazuh` provides manager-side alerting and severity handling
+- `FOC` reconstructs whether the detection can be causally linked to a specific indexed attack and to preserved evidence
+
+This same relationship is reflected in the home dashboard through:
+
+- short real-time alert descriptions
+- explicit detection status instead of generic `Unknown`
+- FOC missing-component reporting when reconstruction is still incomplete
+
 ---
 
 ## Forensic Acquisition and Analysis Dashboard
@@ -1235,6 +1296,19 @@ The dashboard exposes these scientific panels:
   - indexed source paths, states, sizes, timestamps, and hashes
 - **Relationships**
   - confirmed or inferred links between scenario, nodes, tools, attacks, alerts, evidence, and cases
+
+### FOC performance and loading behavior
+
+The FOC dashboard now uses a lighter delivery path so the user-facing latency is reduced without removing reconstruction content.
+
+The current behavior is:
+
+- the frontend requests a single aggregated payload from `GET /api/foc/dashboard`
+- the backend keeps a short-lived cache for that payload so repeated refreshes do not rebuild the same state immediately
+- the event stream no longer forces an eager full reload for every single notification; reloads are briefly debounced so bursts of FOC events do not trigger repeated complete renders
+- the page shows a lightweight loading indicator while the initial reconstruction payload is being assembled, so the operator can see that the view is loading instead of assuming it is blocked
+
+This optimization does not remove any FOC panel or any reconstruction artifact. It only reduces redundant JSON reads, repeated state assembly, and unnecessary full rerenders.
 
 ### Reconstruction maturity model
 
