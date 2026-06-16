@@ -1,0 +1,95 @@
+{
+  "generated_at": "2026-06-16T18:27:02.481572+00:00",
+  "scenario_id": "scn-b83dbbfb",
+  "scenario_name": "industrial_file",
+  "answers": {
+    "scenario_deployed": {
+      "value": "industrial_file",
+      "source": "scenario_bom.json"
+    },
+    "nodes_it_ot": {
+      "value": 5,
+      "source": "scenario_bom.json"
+    },
+    "node_instance_bindings": {
+      "value": 5,
+      "source": "scenario_bom.json"
+    },
+    "installed_tools": {
+      "value": 22,
+      "source": "tools_bom.json"
+    },
+    "attacks_executed": {
+      "value": 50,
+      "source": "attack_attestation.json"
+    },
+    "detection_rules_active": {
+      "value": 94,
+      "source": "detection_attestation.json"
+    },
+    "alerts_generated": {
+      "value": 18538,
+      "source": "alerts_normalized.json"
+    },
+    "attack_alert_correlations": {
+      "value": 126514,
+      "source": "alert_correlation_summary.json"
+    },
+    "forensic_interventions": {
+      "value": 1,
+      "source": "forensic_intervention.json"
+    },
+    "forensic_cases": {
+      "value": 1,
+      "source": "case_manifest_link.json"
+    },
+    "primary_evidence_items": {
+      "value": 18,
+      "source": "acquisition_profile.json"
+    },
+    "analysis_outputs": {
+      "value": 108,
+      "source": "forensic_analysis_manifest.json"
+    },
+    "causal_reconstruction_ready": {
+      "value": false,
+      "source": "foc_readiness_report.json"
+    },
+    "missing_prerequisites": {
+      "value": [
+        "attack_attestation",
+        "detection_attestation",
+        "alerts_normalized",
+        "alert_correlation",
+        "acquisition_profile",
+        "forensic_intervention"
+      ],
+      "source": "foc_readiness_report.json"
+    }
+  },
+  "artifact_references": {
+    "attack_attestation": "foc-reconstruction/attestations/attack_attestation.json",
+    "detection_attestation": "foc-reconstruction/attestations/detection_attestation.json",
+    "alerts_normalized": "foc-reconstruction/attestations/alerts_normalized.json",
+    "alert_correlation": "foc-reconstruction/attestations/alert_correlation.json",
+    "alert_correlation_summary": "foc-reconstruction/attestations/alert_correlation_summary.json",
+    "acquisition_profile": "foc-reconstruction/attestations/acquisition_profile.json",
+    "forensic_intervention": "foc-reconstruction/attestations/forensic_intervention.json",
+    "forensic_analysis_manifest": "foc-reconstruction/attestations/forensic_analysis_manifest.json",
+    "scenario_ground_truth": "foc-reconstruction/attestations/scenario_ground_truth.json",
+    "case_manifest_link": "foc-reconstruction/attestations/case_manifest_link.json",
+    "foc_readiness_report": "foc-reconstruction/validation/foc_readiness_report.json"
+  },
+  "readiness": {
+    "state": "partial",
+    "causal_reconstruction_ready": false,
+    "missing_prerequisites": [
+      "attack_attestation",
+      "detection_attestation",
+      "alerts_normalized",
+      "alert_correlation",
+      "acquisition_profile",
+      "forensic_intervention"
+    ]
+  }
+}

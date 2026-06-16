@@ -116,6 +116,68 @@ def api_foc_id_mapping():
     return _read_or_404("id_mapping")
 
 
+@foc_bp.route("/api/foc/attack-attestation", methods=["GET"])
+def api_foc_attack_attestation():
+    return _read_or_404("attack_attestation")
+
+
+@foc_bp.route("/api/foc/detection-attestation", methods=["GET"])
+def api_foc_detection_attestation():
+    return _read_or_404("detection_attestation")
+
+
+@foc_bp.route("/api/foc/alerts-normalized", methods=["GET"])
+def api_foc_alerts_normalized():
+    return _read_or_404("alerts_normalized")
+
+
+@foc_bp.route("/api/foc/alert-correlation", methods=["GET"])
+def api_foc_alert_correlation():
+    full_arg = str(request.args.get("full", "false")).strip().lower()
+    path_key = "alert_correlation" if full_arg in {"1", "true", "yes", "on"} else "alert_correlation_summary"
+    return _read_or_404(path_key)
+
+
+@foc_bp.route("/api/foc/alert-correlation-summary", methods=["GET"])
+def api_foc_alert_correlation_summary():
+    return _read_or_404("alert_correlation_summary")
+
+
+@foc_bp.route("/api/foc/acquisition-profile", methods=["GET"])
+def api_foc_acquisition_profile():
+    return _read_or_404("acquisition_profile")
+
+
+@foc_bp.route("/api/foc/forensic-intervention", methods=["GET"])
+def api_foc_forensic_intervention():
+    return _read_or_404("forensic_intervention")
+
+
+@foc_bp.route("/api/foc/forensic-analysis-manifest", methods=["GET"])
+def api_foc_forensic_analysis_manifest():
+    return _read_or_404("forensic_analysis_manifest")
+
+
+@foc_bp.route("/api/foc/scenario-ground-truth", methods=["GET"])
+def api_foc_scenario_ground_truth():
+    return _read_or_404("scenario_ground_truth")
+
+
+@foc_bp.route("/api/foc/case-manifest-link", methods=["GET"])
+def api_foc_case_manifest_link():
+    return _read_or_404("case_manifest_link")
+
+
+@foc_bp.route("/api/foc/context-summary", methods=["GET"])
+def api_foc_context_summary():
+    return _read_or_404("foc_context_summary")
+
+
+@foc_bp.route("/api/foc/readiness-report", methods=["GET"])
+def api_foc_readiness_report():
+    return _read_or_404("foc_readiness_report")
+
+
 @foc_bp.route("/api/foc/status", methods=["GET"])
 def api_foc_status():
     return jsonify(_build_dashboard_payload().get("status") or {}), 200

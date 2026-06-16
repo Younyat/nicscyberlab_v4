@@ -3,22 +3,22 @@
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
   "created_at": "2026-06-10T10:46:25.396668+00:00",
-  "updated_at": "2026-06-16T16:43:25.391810+00:00",
-  "reconstructed_at": "2026-06-16T16:43:25.391834+00:00",
+  "updated_at": "2026-06-16T18:27:21.046109+00:00",
+  "reconstructed_at": "2026-06-16T18:27:21.046130+00:00",
   "lifecycle_state": "active",
   "read_only_reconstruction": true,
   "bootstrap_mode": true,
   "scenario_bom": {
     "path": "foc-reconstruction/scenario_bom.json",
-    "sha256": "844382b52621bf557930ffd830ee17a5323ecf9d169c5dc15f897764d3fac077"
+    "sha256": "1ee31ada3725c54ba50a5976aba47e50e9f4e72f1a0201c015ea885b015c13c8"
   },
   "tools_bom": {
     "path": "foc-reconstruction/tools_bom.json",
-    "sha256": "2f63759754665824e05c779111a9ef5165a4a48fc0f4d8edc1260781fbaa5f32"
+    "sha256": "15ef5af6ea15f8f3f51f53a1c738a622a97a6c7f2db75416c6c18ef83722c62e"
   },
   "timeline": {
     "path": "foc-reconstruction/timeline.json",
-    "sha256": "6d42db4ada56ba05a9138b46a4abcf3b7f6e8646b345cd37a28dc310056d55e6"
+    "sha256": "81c5fc19182cebf0ba686a0e898db6f829854a7b3d8d562c8f3f9066a4c9e451"
   },
   "id_mapping_path": "foc-reconstruction/indexes/id_mapping.json",
   "source_indexes": {
@@ -26,6 +26,20 @@
     "artifacts": "foc-reconstruction/indexes/artifacts_index.json",
     "relationships": "foc-reconstruction/indexes/relationships_index.json",
     "cases": "foc-reconstruction/indexes/cases_index.json"
+  },
+  "derived_context": {
+    "attack_attestation": "foc-reconstruction/attestations/attack_attestation.json",
+    "detection_attestation": "foc-reconstruction/attestations/detection_attestation.json",
+    "alerts_normalized": "foc-reconstruction/attestations/alerts_normalized.json",
+    "alert_correlation": "foc-reconstruction/attestations/alert_correlation.json",
+    "alert_correlation_summary": "foc-reconstruction/attestations/alert_correlation_summary.json",
+    "acquisition_profile": "foc-reconstruction/attestations/acquisition_profile.json",
+    "forensic_intervention": "foc-reconstruction/attestations/forensic_intervention.json",
+    "forensic_analysis_manifest": "foc-reconstruction/attestations/forensic_analysis_manifest.json",
+    "scenario_ground_truth": "foc-reconstruction/attestations/scenario_ground_truth.json",
+    "case_manifest_link": "foc-reconstruction/attestations/case_manifest_link.json",
+    "foc_context_summary": "foc-reconstruction/attestations/foc_context_summary.json",
+    "foc_readiness_report": "foc-reconstruction/validation/foc_readiness_report.json"
   },
   "warnings": [],
   "generation_status": "ok"

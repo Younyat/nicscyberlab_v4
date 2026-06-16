@@ -1,0 +1,610 @@
+{
+  "generated_at": "2026-06-16T18:27:02.481572+00:00",
+  "scenario_id": "scn-b83dbbfb",
+  "scenario_name": "industrial_file",
+  "total_correlation_records": 126514,
+  "bucket_counts": {
+    "correlated": 3564,
+    "uncorrelated": 122934,
+    "noise": 0,
+    "false_positive_candidate": 0,
+    "missing_expected_alert": 23
+  },
+  "top_signatures": [
+    {
+      "label": "NICS CyberLab VISIBILITY TCP 502 Modbus traffic observed",
+      "count": 77484
+    },
+    {
+      "label": "/etc/suricata/suricata.yaml",
+      "count": 12992
+    },
+    {
+      "label": "NICS CyberLab ICS RAW Modbus function 03 read holding registers burst",
+      "count": 6804
+    },
+    {
+      "label": "NICS CyberLab ICS RAW Modbus function 01 read coils burst",
+      "count": 6642
+    },
+    {
+      "label": "NICS CyberLab ICS Modbus write multiple registers",
+      "count": 4212
+    },
+    {
+      "label": "ALERTA: Ping Detectado",
+      "count": 2844
+    },
+    {
+      "label": "NICS CyberLab ICS RAW Modbus function 03 read holding registers",
+      "count": 2592
+    },
+    {
+      "label": "/etc/suricata/suricata.yaml.nics-modbus-backup-20260614185326",
+      "count": 864
+    },
+    {
+      "label": "/etc/suricata/suricata.yaml.nics-modbus-backup-20260614185438",
+      "count": 864
+    },
+    {
+      "label": "/etc/suricata/suricata.yaml.nics-modbus-backup-20260614185551",
+      "count": 864
+    }
+  ],
+  "top_rule_ids": [
+    {
+      "label": "86601",
+      "count": 100578
+    },
+    {
+      "label": "550",
+      "count": 13632
+    },
+    {
+      "label": "554",
+      "count": 12128
+    },
+    {
+      "label": "5710",
+      "count": 160
+    }
+  ],
+  "top_nodes": [
+    {
+      "label": "node-e1ac03b8",
+      "count": 111558
+    },
+    {
+      "label": "node-f9ca9bfc",
+      "count": 13824
+    },
+    {
+      "label": "node-c800d431",
+      "count": 1116
+    }
+  ],
+  "missing_expected_alerts": [
+    {
+      "attack_id": "atk-f4c9d8b0",
+      "display_name": "Port Scan Reconnaissance",
+      "expected_alerts": [
+        "port_scan",
+        "network_service_discovery",
+        "service_probe"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7"
+    },
+    {
+      "attack_id": "atk-1ffc12d9",
+      "display_name": "Unauthorized SSH Attempt",
+      "expected_alerts": [
+        "failed_ssh_login",
+        "multiple_authentication_failures",
+        "ssh_bruteforce_validation"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7"
+    },
+    {
+      "attack_id": "atk-714a5490",
+      "display_name": "Controlled File Tamper",
+      "expected_alerts": [
+        "file_modified",
+        "fim_integrity_alert",
+        "stored_data_manipulation"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7"
+    },
+    {
+      "attack_id": "atk-c6476470",
+      "display_name": "Multi-Vector Validation",
+      "expected_alerts": [
+        "port_scan",
+        "failed_ssh_login",
+        "fim_integrity_alert",
+        "exfiltration_activity",
+        "modbus_write_register"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7"
+    },
+    {
+      "attack_id": "atk-f6b49cab",
+      "display_name": "Multi-Vector Validation",
+      "expected_alerts": [
+        "port_scan",
+        "failed_ssh_login",
+        "fim_integrity_alert",
+        "exfiltration_activity",
+        "modbus_write_register"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7"
+    },
+    {
+      "attack_id": "atk-fe43fa87",
+      "display_name": "ICMP Reconnaissance",
+      "expected_alerts": [
+        "icmp_sweep",
+        "host_discovery",
+        "active_scanning"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7"
+    },
+    {
+      "attack_id": "atk-575e93b6",
+      "display_name": "Port Scan Reconnaissance",
+      "expected_alerts": [
+        "port_scan",
+        "network_service_discovery",
+        "service_probe"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7"
+    },
+    {
+      "attack_id": "atk-4d96b57f",
+      "display_name": "Multi-Vector Validation",
+      "expected_alerts": [
+        "port_scan",
+        "failed_ssh_login",
+        "fim_integrity_alert",
+        "exfiltration_activity",
+        "modbus_write_register"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7"
+    },
+    {
+      "attack_id": "atk-2756b700",
+      "display_name": "ICMP Reconnaissance",
+      "expected_alerts": [
+        "icmp_sweep",
+        "host_discovery",
+        "active_scanning"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7"
+    },
+    {
+      "attack_id": "atk-2875cdf0",
+      "display_name": "Unauthorized SSH Attempt",
+      "expected_alerts": [
+        "failed_ssh_login",
+        "multiple_authentication_failures",
+        "ssh_bruteforce_validation"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7"
+    },
+    {
+      "attack_id": "atk-c5849db0",
+      "display_name": "Controlled File Tamper",
+      "expected_alerts": [
+        "file_modified",
+        "fim_integrity_alert",
+        "stored_data_manipulation"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7"
+    },
+    {
+      "attack_id": "atk-28075cff",
+      "display_name": "Data Exfiltration",
+      "expected_alerts": [
+        "outbound_file_transfer",
+        "scp_transfer",
+        "http_upload",
+        "exfiltration_activity"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7"
+    },
+    {
+      "attack_id": "atk-fc8dd835",
+      "display_name": "Multi-Vector Validation",
+      "expected_alerts": [
+        "port_scan",
+        "failed_ssh_login",
+        "fim_integrity_alert",
+        "exfiltration_activity",
+        "modbus_write_register"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7"
+    },
+    {
+      "attack_id": "atk-d976ba7c",
+      "display_name": "Point and Tag Identification",
+      "expected_alerts": [
+        "modbus_read_burst",
+        "register_enumeration",
+        "suricata_modbus_alert"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7"
+    },
+    {
+      "attack_id": "atk-26eb5a6b",
+      "display_name": "Unauthorized Command Message",
+      "expected_alerts": [
+        "unexpected_modbus_source",
+        "unauthorized_modbus_write",
+        "wazuh_suricata_ingest"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7"
+    },
+    {
+      "attack_id": "atk-761a78ab",
+      "display_name": "Multi-Vector Validation",
+      "expected_alerts": [
+        "port_scan",
+        "failed_ssh_login",
+        "fim_integrity_alert",
+        "exfiltration_activity",
+        "modbus_write_register"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-c800d431",
+      "target_instance_id": "inst-16583180"
+    },
+    {
+      "attack_id": "atk-761a78ab",
+      "display_name": "Multi-Vector Validation",
+      "expected_alerts": [
+        "port_scan",
+        "failed_ssh_login",
+        "fim_integrity_alert",
+        "exfiltration_activity",
+        "modbus_write_register"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-c800d431",
+      "target_instance_id": "inst-16583180"
+    },
+    {
+      "attack_id": "atk-761a78ab",
+      "display_name": "Multi-Vector Validation",
+      "expected_alerts": [
+        "port_scan",
+        "failed_ssh_login",
+        "fim_integrity_alert",
+        "exfiltration_activity",
+        "modbus_write_register"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-c800d431",
+      "target_instance_id": "inst-16583180"
+    },
+    {
+      "attack_id": "atk-761a78ab",
+      "display_name": "Multi-Vector Validation",
+      "expected_alerts": [
+        "port_scan",
+        "failed_ssh_login",
+        "fim_integrity_alert",
+        "exfiltration_activity",
+        "modbus_write_register"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-c800d431",
+      "target_instance_id": "inst-16583180"
+    },
+    {
+      "attack_id": "atk-d03c67e4",
+      "display_name": "Data Exfiltration",
+      "expected_alerts": [
+        "outbound_file_transfer",
+        "scp_transfer",
+        "http_upload",
+        "exfiltration_activity"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7"
+    },
+    {
+      "attack_id": "atk-5402854b",
+      "display_name": "ICMP Reconnaissance",
+      "expected_alerts": [
+        "icmp_sweep",
+        "host_discovery",
+        "active_scanning"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7"
+    },
+    {
+      "attack_id": "atk-6efb604c",
+      "display_name": "Port Scan Reconnaissance",
+      "expected_alerts": [
+        "port_scan",
+        "network_service_discovery",
+        "service_probe"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7"
+    },
+    {
+      "attack_id": "atk-5402854b",
+      "display_name": "ICMP Reconnaissance",
+      "expected_alerts": [
+        "icmp_sweep",
+        "host_discovery",
+        "active_scanning"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7"
+    }
+  ],
+  "uncorrelated_alert_samples": [
+    {
+      "alert_id": "alr-3850971b",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    },
+    {
+      "alert_id": "alr-8c44dce6",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    },
+    {
+      "alert_id": "alr-1973810b",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    },
+    {
+      "alert_id": "alr-bc6899db",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    },
+    {
+      "alert_id": "alr-0ccf1f7b",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    },
+    {
+      "alert_id": "alr-5c7460b8",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    },
+    {
+      "alert_id": "alr-33ede393",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    },
+    {
+      "alert_id": "alr-124703ce",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    },
+    {
+      "alert_id": "alr-50e63331",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    },
+    {
+      "alert_id": "alr-ef598b5d",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    },
+    {
+      "alert_id": "alr-87e29d15",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    },
+    {
+      "alert_id": "alr-7f916709",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    },
+    {
+      "alert_id": "alr-19fa25cb",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    },
+    {
+      "alert_id": "alr-4ac8b8b7",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    },
+    {
+      "alert_id": "alr-96ae203f",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    },
+    {
+      "alert_id": "alr-ec72123d",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    },
+    {
+      "alert_id": "alr-9b7d72f1",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    },
+    {
+      "alert_id": "alr-73aed039",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    },
+    {
+      "alert_id": "alr-9166f405",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    },
+    {
+      "alert_id": "alr-58126ecf",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    },
+    {
+      "alert_id": "alr-2d42d8f7",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    },
+    {
+      "alert_id": "alr-260534bb",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    },
+    {
+      "alert_id": "alr-669a3618",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    },
+    {
+      "alert_id": "alr-6166b393",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    },
+    {
+      "alert_id": "alr-5d14b712",
+      "signature": "/etc/shadow_backup",
+      "rule_id": "550",
+      "severity": "HIGH",
+      "node_id": "node-c800d431",
+      "instance_id": "inst-16583180",
+      "status": "noise"
+    }
+  ]
+}

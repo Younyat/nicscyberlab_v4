@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 
 from .foc_bootstrap import bootstrap_existing_context, read_id_mapping
+from .foc_attestation_builder import build_attestations
 from .foc_bom_builder import build_scenario_bom, build_tools_bom
 from .foc_config import GENERATED_FILES, READ_ONLY_MODE, ensure_output_layout
 from .foc_events import record_foc_event
@@ -64,10 +65,30 @@ def regenerate_foc(bootstrap_mode: bool = False) -> dict:
     timeline = build_timeline(scenario_context, id_mapping=id_mapping)
     sources_bundle = collect_sources()
     indexes = build_indexes(scenario_bom, tools_bom, timeline, sources_bundle, id_mapping=id_mapping)
+    attestations = build_attestations(
+        scenario_bom,
+        tools_bom,
+        timeline,
+        sources_bundle,
+        indexes,
+        id_mapping=id_mapping,
+    )
 
     _write_json(GENERATED_FILES["scenario_bom"], scenario_bom)
     _write_json(GENERATED_FILES["tools_bom"], tools_bom)
     _write_json(GENERATED_FILES["timeline"], timeline)
+    _write_json(GENERATED_FILES["attack_attestation"], attestations["attack_attestation"])
+    _write_json(GENERATED_FILES["detection_attestation"], attestations["detection_attestation"])
+    _write_json(GENERATED_FILES["alerts_normalized"], attestations["alerts_normalized"])
+    _write_json(GENERATED_FILES["alert_correlation"], attestations["alert_correlation"])
+    _write_json(GENERATED_FILES["alert_correlation_summary"], attestations["alert_correlation_summary"])
+    _write_json(GENERATED_FILES["acquisition_profile"], attestations["acquisition_profile"])
+    _write_json(GENERATED_FILES["forensic_intervention"], attestations["forensic_intervention"])
+    _write_json(GENERATED_FILES["forensic_analysis_manifest"], attestations["forensic_analysis_manifest"])
+    _write_json(GENERATED_FILES["scenario_ground_truth"], attestations["scenario_ground_truth"])
+    _write_json(GENERATED_FILES["case_manifest_link"], attestations["case_manifest_link"])
+    _write_json(GENERATED_FILES["foc_context_summary"], attestations["foc_context_summary"])
+    _write_json(GENERATED_FILES["foc_readiness_report"], attestations["foc_readiness_report"])
     _write_json(GENERATED_FILES["id_mapping"], id_mapping)
     _write_json(GENERATED_FILES["sources_index"], indexes["sources_index"])
     _write_json(GENERATED_FILES["artifacts_index"], indexes["artifacts_index"])
@@ -119,6 +140,20 @@ def regenerate_foc(bootstrap_mode: bool = False) -> dict:
         "artifacts": generated_relative_paths()["artifacts_index"],
         "relationships": generated_relative_paths()["relationships_index"],
         "cases": generated_relative_paths()["cases_index"],
+    }
+    manifest["derived_context"] = {
+        "attack_attestation": generated_relative_paths()["attack_attestation"],
+        "detection_attestation": generated_relative_paths()["detection_attestation"],
+        "alerts_normalized": generated_relative_paths()["alerts_normalized"],
+        "alert_correlation": generated_relative_paths()["alert_correlation"],
+        "alert_correlation_summary": generated_relative_paths()["alert_correlation_summary"],
+        "acquisition_profile": generated_relative_paths()["acquisition_profile"],
+        "forensic_intervention": generated_relative_paths()["forensic_intervention"],
+        "forensic_analysis_manifest": generated_relative_paths()["forensic_analysis_manifest"],
+        "scenario_ground_truth": generated_relative_paths()["scenario_ground_truth"],
+        "case_manifest_link": generated_relative_paths()["case_manifest_link"],
+        "foc_context_summary": generated_relative_paths()["foc_context_summary"],
+        "foc_readiness_report": generated_relative_paths()["foc_readiness_report"],
     }
 
     _write_json(GENERATED_FILES["manifest"], manifest)

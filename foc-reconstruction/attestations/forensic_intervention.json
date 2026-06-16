@@ -1,0 +1,1226 @@
+{
+  "generated_at": "2026-06-16T18:27:02.481572+00:00",
+  "scenario_id": "scn-b83dbbfb",
+  "scenario_name": "industrial_file",
+  "interventions": [
+    {
+      "case_id": "case-63ceb018",
+      "trigger": "ALERTA: Ping Detectado",
+      "target_nodes": [],
+      "tools_used": [
+        "dfir_orchestrator",
+        "forensics_api",
+        "industrial_exporter",
+        "traffic_api",
+        "unknown"
+      ],
+      "commands_executed": [],
+      "collected_artifacts": [
+        "art-5e7d66cf",
+        "art-dde3d770",
+        "art-9e0ed204",
+        "art-dde3d770",
+        "art-5e7d66cf",
+        "art-9e0ed204",
+        "art-8aa4f598",
+        "art-0fdcc86a",
+        "art-42e83af4",
+        "art-fcde3e11",
+        "art-fd4ec297",
+        "art-f7e11163",
+        "art-734995a1",
+        "art-2e3ff62a",
+        "art-f982f07f",
+        "art-36972a69",
+        "art-d96d3f58",
+        "art-9de04627",
+        "art-effd686e",
+        "art-33cc2661",
+        "art-0399876e",
+        "art-c11b1faf",
+        "art-5e7d66cf",
+        "art-9e0ed204",
+        "art-636ee86d",
+        "art-1579e89e",
+        "art-5e7d66cf",
+        "art-e9fe3a78",
+        "art-5e7d66cf",
+        "art-c1a8530b",
+        "art-82f9c67d",
+        "art-5e7d66cf",
+        "art-d4182275",
+        "art-5e7d66cf",
+        "art-b89eb950",
+        "art-ab1fc802",
+        "art-5e7d66cf",
+        "art-cf1dc2fc",
+        "art-5e7d66cf",
+        "art-5e7d66cf",
+        "art-9e0ed204",
+        "art-b9f68fd5",
+        "art-bea64b13",
+        "art-efc9695e",
+        "art-5e7d66cf",
+        "art-9e0ed204",
+        "art-5e7d66cf",
+        "art-9e0ed204",
+        "art-e588fceb",
+        "art-068d7678",
+        "art-233de542",
+        "art-5e7d66cf",
+        "art-9e0ed204",
+        "art-5e7d66cf",
+        "art-9e0ed204",
+        "art-23c1d0c6",
+        "art-65b30fa4",
+        "art-ebc3f3a7",
+        "art-5e7d66cf",
+        "art-9e0ed204",
+        "art-5e7d66cf",
+        "art-9e0ed204",
+        "art-148dda75",
+        "art-6646c6a3",
+        "art-80d66c09",
+        "art-5e7d66cf",
+        "art-9e0ed204",
+        "art-5e7d66cf",
+        "art-9e0ed204",
+        "art-b33e1653",
+        "art-cf2fef09",
+        "art-b265fba9",
+        "art-5e7d66cf",
+        "art-9e0ed204",
+        "art-5e7d66cf",
+        "art-9e0ed204",
+        "art-ed7e03c4",
+        "art-edd7af19",
+        "art-48aca5a2",
+        "art-5e7d66cf",
+        "art-9e0ed204",
+        "art-5e7d66cf",
+        "art-9e0ed204",
+        "art-f658c3b3",
+        "art-c9c3e71d",
+        "art-5e7d66cf",
+        "art-4f60c4a7",
+        "art-5e7d66cf",
+        "art-f585fda7",
+        "art-e7454009",
+        "art-5e7d66cf",
+        "art-e914cb77",
+        "art-5e7d66cf",
+        "art-c444ece9",
+        "art-79979b03",
+        "art-5e7d66cf",
+        "art-8f881f80",
+        "art-5e7d66cf"
+      ],
+      "chain_of_custody_events": [
+        "evt-08af0e23",
+        "evt-dd303e23",
+        "evt-968fff77",
+        "evt-92392aa6",
+        "evt-9e9eacde",
+        "evt-c93c8fc2",
+        "evt-bd1e446b",
+        "evt-afdb934b",
+        "evt-e7275caa",
+        "evt-da38f011",
+        "evt-aa150a9f",
+        "evt-6085c9b9",
+        "evt-933d73e1",
+        "evt-bdf75719",
+        "evt-b4044677",
+        "evt-b190798b",
+        "evt-cc7ced2b",
+        "evt-34aa6ad7",
+        "evt-ab40abc4",
+        "evt-9320d621",
+        "evt-2ef8ae4e",
+        "evt-4c494b1c",
+        "evt-3e5015f1",
+        "evt-6552dbf1",
+        "evt-6580abb8",
+        "evt-5381d406",
+        "evt-15f092d5",
+        "evt-d2eeb1b3",
+        "evt-98a256de",
+        "evt-bf83d2ef",
+        "evt-06ef8b00",
+        "evt-78e2f681",
+        "evt-ff19dc7c",
+        "evt-a788f286"
+      ]
+    }
+  ],
+  "raw_events": [
+    {
+      "timeline_event_id": "evt-08af0e23",
+      "event_type": "case_created",
+      "timestamp": "2026-06-10T14:07:33Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "case_created",
+      "details": {
+        "ts_utc": "2026-06-10T14:07:33Z",
+        "ts_epoch": 1781100453.0,
+        "run_id": "R1",
+        "actor": "forensics_api",
+        "action": "case_created",
+        "artifact_rel": null,
+        "outcome": "ok",
+        "details": {
+          "case_dir": "/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733"
+        },
+        "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "entry_hash": "c30b9c7812d5d666c447f69f5147b52acd5a7f59eb16fd0a9c184d0139b74323"
+      }
+    },
+    {
+      "timeline_event_id": "evt-b60651bc",
+      "event_type": "dfir_orchestration_start",
+      "timestamp": "2026-06-10T14:07:42Z",
+      "status": "observed",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "dfir_orchestration_start",
+      "details": {
+        "ts_utc": "2026-06-10T14:07:42Z",
+        "ts_epoch": 1781100462.0,
+        "event": "dfir_orchestration_start",
+        "run_id": "R1",
+        "meta": {
+          "targets": [
+            {
+              "role": "fuxa",
+              "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+              "vm_ip": "10.0.2.9"
+            },
+            {
+              "role": "plc",
+              "vm_id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
+              "vm_ip": "10.0.2.22"
+            },
+            {
+              "role": "victim",
+              "vm_id": "16583180-627d-4c40-bd65-aa9db704d75c",
+              "vm_ip": "10.0.2.172"
+            }
+          ],
+          "traffic_seconds": 20,
+          "memory_mode": "build",
+          "disk_container": "nova_libvirt"
+        }
+      }
+    },
+    {
+      "timeline_event_id": "evt-4f7e0cb3",
+      "event_type": "ot_export_preserved",
+      "timestamp": "2026-06-10T14:08:12Z",
+      "status": "observed",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "inst-a495cfe7",
+      "description": "ot_export_preserved",
+      "details": {
+        "ts_utc": "2026-06-10T14:08:12Z",
+        "ts_utc_ms": "2026-06-10T14:08:12.084Z",
+        "ts_epoch": 1781100492.0841918,
+        "event": "ot_export_preserved",
+        "run_id": "R1",
+        "meta": {
+          "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+          "protocol": "modbus_tcp",
+          "industrial_export_rel": "industrial/ot_export_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260610_140750Z.json",
+          "industrial_export_sha256": "9829cdb6f0dfbaed7d6c00d6e1796975d371c73accd93468c84807762e425df7",
+          "industrial_export_size": 34914,
+          "records_exported": 72
+        }
+      }
+    },
+    {
+      "timeline_event_id": "evt-92392aa6",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-10T14:08:12Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-10T14:08:12Z",
+        "ts_epoch": 1781100492.0694237,
+        "run_id": "R1",
+        "actor": "traffic_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "network/per_vm/a495cfe7-b55b-41d0-95bf-78f9093f7fe2/pcap_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260610_140750Z.pcap",
+        "outcome": "ok",
+        "details": {
+          "kind": "pcap",
+          "sha256": "544ebb41dc4b241577c390967441ff59c3ca80b3821c1b0da781e6f11ebaf73c",
+          "size": 26702,
+          "duration_s": 20
+        },
+        "prev_hash": "7d361b4b05c7db42b94647fcdec1dcee5beaf36d29c45c7434994592fa56fc73",
+        "entry_hash": "7c9108c906330da9409277baccb5d39ec0369c86e8e9039ecb4ec7e2d936228e"
+      }
+    },
+    {
+      "timeline_event_id": "evt-9e9eacde",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-10T14:08:12Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-10T14:08:12Z",
+        "ts_epoch": 1781100492.0701816,
+        "run_id": "R1",
+        "actor": "traffic_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "network/per_vm/a495cfe7-b55b-41d0-95bf-78f9093f7fe2/pcap_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260610_140750Z.metadata.json",
+        "outcome": "ok",
+        "details": {
+          "kind": "pcap_metadata",
+          "sha256": "f9704e21936ca9568e7563330e8b82f531da03d96c33029d814b208402c30653",
+          "size": 1423,
+          "duration_s": 20
+        },
+        "prev_hash": "7c9108c906330da9409277baccb5d39ec0369c86e8e9039ecb4ec7e2d936228e",
+        "entry_hash": "2d005eccaf4c04b64485bb2a6dec235f2f649510a24e195de101e808ba6b9fd3"
+      }
+    },
+    {
+      "timeline_event_id": "evt-c93c8fc2",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-10T14:08:12Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-10T14:08:12Z",
+        "ts_epoch": 1781100492.082423,
+        "run_id": "R1",
+        "actor": "traffic_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "industrial/ot_export_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260610_140750Z.json",
+        "outcome": "ok",
+        "details": {
+          "kind": "industrial_ot_export_modbus_tcp",
+          "sha256": "9829cdb6f0dfbaed7d6c00d6e1796975d371c73accd93468c84807762e425df7",
+          "size": 34914,
+          "records_exported": 72
+        },
+        "prev_hash": "2d005eccaf4c04b64485bb2a6dec235f2f649510a24e195de101e808ba6b9fd3",
+        "entry_hash": "bdc6542f462757e75a4eff6ec90ad0b23a335e3d725c3c6c34e71d3294b25b3a"
+      }
+    },
+    {
+      "timeline_event_id": "evt-8458c2a6",
+      "event_type": "ot_export_preserved",
+      "timestamp": "2026-06-10T14:08:42Z",
+      "status": "observed",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "inst-8c0c86c9",
+      "description": "ot_export_preserved",
+      "details": {
+        "ts_utc": "2026-06-10T14:08:42Z",
+        "ts_utc_ms": "2026-06-10T14:08:42.475Z",
+        "ts_epoch": 1781100522.4751227,
+        "event": "ot_export_preserved",
+        "run_id": "R1",
+        "meta": {
+          "vm_id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
+          "protocol": "modbus_tcp",
+          "industrial_export_rel": "industrial/ot_export_8c0c86c9-2c69-424b-9080-f6c07d798787_R1_20260610_140821Z.json",
+          "industrial_export_sha256": "5ac681d42baba0047ec105fe5944c999a849edd9bbd56c0dd56a1ca79fdb3e17",
+          "industrial_export_size": 38601,
+          "records_exported": 80
+        }
+      }
+    },
+    {
+      "timeline_event_id": "evt-bd1e446b",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-10T14:08:42Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-10T14:08:42Z",
+        "ts_epoch": 1781100522.4642704,
+        "run_id": "R1",
+        "actor": "traffic_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "network/per_vm/8c0c86c9-2c69-424b-9080-f6c07d798787/pcap_8c0c86c9-2c69-424b-9080-f6c07d798787_R1_20260610_140821Z.pcap",
+        "outcome": "ok",
+        "details": {
+          "kind": "pcap",
+          "sha256": "527e76cc93407272344f2fda10ffe2a9819c031a4bbe46a15d61545b8c25cc2c",
+          "size": 12667,
+          "duration_s": 20
+        },
+        "prev_hash": "bdc6542f462757e75a4eff6ec90ad0b23a335e3d725c3c6c34e71d3294b25b3a",
+        "entry_hash": "88c54825158e3548d8ca07f2314a8afd1d59df7bbef79196bcabaeb5a1193016"
+      }
+    },
+    {
+      "timeline_event_id": "evt-afdb934b",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-10T14:08:42Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-10T14:08:42Z",
+        "ts_epoch": 1781100522.4648113,
+        "run_id": "R1",
+        "actor": "traffic_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "network/per_vm/8c0c86c9-2c69-424b-9080-f6c07d798787/pcap_8c0c86c9-2c69-424b-9080-f6c07d798787_R1_20260610_140821Z.metadata.json",
+        "outcome": "ok",
+        "details": {
+          "kind": "pcap_metadata",
+          "sha256": "d2068afc6067c7126f8b1c0b0aa203511b2413c5ccb8e88bf08271febd25f68a",
+          "size": 1427,
+          "duration_s": 20
+        },
+        "prev_hash": "88c54825158e3548d8ca07f2314a8afd1d59df7bbef79196bcabaeb5a1193016",
+        "entry_hash": "2d02e0a7a5140a39b18d2774f57d314fa217639cf43c07eb075f907e292e96d0"
+      }
+    },
+    {
+      "timeline_event_id": "evt-e7275caa",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-10T14:08:42Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-10T14:08:42Z",
+        "ts_epoch": 1781100522.4729307,
+        "run_id": "R1",
+        "actor": "traffic_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "industrial/ot_export_8c0c86c9-2c69-424b-9080-f6c07d798787_R1_20260610_140821Z.json",
+        "outcome": "ok",
+        "details": {
+          "kind": "industrial_ot_export_modbus_tcp",
+          "sha256": "5ac681d42baba0047ec105fe5944c999a849edd9bbd56c0dd56a1ca79fdb3e17",
+          "size": 38601,
+          "records_exported": 80
+        },
+        "prev_hash": "2d02e0a7a5140a39b18d2774f57d314fa217639cf43c07eb075f907e292e96d0",
+        "entry_hash": "60ccdb22bd76ed079f55e1a32bff285792421916fbfbf693b578b0805ec8eae8"
+      }
+    },
+    {
+      "timeline_event_id": "evt-4e423f32",
+      "event_type": "ot_export_preserved",
+      "timestamp": "2026-06-10T14:09:10Z",
+      "status": "observed",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "inst-16583180",
+      "description": "ot_export_preserved",
+      "details": {
+        "ts_utc": "2026-06-10T14:09:10Z",
+        "ts_utc_ms": "2026-06-10T14:09:10.703Z",
+        "ts_epoch": 1781100550.7030768,
+        "event": "ot_export_preserved",
+        "run_id": "R1",
+        "meta": {
+          "vm_id": "16583180-627d-4c40-bd65-aa9db704d75c",
+          "protocol": "modbus_tcp",
+          "industrial_export_rel": "industrial/ot_export_16583180-627d-4c40-bd65-aa9db704d75c_R1_20260610_140849Z.json",
+          "industrial_export_sha256": "394cc67b42615f578e188338d487a8c0be8d8cd426ec3ab91279813b5cb61cde",
+          "industrial_export_size": 946,
+          "records_exported": 0
+        }
+      }
+    },
+    {
+      "timeline_event_id": "evt-da38f011",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-10T14:09:10Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-10T14:09:10Z",
+        "ts_epoch": 1781100550.6988661,
+        "run_id": "R1",
+        "actor": "traffic_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "network/per_vm/16583180-627d-4c40-bd65-aa9db704d75c/pcap_16583180-627d-4c40-bd65-aa9db704d75c_R1_20260610_140849Z.pcap",
+        "outcome": "ok",
+        "details": {
+          "kind": "pcap",
+          "sha256": "994fac7de08892e52a989fb23be19b68cc2ff034e81f866fd2b799f48069e88d",
+          "size": 1462,
+          "duration_s": 20
+        },
+        "prev_hash": "60ccdb22bd76ed079f55e1a32bff285792421916fbfbf693b578b0805ec8eae8",
+        "entry_hash": "f81e13cf9b89c77c2541fcc4559cd1054189644fdde1a62861a9efc654c98e24"
+      }
+    },
+    {
+      "timeline_event_id": "evt-aa150a9f",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-10T14:09:10Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-10T14:09:10Z",
+        "ts_epoch": 1781100550.699162,
+        "run_id": "R1",
+        "actor": "traffic_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "network/per_vm/16583180-627d-4c40-bd65-aa9db704d75c/pcap_16583180-627d-4c40-bd65-aa9db704d75c_R1_20260610_140849Z.metadata.json",
+        "outcome": "ok",
+        "details": {
+          "kind": "pcap_metadata",
+          "sha256": "fb2720cf05e23726aa9100761283caca9a3598d971453716d0c4190dfe7d9b95",
+          "size": 1420,
+          "duration_s": 20
+        },
+        "prev_hash": "f81e13cf9b89c77c2541fcc4559cd1054189644fdde1a62861a9efc654c98e24",
+        "entry_hash": "d64da5ffeb213ae1b24b728b46eedcf661c14480479b6bd75f73d53d19d74b04"
+      }
+    },
+    {
+      "timeline_event_id": "evt-6085c9b9",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-10T14:09:10Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-10T14:09:10Z",
+        "ts_epoch": 1781100550.701865,
+        "run_id": "R1",
+        "actor": "traffic_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "industrial/ot_export_16583180-627d-4c40-bd65-aa9db704d75c_R1_20260610_140849Z.json",
+        "outcome": "ok",
+        "details": {
+          "kind": "industrial_ot_export_modbus_tcp",
+          "sha256": "394cc67b42615f578e188338d487a8c0be8d8cd426ec3ab91279813b5cb61cde",
+          "size": 946,
+          "records_exported": 0
+        },
+        "prev_hash": "d64da5ffeb213ae1b24b728b46eedcf661c14480479b6bd75f73d53d19d74b04",
+        "entry_hash": "ea1500a8ebc2619c15d4f0b633976604eb0ec4070798883dc89121992d223aed"
+      }
+    },
+    {
+      "timeline_event_id": "evt-88a53980",
+      "event_type": "memory_preserved",
+      "timestamp": "2026-06-10T14:10:44Z",
+      "status": "observed",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "inst-a495cfe7",
+      "description": "memory_preserved",
+      "details": {
+        "ts_utc": "2026-06-10T14:10:44Z",
+        "ts_epoch": 1781100644.0,
+        "event": "memory_preserved",
+        "run_id": "R1",
+        "meta": {
+          "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+          "vm_ip": "10.0.2.9",
+          "rel": "memory/memdump_10.0.2.9_20260610_140911Z.lime",
+          "size": 1073192000,
+          "sha256": "99c1a44adcc4861e7ff21506f7e9fa8057bb87e9c90289185b507aae86870c4f",
+          "exit_code": 0,
+          "elapsed_s": 93.799,
+          "ssh_user_used": "ubuntu",
+          "attempted_users": [
+            "debian",
+            "ubuntu"
+          ],
+          "mode": "build"
+        }
+      }
+    },
+    {
+      "timeline_event_id": "evt-bdf75719",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-10T14:10:44Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-10T14:10:44Z",
+        "ts_epoch": 1781100644.0,
+        "run_id": "R1",
+        "actor": "forensics_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "memory/memdump_10.0.2.9_20260610_140911Z.lime",
+        "outcome": "ok",
+        "details": {
+          "kind": "memory",
+          "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+          "vm_ip": "10.0.2.9",
+          "sha256": "99c1a44adcc4861e7ff21506f7e9fa8057bb87e9c90289185b507aae86870c4f",
+          "size": 1073192000,
+          "mode": "build"
+        },
+        "prev_hash": "d9560fa511a92b6ca777afccfb11a7fc7d05ad91c27ca48d772dd1554057fe6f",
+        "entry_hash": "36a17844e73f140f4bdd68729d8850b299802789b235345fdba2aff4e88b3ab2"
+      }
+    },
+    {
+      "timeline_event_id": "evt-6fcaf346",
+      "event_type": "memory_preserved",
+      "timestamp": "2026-06-10T14:12:34Z",
+      "status": "observed",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "inst-8c0c86c9",
+      "description": "memory_preserved",
+      "details": {
+        "ts_utc": "2026-06-10T14:12:34Z",
+        "ts_epoch": 1781100754.0,
+        "event": "memory_preserved",
+        "run_id": "R1",
+        "meta": {
+          "vm_id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
+          "vm_ip": "10.0.2.22",
+          "rel": "memory/memdump_10.0.2.22_20260610_141045Z.lime",
+          "size": 1073192000,
+          "sha256": "74639f0189cefe9695f219e291171dcde294ca498d859889e3d1d152deef5114",
+          "exit_code": 0,
+          "elapsed_s": 109.499,
+          "ssh_user_used": "ubuntu",
+          "attempted_users": [
+            "debian",
+            "ubuntu"
+          ],
+          "mode": "build"
+        }
+      }
+    },
+    {
+      "timeline_event_id": "evt-b190798b",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-10T14:12:34Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-10T14:12:34Z",
+        "ts_epoch": 1781100754.0,
+        "run_id": "R1",
+        "actor": "forensics_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "memory/memdump_10.0.2.22_20260610_141045Z.lime",
+        "outcome": "ok",
+        "details": {
+          "kind": "memory",
+          "vm_id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
+          "vm_ip": "10.0.2.22",
+          "sha256": "74639f0189cefe9695f219e291171dcde294ca498d859889e3d1d152deef5114",
+          "size": 1073192000,
+          "mode": "build"
+        },
+        "prev_hash": "1731ad4ac539f8ec07c384e07e92d2086b93e4ac7ce7f2a6ff4683e7b8e434ce",
+        "entry_hash": "c8728554f5bb861d4ae31c3eff9c952463e6d825bdb063c27c756febd0999c51"
+      }
+    },
+    {
+      "timeline_event_id": "evt-4b4e4349",
+      "event_type": "memory_preserved",
+      "timestamp": "2026-06-10T14:14:07Z",
+      "status": "observed",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "inst-16583180",
+      "description": "memory_preserved",
+      "details": {
+        "ts_utc": "2026-06-10T14:14:07Z",
+        "ts_epoch": 1781100847.0,
+        "event": "memory_preserved",
+        "run_id": "R1",
+        "meta": {
+          "vm_id": "16583180-627d-4c40-bd65-aa9db704d75c",
+          "vm_ip": "10.0.2.172",
+          "rel": "memory/memdump_10.0.2.172_20260610_141234Z.lime",
+          "size": 2146933824,
+          "sha256": "b1f797861b2826a6a388be5aed9b65fbc2e05770edbaa06f9aa74e2c855fe3df",
+          "exit_code": 0,
+          "elapsed_s": 93.828,
+          "ssh_user_used": "debian",
+          "attempted_users": [
+            "ubuntu",
+            "debian"
+          ],
+          "mode": "build"
+        }
+      }
+    },
+    {
+      "timeline_event_id": "evt-34aa6ad7",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-10T14:14:07Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-10T14:14:07Z",
+        "ts_epoch": 1781100847.0,
+        "run_id": "R1",
+        "actor": "forensics_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "memory/memdump_10.0.2.172_20260610_141234Z.lime",
+        "outcome": "ok",
+        "details": {
+          "kind": "memory",
+          "vm_id": "16583180-627d-4c40-bd65-aa9db704d75c",
+          "vm_ip": "10.0.2.172",
+          "sha256": "b1f797861b2826a6a388be5aed9b65fbc2e05770edbaa06f9aa74e2c855fe3df",
+          "size": 2146933824,
+          "mode": "build"
+        },
+        "prev_hash": "55c67038151a350f660ede750aaf1bc313c5c53edea5cdbaf3f7f2f8ba16ee09",
+        "entry_hash": "c0feeabb769f3bc6966ddaddc8e163063eb484ad29cfe64b19541e7e0405573c"
+      }
+    },
+    {
+      "timeline_event_id": "evt-fd5ba3f8",
+      "event_type": "disk_preserved",
+      "timestamp": "2026-06-10T14:17:58Z",
+      "status": "observed",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "inst-a495cfe7",
+      "description": "disk_preserved",
+      "details": {
+        "ts_utc": "2026-06-10T14:17:58Z",
+        "ts_epoch": 1781101078.0,
+        "event": "disk_preserved",
+        "run_id": "R1",
+        "meta": {
+          "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+          "rel": "disk/a495cfe7-b55b-41d0-95bf-78f9093f7fe2_20260610_141407Z.disk.final.raw",
+          "size": 10737418240,
+          "sha256": "4b84ae81899e696516d0e57d8982073fa480fd38157abdb3d34169bba72a6851",
+          "exit_code": 0,
+          "elapsed_s": 230.368
+        }
+      }
+    },
+    {
+      "timeline_event_id": "evt-9320d621",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-10T14:17:58Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-10T14:17:58Z",
+        "ts_epoch": 1781101078.0,
+        "run_id": "R1",
+        "actor": "forensics_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "disk/a495cfe7-b55b-41d0-95bf-78f9093f7fe2_20260610_141407Z.disk.final.raw",
+        "outcome": "ok",
+        "details": {
+          "kind": "disk",
+          "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+          "sha256": "4b84ae81899e696516d0e57d8982073fa480fd38157abdb3d34169bba72a6851",
+          "size": 10737418240
+        },
+        "prev_hash": "844dc8f03428cf65d631e6a7b51dd0161335b71ad18b89ffd1d3f13208cf1872",
+        "entry_hash": "68c4c83b160ac39d8ba06c519e498d2cb9b2737086305374c26400b975bc5e17"
+      }
+    },
+    {
+      "timeline_event_id": "evt-8d1bb81f",
+      "event_type": "disk_preserved",
+      "timestamp": "2026-06-10T14:21:07Z",
+      "status": "observed",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "inst-8c0c86c9",
+      "description": "disk_preserved",
+      "details": {
+        "ts_utc": "2026-06-10T14:21:07Z",
+        "ts_epoch": 1781101267.0,
+        "event": "disk_preserved",
+        "run_id": "R1",
+        "meta": {
+          "vm_id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
+          "rel": "disk/8c0c86c9-2c69-424b-9080-f6c07d798787_20260610_141758Z.disk.final.raw",
+          "size": 10737418240,
+          "sha256": "5851c09cb28a9006a9bfd93578e29fa7e61906669fc1d5c827c4631cbda447b7",
+          "exit_code": 0,
+          "elapsed_s": 189.208
+        }
+      }
+    },
+    {
+      "timeline_event_id": "evt-4c494b1c",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-10T14:21:07Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-10T14:21:07Z",
+        "ts_epoch": 1781101267.0,
+        "run_id": "R1",
+        "actor": "forensics_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "disk/8c0c86c9-2c69-424b-9080-f6c07d798787_20260610_141758Z.disk.final.raw",
+        "outcome": "ok",
+        "details": {
+          "kind": "disk",
+          "vm_id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
+          "sha256": "5851c09cb28a9006a9bfd93578e29fa7e61906669fc1d5c827c4631cbda447b7",
+          "size": 10737418240
+        },
+        "prev_hash": "c8c5bb84dcf394d0900b83716600654e6f252317f72854fc70ff98ba5f98b3af",
+        "entry_hash": "4ffea677e1e3f9ce291e0f314943c1227a03550ee2d4ffadae31b96f82ab739e"
+      }
+    },
+    {
+      "timeline_event_id": "evt-ef353650",
+      "event_type": "disk_preserved",
+      "timestamp": "2026-06-10T14:27:40Z",
+      "status": "observed",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "inst-16583180",
+      "description": "disk_preserved",
+      "details": {
+        "ts_utc": "2026-06-10T14:27:40Z",
+        "ts_epoch": 1781101660.0,
+        "event": "disk_preserved",
+        "run_id": "R1",
+        "meta": {
+          "vm_id": "16583180-627d-4c40-bd65-aa9db704d75c",
+          "rel": "disk/16583180-627d-4c40-bd65-aa9db704d75c_20260610_142107Z.disk.final.raw",
+          "size": 21474836480,
+          "sha256": "6965bc2a54ecfedcea89226b794e98a71a1ea6befa442aa41691a4073f3714eb",
+          "exit_code": 0,
+          "elapsed_s": 392.36
+        }
+      }
+    },
+    {
+      "timeline_event_id": "evt-d5227786",
+      "event_type": "dfir_orchestration_done",
+      "timestamp": "2026-06-10T14:27:40Z",
+      "status": "observed",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "dfir_orchestration_done",
+      "details": {
+        "ts_utc": "2026-06-10T14:27:40Z",
+        "ts_epoch": 1781101660.0,
+        "event": "dfir_orchestration_done",
+        "run_id": "R1",
+        "meta": {
+          "targets_count": 3
+        }
+      }
+    },
+    {
+      "timeline_event_id": "evt-6552dbf1",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-10T14:27:40Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-10T14:27:40Z",
+        "ts_epoch": 1781101660.0,
+        "run_id": "R1",
+        "actor": "forensics_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "disk/16583180-627d-4c40-bd65-aa9db704d75c_20260610_142107Z.disk.final.raw",
+        "outcome": "ok",
+        "details": {
+          "kind": "disk",
+          "vm_id": "16583180-627d-4c40-bd65-aa9db704d75c",
+          "sha256": "6965bc2a54ecfedcea89226b794e98a71a1ea6befa442aa41691a4073f3714eb",
+          "size": 21474836480
+        },
+        "prev_hash": "38fcd16b0ae58172d4e4749acade7ffc24c68f1c1ad5366d412f5c94dc1e29e2",
+        "entry_hash": "59b279d8b45f402678731ce0b0a91616154e9791843ff1047809f98424c966b5"
+      }
+    },
+    {
+      "timeline_event_id": "evt-6580abb8",
+      "event_type": "dfir_orchestration_done",
+      "timestamp": "2026-06-10T14:27:40Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "dfir_orchestration_done",
+      "details": {
+        "ts_utc": "2026-06-10T14:27:40Z",
+        "ts_epoch": 1781101660.0,
+        "run_id": "R1",
+        "actor": "forensics_api",
+        "action": "dfir_orchestration_done",
+        "artifact_rel": null,
+        "outcome": "ok",
+        "details": {
+          "targets_count": 3
+        },
+        "prev_hash": "59b279d8b45f402678731ce0b0a91616154e9791843ff1047809f98424c966b5",
+        "entry_hash": "1e3d55126bbc6ac1e1c8170ea4e91d51e38bcb33e62d05dc5053ca04611bff48"
+      }
+    },
+    {
+      "timeline_event_id": "evt-9c9cb4e5",
+      "event_type": "ot_export_preserved",
+      "timestamp": "2026-06-16T13:26:50Z",
+      "status": "observed",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "inst-a495cfe7",
+      "description": "ot_export_preserved",
+      "details": {
+        "ts_utc": "2026-06-16T13:26:50Z",
+        "ts_utc_ms": "2026-06-16T13:26:50.716Z",
+        "ts_epoch": 1781616410.7161043,
+        "event": "ot_export_preserved",
+        "run_id": "R1",
+        "meta": {
+          "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+          "protocol": "modbus_tcp",
+          "industrial_export_rel": "industrial/ot_export_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260616_132639Z.json",
+          "industrial_export_sha256": "e3bf1c1cf16c3e799f2d763e18690435cd3cae677cd718db1b2f3d4917009b4d",
+          "industrial_export_size": 20726,
+          "records_exported": 42
+        }
+      }
+    },
+    {
+      "timeline_event_id": "evt-5381d406",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-16T13:26:50Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-16T13:26:50Z",
+        "ts_epoch": 1781616410.7043078,
+        "run_id": "R1",
+        "actor": "traffic_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "network/per_vm/a495cfe7-b55b-41d0-95bf-78f9093f7fe2/pcap_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260616_132639Z.pcap",
+        "outcome": "ok",
+        "details": {
+          "kind": "pcap",
+          "sha256": "7bb58db51358a29172149e21c3ac2674b0b32a44863d40212d61e23d5f85615f",
+          "size": 24132
+        },
+        "prev_hash": "1e3d55126bbc6ac1e1c8170ea4e91d51e38bcb33e62d05dc5053ca04611bff48",
+        "entry_hash": "40be99b26c0c1a4d33fdfad12a4a415ff315609bebf32012f6a8416537ec21d6"
+      }
+    },
+    {
+      "timeline_event_id": "evt-15f092d5",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-16T13:26:50Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-16T13:26:50Z",
+        "ts_epoch": 1781616410.7048438,
+        "run_id": "R1",
+        "actor": "traffic_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "network/per_vm/a495cfe7-b55b-41d0-95bf-78f9093f7fe2/pcap_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260616_132639Z.metadata.json",
+        "outcome": "ok",
+        "details": {
+          "kind": "pcap_metadata",
+          "sha256": "44795c2566b403b059356764bcd25b4310806e7e8da928e7e01310f6046d71b0",
+          "size": 1463
+        },
+        "prev_hash": "40be99b26c0c1a4d33fdfad12a4a415ff315609bebf32012f6a8416537ec21d6",
+        "entry_hash": "e98108b0ddd1778a63326548230aaef986c4cead854ad7432c5f1be0facc022c"
+      }
+    },
+    {
+      "timeline_event_id": "evt-d2eeb1b3",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-16T13:26:50Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-16T13:26:50Z",
+        "ts_epoch": 1781616410.714592,
+        "run_id": "R1",
+        "actor": "traffic_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "industrial/ot_export_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260616_132639Z.json",
+        "outcome": "ok",
+        "details": {
+          "kind": "industrial_ot_export_modbus_tcp",
+          "sha256": "e3bf1c1cf16c3e799f2d763e18690435cd3cae677cd718db1b2f3d4917009b4d",
+          "size": 20726,
+          "records_exported": 42
+        },
+        "prev_hash": "e98108b0ddd1778a63326548230aaef986c4cead854ad7432c5f1be0facc022c",
+        "entry_hash": "325a1055a993ea18a06185658bec0e1706b7072e549fc7bb2e3ddd3adbce5395"
+      }
+    },
+    {
+      "timeline_event_id": "evt-cc8d2c3c",
+      "event_type": "ot_export_preserved",
+      "timestamp": "2026-06-16T13:27:55Z",
+      "status": "observed",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "inst-995d7668",
+      "description": "ot_export_preserved",
+      "details": {
+        "ts_utc": "2026-06-16T13:27:55Z",
+        "ts_utc_ms": "2026-06-16T13:27:55.269Z",
+        "ts_epoch": 1781616475.2696812,
+        "event": "ot_export_preserved",
+        "run_id": "R1",
+        "meta": {
+          "vm_id": "995d7668-24d6-4d21-92fe-83fdf61cdc05",
+          "protocol": "modbus_tcp",
+          "industrial_export_rel": "industrial/ot_export_995d7668-24d6-4d21-92fe-83fdf61cdc05_R1_20260616_132708Z.json",
+          "industrial_export_sha256": "1183addd66d49f4767110e9c3271be6c5ebee488d12b6d2c7208fd4f39564aff",
+          "industrial_export_size": 947,
+          "records_exported": 0
+        }
+      }
+    },
+    {
+      "timeline_event_id": "evt-98a256de",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-16T13:27:55Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-16T13:27:55Z",
+        "ts_epoch": 1781616475.261186,
+        "run_id": "R1",
+        "actor": "traffic_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "network/per_vm/995d7668-24d6-4d21-92fe-83fdf61cdc05/pcap_995d7668-24d6-4d21-92fe-83fdf61cdc05_R1_20260616_132708Z.pcap",
+        "outcome": "ok",
+        "details": {
+          "kind": "pcap",
+          "sha256": "b7d948b56b68f74ad7e212fb73355b89fa45010a32ae69791249b7e9b14529e3",
+          "size": 2312978
+        },
+        "prev_hash": "325a1055a993ea18a06185658bec0e1706b7072e549fc7bb2e3ddd3adbce5395",
+        "entry_hash": "2587ffb782aaefd8d299ddf1e75cc1a0dfea66e5caf0f88bf31a8d0bf69a486b"
+      }
+    },
+    {
+      "timeline_event_id": "evt-bf83d2ef",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-16T13:27:55Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-16T13:27:55Z",
+        "ts_epoch": 1781616475.261707,
+        "run_id": "R1",
+        "actor": "traffic_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "network/per_vm/995d7668-24d6-4d21-92fe-83fdf61cdc05/pcap_995d7668-24d6-4d21-92fe-83fdf61cdc05_R1_20260616_132708Z.metadata.json",
+        "outcome": "ok",
+        "details": {
+          "kind": "pcap_metadata",
+          "sha256": "19674b29a0c31e95cc3bdfc5027945f500846e2b35ce21237b5bd98dfdef0cdb",
+          "size": 1468
+        },
+        "prev_hash": "2587ffb782aaefd8d299ddf1e75cc1a0dfea66e5caf0f88bf31a8d0bf69a486b",
+        "entry_hash": "780453541c8072639fe5098c8ad7172054ed33862a63396937da5c40ff04b6ba"
+      }
+    },
+    {
+      "timeline_event_id": "evt-06ef8b00",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-16T13:27:55Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-16T13:27:55Z",
+        "ts_epoch": 1781616475.2673445,
+        "run_id": "R1",
+        "actor": "traffic_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "industrial/ot_export_995d7668-24d6-4d21-92fe-83fdf61cdc05_R1_20260616_132708Z.json",
+        "outcome": "ok",
+        "details": {
+          "kind": "industrial_ot_export_modbus_tcp",
+          "sha256": "1183addd66d49f4767110e9c3271be6c5ebee488d12b6d2c7208fd4f39564aff",
+          "size": 947,
+          "records_exported": 0
+        },
+        "prev_hash": "780453541c8072639fe5098c8ad7172054ed33862a63396937da5c40ff04b6ba",
+        "entry_hash": "66ac3bab8c9375ad4d27aafc4f59a07f97cf0a79cc5c59665aed0a95797f012b"
+      }
+    },
+    {
+      "timeline_event_id": "evt-4ca8a0f5",
+      "event_type": "ot_export_preserved",
+      "timestamp": "2026-06-16T16:38:51Z",
+      "status": "observed",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "inst-a495cfe7",
+      "description": "ot_export_preserved",
+      "details": {
+        "ts_utc": "2026-06-16T16:38:51Z",
+        "ts_utc_ms": "2026-06-16T16:38:51.526Z",
+        "ts_epoch": 1781627931.526628,
+        "event": "ot_export_preserved",
+        "run_id": "R1",
+        "meta": {
+          "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+          "protocol": "modbus_tcp",
+          "industrial_export_rel": "industrial/ot_export_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260616_163844Z.json",
+          "industrial_export_sha256": "a0d8a95704d924ceb53c3fd074c0453b7d2f78f4fd413e1cff293c2b4fa8def2",
+          "industrial_export_size": 13207,
+          "records_exported": 26
+        }
+      }
+    },
+    {
+      "timeline_event_id": "evt-78e2f681",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-16T16:38:51Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-16T16:38:51Z",
+        "ts_epoch": 1781627931.5173035,
+        "run_id": "R1",
+        "actor": "traffic_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "network/per_vm/a495cfe7-b55b-41d0-95bf-78f9093f7fe2/pcap_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260616_163844Z.pcap",
+        "outcome": "ok",
+        "details": {
+          "kind": "pcap",
+          "sha256": "19c39e8788d4e07e1ee0704623c7b3a8cb123105e1fee6dceace45f3f30b1dc7",
+          "size": 14350
+        },
+        "prev_hash": "66ac3bab8c9375ad4d27aafc4f59a07f97cf0a79cc5c59665aed0a95797f012b",
+        "entry_hash": "cff849c379c36bc43e0c70bf21cbae0e53d7d7cc3fc714377ad1d2fdaf277e56"
+      }
+    },
+    {
+      "timeline_event_id": "evt-ff19dc7c",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-16T16:38:51Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-16T16:38:51Z",
+        "ts_epoch": 1781627931.5176356,
+        "run_id": "R1",
+        "actor": "traffic_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "network/per_vm/a495cfe7-b55b-41d0-95bf-78f9093f7fe2/pcap_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260616_163844Z.metadata.json",
+        "outcome": "ok",
+        "details": {
+          "kind": "pcap_metadata",
+          "sha256": "1581ac8d7ae2df271199e702d93975492f2757ddd93e0e7feaaf963e7d27e98c",
+          "size": 1458
+        },
+        "prev_hash": "cff849c379c36bc43e0c70bf21cbae0e53d7d7cc3fc714377ad1d2fdaf277e56",
+        "entry_hash": "d4f0f0812ac5f61884f157b63f6b596a324aeab654604d2f885c5f5ecc86128e"
+      }
+    },
+    {
+      "timeline_event_id": "evt-a788f286",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-16T16:38:51Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-16T16:38:51Z",
+        "ts_epoch": 1781627931.5247831,
+        "run_id": "R1",
+        "actor": "traffic_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "industrial/ot_export_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260616_163844Z.json",
+        "outcome": "ok",
+        "details": {
+          "kind": "industrial_ot_export_modbus_tcp",
+          "sha256": "a0d8a95704d924ceb53c3fd074c0453b7d2f78f4fd413e1cff293c2b4fa8def2",
+          "size": 13207,
+          "records_exported": 26
+        },
+        "prev_hash": "d4f0f0812ac5f61884f157b63f6b596a324aeab654604d2f885c5f5ecc86128e",
+        "entry_hash": "be2ca35a32f7efac8da1ccc38cf7a7a6c021a692950d13971ca3876467ffc24f"
+      }
+    }
+  ]
+}
