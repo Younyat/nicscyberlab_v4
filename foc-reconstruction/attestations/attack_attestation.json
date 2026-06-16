@@ -1,11 +1,12 @@
 {
-  "generated_at": "2026-06-16T18:27:02.481572+00:00",
+  "generated_at": "2026-06-16T21:11:01.337351+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
   "attacks": [
     {
       "attack_event_id": "evt-210c3878",
       "attack_id": "atk-f4c9d8b0",
+      "attack_name": "Port Scan Reconnaissance",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Port Scan Reconnaissance",
@@ -34,8 +35,11 @@
         "instance_name": "FUXA_Instance",
         "node_name": "SCADA",
         "target_role": "scada",
+        "effective_target_role": "SCADA",
         "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -54,8 +58,18 @@
           "service_probe"
         ],
         "rollback_required": false,
-        "rollback_command": null
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
       },
+      "execution_interpretation": {
+        "status_classification": "executed_failed",
+        "status_note": "Attack result marks the execution as failed, but command and sidecar evidence may still preserve attempted OT write parameters."
+      },
+      "execution_status": "failed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260609T142910Z_T1046_NETWORK_SERVICE_DISCOVERY_PORT_SCAN/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260609T142910Z_T1046_NETWORK_SERVICE_DISCOVERY_PORT_SCAN/result.json",
         "app_core/infrastructure/attack/outputs/20260609T142910Z_T1046_NETWORK_SERVICE_DISCOVERY_PORT_SCAN/modbus_transaction_log.json",
@@ -67,6 +81,7 @@
     {
       "attack_event_id": "evt-a4a0b2a2",
       "attack_id": "atk-1ffc12d9",
+      "attack_name": "Unauthorized SSH Attempt",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Unauthorized SSH Attempt",
@@ -95,8 +110,11 @@
         "instance_name": "FUXA_Instance",
         "node_name": "SCADA",
         "target_role": "scada",
+        "effective_target_role": "SCADA",
         "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -115,8 +133,18 @@
           "ssh_bruteforce_validation"
         ],
         "rollback_required": false,
-        "rollback_command": null
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
       },
+      "execution_interpretation": {
+        "status_classification": "executed_failed",
+        "status_note": "Attack result marks the execution as failed, but command and sidecar evidence may still preserve attempted OT write parameters."
+      },
+      "execution_status": "failed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260609T142919Z_T1110_001_SSH_PASSWORD_GUESSING/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260609T142919Z_T1110_001_SSH_PASSWORD_GUESSING/result.json",
         "app_core/infrastructure/attack/outputs/20260609T142919Z_T1110_001_SSH_PASSWORD_GUESSING/modbus_transaction_log.json",
@@ -128,6 +156,7 @@
     {
       "attack_event_id": "evt-0ab7998f",
       "attack_id": "atk-714a5490",
+      "attack_name": "Controlled File Tamper",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Controlled File Tamper",
@@ -156,8 +185,11 @@
         "instance_name": "FUXA_Instance",
         "node_name": "SCADA",
         "target_role": "scada",
+        "effective_target_role": "SCADA",
         "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -176,8 +208,18 @@
           "stored_data_manipulation"
         ],
         "rollback_required": false,
-        "rollback_command": null
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
       },
+      "execution_interpretation": {
+        "status_classification": "executed_failed",
+        "status_note": "Attack result marks the execution as failed, but command and sidecar evidence may still preserve attempted OT write parameters."
+      },
+      "execution_status": "failed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260609T142926Z_T1565_001_STORED_DATA_MANIPULATION_FIM/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260609T142926Z_T1565_001_STORED_DATA_MANIPULATION_FIM/result.json",
         "app_core/infrastructure/attack/outputs/20260609T142926Z_T1565_001_STORED_DATA_MANIPULATION_FIM/modbus_transaction_log.json",
@@ -189,6 +231,7 @@
     {
       "attack_event_id": "evt-6158898b",
       "attack_id": "atk-c6476470",
+      "attack_name": "Multi-Vector Validation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Multi-Vector Validation",
@@ -217,8 +260,11 @@
         "instance_name": "FUXA_Instance",
         "node_name": "SCADA",
         "target_role": "scada",
+        "effective_target_role": "SCADA",
         "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -239,8 +285,18 @@
           "modbus_write_register"
         ],
         "rollback_required": true,
-        "rollback_command": null
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
       },
+      "execution_interpretation": {
+        "status_classification": "executed_failed",
+        "status_note": "Attack result marks the execution as failed, but command and sidecar evidence may still preserve attempted OT write parameters."
+      },
+      "execution_status": "failed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260609T142935Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260609T142935Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
         "app_core/infrastructure/attack/outputs/20260609T142935Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/modbus_transaction_log.json",
@@ -252,6 +308,7 @@
     {
       "attack_event_id": "evt-e0ad8805",
       "attack_id": "atk-f6b49cab",
+      "attack_name": "Multi-Vector Validation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Multi-Vector Validation",
@@ -280,8 +337,11 @@
         "instance_name": "FUXA_Instance",
         "node_name": "SCADA",
         "target_role": "scada",
+        "effective_target_role": "SCADA",
         "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -302,8 +362,18 @@
           "modbus_write_register"
         ],
         "rollback_required": true,
-        "rollback_command": null
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
       },
+      "execution_interpretation": {
+        "status_classification": "executed_failed",
+        "status_note": "Attack result marks the execution as failed, but command and sidecar evidence may still preserve attempted OT write parameters."
+      },
+      "execution_status": "failed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260609T143159Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260609T143159Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
         "app_core/infrastructure/attack/outputs/20260609T143159Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/modbus_transaction_log.json",
@@ -315,6 +385,7 @@
     {
       "attack_event_id": "evt-7e8b20b2",
       "attack_id": "atk-fe43fa87",
+      "attack_name": "ICMP Reconnaissance",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "ICMP Reconnaissance",
@@ -343,8 +414,11 @@
         "instance_name": "FUXA_Instance",
         "node_name": "SCADA",
         "target_role": "scada",
+        "effective_target_role": "SCADA",
         "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -363,8 +437,18 @@
           "active_scanning"
         ],
         "rollback_required": false,
-        "rollback_command": null
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260609T143334Z_T1595_ACTIVE_SCANNING_ICMP_RECON/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260609T143334Z_T1595_ACTIVE_SCANNING_ICMP_RECON/result.json",
         "app_core/infrastructure/attack/outputs/20260609T143334Z_T1595_ACTIVE_SCANNING_ICMP_RECON/modbus_transaction_log.json",
@@ -376,6 +460,7 @@
     {
       "attack_event_id": "evt-431ce043",
       "attack_id": "atk-575e93b6",
+      "attack_name": "Port Scan Reconnaissance",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Port Scan Reconnaissance",
@@ -404,8 +489,11 @@
         "instance_name": "FUXA_Instance",
         "node_name": "SCADA",
         "target_role": "scada",
+        "effective_target_role": "SCADA",
         "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -424,8 +512,18 @@
           "service_probe"
         ],
         "rollback_required": false,
-        "rollback_command": null
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260609T143346Z_T1046_NETWORK_SERVICE_DISCOVERY_PORT_SCAN/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260609T143346Z_T1046_NETWORK_SERVICE_DISCOVERY_PORT_SCAN/result.json",
         "app_core/infrastructure/attack/outputs/20260609T143346Z_T1046_NETWORK_SERVICE_DISCOVERY_PORT_SCAN/modbus_transaction_log.json",
@@ -437,6 +535,7 @@
     {
       "attack_event_id": "evt-deebdc28",
       "attack_id": "atk-4d96b57f",
+      "attack_name": "Multi-Vector Validation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Multi-Vector Validation",
@@ -465,8 +564,11 @@
         "instance_name": "FUXA_Instance",
         "node_name": "SCADA",
         "target_role": "scada",
+        "effective_target_role": "SCADA",
         "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -487,8 +589,18 @@
           "modbus_write_register"
         ],
         "rollback_required": true,
-        "rollback_command": null
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260609T143456Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260609T143456Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
         "app_core/infrastructure/attack/outputs/20260609T143456Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/modbus_transaction_log.json",
@@ -500,6 +612,7 @@
     {
       "attack_event_id": "evt-6b4f52bb",
       "attack_id": "atk-2756b700",
+      "attack_name": "ICMP Reconnaissance",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "ICMP Reconnaissance",
@@ -528,8 +641,11 @@
         "instance_name": "FUXA_Instance",
         "node_name": "SCADA",
         "target_role": "scada",
+        "effective_target_role": "SCADA",
         "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -548,8 +664,18 @@
           "active_scanning"
         ],
         "rollback_required": false,
-        "rollback_command": null
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260609T143519Z_T1595_ACTIVE_SCANNING_ICMP_RECON/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260609T143519Z_T1595_ACTIVE_SCANNING_ICMP_RECON/result.json",
         "app_core/infrastructure/attack/outputs/20260609T143519Z_T1595_ACTIVE_SCANNING_ICMP_RECON/modbus_transaction_log.json",
@@ -561,6 +687,7 @@
     {
       "attack_event_id": "evt-d493dadf",
       "attack_id": "atk-2875cdf0",
+      "attack_name": "Unauthorized SSH Attempt",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Unauthorized SSH Attempt",
@@ -589,8 +716,11 @@
         "instance_name": "FUXA_Instance",
         "node_name": "SCADA",
         "target_role": "scada",
+        "effective_target_role": "SCADA",
         "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -609,8 +739,18 @@
           "ssh_bruteforce_validation"
         ],
         "rollback_required": false,
-        "rollback_command": null
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260609T143544Z_T1110_001_SSH_PASSWORD_GUESSING/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260609T143544Z_T1110_001_SSH_PASSWORD_GUESSING/result.json",
         "app_core/infrastructure/attack/outputs/20260609T143544Z_T1110_001_SSH_PASSWORD_GUESSING/modbus_transaction_log.json",
@@ -622,6 +762,7 @@
     {
       "attack_event_id": "evt-f02ff978",
       "attack_id": "atk-c5849db0",
+      "attack_name": "Controlled File Tamper",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Controlled File Tamper",
@@ -650,8 +791,11 @@
         "instance_name": "FUXA_Instance",
         "node_name": "SCADA",
         "target_role": "scada",
+        "effective_target_role": "SCADA",
         "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -670,8 +814,18 @@
           "stored_data_manipulation"
         ],
         "rollback_required": false,
-        "rollback_command": null
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260609T143611Z_T1565_001_STORED_DATA_MANIPULATION_FIM/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260609T143611Z_T1565_001_STORED_DATA_MANIPULATION_FIM/result.json",
         "app_core/infrastructure/attack/outputs/20260609T143611Z_T1565_001_STORED_DATA_MANIPULATION_FIM/modbus_transaction_log.json",
@@ -683,6 +837,7 @@
     {
       "attack_event_id": "evt-9a8c6468",
       "attack_id": "atk-28075cff",
+      "attack_name": "Data Exfiltration",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Data Exfiltration",
@@ -711,8 +866,11 @@
         "instance_name": "FUXA_Instance",
         "node_name": "SCADA",
         "target_role": "scada",
+        "effective_target_role": "SCADA",
         "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -732,8 +890,18 @@
           "exfiltration_activity"
         ],
         "rollback_required": false,
-        "rollback_command": null
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260609T143623Z_T1048_EXFILTRATION_OVER_ALTERNATIVE_PROTOCOL/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260609T143623Z_T1048_EXFILTRATION_OVER_ALTERNATIVE_PROTOCOL/result.json",
         "app_core/infrastructure/attack/outputs/20260609T143623Z_T1048_EXFILTRATION_OVER_ALTERNATIVE_PROTOCOL/modbus_transaction_log.json",
@@ -745,6 +913,7 @@
     {
       "attack_event_id": "evt-ebafaa3f",
       "attack_id": "atk-fc8dd835",
+      "attack_name": "Multi-Vector Validation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Multi-Vector Validation",
@@ -773,8 +942,11 @@
         "instance_name": "FUXA_Instance",
         "node_name": "SCADA",
         "target_role": "scada",
+        "effective_target_role": "SCADA",
         "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -795,8 +967,18 @@
           "modbus_write_register"
         ],
         "rollback_required": true,
-        "rollback_command": null
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260609T143634Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260609T143634Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
         "app_core/infrastructure/attack/outputs/20260609T143634Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/modbus_transaction_log.json",
@@ -808,6 +990,7 @@
     {
       "attack_event_id": "evt-595105d2",
       "attack_id": "atk-d976ba7c",
+      "attack_name": "Point and Tag Identification",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Point and Tag Identification",
@@ -836,8 +1019,11 @@
         "instance_name": "FUXA_Instance",
         "node_name": "SCADA",
         "target_role": "scada",
+        "effective_target_role": "SCADA",
         "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -856,8 +1042,18 @@
           "suricata_modbus_alert"
         ],
         "rollback_required": false,
-        "rollback_command": null
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260609T143645Z_T0861_POINT_AND_TAG_IDENTIFICATION/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260609T143645Z_T0861_POINT_AND_TAG_IDENTIFICATION/result.json",
         "app_core/infrastructure/attack/outputs/20260609T143645Z_T0861_POINT_AND_TAG_IDENTIFICATION/modbus_transaction_log.json",
@@ -869,6 +1065,7 @@
     {
       "attack_event_id": "evt-aa53460f",
       "attack_id": "atk-26eb5a6b",
+      "attack_name": "Unauthorized Command Message",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Unauthorized Command Message",
@@ -897,8 +1094,11 @@
         "instance_name": "FUXA_Instance",
         "node_name": "SCADA",
         "target_role": "scada",
+        "effective_target_role": "SCADA",
         "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -917,8 +1117,18 @@
           "wazuh_suricata_ingest"
         ],
         "rollback_required": true,
-        "rollback_command": null
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
       },
+      "execution_interpretation": {
+        "status_classification": "executed_failed",
+        "status_note": "Attack result marks the execution as failed, but command and sidecar evidence may still preserve attempted OT write parameters."
+      },
+      "execution_status": "failed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260609T143710Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260609T143710Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE/result.json",
         "app_core/infrastructure/attack/outputs/20260609T143710Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE/modbus_transaction_log.json",
@@ -930,6 +1140,7 @@
     {
       "attack_event_id": "evt-15357203",
       "attack_id": "atk-761a78ab",
+      "attack_name": "Multi-Vector Validation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Multi-Vector Validation",
@@ -958,8 +1169,11 @@
         "instance_name": "victim 3",
         "node_name": "victim 3",
         "target_role": "victim",
+        "effective_target_role": "victim 3",
         "target_ip": "10.0.2.172",
-        "target_image": "debian-12"
+        "target_image": "debian-12",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": "logical target role 'victim' differs from command-resolved node 'victim 3'"
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -980,8 +1194,18 @@
           "modbus_write_register"
         ],
         "rollback_required": true,
-        "rollback_command": null
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": "logical target role 'victim' differs from command-resolved node 'victim 3'"
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260610T124252Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260610T124252Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
         "app_core/infrastructure/attack/outputs/20260610T124252Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/modbus_transaction_log.json",
@@ -993,6 +1217,7 @@
     {
       "attack_event_id": "evt-87b49a91",
       "attack_id": "atk-761a78ab",
+      "attack_name": "Multi-Vector Validation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Multi-Vector Validation",
@@ -1021,8 +1246,11 @@
         "instance_name": "victim 3",
         "node_name": "victim 3",
         "target_role": "victim",
+        "effective_target_role": "victim 3",
         "target_ip": "10.0.2.172",
-        "target_image": "debian-12"
+        "target_image": "debian-12",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": "logical target role 'victim' differs from command-resolved node 'victim 3'"
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -1043,8 +1271,18 @@
           "modbus_write_register"
         ],
         "rollback_required": true,
-        "rollback_command": null
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": "logical target role 'victim' differs from command-resolved node 'victim 3'"
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260610T130101Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260610T130101Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
         "app_core/infrastructure/attack/outputs/20260610T130101Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/modbus_transaction_log.json",
@@ -1056,6 +1294,7 @@
     {
       "attack_event_id": "evt-0c3dba0a",
       "attack_id": "atk-761a78ab",
+      "attack_name": "Multi-Vector Validation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Multi-Vector Validation",
@@ -1084,8 +1323,11 @@
         "instance_name": "victim 3",
         "node_name": "victim 3",
         "target_role": "victim",
+        "effective_target_role": "victim 3",
         "target_ip": "10.0.2.172",
-        "target_image": "debian-12"
+        "target_image": "debian-12",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": "logical target role 'victim' differs from command-resolved node 'victim 3'"
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -1106,8 +1348,18 @@
           "modbus_write_register"
         ],
         "rollback_required": true,
-        "rollback_command": null
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": "logical target role 'victim' differs from command-resolved node 'victim 3'"
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260610T135410Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260610T135410Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
         "app_core/infrastructure/attack/outputs/20260610T135410Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/modbus_transaction_log.json",
@@ -1119,6 +1371,7 @@
     {
       "attack_event_id": "evt-73586c89",
       "attack_id": "atk-761a78ab",
+      "attack_name": "Multi-Vector Validation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Multi-Vector Validation",
@@ -1147,8 +1400,11 @@
         "instance_name": "victim 3",
         "node_name": "victim 3",
         "target_role": "victim",
+        "effective_target_role": "victim 3",
         "target_ip": "10.0.2.172",
-        "target_image": "debian-12"
+        "target_image": "debian-12",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": "logical target role 'victim' differs from command-resolved node 'victim 3'"
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -1169,8 +1425,18 @@
           "modbus_write_register"
         ],
         "rollback_required": true,
-        "rollback_command": null
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": "logical target role 'victim' differs from command-resolved node 'victim 3'"
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260610T140731Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260610T140731Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
         "app_core/infrastructure/attack/outputs/20260610T140731Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/modbus_transaction_log.json",
@@ -1182,6 +1448,7 @@
     {
       "attack_event_id": "evt-f544db8b",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -1205,13 +1472,16 @@
         "user": "ubuntu"
       },
       "target": {
-        "node_id": "node-e1ac03b8",
-        "instance_id": "inst-a495cfe7",
-        "instance_name": "FUXA_Instance",
-        "node_name": "SCADA",
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
         "target_role": "scada",
-        "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "effective_target_role": "PLC",
+        "target_ip": "10.0.2.22",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -1231,8 +1501,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260614T174918Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260614T174918Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260614T174918Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -1244,6 +1524,7 @@
     {
       "attack_event_id": "evt-f46028a1",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -1272,8 +1553,11 @@
         "instance_name": "PLC_Instance",
         "node_name": "PLC",
         "target_role": "plc",
+        "effective_target_role": "PLC",
         "target_ip": "10.0.2.22",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -1293,8 +1577,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260614T175049Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260614T175049Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260614T175049Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -1306,6 +1600,7 @@
     {
       "attack_event_id": "evt-a706d12f",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -1329,13 +1624,16 @@
         "user": "ubuntu"
       },
       "target": {
-        "node_id": "node-e1ac03b8",
-        "instance_id": "inst-a495cfe7",
-        "instance_name": "FUXA_Instance",
-        "node_name": "SCADA",
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
         "target_role": "scada",
-        "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "effective_target_role": "PLC",
+        "target_ip": "10.0.2.22",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -1355,8 +1653,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260614T181425Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260614T181425Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260614T181425Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -1368,6 +1676,7 @@
     {
       "attack_event_id": "evt-292b1db4",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -1396,8 +1705,11 @@
         "instance_name": "PLC_Instance",
         "node_name": "PLC",
         "target_role": "plc",
+        "effective_target_role": "PLC",
         "target_ip": "10.0.2.22",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -1417,8 +1729,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260614T181500Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260614T181500Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260614T181500Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -1430,6 +1752,7 @@
     {
       "attack_event_id": "evt-2e4b25d3",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -1453,13 +1776,16 @@
         "user": "ubuntu"
       },
       "target": {
-        "node_id": "node-e1ac03b8",
-        "instance_id": "inst-a495cfe7",
-        "instance_name": "FUXA_Instance",
-        "node_name": "SCADA",
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
         "target_role": "scada",
-        "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "effective_target_role": "PLC",
+        "target_ip": "10.0.2.22",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -1479,8 +1805,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260614T181539Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260614T181539Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260614T181539Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -1492,6 +1828,7 @@
     {
       "attack_event_id": "evt-e5b0a2e9",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -1515,13 +1852,16 @@
         "user": "ubuntu"
       },
       "target": {
-        "node_id": "node-e1ac03b8",
-        "instance_id": "inst-a495cfe7",
-        "instance_name": "FUXA_Instance",
-        "node_name": "SCADA",
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
         "target_role": "scada",
-        "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "effective_target_role": "PLC",
+        "target_ip": "10.0.2.22",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -1541,8 +1881,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260614T181625Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260614T181625Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260614T181625Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -1554,6 +1904,7 @@
     {
       "attack_event_id": "evt-6963f10b",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -1577,13 +1928,16 @@
         "user": "ubuntu"
       },
       "target": {
-        "node_id": "node-e1ac03b8",
-        "instance_id": "inst-a495cfe7",
-        "instance_name": "FUXA_Instance",
-        "node_name": "SCADA",
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
         "target_role": "scada",
-        "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "effective_target_role": "PLC",
+        "target_ip": "10.0.2.22",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -1603,8 +1957,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260614T181743Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260614T181743Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260614T181743Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -1616,6 +1980,7 @@
     {
       "attack_event_id": "evt-7322dc91",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -1639,13 +2004,16 @@
         "user": "ubuntu"
       },
       "target": {
-        "node_id": "node-e1ac03b8",
-        "instance_id": "inst-a495cfe7",
-        "instance_name": "FUXA_Instance",
-        "node_name": "SCADA",
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
         "target_role": "scada",
-        "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "effective_target_role": "PLC",
+        "target_ip": "10.0.2.22",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -1665,8 +2033,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260614T184649Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260614T184649Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260614T184649Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -1678,6 +2056,7 @@
     {
       "attack_event_id": "evt-c7656f21",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -1706,8 +2085,11 @@
         "instance_name": "PLC_Instance",
         "node_name": "PLC",
         "target_role": "plc",
+        "effective_target_role": "PLC",
         "target_ip": "10.0.2.22",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -1727,8 +2109,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260614T184726Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260614T184726Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260614T184726Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -1740,6 +2132,7 @@
     {
       "attack_event_id": "evt-015d4888",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -1763,13 +2156,16 @@
         "user": "ubuntu"
       },
       "target": {
-        "node_id": "node-e1ac03b8",
-        "instance_id": "inst-a495cfe7",
-        "instance_name": "FUXA_Instance",
-        "node_name": "SCADA",
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
         "target_role": "scada",
-        "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "effective_target_role": "PLC",
+        "target_ip": "10.0.2.22",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -1789,8 +2185,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260614T190339Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260614T190339Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260614T190339Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -1802,6 +2208,7 @@
     {
       "attack_event_id": "evt-ba9998c1",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -1830,8 +2237,11 @@
         "instance_name": "PLC_Instance",
         "node_name": "PLC",
         "target_role": "plc",
+        "effective_target_role": "PLC",
         "target_ip": "10.0.2.22",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -1851,8 +2261,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260614T190428Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260614T190428Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260614T190428Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -1864,6 +2284,7 @@
     {
       "attack_event_id": "evt-740e7e0b",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -1887,13 +2308,16 @@
         "user": "ubuntu"
       },
       "target": {
-        "node_id": "node-e1ac03b8",
-        "instance_id": "inst-a495cfe7",
-        "instance_name": "FUXA_Instance",
-        "node_name": "SCADA",
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
         "target_role": "scada",
-        "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "effective_target_role": "PLC",
+        "target_ip": "10.0.2.22",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -1913,8 +2337,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260614T201400Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260614T201400Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260614T201400Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -1926,6 +2360,7 @@
     {
       "attack_event_id": "evt-1070943c",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -1949,13 +2384,16 @@
         "user": "ubuntu"
       },
       "target": {
-        "node_id": "node-e1ac03b8",
-        "instance_id": "inst-a495cfe7",
-        "instance_name": "FUXA_Instance",
-        "node_name": "SCADA",
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
         "target_role": "scada",
-        "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "effective_target_role": "PLC",
+        "target_ip": "10.0.2.22",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -1975,8 +2413,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260614T202052Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260614T202052Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260614T202052Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -1988,6 +2436,7 @@
     {
       "attack_event_id": "evt-92ecd2e4",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -2011,13 +2460,16 @@
         "user": "ubuntu"
       },
       "target": {
-        "node_id": "node-e1ac03b8",
-        "instance_id": "inst-a495cfe7",
-        "instance_name": "FUXA_Instance",
-        "node_name": "SCADA",
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
         "target_role": "scada",
-        "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "effective_target_role": "PLC",
+        "target_ip": "10.0.2.22",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -2037,8 +2489,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260614T202138Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260614T202138Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260614T202138Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -2050,6 +2512,7 @@
     {
       "attack_event_id": "evt-25338897",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -2073,13 +2536,16 @@
         "user": "ubuntu"
       },
       "target": {
-        "node_id": "node-e1ac03b8",
-        "instance_id": "inst-a495cfe7",
-        "instance_name": "FUXA_Instance",
-        "node_name": "SCADA",
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
         "target_role": "scada",
-        "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "effective_target_role": "PLC",
+        "target_ip": "10.0.2.22",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -2099,8 +2565,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260614T202203Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260614T202203Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260614T202203Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -2112,6 +2588,7 @@
     {
       "attack_event_id": "evt-c4ef0c3b",
       "attack_id": "atk-d03c67e4",
+      "attack_name": "Data Exfiltration",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Data Exfiltration",
@@ -2140,8 +2617,11 @@
         "instance_name": "FUXA_Instance",
         "node_name": "SCADA",
         "target_role": "scada",
+        "effective_target_role": "SCADA",
         "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -2161,8 +2641,18 @@
           "exfiltration_activity"
         ],
         "rollback_required": false,
-        "rollback_command": null
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260614T202232Z_T1048_EXFILTRATION_OVER_ALTERNATIVE_PROTOCOL/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260614T202232Z_T1048_EXFILTRATION_OVER_ALTERNATIVE_PROTOCOL/result.json",
         "app_core/infrastructure/attack/outputs/20260614T202232Z_T1048_EXFILTRATION_OVER_ALTERNATIVE_PROTOCOL/modbus_transaction_log.json",
@@ -2174,6 +2664,7 @@
     {
       "attack_event_id": "evt-0fdaa09e",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -2197,13 +2688,16 @@
         "user": "ubuntu"
       },
       "target": {
-        "node_id": "node-e1ac03b8",
-        "instance_id": "inst-a495cfe7",
-        "instance_name": "FUXA_Instance",
-        "node_name": "SCADA",
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
         "target_role": "scada",
-        "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "effective_target_role": "PLC",
+        "target_ip": "10.0.2.22",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -2223,8 +2717,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260614T202247Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260614T202247Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260614T202247Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -2236,6 +2740,7 @@
     {
       "attack_event_id": "evt-1a585908",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -2264,8 +2769,11 @@
         "instance_name": "PLC_Instance",
         "node_name": "PLC",
         "target_role": "plc",
+        "effective_target_role": "PLC",
         "target_ip": "10.0.2.22",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -2285,8 +2793,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260614T203303Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260614T203303Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260614T203303Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -2298,6 +2816,7 @@
     {
       "attack_event_id": "evt-e31bb1d6",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -2326,8 +2845,11 @@
         "instance_name": "PLC_Instance",
         "node_name": "PLC",
         "target_role": "plc",
+        "effective_target_role": "PLC",
         "target_ip": "10.0.2.22",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -2347,8 +2869,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260614T203344Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260614T203344Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260614T203344Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -2360,6 +2892,7 @@
     {
       "attack_event_id": "evt-642af8b9",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -2383,13 +2916,16 @@
         "user": "ubuntu"
       },
       "target": {
-        "node_id": "node-e1ac03b8",
-        "instance_id": "inst-a495cfe7",
-        "instance_name": "FUXA_Instance",
-        "node_name": "SCADA",
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
         "target_role": "scada",
-        "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "effective_target_role": "PLC",
+        "target_ip": "10.0.2.22",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -2409,8 +2945,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260614T203441Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260614T203441Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260614T203441Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -2422,6 +2968,7 @@
     {
       "attack_event_id": "evt-053b3eaa",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -2445,13 +2992,16 @@
         "user": "ubuntu"
       },
       "target": {
-        "node_id": "node-e1ac03b8",
-        "instance_id": "inst-a495cfe7",
-        "instance_name": "FUXA_Instance",
-        "node_name": "SCADA",
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
         "target_role": "scada",
-        "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "effective_target_role": "PLC",
+        "target_ip": "10.0.2.22",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -2471,8 +3021,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260614T205815Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260614T205815Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260614T205815Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -2484,6 +3044,7 @@
     {
       "attack_event_id": "evt-da7e4713",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -2512,8 +3073,11 @@
         "instance_name": "PLC_Instance",
         "node_name": "PLC",
         "target_role": "plc",
+        "effective_target_role": "PLC",
         "target_ip": "10.0.2.22",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -2533,8 +3097,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260614T205856Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260614T205856Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260614T205856Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -2546,6 +3120,7 @@
     {
       "attack_event_id": "evt-68952907",
       "attack_id": "atk-5402854b",
+      "attack_name": "ICMP Reconnaissance",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "ICMP Reconnaissance",
@@ -2574,8 +3149,11 @@
         "instance_name": "FUXA_Instance",
         "node_name": "SCADA",
         "target_role": "scada",
+        "effective_target_role": "SCADA",
         "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -2594,8 +3172,18 @@
           "active_scanning"
         ],
         "rollback_required": false,
-        "rollback_command": null
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260616T132025Z_T1595_ACTIVE_SCANNING_ICMP_RECON/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260616T132025Z_T1595_ACTIVE_SCANNING_ICMP_RECON/result.json",
         "app_core/infrastructure/attack/outputs/20260616T132025Z_T1595_ACTIVE_SCANNING_ICMP_RECON/modbus_transaction_log.json",
@@ -2607,6 +3195,7 @@
     {
       "attack_event_id": "evt-e03f2735",
       "attack_id": "atk-6efb604c",
+      "attack_name": "Port Scan Reconnaissance",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Port Scan Reconnaissance",
@@ -2635,8 +3224,11 @@
         "instance_name": "FUXA_Instance",
         "node_name": "SCADA",
         "target_role": "scada",
+        "effective_target_role": "SCADA",
         "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -2655,8 +3247,18 @@
           "service_probe"
         ],
         "rollback_required": false,
-        "rollback_command": null
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260616T132042Z_T1046_NETWORK_SERVICE_DISCOVERY_PORT_SCAN/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260616T132042Z_T1046_NETWORK_SERVICE_DISCOVERY_PORT_SCAN/result.json",
         "app_core/infrastructure/attack/outputs/20260616T132042Z_T1046_NETWORK_SERVICE_DISCOVERY_PORT_SCAN/modbus_transaction_log.json",
@@ -2668,6 +3270,7 @@
     {
       "attack_event_id": "evt-05cde5a5",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -2696,8 +3299,11 @@
         "instance_name": "PLC_Instance",
         "node_name": "PLC",
         "target_role": "plc",
+        "effective_target_role": "PLC",
         "target_ip": "10.0.2.22",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -2717,8 +3323,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260616T132223Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260616T132223Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260616T132223Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -2730,6 +3346,7 @@
     {
       "attack_event_id": "evt-373750c7",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -2758,8 +3375,11 @@
         "instance_name": "PLC_Instance",
         "node_name": "PLC",
         "target_role": "plc",
+        "effective_target_role": "PLC",
         "target_ip": "10.0.2.22",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -2779,8 +3399,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260616T132308Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260616T132308Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260616T132308Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -2792,6 +3422,7 @@
     {
       "attack_event_id": "evt-0e8db3f0",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -2820,8 +3451,11 @@
         "instance_name": "PLC_Instance",
         "node_name": "PLC",
         "target_role": "plc",
+        "effective_target_role": "PLC",
         "target_ip": "10.0.2.22",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -2841,8 +3475,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260616T132347Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260616T132347Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260616T132347Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -2854,6 +3498,7 @@
     {
       "attack_event_id": "evt-524db877",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -2882,8 +3527,11 @@
         "instance_name": "PLC_Instance",
         "node_name": "PLC",
         "target_role": "plc",
+        "effective_target_role": "PLC",
         "target_ip": "10.0.2.22",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -2903,8 +3551,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260616T132426Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260616T132426Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260616T132426Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -2916,6 +3574,7 @@
     {
       "attack_event_id": "evt-9e201ef0",
       "attack_id": "atk-5402854b",
+      "attack_name": "ICMP Reconnaissance",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "ICMP Reconnaissance",
@@ -2944,8 +3603,11 @@
         "instance_name": "FUXA_Instance",
         "node_name": "SCADA",
         "target_role": "scada",
+        "effective_target_role": "SCADA",
         "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -2964,8 +3626,18 @@
           "active_scanning"
         ],
         "rollback_required": false,
-        "rollback_command": null
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260616T163350Z_T1595_ACTIVE_SCANNING_ICMP_RECON/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260616T163350Z_T1595_ACTIVE_SCANNING_ICMP_RECON/result.json",
         "app_core/infrastructure/attack/outputs/20260616T163350Z_T1595_ACTIVE_SCANNING_ICMP_RECON/modbus_transaction_log.json",
@@ -2977,6 +3649,7 @@
     {
       "attack_event_id": "evt-da133f20",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -3000,13 +3673,16 @@
         "user": "ubuntu"
       },
       "target": {
-        "node_id": "node-e1ac03b8",
-        "instance_id": "inst-a495cfe7",
-        "instance_name": "FUXA_Instance",
-        "node_name": "SCADA",
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
         "target_role": "scada",
-        "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "effective_target_role": "PLC",
+        "target_ip": "10.0.2.22",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -3026,8 +3702,18 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260616T163430Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260616T163430Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260616T163430Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
@@ -3039,6 +3725,7 @@
     {
       "attack_event_id": "evt-7db51e40",
       "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
       "scenario_id": "scn-b83dbbfb",
       "scenario_name": "industrial_file",
       "display_name": "Modbus Register Manipulation",
@@ -3062,13 +3749,16 @@
         "user": "ubuntu"
       },
       "target": {
-        "node_id": "node-e1ac03b8",
-        "instance_id": "inst-a495cfe7",
-        "instance_name": "FUXA_Instance",
-        "node_name": "SCADA",
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
         "target_role": "scada",
-        "target_ip": "10.0.2.9",
-        "target_image": "ubuntu-22.04"
+        "effective_target_role": "PLC",
+        "target_ip": "10.0.2.22",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
       },
       "operation": {
         "tool_used": "attack_executor",
@@ -3088,14 +3778,479 @@
           "control_manipulation"
         ],
         "rollback_required": true,
-        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50"
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
       },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260616T163524Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
       "evidence_references": [
         "app_core/infrastructure/attack/outputs/20260616T163524Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
         "app_core/infrastructure/attack/outputs/20260616T163524Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
         "app_core/infrastructure/attack/outputs/20260616T163524Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
         "app_core/infrastructure/attack/outputs/20260616T163524Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json",
         "app_core/infrastructure/attack/outputs/20260616T163524Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-dac98a4d",
+      "attack_id": "atk-761a78ab",
+      "attack_name": "Multi-Vector Validation",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Multi-Vector Validation",
+      "mitre": {
+        "domain": "Enterprise + ICS",
+        "technique_id": "MULTIPLE",
+        "technique_name": "Composite ATT&CK Validation Chain",
+        "tactic": "Multi-stage Detection Validation"
+      },
+      "execution": {
+        "started_at": "2026-06-16T19:58:15.819368+00:00",
+        "completed_at": "2026-06-16T19:58:21.775634+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "controlled_chain",
+        "detection_engine": "Suricata + Wazuh",
+        "success_criteria": "exit_code_zero"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-e1ac03b8",
+        "instance_id": "inst-a495cfe7",
+        "instance_name": "FUXA_Instance",
+        "node_name": "SCADA",
+        "target_role": "scada",
+        "effective_target_role": "SCADA",
+        "target_ip": "10.0.2.9",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "unknown",
+        "target_port": null,
+        "modbus_function": null,
+        "register_reference": null,
+        "value": null,
+        "slave_id": null,
+        "data_type": null,
+        "parameters": {},
+        "expected_alerts": [
+          "port_scan",
+          "failed_ssh_login",
+          "fim_integrity_alert",
+          "exfiltration_activity",
+          "modbus_write_register"
+        ],
+        "rollback_required": true,
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260616T195815Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260616T195815Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
+        "app_core/infrastructure/attack/outputs/20260616T195815Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260616T195815Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260616T195815Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260616T195815Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-4135a530",
+      "attack_id": "atk-25f9f5c2",
+      "attack_name": "Controlled File Tamper",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Controlled File Tamper",
+      "mitre": {
+        "domain": "Enterprise",
+        "technique_id": "T1565.001",
+        "technique_name": "Stored Data Manipulation",
+        "tactic": "Impact"
+      },
+      "execution": {
+        "started_at": "2026-06-16T19:58:37.705480+00:00",
+        "completed_at": "2026-06-16T19:58:39.700229+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "controlled",
+        "detection_engine": "Wazuh FIM",
+        "success_criteria": "exit_code_zero"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-e1ac03b8",
+        "instance_id": "inst-a495cfe7",
+        "instance_name": "FUXA_Instance",
+        "node_name": "SCADA",
+        "target_role": "scada",
+        "effective_target_role": "SCADA",
+        "target_ip": "10.0.2.9",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "unknown",
+        "target_port": null,
+        "modbus_function": null,
+        "register_reference": null,
+        "value": null,
+        "slave_id": null,
+        "data_type": null,
+        "parameters": {},
+        "expected_alerts": [
+          "file_modified",
+          "fim_integrity_alert",
+          "stored_data_manipulation"
+        ],
+        "rollback_required": false,
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260616T195837Z_T1565_001_STORED_DATA_MANIPULATION_FIM/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260616T195837Z_T1565_001_STORED_DATA_MANIPULATION_FIM/result.json",
+        "app_core/infrastructure/attack/outputs/20260616T195837Z_T1565_001_STORED_DATA_MANIPULATION_FIM/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260616T195837Z_T1565_001_STORED_DATA_MANIPULATION_FIM/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260616T195837Z_T1565_001_STORED_DATA_MANIPULATION_FIM/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260616T195837Z_T1565_001_STORED_DATA_MANIPULATION_FIM/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-a2e597a7",
+      "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Modbus Register Manipulation",
+      "mitre": {
+        "domain": "ICS",
+        "technique_id": "T0831",
+        "technique_name": "Manipulation of Control",
+        "tactic": "Impair Process Control"
+      },
+      "execution": {
+        "started_at": "2026-06-16T19:58:52.214925+00:00",
+        "completed_at": null,
+        "success": false,
+        "exit_code": "unknown",
+        "execution_mode": "restore_by_default",
+        "detection_engine": "Suricata + Wazuh",
+        "success_criteria": "state_changed_and_observed"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
+        "target_role": "scada",
+        "effective_target_role": "PLC",
+        "target_ip": "10.0.2.22",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "modbus_tcp",
+        "target_port": 502,
+        "modbus_function": "16",
+        "register_reference": 4,
+        "value": 30,
+        "slave_id": 1,
+        "data_type": "4:int",
+        "parameters": {},
+        "expected_alerts": [
+          "modbus_write_register",
+          "unauthorized_control_command",
+          "process_state_change",
+          "control_manipulation"
+        ],
+        "rollback_required": true,
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_failed",
+        "status_note": "Attack result marks the execution as failed, but command and sidecar evidence may still preserve attempted OT write parameters."
+      },
+      "execution_status": "failed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260616T195852Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260616T195852Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "app_core/infrastructure/attack/outputs/20260616T195852Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260616T195852Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260616T195852Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260616T195852Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-84a3b762",
+      "attack_id": "atk-5402854b",
+      "attack_name": "ICMP Reconnaissance",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "ICMP Reconnaissance",
+      "mitre": {
+        "domain": "Enterprise",
+        "technique_id": "T1595",
+        "technique_name": "Active Scanning",
+        "tactic": "Reconnaissance"
+      },
+      "execution": {
+        "started_at": "2026-06-16T21:00:13.435079+00:00",
+        "completed_at": "2026-06-16T21:00:18.482479+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "controlled",
+        "detection_engine": "Suricata + Wazuh",
+        "success_criteria": "exit_code_zero"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-e1ac03b8",
+        "instance_id": "inst-a495cfe7",
+        "instance_name": "FUXA_Instance",
+        "node_name": "SCADA",
+        "target_role": "scada",
+        "effective_target_role": "SCADA",
+        "target_ip": "10.0.2.9",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "unknown",
+        "target_port": null,
+        "modbus_function": null,
+        "register_reference": null,
+        "value": null,
+        "slave_id": null,
+        "data_type": null,
+        "parameters": {},
+        "expected_alerts": [
+          "icmp_sweep",
+          "host_discovery",
+          "active_scanning"
+        ],
+        "rollback_required": false,
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260616T210013Z_T1595_ACTIVE_SCANNING_ICMP_RECON/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260616T210013Z_T1595_ACTIVE_SCANNING_ICMP_RECON/result.json",
+        "app_core/infrastructure/attack/outputs/20260616T210013Z_T1595_ACTIVE_SCANNING_ICMP_RECON/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260616T210013Z_T1595_ACTIVE_SCANNING_ICMP_RECON/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260616T210013Z_T1595_ACTIVE_SCANNING_ICMP_RECON/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260616T210013Z_T1595_ACTIVE_SCANNING_ICMP_RECON/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-1ed2a1ce",
+      "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Modbus Register Manipulation",
+      "mitre": {
+        "domain": "ICS",
+        "technique_id": "T0831",
+        "technique_name": "Manipulation of Control",
+        "tactic": "Impair Process Control"
+      },
+      "execution": {
+        "started_at": "2026-06-16T21:00:55.970468+00:00",
+        "completed_at": "2026-06-16T21:01:16.785995+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "restore_by_default",
+        "detection_engine": "Suricata + Wazuh",
+        "success_criteria": "state_changed_and_observed"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
+        "target_role": "scada",
+        "effective_target_role": "PLC",
+        "target_ip": "10.0.2.22",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "modbus_tcp",
+        "target_port": 502,
+        "modbus_function": "16",
+        "register_reference": 4,
+        "value": 30,
+        "slave_id": 1,
+        "data_type": "4:int",
+        "parameters": {},
+        "expected_alerts": [
+          "modbus_write_register",
+          "unauthorized_control_command",
+          "process_state_change",
+          "control_manipulation"
+        ],
+        "rollback_required": true,
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260616T210055Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260616T210055Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "app_core/infrastructure/attack/outputs/20260616T210055Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260616T210055Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260616T210055Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260616T210055Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-6a8fe3cc",
+      "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Modbus Register Manipulation",
+      "mitre": {
+        "domain": "ICS",
+        "technique_id": "T0831",
+        "technique_name": "Manipulation of Control",
+        "tactic": "Impair Process Control"
+      },
+      "execution": {
+        "started_at": "2026-06-16T21:02:24.437505+00:00",
+        "completed_at": "2026-06-16T21:02:44.752375+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "restore_by_default",
+        "detection_engine": "Suricata + Wazuh",
+        "success_criteria": "state_changed_and_observed"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
+        "target_role": "plc",
+        "effective_target_role": "PLC",
+        "target_ip": "10.0.2.22",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "modbus_tcp",
+        "target_port": 502,
+        "modbus_function": "16",
+        "register_reference": 4,
+        "value": 30,
+        "slave_id": 1,
+        "data_type": "4:int",
+        "parameters": {},
+        "expected_alerts": [
+          "modbus_write_register",
+          "unauthorized_control_command",
+          "process_state_change",
+          "control_manipulation"
+        ],
+        "rollback_required": true,
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260616T210224Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260616T210224Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "app_core/infrastructure/attack/outputs/20260616T210224Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260616T210224Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260616T210224Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260616T210224Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
       ]
     }
   ]

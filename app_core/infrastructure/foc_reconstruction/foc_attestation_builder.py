@@ -1,3 +1,5 @@
+import hashlib
+import json
 import re
 from collections import Counter, defaultdict
 from datetime import datetime
@@ -301,11 +303,136 @@ def _bucket_from_correlation_status(item: dict) -> str:
     return "uncorrelated"
 
 
-def _find_trigger_alert(case_created_event: dict, alerts_normalized: list[dict], binding_by_node: dict, binding_by_instance: dict) -> dict | None:
+def _canonical_sha256(payload) -> str:
+    return hashlib.sha256(
+        json.dumps(payload, sort_keys=True, ensure_ascii=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def _alert_is_ot_write(alert: dict) -> bool:
+    signature = str(alert.get("signature") or "").lower()
+    protocol = str(alert.get("protocol") or "").lower()
+    return "modbus write" in signature or (protocol in {"tcp", "modbus_tcp"} and "control_manipulation" in ",".join(alert.get("mitre_mapping") or []).lower())
+
+
+def _alert_is_relevant_fim(alert: dict) -> bool:
+    signature = str(alert.get("signature") or "").strip()
+    return signature.startswith("/") and str(alert.get("rule_id") or "") == "550"
+
+
+def _trigger_score(alert: dict, delta_seconds: float, target_node_ids: set[str], target_instance_ids: set[str]) -> tuple[int, list[str]]:
+    score = 0
+    reasons = []
+    severity = str(alert.get("severity") or "").upper()
+    correlation = str(alert.get("correlation_status") or "").lower()
+    protocol = str(alert.get("protocol") or "").lower()
+    signature = str(alert.get("signature") or "")
+    original_sensor = str(alert.get("original_sensor") or "").lower()
+    rule_id = str(alert.get("rule_id") or "")
+    node_id = str(alert.get("node_id") or "")
+    instance_id = str(alert.get("instance_id") or "")
+    normalization = str(alert.get("normalization_status") or "").lower()
+
+    if correlation == "confirmed":
+        score += 120
+        reasons.append("confirmed_correlation")
+    elif correlation == "inferred_medium":
+        score += 70
+        reasons.append("medium_correlation")
+    elif correlation in {"weak_candidate", "inferred_low"}:
+        score += 30
+        reasons.append("weak_correlation")
+
+    if severity == "CRITICAL":
+        score += 95
+        reasons.append("critical_severity")
+    elif severity == "HIGH":
+        score += 80
+        reasons.append("high_severity")
+    elif severity == "MEDIUM":
+        score += 25
+        reasons.append("medium_severity")
+    elif severity == "LOW":
+        score -= 15
+
+    if node_id and node_id in target_node_ids:
+        score += 55
+        reasons.append("target_node_match")
+    if instance_id and instance_id in target_instance_ids:
+        score += 35
+        reasons.append("target_instance_match")
+
+    if _alert_is_ot_write(alert):
+        score += 120
+        reasons.append("ot_write_signal")
+    elif _alert_is_relevant_fim(alert):
+        score += 95
+        reasons.append("fim_signal")
+
+    if str(alert.get("recommend_forensics")).lower() == "true":
+        score += 35
+        reasons.append("forensics_recommended")
+
+    if original_sensor == "suricata":
+        score += 15
+        reasons.append("original_suricata")
+    elif original_sensor == "wazuh":
+        score += 10
+        reasons.append("original_wazuh")
+
+    if protocol in {"tcp", "modbus_tcp"}:
+        score += 15
+        reasons.append("network_protocol")
+    elif protocol in {"icmp", "ipv6-icmp"}:
+        score -= 120
+        reasons.append("icmp_penalty")
+
+    if rule_id == "550":
+        score += 20
+        reasons.append("fim_rule")
+
+    if delta_seconds <= 300:
+        score += 45
+        reasons.append("temporal_close")
+    elif delta_seconds <= 1800:
+        score += 25
+        reasons.append("temporal_compatible")
+    elif delta_seconds <= 7200:
+        score += 10
+        reasons.append("temporal_distant")
+    else:
+        score -= 20
+
+    if normalization == "noise" or "noise_signature" in str(alert.get("correlation_reason") or ""):
+        score -= 160
+        reasons.append("noise_penalty")
+    if "ping detectado" in signature.lower():
+        score -= 180
+        reasons.append("ping_penalty")
+
+    return score, reasons
+
+
+def _find_trigger_alert(case_created_event: dict, alerts_normalized: list[dict], binding_by_node: dict, binding_by_instance: dict) -> dict:
     case_ts = _parse_timestamp(case_created_event.get("timestamp"))
     if not case_ts:
-        return None
-    candidates = []
+        return {}
+    target_node_ids = {
+        str(case_created_event.get("related_node_id") or "").strip(),
+        *[
+            str(item).strip()
+            for item in ((case_created_event.get("details") or {}).get("target_node_ids") or [])
+        ],
+    } - {""}
+    target_instance_ids = {
+        str(case_created_event.get("related_instance_id") or "").strip(),
+        *[
+            str(item).strip()
+            for item in ((case_created_event.get("details") or {}).get("target_instance_ids") or [])
+        ],
+    } - {""}
+    scoped_candidates = []
+    fallback_candidates = []
     for alert in alerts_normalized:
         alert_ts = _parse_timestamp(alert.get("timestamp"))
         if not alert_ts or alert_ts > case_ts:
@@ -313,9 +440,128 @@ def _find_trigger_alert(case_created_event: dict, alerts_normalized: list[dict],
         delta = (case_ts - alert_ts).total_seconds()
         if delta < 0:
             continue
-        candidates.append((delta, alert))
-    candidates.sort(key=lambda item: item[0])
-    return candidates[0][1] if candidates else None
+        score, reasons = _trigger_score(alert, delta, target_node_ids, target_instance_ids)
+        candidate = {
+            "alert": alert,
+            "delta_seconds": round(delta, 3),
+            "score": score,
+            "reasons": reasons,
+        }
+        if delta <= 7200 and (
+            (not target_node_ids or str(alert.get("node_id") or "") in target_node_ids)
+            or (not target_instance_ids or str(alert.get("instance_id") or "") in target_instance_ids)
+        ):
+            scoped_candidates.append(candidate)
+        fallback_candidates.append(candidate)
+
+    candidate_pool = scoped_candidates or fallback_candidates
+    if not candidate_pool:
+        return {}
+
+    candidate_pool.sort(
+        key=lambda item: (
+            item["score"],
+            -item["delta_seconds"],
+            _parse_timestamp(item["alert"].get("timestamp")) or case_ts,
+        ),
+        reverse=True,
+    )
+    best_overall = max(
+        fallback_candidates,
+        key=lambda item: (item["score"], -item["delta_seconds"]),
+    ) if fallback_candidates else None
+    selected = candidate_pool[0]
+    selected_alert = dict(selected["alert"])
+    selected_alert.update(
+        {
+            "trigger_selection_method": "scoped_target_window" if scoped_candidates else "fallback_prior_alert",
+            "trigger_selection_score": selected["score"],
+            "trigger_selection_reason": ",".join(selected["reasons"]) if selected["reasons"] else "best_available_prior_alert",
+            "candidate_triggers_evaluated": len(candidate_pool),
+            "stronger_trigger_available": bool(
+                best_overall
+                and best_overall["alert"].get("alert_id") != selected_alert.get("alert_id")
+                and best_overall["score"] > selected["score"]
+            ),
+        }
+    )
+    return selected_alert
+
+
+def _load_raw_alert_record(alert: dict) -> dict:
+    source = str(alert.get("source_path") or alert.get("raw_reference") or "").split("#", 1)[0]
+    if not source:
+        return {}
+    path = project_path(*Path(source).parts)
+    if not path.exists():
+        return {}
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    payload = json.loads(line)
+                except Exception:
+                    continue
+                raw = payload.get("raw") or {}
+                raw_alert = ((raw.get("data") or {}).get("alert") or {})
+                raw_rule = raw.get("rule") or {}
+                if str(payload.get("signature") or payload.get("rule_id") or ""):
+                    pass
+                same_signature = str(payload.get("signature") or "").strip() == str(alert.get("signature") or "").strip()
+                same_rule = str(payload.get("rule_id") or "").strip() == str(alert.get("rule_id") or "").strip()
+                same_sensor_rule = str(raw_alert.get("signature_id") or "").strip() == str(alert.get("related_detection_rule") or "").strip()
+                if same_signature and (same_rule or same_sensor_rule):
+                    return payload
+        return {}
+    except Exception:
+        return {}
+
+
+def _load_local_rule_material(alert: dict) -> dict:
+    signature = str(alert.get("signature") or "")
+    sensor_rule_id = str(alert.get("related_detection_rule") or "")
+    collector_rule_id = str(alert.get("rule_id") or "")
+    candidates = [
+        Path("tools-installer/scripts/install_rollback_suricata_modbus_register_detection.sh"),
+        Path("tools-installer/scripts/install_rollback_suricata_ping_detection.sh"),
+        Path("tools-installer/scripts/install_rollback_wazuh_suricata_integration.sh"),
+    ]
+    search_tokens = [
+        f'sid:{sensor_rule_id};' if sensor_rule_id else "",
+        f'signature_id">^{sensor_rule_id}' if sensor_rule_id else "",
+        f'rule id="{collector_rule_id}"' if collector_rule_id else "",
+        signature,
+    ]
+    for candidate in candidates:
+        full = project_path(*candidate.parts)
+        if not full.exists():
+            continue
+        try:
+            text = full.read_text(encoding="utf-8")
+        except Exception:
+            continue
+        for token in search_tokens:
+            if not token or token not in text:
+                continue
+            for line in text.splitlines():
+                if token in line or (signature and signature in line):
+                    material = line.strip()
+                    if material:
+                        return {
+                            "rule_source": str(candidate),
+                            "rule_hash_sha256": hashlib.sha256(material.encode("utf-8")).hexdigest(),
+                            "rule_material_type": "local_rule_line",
+                        }
+        if signature and signature in text:
+            return {
+                "rule_source": str(candidate),
+                "rule_hash_sha256": hashlib.sha256(signature.encode("utf-8")).hexdigest(),
+                "rule_material_type": "local_signature_fallback",
+            }
+    return {}
 
 
 def _attack_expected_edges(attack: dict) -> list[dict]:
@@ -444,10 +690,30 @@ def build_attestations(
         parsed_command = _parse_mbpoll_command(command_payload.get("command"))
         binding = node_binding_by_node.get(attack.get("related_node_id"), {})
         expected_alerts = details.get("expected_alerts") or result_payload.get("expected_alerts") or []
+        effective_target_ip = parsed_command.get("target_ip") or details.get("target_ip") or result_payload.get("target_ip")
+        effective_binding = binding
+        logical_target_role = details.get("target_role") or result_payload.get("target_role")
+        effective_target_basis = "attack_result_target"
+        if effective_target_ip:
+            for candidate in scenario_bom.get("node_instance_bindings") or []:
+                if candidate.get("status") != "bound":
+                    continue
+                if effective_target_ip in {candidate.get("instance_name"), candidate.get("openstack_instance_id")}:
+                    effective_binding = candidate
+                    effective_target_basis = "command_target_ip_binding"
+                    break
+        command_string = command_payload.get("command") or result_payload.get("command")
+        effective_role = effective_binding.get("node_name")
+        target_resolution_note = None
+        if logical_target_role and effective_role and str(logical_target_role).lower() != str(effective_role).lower():
+            target_resolution_note = (
+                f"logical target role '{logical_target_role}' differs from command-resolved node '{effective_role}'"
+            )
         attack_attestations.append(
             {
                 "attack_event_id": attack.get("timeline_event_id"),
                 "attack_id": attack.get("related_attack_id"),
+                "attack_name": details.get("display_name") or result_payload.get("display_name") or attack.get("description"),
                 "scenario_id": scenario_id,
                 "scenario_name": scenario_name,
                 "display_name": details.get("display_name") or result_payload.get("display_name") or attack.get("description"),
@@ -473,13 +739,16 @@ def build_attestations(
                     "user": details.get("target_user") or result_payload.get("target_user"),
                 },
                 "target": {
-                    "node_id": attack.get("related_node_id"),
-                    "instance_id": attack.get("related_instance_id"),
-                    "instance_name": binding.get("instance_name"),
-                    "node_name": binding.get("node_name"),
-                    "target_role": details.get("target_role") or result_payload.get("target_role"),
-                    "target_ip": details.get("target_ip") or result_payload.get("target_ip") or parsed_command.get("target_ip"),
+                    "node_id": effective_binding.get("node_id", attack.get("related_node_id")),
+                    "instance_id": effective_binding.get("instance_id", attack.get("related_instance_id")),
+                    "instance_name": effective_binding.get("instance_name"),
+                    "node_name": effective_binding.get("node_name"),
+                    "target_role": logical_target_role,
+                    "effective_target_role": effective_role,
+                    "target_ip": effective_target_ip,
                     "target_image": details.get("target_image") or result_payload.get("target_image"),
+                    "effective_target_basis": effective_target_basis,
+                    "target_resolution_note": target_resolution_note,
                 },
                 "operation": {
                     "tool_used": details.get("tool_used") or result_payload.get("tool_used") or "attack_executor",
@@ -495,7 +764,29 @@ def build_attestations(
                     "expected_alerts": expected_alerts,
                     "rollback_required": details.get("rollback_required", result_payload.get("rollback_required")),
                     "rollback_command": (modbus_log.get("rollback_command") or {}).get("command"),
+                    "command": command_string,
+                    "modbus_operation": parsed_command.get("operation"),
+                    "expected_effect": details.get("expected_effect")
+                    or result_payload.get("expected_effect")
+                    or ("plc_register_state_change" if parsed_command.get("protocol") == "modbus_tcp" else None),
+                    "expected_plc_state_change": details.get("expected_plc_state_change")
+                    or result_payload.get("expected_plc_state_change")
+                    or (f"register_{parsed_command.get('register_reference')} -> {parsed_command.get('value')}" if parsed_command.get("register_reference") is not None and parsed_command.get("value") is not None else None),
                 },
+                "execution_interpretation": {
+                    "status_classification": (
+                        "executed_successful"
+                        if details.get("success", result_payload.get("success")) is True
+                        else ("executed_failed" if details.get("success", result_payload.get("success")) is False else "execution_unknown")
+                    ),
+                    "status_note": (
+                        "Attack result marks the execution as failed, but command and sidecar evidence may still preserve attempted OT write parameters."
+                        if details.get("success", result_payload.get("success")) is False
+                        else target_resolution_note
+                    ),
+                },
+                "execution_status": "completed" if details.get("success", result_payload.get("success")) else "failed",
+                "source_reference": source_path,
                 "evidence_references": [
                     source_path,
                     _safe_rel_path(Path(source_path).parent.joinpath("modbus_transaction_log.json").as_posix()) if source_path else None,
@@ -520,8 +811,11 @@ def build_attestations(
             "source_path": alert.get("source_path"),
             "node_id": alert.get("related_node_id"),
             "instance_id": alert.get("related_instance_id"),
-            "detector": _infer_detector(signature, alert.get("source_type")),
+            "collector": details.get("collector") or _infer_detector(signature, alert.get("source_type")),
+            "original_sensor": details.get("original_sensor") or _infer_detector(signature, alert.get("source_type")),
+            "detector": details.get("original_sensor") or _infer_detector(signature, alert.get("source_type")),
             "signature": signature,
+            "rule_name": signature,
             "normalized_message": _normalized_alert_message(signature, details.get("rule_id")),
             "rule_id": details.get("rule_id"),
             "rule_level": details.get("rule_level"),
@@ -538,12 +832,20 @@ def build_attestations(
                 "ip": (details.get("dst") or {}).get("ip"),
                 "port": (details.get("dst") or {}).get("port"),
             },
+            "source_ip": (details.get("src") or {}).get("ip"),
+            "destination_ip": (details.get("dst") or {}).get("ip"),
+            "source_node": alert.get("related_node_id"),
+            "destination_node": alert.get("related_node_id"),
             "triage_severity": details.get("triage_severity") or (triage.get("details") or {}).get("severity"),
             "recommend_forensics": details.get("recommend_forensics"),
             "correlated_attack_id": alert.get("related_attack_id"),
             "correlation_status": details.get("correlation_status"),
             "correlation_confidence": details.get("correlation_confidence"),
             "correlation_reason": details.get("correlation_reason"),
+            "related_detection_rule": details.get("suricata_signature_id") or details.get("rule_id"),
+            "normalization_status": details.get("normalization_status") or "normalized",
+            "raw_reference": details.get("raw_reference") or alert.get("source_path"),
+            "mitre_mapping": details.get("mitre_ics") or [],
         }
         alerts_normalized.append(normalized)
 
@@ -551,28 +853,55 @@ def build_attestations(
     for item in alerts_normalized:
         signature = item.get("signature")
         detector = item.get("detector")
-        rule_id = item.get("rule_id")
+        rule_id = item.get("related_detection_rule") or item.get("rule_id")
         node_id = item.get("node_id")
         key = (str(rule_id), str(signature), str(node_id), str(detector))
         if key in observed_rule_map:
             continue
         binding = node_binding_by_node.get(node_id) or node_binding_by_instance.get(item.get("instance_id")) or {}
+        raw_record = _load_raw_alert_record(item)
+        raw = raw_record.get("raw") or {}
+        raw_rule = raw.get("rule") or {}
+        raw_alert = ((raw.get("data") or {}).get("alert") or {})
+        local_rule_material = _load_local_rule_material(item)
+        if raw_alert:
+            rule_hash_sha256 = _canonical_sha256(raw_alert)
+            rule_hash_status = "observed_alert_rule"
+            rule_source = f"{str(item.get('source_path') or '').split('#', 1)[0]}#raw.data.alert"
+        elif raw_rule:
+            rule_hash_sha256 = _canonical_sha256(raw_rule)
+            rule_hash_status = "observed_collector_rule"
+            rule_source = f"{str(item.get('source_path') or '').split('#', 1)[0]}#raw.rule"
+        else:
+            rule_hash_sha256 = local_rule_material.get("rule_hash_sha256")
+            rule_hash_status = "local_rule_source" if rule_hash_sha256 else "unavailable"
+            rule_source = local_rule_material.get("rule_source")
         observed_rule_map[key] = {
+            "detector": detector,
+            "collector": item.get("collector"),
+            "original_sensor": item.get("original_sensor"),
             "detector_engine": detector,
             "engine_version": None,
             "rule_active": True,
             "rule_id": rule_id,
+            "collector_rule_id": item.get("rule_id"),
+            "rule_name": signature,
             "severity": item.get("severity"),
             "signature": signature,
             "rule_file": _infer_rule_file(signature, rule_id),
-            "rule_hash": None,
-            "rule_hash_status": "unavailable",
+            "rule_hash": rule_hash_sha256,
+            "rule_hash_sha256": rule_hash_sha256,
+            "rule_hash_status": rule_hash_status,
+            "rule_source": rule_source,
             "mitre_techniques": _infer_mitre_techniques(signature),
             "node_id": node_id,
             "node_name": binding.get("node_name"),
             "instance_id": item.get("instance_id"),
             "instance_name": binding.get("instance_name"),
             "protocol": item.get("protocol"),
+            "enabled_status": True,
+            "enabled_at": None,
+            "source_reference": item.get("raw_reference"),
         }
 
     detection_attestation = {
@@ -611,11 +940,15 @@ def build_attestations(
             "wazuh_visible_alerts": sum(1 for item in alerts_normalized if item.get("detector") == "Wazuh"),
             "observed_rule_count": len(observed_rule_map),
             "engines": _summarize_top_counter(Counter(item.get("detector_engine") for item in observed_rule_map.values())),
+            "original_sensor_distribution": _summarize_top_counter(Counter(item.get("original_sensor") for item in alerts_normalized)),
+            "collector_distribution": _summarize_top_counter(Counter(item.get("collector") for item in alerts_normalized)),
         },
     }
 
     full_correlations = []
     attack_correlations = defaultdict(list)
+    attack_by_id_map = {item.get("attack_id"): item for item in attack_attestations if item.get("attack_id")}
+    normalized_alert_by_id = {item.get("alert_id"): item for item in alerts_normalized if item.get("alert_id")}
     for edge in relationships:
         if edge.get("relation") != "produced_alert":
             continue
@@ -637,9 +970,36 @@ def build_attestations(
                 "rule_id": details.get("rule_id"),
                 "signature": details.get("signature"),
             },
+            "collector": details.get("collector"),
+            "original_sensor": details.get("original_sensor"),
+            "protocol": details.get("protocol"),
+            "severity": details.get("severity"),
             "evidence": edge.get("evidence") or [],
         }
         correlation_item["correlation_bucket"] = _bucket_from_correlation_status(correlation_item)
+        related_attack = attack_by_id_map.get(correlation_item.get("attack_id"))
+        related_alert = normalized_alert_by_id.get(correlation_item.get("alert_id"))
+        temporal_distance = _seconds_between(
+            related_attack.get("execution", {}).get("completed_at") if related_attack else None,
+            related_alert.get("timestamp") if related_alert else None,
+        )
+        correlation_item["related_attack_id"] = correlation_item.get("attack_id")
+        correlation_item["related_detection_rule"] = correlation_item.get("detection_rule_relation")
+        correlation_item["confidence"] = correlation_item.get("correlation_confidence")
+        correlation_item["temporal_distance_seconds"] = temporal_distance
+        correlation_item["node_match"] = bool(related_attack and related_alert and related_attack.get("target", {}).get("node_id") == related_alert.get("node_id"))
+        correlation_item["ip_match"] = bool(
+            related_attack and related_alert and related_attack.get("target", {}).get("target_ip")
+            and related_attack.get("target", {}).get("target_ip") in {
+                related_alert.get("source_ip"),
+                related_alert.get("destination_ip"),
+                (related_alert.get("agent") or {}).get("ip"),
+            }
+        )
+        correlation_item["protocol_match"] = bool(related_attack and related_alert and str(related_attack.get("operation", {}).get("protocol") or "").startswith("modbus") and str(related_alert.get("protocol") or "").lower() == "tcp")
+        correlation_item["rule_match"] = "expected_alert_match" in str(correlation_item.get("correlation_reason") or "")
+        correlation_item["mitre_match"] = "mitre_match" in str(correlation_item.get("correlation_reason") or "")
+        correlation_item["evidence_expectation_match"] = "evidence_expectation_match" in str(correlation_item.get("correlation_reason") or "")
         full_correlations.append(correlation_item)
         attack_correlations[correlation_item.get("attack_id")].append(correlation_item)
 
@@ -662,6 +1022,45 @@ def build_attestations(
             )
 
     correlation_bucket_counter = Counter(item.get("correlation_bucket") for item in full_correlations)
+    unique_confirmed_pairs = {
+        (
+            item.get("attack_id"),
+            item.get("signature"),
+            item.get("node_id"),
+            item.get("protocol"),
+        )
+        for item in full_correlations
+        if item.get("correlation_bucket") == "correlated"
+    }
+    unique_candidate_pairs = {
+        (
+            item.get("attack_id"),
+            item.get("signature"),
+            item.get("node_id"),
+            item.get("protocol"),
+        )
+        for item in full_correlations
+        if item.get("correlation_bucket") not in {"noise"}
+    }
+    confirmed_attack_ids = {
+        item.get("attack_id")
+        for item in full_correlations
+        if item.get("correlation_bucket") == "correlated" and _is_present(item.get("attack_id"))
+    }
+    weak_attack_ids = {
+        item.get("attack_id")
+        for item in full_correlations
+        if item.get("correlation_bucket") in {"weak_candidate", "inferred_low", "inferred_medium"} and _is_present(item.get("attack_id"))
+    }
+    observable_attack_ids = {
+        item.get("attack_id")
+        for item in full_correlations
+        if item.get("correlation_bucket") in {"correlated", "weak_candidate", "inferred_low", "inferred_medium"} and _is_present(item.get("attack_id"))
+    }
+    alert_status_counter = Counter(
+        ("noise" if item.get("normalization_status") == "noise" else ("correlated" if item.get("correlation_status") == "confirmed" else "uncorrelated"))
+        for item in alerts_normalized
+    )
     uncorrelated_alert_samples = []
     for alert in alerts_normalized:
         if _is_present(alert.get("correlated_attack_id")) and str(alert.get("correlation_status") or "").lower() == "confirmed":
@@ -686,19 +1085,41 @@ def build_attestations(
         "scenario_id": scenario_id,
         "scenario_name": scenario_name,
         "total_correlation_records": len(full_correlations),
+        "total_alerts": len(alerts_normalized),
+        "relevant_alerts": sum(1 for item in alerts_normalized if item.get("normalization_status") != "noise"),
+        "correlated_alerts": correlation_bucket_counter.get("correlated", 0) + correlation_bucket_counter.get("inferred_medium", 0) + correlation_bucket_counter.get("inferred_low", 0) + correlation_bucket_counter.get("weak_candidate", 0),
+        "confirmed_correlations": correlation_bucket_counter.get("correlated", 0),
+        "weak_correlations": correlation_bucket_counter.get("weak_candidate", 0) + correlation_bucket_counter.get("inferred_low", 0) + correlation_bucket_counter.get("inferred_medium", 0),
+        "unresolved_alerts": correlation_bucket_counter.get("uncorrelated", 0),
+        "noise_alerts": correlation_bucket_counter.get("noise", 0),
+        "false_positive_candidates": correlation_bucket_counter.get("false_positive_candidate", 0),
+        "missing_expected_alerts_total": len(missing_expected_alerts),
         "bucket_counts": {
-            "correlated": correlation_bucket_counter.get("correlated", 0),
-            "uncorrelated": correlation_bucket_counter.get("uncorrelated", 0),
-            "noise": correlation_bucket_counter.get("noise", 0),
+            "correlated": max(correlation_bucket_counter.get("correlated", 0), alert_status_counter.get("correlated", 0)),
+            "uncorrelated": max(correlation_bucket_counter.get("uncorrelated", 0), alert_status_counter.get("uncorrelated", 0)),
+            "noise": max(correlation_bucket_counter.get("noise", 0), alert_status_counter.get("noise", 0)),
             "false_positive_candidate": correlation_bucket_counter.get("false_positive_candidate", 0),
             "missing_expected_alert": max(
                 correlation_bucket_counter.get("missing_expected_alert", 0),
                 len(missing_expected_alerts),
             ),
+            "weak_candidate": correlation_bucket_counter.get("weak_candidate", 0),
+            "inferred_low": correlation_bucket_counter.get("inferred_low", 0),
+            "inferred_medium": correlation_bucket_counter.get("inferred_medium", 0),
         },
         "top_signatures": _summarize_top_counter(Counter(item.get("signature") for item in full_correlations if _is_present(item.get("signature")))),
         "top_rule_ids": _summarize_top_counter(Counter(str(item.get("rule_id")) for item in full_correlations if _is_present(item.get("rule_id")))),
         "top_nodes": _summarize_top_counter(Counter(item.get("node_id") for item in full_correlations if _is_present(item.get("node_id")))),
+        "severity_distribution": _summarize_top_counter(Counter(item.get("severity") for item in alerts_normalized if _is_present(item.get("severity")))),
+        "alerts_by_node": _summarize_top_counter(Counter(item.get("node_id") for item in alerts_normalized if _is_present(item.get("node_id")))),
+        "alerts_by_mitre_technique": _summarize_top_counter(Counter(tech for item in alerts_normalized for tech in (item.get("mitre_mapping") or []) if _is_present(tech))),
+        "alerts_by_original_sensor": _summarize_top_counter(Counter(item.get("original_sensor") for item in alerts_normalized if _is_present(item.get("original_sensor")))),
+        "alerts_by_collector": _summarize_top_counter(Counter(item.get("collector") for item in alerts_normalized if _is_present(item.get("collector")))),
+        "unique_confirmed_attack_pairs": len(unique_confirmed_pairs),
+        "unique_correlation_candidates": len(unique_candidate_pairs),
+        "confirmed_attack_ids": len(confirmed_attack_ids),
+        "weak_attack_ids": len(weak_attack_ids),
+        "observable_attack_ids": len(observable_attack_ids),
         "missing_expected_alerts": missing_expected_alerts[:_ALERT_SAMPLE_LIMIT],
         "uncorrelated_alert_samples": uncorrelated_alert_samples,
     }
@@ -736,6 +1157,8 @@ def build_attestations(
                 if _is_present(artifact.get("related_node_id"))
             }
         )
+        if not target_nodes:
+            target_nodes = list((case_by_id.get(case_id) or {}).get("target_node_ids") or [])
         acquired_ts = [
             event.get("timestamp")
             for event in case_events
@@ -748,17 +1171,45 @@ def build_attestations(
                 "case_path": case_path,
                 "trigger_alert_id": trigger_alert.get("alert_id") if trigger_alert else None,
                 "trigger_signature": trigger_alert.get("signature") if trigger_alert else None,
+                "triggering_alert_name": trigger_alert.get("signature") if trigger_alert else None,
+                "triggering_alert_rule_id": trigger_alert.get("related_detection_rule") or trigger_alert.get("rule_id") if trigger_alert else None,
+                "triggering_alert_severity": trigger_alert.get("severity") if trigger_alert else None,
+                "triggering_alert_original_sensor": trigger_alert.get("original_sensor") if trigger_alert else None,
+                "triggering_alert_collector": trigger_alert.get("collector") if trigger_alert else None,
+                "triggering_alert_protocol": trigger_alert.get("protocol") if trigger_alert else None,
+                "triggering_alert_mitre": trigger_alert.get("mitre_mapping") if trigger_alert else [],
+                "trigger_type": "alert" if trigger_alert else ("manual" if case_created else "unknown"),
                 "trigger_detector": trigger_alert.get("detector") if trigger_alert else None,
+                "trigger_selection_method": trigger_alert.get("trigger_selection_method") if trigger_alert else None,
+                "trigger_selection_score": trigger_alert.get("trigger_selection_score") if trigger_alert else None,
+                "trigger_selection_reason": trigger_alert.get("trigger_selection_reason") if trigger_alert else None,
+                "candidate_triggers_evaluated": trigger_alert.get("candidate_triggers_evaluated") if trigger_alert else 0,
+                "stronger_trigger_available": trigger_alert.get("stronger_trigger_available") if trigger_alert else False,
                 "profile_used": "dfir_orchestration" if dfir_start else "preservation_only",
                 "target_nodes": target_nodes,
                 "expected_artifacts": expected_artifacts,
                 "acquired_artifacts": artifact_types,
                 "artifact_count": len(case_artifacts),
+                "start_time": dfir_start.get("timestamp") if dfir_start else None,
+                "end_time": sealed_ts,
                 "latency_alert_to_start_seconds": _seconds_between(trigger_alert.get("timestamp") if trigger_alert else None, dfir_start.get("timestamp") if dfir_start else None),
                 "latency_start_to_sealed_seconds": _seconds_between(dfir_start.get("timestamp") if dfir_start else None, sealed_ts),
                 "result": "completed" if case_artifacts else "not_started",
+                "pipeline_event_references": [case.get("pipeline_path") for case in cases_index if case.get("case_id") == case_id],
             }
         )
+
+    trigger_quality_summary = Counter()
+    for case_profile in case_profiles:
+        score = case_profile.get("trigger_selection_score")
+        if score is None:
+            trigger_quality_summary["unknown"] += 1
+        elif score >= 180:
+            trigger_quality_summary["strong"] += 1
+        elif score >= 100:
+            trigger_quality_summary["medium"] += 1
+        else:
+            trigger_quality_summary["weak"] += 1
 
     acquisition_profile = {
         "generated_at": generated_at,
@@ -787,6 +1238,7 @@ def build_attestations(
             "logs": sum(1 for artifact in artifacts if "log" in str(artifact.get("artifact_type") or "").lower()),
             "ot_state": sum(1 for artifact in artifacts if "industrial" in str(artifact.get("artifact_type") or "").lower() or "ot_" in str(artifact.get("path") or "").lower()),
         },
+        "trigger_quality_summary": dict(trigger_quality_summary),
     }
 
     intervention_by_case = defaultdict(list)
@@ -801,13 +1253,27 @@ def build_attestations(
             {
                 "case_id": case_id,
                 "trigger": next((case_profile.get("trigger_signature") for case_profile in case_profiles if case_profile.get("case_id") == case_id), None),
+                "trigger_type": next((case_profile.get("trigger_type") for case_profile in case_profiles if case_profile.get("case_id") == case_id), "unknown"),
+                "triggering_alert_id": next((case_profile.get("trigger_alert_id") for case_profile in case_profiles if case_profile.get("case_id") == case_id), None),
+                "triggering_alert_name": next((case_profile.get("triggering_alert_name") for case_profile in case_profiles if case_profile.get("case_id") == case_id), None),
+                "triggering_alert_rule_id": next((case_profile.get("triggering_alert_rule_id") for case_profile in case_profiles if case_profile.get("case_id") == case_id), None),
+                "triggering_alert_severity": next((case_profile.get("triggering_alert_severity") for case_profile in case_profiles if case_profile.get("case_id") == case_id), None),
+                "triggering_alert_original_sensor": next((case_profile.get("triggering_alert_original_sensor") for case_profile in case_profiles if case_profile.get("case_id") == case_id), None),
+                "triggering_alert_collector": next((case_profile.get("triggering_alert_collector") for case_profile in case_profiles if case_profile.get("case_id") == case_id), None),
+                "triggering_alert_protocol": next((case_profile.get("triggering_alert_protocol") for case_profile in case_profiles if case_profile.get("case_id") == case_id), None),
+                "triggering_alert_mitre": next((case_profile.get("triggering_alert_mitre") for case_profile in case_profiles if case_profile.get("case_id") == case_id), []),
+                "trigger_selection_method": next((case_profile.get("trigger_selection_method") for case_profile in case_profiles if case_profile.get("case_id") == case_id), None),
+                "trigger_selection_score": next((case_profile.get("trigger_selection_score") for case_profile in case_profiles if case_profile.get("case_id") == case_id), None),
+                "trigger_selection_reason": next((case_profile.get("trigger_selection_reason") for case_profile in case_profiles if case_profile.get("case_id") == case_id), None),
+                "candidate_triggers_evaluated": next((case_profile.get("candidate_triggers_evaluated") for case_profile in case_profiles if case_profile.get("case_id") == case_id), 0),
+                "stronger_trigger_available": next((case_profile.get("stronger_trigger_available") for case_profile in case_profiles if case_profile.get("case_id") == case_id), False),
                 "target_nodes": sorted(
                     {
                         artifact.get("related_node_id")
                         for artifact in artifacts
                         if artifact.get("case_id") == case_id and _is_present(artifact.get("related_node_id"))
                     }
-                ),
+                ) or list((case_by_id.get(case_id) or {}).get("target_node_ids") or []),
                 "tools_used": sorted(
                     {
                         "traffic_api" if "acquire_preserved" in str(event.get("event_type")) else
@@ -823,16 +1289,21 @@ def build_attestations(
                     for event in events
                     if _is_present((((event.get("details") or {}).get("command")) or ((event.get("details") or {}).get("details") or {}).get("command")))
                 ],
-                "collected_artifacts": [
+                "collected_artifacts": sorted({
                     artifact.get("artifact_id")
                     for artifact in artifacts
                     if artifact.get("case_id") == case_id
-                ],
+                }),
+                "manifest_path": (case_by_id.get(case_id) or {}).get("manifest_path"),
+                "chain_of_custody_path": (case_by_id.get(case_id) or {}).get("custody_path"),
                 "chain_of_custody_events": [
                     event.get("timeline_event_id")
                     for event in timeline_events
                     if event.get("related_case_id") == case_id and event.get("source_type") == "chain_of_custody"
                 ],
+                "intervention_start_time": min((event.get("timestamp") for event in events if _is_present(event.get("timestamp"))), default=None),
+                "intervention_end_time": max((event.get("timestamp") for event in events if _is_present(event.get("timestamp"))), default=None),
+                "intervention_status": "completed" if any(str(event.get("event_type")) == "dfir_orchestration_done" for event in events) else "partial",
             }
             for case_id, events in intervention_by_case.items()
             if _is_present(case_id)
@@ -884,6 +1355,7 @@ def build_attestations(
         "analysis_status_note": "No forensic analysis events were observed; preserved evidence and reconstruction outputs must not be treated as primary forensic analysis."
         if not analysis_events
         else "Analysis events were observed and linked below.",
+        "reason": "preservation_only_case" if not analysis_events else None,
     }
 
     expected_causal_edges = []
@@ -969,6 +1441,9 @@ def build_attestations(
                 "artifact_exists": _path_exists(artifact_path),
                 "manifest_exists": _path_exists(manifest_path),
                 "artifact_in_manifest": any(item.get("rel_path") == rel_path for item in manifest_artifacts if isinstance(item, dict)),
+                "trigger_alert_id": next((case_profile.get("trigger_alert_id") for case_profile in case_profiles if case_profile.get("case_id") == edge.get("from_id")), None),
+                "trigger_type": next((case_profile.get("trigger_type") for case_profile in case_profiles if case_profile.get("case_id") == edge.get("from_id")), "unknown"),
+                "custody_path": (case_by_id.get(edge.get("from_id")) or {}).get("custody_path"),
             }
         )
 

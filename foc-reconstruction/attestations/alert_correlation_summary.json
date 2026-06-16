@@ -1,69 +1,81 @@
 {
-  "generated_at": "2026-06-16T18:27:02.481572+00:00",
+  "generated_at": "2026-06-16T21:11:01.337351+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
-  "total_correlation_records": 126514,
+  "total_correlation_records": 35458,
+  "total_alerts": 18963,
+  "relevant_alerts": 4346,
+  "correlated_alerts": 8280,
+  "confirmed_correlations": 8280,
+  "weak_correlations": 0,
+  "unresolved_alerts": 27160,
+  "noise_alerts": 0,
+  "false_positive_candidates": 0,
+  "missing_expected_alerts_total": 26,
   "bucket_counts": {
-    "correlated": 3564,
-    "uncorrelated": 122934,
-    "noise": 0,
+    "correlated": 8280,
+    "uncorrelated": 27160,
+    "noise": 14617,
     "false_positive_candidate": 0,
-    "missing_expected_alert": 23
+    "missing_expected_alert": 26,
+    "weak_candidate": 0,
+    "inferred_low": 0,
+    "inferred_medium": 0
   },
   "top_signatures": [
     {
-      "label": "NICS CyberLab VISIBILITY TCP 502 Modbus traffic observed",
-      "count": 77484
-    },
-    {
-      "label": "/etc/suricata/suricata.yaml",
-      "count": 12992
-    },
-    {
       "label": "NICS CyberLab ICS RAW Modbus function 03 read holding registers burst",
-      "count": 6804
+      "count": 7560
     },
     {
       "label": "NICS CyberLab ICS RAW Modbus function 01 read coils burst",
-      "count": 6642
+      "count": 7380
     },
     {
       "label": "NICS CyberLab ICS Modbus write multiple registers",
-      "count": 4212
+      "count": 6120
     },
     {
-      "label": "ALERTA: Ping Detectado",
-      "count": 2844
+      "label": "/etc/suricata/suricata.yaml",
+      "count": 3672
     },
     {
       "label": "NICS CyberLab ICS RAW Modbus function 03 read holding registers",
-      "count": 2592
+      "count": 2880
     },
     {
-      "label": "/etc/suricata/suricata.yaml.nics-modbus-backup-20260614185326",
-      "count": 864
+      "label": "NICS CyberLab ICS Modbus write single register",
+      "count": 2160
     },
     {
       "label": "/etc/suricata/suricata.yaml.nics-modbus-backup-20260614185438",
-      "count": 864
+      "count": 960
     },
     {
-      "label": "/etc/suricata/suricata.yaml.nics-modbus-backup-20260614185551",
-      "count": 864
+      "label": "/etc/suricata/suricata.yaml.nics-modbus-backup-20260614190525",
+      "count": 960
+    },
+    {
+      "label": "/etc/suricata/suricata.yaml.nics-modbus-backup-20260614203742",
+      "count": 960
+    },
+    {
+      "label": "/etc/suricata/suricata.yaml.nics-modbus-backup-20260614210325",
+      "count": 960
     }
   ],
   "top_rule_ids": [
     {
       "label": "86601",
-      "count": 100578
-    },
-    {
-      "label": "550",
-      "count": 13632
+      "count": 26100
     },
     {
       "label": "554",
-      "count": 12128
+      "count": 4896
+    },
+    {
+      "label": "550",
+      "count": 4284
     },
     {
       "label": "5710",
@@ -73,17 +85,88 @@
   "top_nodes": [
     {
       "label": "node-e1ac03b8",
-      "count": 111558
+      "count": 19300
     },
     {
       "label": "node-f9ca9bfc",
-      "count": 13824
+      "count": 15600
     },
     {
       "label": "node-c800d431",
-      "count": 1116
+      "count": 540
     }
   ],
+  "severity_distribution": [
+    {
+      "label": "LOW",
+      "count": 14943
+    },
+    {
+      "label": "HIGH",
+      "count": 2340
+    },
+    {
+      "label": "MEDIUM",
+      "count": 1680
+    }
+  ],
+  "alerts_by_node": [
+    {
+      "label": "node-c800d431",
+      "count": 9201
+    },
+    {
+      "label": "node-e1ac03b8",
+      "count": 6388
+    },
+    {
+      "label": "node-f9ca9bfc",
+      "count": 3374
+    }
+  ],
+  "alerts_by_mitre_technique": [
+    {
+      "label": "T0802",
+      "count": 348
+    },
+    {
+      "label": "T0861",
+      "count": 348
+    },
+    {
+      "label": "T1692.001",
+      "count": 276
+    },
+    {
+      "label": "T0836",
+      "count": 276
+    },
+    {
+      "label": "T0877",
+      "count": 246
+    }
+  ],
+  "alerts_by_original_sensor": [
+    {
+      "label": "suricata",
+      "count": 15219
+    },
+    {
+      "label": "wazuh",
+      "count": 3744
+    }
+  ],
+  "alerts_by_collector": [
+    {
+      "label": "wazuh",
+      "count": 18963
+    }
+  ],
+  "unique_confirmed_attack_pairs": 3,
+  "unique_correlation_candidates": 40,
+  "confirmed_attack_ids": 1,
+  "weak_attack_ids": 0,
+  "observable_attack_ids": 1,
   "missing_expected_alerts": [
     {
       "attack_id": "atk-f4c9d8b0",
@@ -374,6 +457,32 @@
         "icmp_sweep",
         "host_discovery",
         "active_scanning"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7"
+    },
+    {
+      "attack_id": "atk-761a78ab",
+      "display_name": "Multi-Vector Validation",
+      "expected_alerts": [
+        "port_scan",
+        "failed_ssh_login",
+        "fim_integrity_alert",
+        "exfiltration_activity",
+        "modbus_write_register"
+      ],
+      "status": "missing_expected_alert",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7"
+    },
+    {
+      "attack_id": "atk-25f9f5c2",
+      "display_name": "Controlled File Tamper",
+      "expected_alerts": [
+        "file_modified",
+        "fim_integrity_alert",
+        "stored_data_manipulation"
       ],
       "status": "missing_expected_alert",
       "target_node_id": "node-e1ac03b8",

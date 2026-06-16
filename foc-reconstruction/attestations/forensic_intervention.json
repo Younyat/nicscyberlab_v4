@@ -1,12 +1,30 @@
 {
-  "generated_at": "2026-06-16T18:27:02.481572+00:00",
+  "generated_at": "2026-06-16T21:11:01.337351+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
   "interventions": [
     {
       "case_id": "case-63ceb018",
-      "trigger": "ALERTA: Ping Detectado",
-      "target_nodes": [],
+      "trigger": "/etc/shadow_backup",
+      "trigger_type": "alert",
+      "triggering_alert_id": "alr-b5d92861",
+      "triggering_alert_name": "/etc/shadow_backup",
+      "triggering_alert_rule_id": "550",
+      "triggering_alert_severity": "HIGH",
+      "triggering_alert_original_sensor": "wazuh",
+      "triggering_alert_collector": "wazuh",
+      "triggering_alert_protocol": "unknown",
+      "triggering_alert_mitre": [],
+      "trigger_selection_method": "fallback_prior_alert",
+      "trigger_selection_score": 320,
+      "trigger_selection_reason": "medium_correlation,high_severity,fim_signal,original_wazuh,fim_rule,temporal_close",
+      "candidate_triggers_evaluated": 2512,
+      "stronger_trigger_available": false,
+      "target_nodes": [
+        "node-c800d431",
+        "node-e1ac03b8",
+        "node-f9ca9bfc"
+      ],
       "tools_used": [
         "dfir_orchestrator",
         "forensics_api",
@@ -16,146 +34,114 @@
       ],
       "commands_executed": [],
       "collected_artifacts": [
-        "art-5e7d66cf",
-        "art-dde3d770",
-        "art-9e0ed204",
-        "art-dde3d770",
-        "art-5e7d66cf",
-        "art-9e0ed204",
-        "art-8aa4f598",
-        "art-0fdcc86a",
-        "art-42e83af4",
-        "art-fcde3e11",
-        "art-fd4ec297",
-        "art-f7e11163",
-        "art-734995a1",
-        "art-2e3ff62a",
-        "art-f982f07f",
-        "art-36972a69",
-        "art-d96d3f58",
-        "art-9de04627",
-        "art-effd686e",
-        "art-33cc2661",
         "art-0399876e",
-        "art-c11b1faf",
-        "art-5e7d66cf",
-        "art-9e0ed204",
-        "art-636ee86d",
-        "art-1579e89e",
-        "art-5e7d66cf",
-        "art-e9fe3a78",
-        "art-5e7d66cf",
-        "art-c1a8530b",
-        "art-82f9c67d",
-        "art-5e7d66cf",
-        "art-d4182275",
-        "art-5e7d66cf",
-        "art-b89eb950",
-        "art-ab1fc802",
-        "art-5e7d66cf",
-        "art-cf1dc2fc",
-        "art-5e7d66cf",
-        "art-5e7d66cf",
-        "art-9e0ed204",
-        "art-b9f68fd5",
-        "art-bea64b13",
-        "art-efc9695e",
-        "art-5e7d66cf",
-        "art-9e0ed204",
-        "art-5e7d66cf",
-        "art-9e0ed204",
-        "art-e588fceb",
         "art-068d7678",
-        "art-233de542",
-        "art-5e7d66cf",
-        "art-9e0ed204",
-        "art-5e7d66cf",
-        "art-9e0ed204",
-        "art-23c1d0c6",
-        "art-65b30fa4",
-        "art-ebc3f3a7",
-        "art-5e7d66cf",
-        "art-9e0ed204",
-        "art-5e7d66cf",
-        "art-9e0ed204",
+        "art-0fdcc86a",
         "art-148dda75",
-        "art-6646c6a3",
-        "art-80d66c09",
-        "art-5e7d66cf",
-        "art-9e0ed204",
-        "art-5e7d66cf",
-        "art-9e0ed204",
-        "art-b33e1653",
-        "art-cf2fef09",
-        "art-b265fba9",
-        "art-5e7d66cf",
-        "art-9e0ed204",
-        "art-5e7d66cf",
-        "art-9e0ed204",
-        "art-ed7e03c4",
-        "art-edd7af19",
+        "art-1579e89e",
+        "art-233de542",
+        "art-23c1d0c6",
+        "art-2e3ff62a",
+        "art-33cc2661",
+        "art-36972a69",
+        "art-42e83af4",
+        "art-4764bd3d",
         "art-48aca5a2",
-        "art-5e7d66cf",
-        "art-9e0ed204",
-        "art-5e7d66cf",
-        "art-9e0ed204",
-        "art-f658c3b3",
-        "art-c9c3e71d",
-        "art-5e7d66cf",
         "art-4f60c4a7",
         "art-5e7d66cf",
-        "art-f585fda7",
-        "art-e7454009",
-        "art-5e7d66cf",
-        "art-e914cb77",
-        "art-5e7d66cf",
-        "art-c444ece9",
+        "art-636ee86d",
+        "art-65b30fa4",
+        "art-6646c6a3",
+        "art-734995a1",
         "art-79979b03",
-        "art-5e7d66cf",
+        "art-80d66c09",
+        "art-82f9c67d",
+        "art-8aa4f598",
         "art-8f881f80",
-        "art-5e7d66cf"
+        "art-9de04627",
+        "art-9e0ed204",
+        "art-ab1fc802",
+        "art-b265fba9",
+        "art-b33e1653",
+        "art-b6bf2623",
+        "art-b89eb950",
+        "art-b9f68fd5",
+        "art-bea64b13",
+        "art-c11b1faf",
+        "art-c1a8530b",
+        "art-c444ece9",
+        "art-c9c3e71d",
+        "art-cf1dc2fc",
+        "art-cf2fef09",
+        "art-d4182275",
+        "art-d96d3f58",
+        "art-dde3d770",
+        "art-e20895d5",
+        "art-e588fceb",
+        "art-e7454009",
+        "art-e914cb77",
+        "art-e9fe3a78",
+        "art-ebc3f3a7",
+        "art-ed7e03c4",
+        "art-edd7af19",
+        "art-efc9695e",
+        "art-effd686e",
+        "art-f585fda7",
+        "art-f658c3b3",
+        "art-f7e11163",
+        "art-f982f07f",
+        "art-fcde3e11",
+        "art-fd4ec297"
       ],
+      "manifest_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/manifest.json",
+      "chain_of_custody_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/chain_of_custody.log",
       "chain_of_custody_events": [
-        "evt-08af0e23",
-        "evt-dd303e23",
-        "evt-968fff77",
-        "evt-92392aa6",
-        "evt-9e9eacde",
-        "evt-c93c8fc2",
-        "evt-bd1e446b",
-        "evt-afdb934b",
-        "evt-e7275caa",
-        "evt-da38f011",
-        "evt-aa150a9f",
-        "evt-6085c9b9",
-        "evt-933d73e1",
-        "evt-bdf75719",
-        "evt-b4044677",
-        "evt-b190798b",
-        "evt-cc7ced2b",
-        "evt-34aa6ad7",
-        "evt-ab40abc4",
-        "evt-9320d621",
-        "evt-2ef8ae4e",
-        "evt-4c494b1c",
-        "evt-3e5015f1",
-        "evt-6552dbf1",
-        "evt-6580abb8",
-        "evt-5381d406",
-        "evt-15f092d5",
-        "evt-d2eeb1b3",
-        "evt-98a256de",
-        "evt-bf83d2ef",
-        "evt-06ef8b00",
-        "evt-78e2f681",
-        "evt-ff19dc7c",
-        "evt-a788f286"
-      ]
+        "evt-e5f9eef4",
+        "evt-01f2ff33",
+        "evt-4a27039a",
+        "evt-5322f4f6",
+        "evt-de40d81b",
+        "evt-3150294e",
+        "evt-b5cdaabb",
+        "evt-9be0d48c",
+        "evt-0f9635bd",
+        "evt-6be279e2",
+        "evt-cd67e924",
+        "evt-ae3995ba",
+        "evt-ca9acdf5",
+        "evt-3dadf10d",
+        "evt-bf02fdc1",
+        "evt-c31e77c1",
+        "evt-bcf525cc",
+        "evt-be62d6af",
+        "evt-1e982be4",
+        "evt-a77440a0",
+        "evt-56e3fe5f",
+        "evt-ab35fa03",
+        "evt-60695c42",
+        "evt-8a840438",
+        "evt-e3986081",
+        "evt-6f1d3f30",
+        "evt-6357be7e",
+        "evt-57ec7b3e",
+        "evt-4db4ad43",
+        "evt-3f9654aa",
+        "evt-cfa0dd01",
+        "evt-f4ffe052",
+        "evt-78eae97a",
+        "evt-0b239c8e",
+        "evt-004450f3",
+        "evt-98650824",
+        "evt-0e83b89a"
+      ],
+      "intervention_start_time": "2026-06-10T14:07:33Z",
+      "intervention_end_time": "2026-06-16T21:04:48Z",
+      "intervention_status": "completed"
     }
   ],
   "raw_events": [
     {
-      "timeline_event_id": "evt-08af0e23",
+      "timeline_event_id": "evt-e5f9eef4",
       "event_type": "case_created",
       "timestamp": "2026-06-10T14:07:33Z",
       "status": "recorded",
@@ -179,7 +165,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-b60651bc",
+      "timeline_event_id": "evt-11646384",
       "event_type": "dfir_orchestration_start",
       "timestamp": "2026-06-10T14:07:42Z",
       "status": "observed",
@@ -217,12 +203,12 @@
       }
     },
     {
-      "timeline_event_id": "evt-4f7e0cb3",
+      "timeline_event_id": "evt-f2d125d1",
       "event_type": "ot_export_preserved",
       "timestamp": "2026-06-10T14:08:12Z",
       "status": "observed",
       "related_case_id": "case-63ceb018",
-      "related_node_id": "unresolved",
+      "related_node_id": "node-e1ac03b8",
       "related_instance_id": "inst-a495cfe7",
       "description": "ot_export_preserved",
       "details": {
@@ -242,13 +228,13 @@
       }
     },
     {
-      "timeline_event_id": "evt-92392aa6",
+      "timeline_event_id": "evt-5322f4f6",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:08:12Z",
       "status": "recorded",
       "related_case_id": "case-63ceb018",
-      "related_node_id": "unresolved",
-      "related_instance_id": "unresolved",
+      "related_node_id": "node-e1ac03b8",
+      "related_instance_id": "inst-a495cfe7",
       "description": "acquire_preserved",
       "details": {
         "ts_utc": "2026-06-10T14:08:12Z",
@@ -269,13 +255,13 @@
       }
     },
     {
-      "timeline_event_id": "evt-9e9eacde",
+      "timeline_event_id": "evt-de40d81b",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:08:12Z",
       "status": "recorded",
       "related_case_id": "case-63ceb018",
-      "related_node_id": "unresolved",
-      "related_instance_id": "unresolved",
+      "related_node_id": "node-e1ac03b8",
+      "related_instance_id": "inst-a495cfe7",
       "description": "acquire_preserved",
       "details": {
         "ts_utc": "2026-06-10T14:08:12Z",
@@ -296,7 +282,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-c93c8fc2",
+      "timeline_event_id": "evt-3150294e",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:08:12Z",
       "status": "recorded",
@@ -323,12 +309,12 @@
       }
     },
     {
-      "timeline_event_id": "evt-8458c2a6",
+      "timeline_event_id": "evt-c15c63cd",
       "event_type": "ot_export_preserved",
       "timestamp": "2026-06-10T14:08:42Z",
       "status": "observed",
       "related_case_id": "case-63ceb018",
-      "related_node_id": "unresolved",
+      "related_node_id": "node-f9ca9bfc",
       "related_instance_id": "inst-8c0c86c9",
       "description": "ot_export_preserved",
       "details": {
@@ -348,13 +334,13 @@
       }
     },
     {
-      "timeline_event_id": "evt-bd1e446b",
+      "timeline_event_id": "evt-b5cdaabb",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:08:42Z",
       "status": "recorded",
       "related_case_id": "case-63ceb018",
-      "related_node_id": "unresolved",
-      "related_instance_id": "unresolved",
+      "related_node_id": "node-f9ca9bfc",
+      "related_instance_id": "inst-8c0c86c9",
       "description": "acquire_preserved",
       "details": {
         "ts_utc": "2026-06-10T14:08:42Z",
@@ -375,13 +361,13 @@
       }
     },
     {
-      "timeline_event_id": "evt-afdb934b",
+      "timeline_event_id": "evt-9be0d48c",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:08:42Z",
       "status": "recorded",
       "related_case_id": "case-63ceb018",
-      "related_node_id": "unresolved",
-      "related_instance_id": "unresolved",
+      "related_node_id": "node-f9ca9bfc",
+      "related_instance_id": "inst-8c0c86c9",
       "description": "acquire_preserved",
       "details": {
         "ts_utc": "2026-06-10T14:08:42Z",
@@ -402,7 +388,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-e7275caa",
+      "timeline_event_id": "evt-0f9635bd",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:08:42Z",
       "status": "recorded",
@@ -429,12 +415,12 @@
       }
     },
     {
-      "timeline_event_id": "evt-4e423f32",
+      "timeline_event_id": "evt-c88fafae",
       "event_type": "ot_export_preserved",
       "timestamp": "2026-06-10T14:09:10Z",
       "status": "observed",
       "related_case_id": "case-63ceb018",
-      "related_node_id": "unresolved",
+      "related_node_id": "node-c800d431",
       "related_instance_id": "inst-16583180",
       "description": "ot_export_preserved",
       "details": {
@@ -454,13 +440,13 @@
       }
     },
     {
-      "timeline_event_id": "evt-da38f011",
+      "timeline_event_id": "evt-6be279e2",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:09:10Z",
       "status": "recorded",
       "related_case_id": "case-63ceb018",
-      "related_node_id": "unresolved",
-      "related_instance_id": "unresolved",
+      "related_node_id": "node-c800d431",
+      "related_instance_id": "inst-16583180",
       "description": "acquire_preserved",
       "details": {
         "ts_utc": "2026-06-10T14:09:10Z",
@@ -481,13 +467,13 @@
       }
     },
     {
-      "timeline_event_id": "evt-aa150a9f",
+      "timeline_event_id": "evt-cd67e924",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:09:10Z",
       "status": "recorded",
       "related_case_id": "case-63ceb018",
-      "related_node_id": "unresolved",
-      "related_instance_id": "unresolved",
+      "related_node_id": "node-c800d431",
+      "related_instance_id": "inst-16583180",
       "description": "acquire_preserved",
       "details": {
         "ts_utc": "2026-06-10T14:09:10Z",
@@ -508,7 +494,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-6085c9b9",
+      "timeline_event_id": "evt-ae3995ba",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:09:10Z",
       "status": "recorded",
@@ -535,12 +521,12 @@
       }
     },
     {
-      "timeline_event_id": "evt-88a53980",
+      "timeline_event_id": "evt-ccd6a1f9",
       "event_type": "memory_preserved",
       "timestamp": "2026-06-10T14:10:44Z",
       "status": "observed",
       "related_case_id": "case-63ceb018",
-      "related_node_id": "unresolved",
+      "related_node_id": "node-e1ac03b8",
       "related_instance_id": "inst-a495cfe7",
       "description": "memory_preserved",
       "details": {
@@ -566,7 +552,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-bdf75719",
+      "timeline_event_id": "evt-3dadf10d",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:10:44Z",
       "status": "recorded",
@@ -595,12 +581,12 @@
       }
     },
     {
-      "timeline_event_id": "evt-6fcaf346",
+      "timeline_event_id": "evt-aba4a880",
       "event_type": "memory_preserved",
       "timestamp": "2026-06-10T14:12:34Z",
       "status": "observed",
       "related_case_id": "case-63ceb018",
-      "related_node_id": "unresolved",
+      "related_node_id": "node-f9ca9bfc",
       "related_instance_id": "inst-8c0c86c9",
       "description": "memory_preserved",
       "details": {
@@ -626,7 +612,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-b190798b",
+      "timeline_event_id": "evt-c31e77c1",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:12:34Z",
       "status": "recorded",
@@ -655,12 +641,12 @@
       }
     },
     {
-      "timeline_event_id": "evt-4b4e4349",
+      "timeline_event_id": "evt-b918acdd",
       "event_type": "memory_preserved",
       "timestamp": "2026-06-10T14:14:07Z",
       "status": "observed",
       "related_case_id": "case-63ceb018",
-      "related_node_id": "unresolved",
+      "related_node_id": "node-c800d431",
       "related_instance_id": "inst-16583180",
       "description": "memory_preserved",
       "details": {
@@ -686,7 +672,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-34aa6ad7",
+      "timeline_event_id": "evt-be62d6af",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:14:07Z",
       "status": "recorded",
@@ -715,12 +701,12 @@
       }
     },
     {
-      "timeline_event_id": "evt-fd5ba3f8",
+      "timeline_event_id": "evt-56389d2e",
       "event_type": "disk_preserved",
       "timestamp": "2026-06-10T14:17:58Z",
       "status": "observed",
       "related_case_id": "case-63ceb018",
-      "related_node_id": "unresolved",
+      "related_node_id": "node-e1ac03b8",
       "related_instance_id": "inst-a495cfe7",
       "description": "disk_preserved",
       "details": {
@@ -739,7 +725,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-9320d621",
+      "timeline_event_id": "evt-a77440a0",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:17:58Z",
       "status": "recorded",
@@ -766,12 +752,12 @@
       }
     },
     {
-      "timeline_event_id": "evt-8d1bb81f",
+      "timeline_event_id": "evt-d22b9bde",
       "event_type": "disk_preserved",
       "timestamp": "2026-06-10T14:21:07Z",
       "status": "observed",
       "related_case_id": "case-63ceb018",
-      "related_node_id": "unresolved",
+      "related_node_id": "node-f9ca9bfc",
       "related_instance_id": "inst-8c0c86c9",
       "description": "disk_preserved",
       "details": {
@@ -790,7 +776,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-4c494b1c",
+      "timeline_event_id": "evt-ab35fa03",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:21:07Z",
       "status": "recorded",
@@ -817,12 +803,12 @@
       }
     },
     {
-      "timeline_event_id": "evt-ef353650",
+      "timeline_event_id": "evt-cbcd83f5",
       "event_type": "disk_preserved",
       "timestamp": "2026-06-10T14:27:40Z",
       "status": "observed",
       "related_case_id": "case-63ceb018",
-      "related_node_id": "unresolved",
+      "related_node_id": "node-c800d431",
       "related_instance_id": "inst-16583180",
       "description": "disk_preserved",
       "details": {
@@ -841,7 +827,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-d5227786",
+      "timeline_event_id": "evt-8bcf7e71",
       "event_type": "dfir_orchestration_done",
       "timestamp": "2026-06-10T14:27:40Z",
       "status": "observed",
@@ -860,7 +846,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-6552dbf1",
+      "timeline_event_id": "evt-8a840438",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:27:40Z",
       "status": "recorded",
@@ -887,7 +873,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-6580abb8",
+      "timeline_event_id": "evt-e3986081",
       "event_type": "dfir_orchestration_done",
       "timestamp": "2026-06-10T14:27:40Z",
       "status": "recorded",
@@ -911,12 +897,12 @@
       }
     },
     {
-      "timeline_event_id": "evt-9c9cb4e5",
+      "timeline_event_id": "evt-1d1ded55",
       "event_type": "ot_export_preserved",
       "timestamp": "2026-06-16T13:26:50Z",
       "status": "observed",
       "related_case_id": "case-63ceb018",
-      "related_node_id": "unresolved",
+      "related_node_id": "node-e1ac03b8",
       "related_instance_id": "inst-a495cfe7",
       "description": "ot_export_preserved",
       "details": {
@@ -936,13 +922,13 @@
       }
     },
     {
-      "timeline_event_id": "evt-5381d406",
+      "timeline_event_id": "evt-6f1d3f30",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-16T13:26:50Z",
       "status": "recorded",
       "related_case_id": "case-63ceb018",
-      "related_node_id": "unresolved",
-      "related_instance_id": "unresolved",
+      "related_node_id": "node-e1ac03b8",
+      "related_instance_id": "inst-a495cfe7",
       "description": "acquire_preserved",
       "details": {
         "ts_utc": "2026-06-16T13:26:50Z",
@@ -962,13 +948,13 @@
       }
     },
     {
-      "timeline_event_id": "evt-15f092d5",
+      "timeline_event_id": "evt-6357be7e",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-16T13:26:50Z",
       "status": "recorded",
       "related_case_id": "case-63ceb018",
-      "related_node_id": "unresolved",
-      "related_instance_id": "unresolved",
+      "related_node_id": "node-e1ac03b8",
+      "related_instance_id": "inst-a495cfe7",
       "description": "acquire_preserved",
       "details": {
         "ts_utc": "2026-06-16T13:26:50Z",
@@ -988,7 +974,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-d2eeb1b3",
+      "timeline_event_id": "evt-57ec7b3e",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-16T13:26:50Z",
       "status": "recorded",
@@ -1015,12 +1001,12 @@
       }
     },
     {
-      "timeline_event_id": "evt-cc8d2c3c",
+      "timeline_event_id": "evt-18f33b0c",
       "event_type": "ot_export_preserved",
       "timestamp": "2026-06-16T13:27:55Z",
       "status": "observed",
       "related_case_id": "case-63ceb018",
-      "related_node_id": "unresolved",
+      "related_node_id": "node-4e09b076",
       "related_instance_id": "inst-995d7668",
       "description": "ot_export_preserved",
       "details": {
@@ -1040,13 +1026,13 @@
       }
     },
     {
-      "timeline_event_id": "evt-98a256de",
+      "timeline_event_id": "evt-4db4ad43",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-16T13:27:55Z",
       "status": "recorded",
       "related_case_id": "case-63ceb018",
-      "related_node_id": "unresolved",
-      "related_instance_id": "unresolved",
+      "related_node_id": "node-4e09b076",
+      "related_instance_id": "inst-995d7668",
       "description": "acquire_preserved",
       "details": {
         "ts_utc": "2026-06-16T13:27:55Z",
@@ -1066,13 +1052,13 @@
       }
     },
     {
-      "timeline_event_id": "evt-bf83d2ef",
+      "timeline_event_id": "evt-3f9654aa",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-16T13:27:55Z",
       "status": "recorded",
       "related_case_id": "case-63ceb018",
-      "related_node_id": "unresolved",
-      "related_instance_id": "unresolved",
+      "related_node_id": "node-4e09b076",
+      "related_instance_id": "inst-995d7668",
       "description": "acquire_preserved",
       "details": {
         "ts_utc": "2026-06-16T13:27:55Z",
@@ -1092,7 +1078,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-06ef8b00",
+      "timeline_event_id": "evt-cfa0dd01",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-16T13:27:55Z",
       "status": "recorded",
@@ -1119,12 +1105,12 @@
       }
     },
     {
-      "timeline_event_id": "evt-4ca8a0f5",
+      "timeline_event_id": "evt-b46f7931",
       "event_type": "ot_export_preserved",
       "timestamp": "2026-06-16T16:38:51Z",
       "status": "observed",
       "related_case_id": "case-63ceb018",
-      "related_node_id": "unresolved",
+      "related_node_id": "node-e1ac03b8",
       "related_instance_id": "inst-a495cfe7",
       "description": "ot_export_preserved",
       "details": {
@@ -1144,13 +1130,13 @@
       }
     },
     {
-      "timeline_event_id": "evt-78e2f681",
+      "timeline_event_id": "evt-f4ffe052",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-16T16:38:51Z",
       "status": "recorded",
       "related_case_id": "case-63ceb018",
-      "related_node_id": "unresolved",
-      "related_instance_id": "unresolved",
+      "related_node_id": "node-e1ac03b8",
+      "related_instance_id": "inst-a495cfe7",
       "description": "acquire_preserved",
       "details": {
         "ts_utc": "2026-06-16T16:38:51Z",
@@ -1170,13 +1156,13 @@
       }
     },
     {
-      "timeline_event_id": "evt-ff19dc7c",
+      "timeline_event_id": "evt-78eae97a",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-16T16:38:51Z",
       "status": "recorded",
       "related_case_id": "case-63ceb018",
-      "related_node_id": "unresolved",
-      "related_instance_id": "unresolved",
+      "related_node_id": "node-e1ac03b8",
+      "related_instance_id": "inst-a495cfe7",
       "description": "acquire_preserved",
       "details": {
         "ts_utc": "2026-06-16T16:38:51Z",
@@ -1196,7 +1182,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-a788f286",
+      "timeline_event_id": "evt-0b239c8e",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-16T16:38:51Z",
       "status": "recorded",
@@ -1220,6 +1206,110 @@
         },
         "prev_hash": "d4f0f0812ac5f61884f157b63f6b596a324aeab654604d2f885c5f5ecc86128e",
         "entry_hash": "be2ca35a32f7efac8da1ccc38cf7a7a6c021a692950d13971ca3876467ffc24f"
+      }
+    },
+    {
+      "timeline_event_id": "evt-9d4a3342",
+      "event_type": "ot_export_preserved",
+      "timestamp": "2026-06-16T21:04:48Z",
+      "status": "observed",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "node-e1ac03b8",
+      "related_instance_id": "inst-a495cfe7",
+      "description": "ot_export_preserved",
+      "details": {
+        "ts_utc": "2026-06-16T21:04:48Z",
+        "ts_utc_ms": "2026-06-16T21:04:48.729Z",
+        "ts_epoch": 1781643888.7297056,
+        "event": "ot_export_preserved",
+        "run_id": "R1",
+        "meta": {
+          "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+          "protocol": "modbus_tcp",
+          "industrial_export_rel": "industrial/ot_export_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260616_210444Z.json",
+          "industrial_export_sha256": "1be6153c8f6a1e808b9557e7652be579dc3f6d57e706c5d560759a861228417b",
+          "industrial_export_size": 7575,
+          "records_exported": 14
+        }
+      }
+    },
+    {
+      "timeline_event_id": "evt-004450f3",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-16T21:04:48Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "node-e1ac03b8",
+      "related_instance_id": "inst-a495cfe7",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-16T21:04:48Z",
+        "ts_epoch": 1781643888.70792,
+        "run_id": "R1",
+        "actor": "traffic_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "network/per_vm/a495cfe7-b55b-41d0-95bf-78f9093f7fe2/pcap_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260616_210444Z.pcap",
+        "outcome": "ok",
+        "details": {
+          "kind": "pcap",
+          "sha256": "f0c1589d88204986bd4e924f6d319afe7d827d7b68b3500941adb2c7a7ec071c",
+          "size": 7446
+        },
+        "prev_hash": "be2ca35a32f7efac8da1ccc38cf7a7a6c021a692950d13971ca3876467ffc24f",
+        "entry_hash": "e7633c127dfec9704f00a6f874148e61afce54cfee789efaaed43b58779ac8b7"
+      }
+    },
+    {
+      "timeline_event_id": "evt-98650824",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-16T21:04:48Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "node-e1ac03b8",
+      "related_instance_id": "inst-a495cfe7",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-16T21:04:48Z",
+        "ts_epoch": 1781643888.7083278,
+        "run_id": "R1",
+        "actor": "traffic_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "network/per_vm/a495cfe7-b55b-41d0-95bf-78f9093f7fe2/pcap_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260616_210444Z.metadata.json",
+        "outcome": "ok",
+        "details": {
+          "kind": "pcap_metadata",
+          "sha256": "e668cbbd08e217bd414cea027ebf66ebb2650d4a6fea1f4eb78e7afc78b8b57b",
+          "size": 1461
+        },
+        "prev_hash": "e7633c127dfec9704f00a6f874148e61afce54cfee789efaaed43b58779ac8b7",
+        "entry_hash": "345135dd484cc5c5e9e56edf065c4d9fe5596bfc08040c7641fa21ac96408f55"
+      }
+    },
+    {
+      "timeline_event_id": "evt-0e83b89a",
+      "event_type": "acquire_preserved",
+      "timestamp": "2026-06-16T21:04:48Z",
+      "status": "recorded",
+      "related_case_id": "case-63ceb018",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "acquire_preserved",
+      "details": {
+        "ts_utc": "2026-06-16T21:04:48Z",
+        "ts_epoch": 1781643888.7257223,
+        "run_id": "R1",
+        "actor": "traffic_api",
+        "action": "acquire_preserved",
+        "artifact_rel": "industrial/ot_export_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260616_210444Z.json",
+        "outcome": "ok",
+        "details": {
+          "kind": "industrial_ot_export_modbus_tcp",
+          "sha256": "1be6153c8f6a1e808b9557e7652be579dc3f6d57e706c5d560759a861228417b",
+          "size": 7575,
+          "records_exported": 14
+        },
+        "prev_hash": "345135dd484cc5c5e9e56edf065c4d9fe5596bfc08040c7641fa21ac96408f55",
+        "entry_hash": "8ca3442c1f7331ff9fef388c27b502681d021fdd750381d0116d07861e877672"
       }
     }
   ]

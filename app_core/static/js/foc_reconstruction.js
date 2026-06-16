@@ -67,7 +67,7 @@ function esc(value) {
 function statusClass(status) {
   const normalized = String(status || "").toLowerCase().replace(/\s+/g, "_");
   if (["confirmed", "complete", "valid", "active", "bound", "present", "available", "completed"].includes(normalized)) return "status-confirmed";
-  if (["inferred", "partial", "bootstrap", "updated", "warning", "warnings", "mostly_available"].includes(normalized)) return "status-inferred";
+  if (["inferred", "partial", "bootstrap", "updated", "warning", "warnings", "mostly_available", "mostly_noise"].includes(normalized)) return "status-inferred";
   if (["missing", "critical", "insufficient", "unresolved", "error", "bootstrap_required"].includes(normalized)) return "status-missing";
   if (["unknown", "not_available", "degraded", "not_completed", "not_generated"].includes(normalized)) return "status-unknown";
   if (["not_generated_yet"].includes(normalized)) return "status-updated";
@@ -377,6 +377,22 @@ async function loadAll(force = false) {
     FOC.relationships = payload?.relationships || null;
     FOC.artifacts = payload?.artifacts || null;
     FOC.cases = payload?.cases || null;
+    // Additional attestations and readiness details used by the enhanced UI
+    try {
+      FOC.readiness_report = await fetchJson(`${API}/readiness-report`);
+    } catch (e) {
+      FOC.readiness_report = null;
+    }
+    try {
+      FOC.detection_attestation = await fetchJson(`${API}/detection-attestation`);
+    } catch (e) {
+      FOC.detection_attestation = null;
+    }
+    try {
+      FOC.forensic_intervention = await fetchJson(`${API}/forensic-intervention`);
+    } catch (e) {
+      FOC.forensic_intervention = null;
+    }
     renderAll();
     FOC.firstLoadCompleted = true;
   } finally {
@@ -418,6 +434,10 @@ function renderOverview() {
     tag("Mode", status.mode || "unknown", statusClass(status.mode)),
     tag("Initialized", String(status.initialized ?? false), status.initialized ? "status-confirmed" : "status-missing"),
     tag("Critical gaps", String(status.critical_gaps ?? 0), Number(status.critical_gaps || 0) > 0 ? "status-missing" : "status-confirmed"),
+    tag("Structural gaps", String(FOC.gaps?.structural_critical_gaps ?? 0), Number(FOC.gaps?.structural_critical_gaps || 0) > 0 ? "status-missing" : "status-confirmed"),
+    tag("Forensic gaps", String(FOC.gaps?.forensic_critical_gaps ?? 0), Number(FOC.gaps?.forensic_critical_gaps || 0) > 0 ? "status-missing" : "status-confirmed"),
+    tag("Semantic gaps", String(FOC.gaps?.semantic_critical_gaps ?? 0), Number(FOC.gaps?.semantic_critical_gaps || 0) > 0 ? "status-missing" : "status-confirmed"),
+    tag("Causal blockers", String(FOC.gaps?.causal_reconstruction_blockers ?? 0), Number(FOC.gaps?.causal_reconstruction_blockers || 0) > 0 ? "status-missing" : "status-confirmed"),
     tag("Structural", status.maturity?.structural || "unknown", statusClass(status.maturity?.structural)),
     tag("Operational", status.maturity?.operational || "unknown", statusClass(status.maturity?.operational)),
     tag("Evidential", status.maturity?.evidential || "unknown", statusClass(status.maturity?.evidential)),
@@ -581,7 +601,7 @@ function renderDetectionDonut() {
 
   const counts = new Map();
   alerts.forEach(ev => {
-    const key = sourceLabel(ev.details?.source || ev.source_type || "Unknown");
+    const key = sourceLabel(ev.details?.original_sensor || ev.details?.collector || ev.details?.source || ev.source_type || "Unknown");
     counts.set(key, (counts.get(key) || 0) + 1);
   });
   const data = [...counts.entries()].sort((a, b) => b[1] - a[1]);
@@ -614,7 +634,7 @@ function renderDetectionDonut() {
     return { label, value, color: colors[idx % colors.length], d: arcPath(start, end) };
   });
 
-  summary.textContent = `${total} alerts | ${data.length} detection sources`;
+  summary.textContent = `${total} alerts | ${data.length} sensor origins`;
   host.innerHTML = `
     <div class="flex flex-col md:flex-row md:items-center gap-5">
       <svg viewBox="0 0 220 220" class="w-[220px] h-[220px] shrink-0">
@@ -727,7 +747,7 @@ function renderNetworkGraph() {
   const nodeById = new Map(nodes.map(node => [node.node_id, node]));
   if (!nodes.length) {
     summary.textContent = "No data";
-    host.innerHTML = `<div class="text-sm text-slate-400">No causal relationship graph available.</div>`;
+    host.innerHTML = `<div class="text-sm text-slate-400">No structural-evidential graph available.</div>`;
     return;
   }
   const attackCounts = new Map();
@@ -1136,6 +1156,172 @@ function renderAll() {
   renderGaps();
   renderSources();
   renderRelationships();
+  renderTriggerSelection();
+  renderBlockers();
+  renderDetectionAttestationSummary();
+  renderForensicInterventionSummary();
+  renderCausalNotReady();
+}
+
+function _findTimelineAlertById(alertId) {
+  if (!FOC.timeline?.events) return null;
+  return (FOC.timeline.events || []).find(ev => String(ev.related_alert_id || ev.alert_id || "") === String(alertId));
+}
+
+function _formatMissingList(section) {
+  if (!section) return "";
+  const pf = section.problem_fields || [];
+  if (!pf.length) return "none";
+  return pf.join(", ");
+}
+
+function renderTriggerSelection() {
+  const container = byId("trigger-panel");
+  const candidatesEl = byId("trigger-candidates");
+  const qualityEl = byId("trigger-quality");
+  if (!container || !candidatesEl || !qualityEl) return;
+
+  // Prefer forensic_intervention intervention entry if present, else fall back to cases index
+  const intervention = (FOC.forensic_intervention?.interventions || [])[0] || null;
+  const caseItem = (FOC.cases?.cases || [])[0] || null;
+  const selectedAlertId = intervention?.triggering_alert_id || caseItem?.trigger_alert_id || caseItem?.trigger_alert_id || null;
+  let alertEvent = selectedAlertId ? _findTimelineAlertById(selectedAlertId) : null;
+  if (!alertEvent && selectedAlertId && FOC.sources) {
+    // try approximate match by signature/description in timeline events
+    alertEvent = (FOC.timeline?.events || []).find(ev => String(ev.description || "").includes(String(selectedAlertId)));
+  }
+
+  const selectionScore = (caseItem && caseItem.trigger_selection_score) || (intervention && intervention.trigger_selection_score) || (FOC.readiness_report && FOC.readiness_report.trigger_selection_score) || null;
+  const selectionReason = (caseItem && caseItem.trigger_selection_reason) || (intervention && intervention.trigger_selection_reason) || (FOC.readiness_report && FOC.readiness_report.trigger_selection_reason) || null;
+  const candidateCount = (caseItem && caseItem.candidate_triggers_evaluated) || (intervention && intervention.candidate_triggers_evaluated) || null;
+  const stronger = (caseItem && caseItem.stronger_trigger_available) || (intervention && intervention.stronger_trigger_available) || false;
+
+  const name = alertEvent?.description || intervention?.trigger || caseItem?.trigger_type || "unknown";
+  const severity = (alertEvent?.details && alertEvent.details.severity) || "unknown";
+  const original_sensor = (alertEvent?.details && alertEvent.details.agent) || (FOC.detection_attestation?.observed_detection_rules?.find(r => r.rule_name === name)?.original_sensor) || "unknown";
+  const collector = (FOC.detection_attestation?.observed_detection_rules?.find(r => r.rule_name === name)?.collector) || original_sensor || "unknown";
+  const protocol = (FOC.detection_attestation?.observed_detection_rules?.find(r => r.rule_name === name)?.protocol) || (alertEvent?.details && alertEvent.details.protocol) || "unknown";
+  const mitre = (FOC.detection_attestation?.observed_detection_rules?.find(r => r.rule_name === name)?.mitre_techniques || []) .join(", ") || "none";
+
+  container.innerHTML = `
+    <div class="mono text-sm text-slate-300">
+      <div><strong>triggering_alert_id:</strong> ${esc(selectedAlertId || "not_available")}</div>
+      <div><strong>triggering_alert_name:</strong> ${esc(name)}</div>
+      <div><strong>triggering_alert_severity:</strong> ${esc(severity)}</div>
+      <div><strong>triggering_alert_original_sensor:</strong> ${esc(original_sensor)}</div>
+      <div><strong>triggering_alert_collector:</strong> ${esc(collector)}</div>
+      <div><strong>triggering_alert_protocol:</strong> ${esc(protocol)}</div>
+      <div><strong>triggering_alert_mitre:</strong> ${esc(mitre)}</div>
+      <div><strong>trigger_selection_score:</strong> ${esc(selectionScore ?? "not_available")}</div>
+      <div><strong>trigger_selection_reason:</strong> ${esc(selectionReason ?? "not_available")}</div>
+      <div><strong>candidate_triggers_evaluated:</strong> ${esc(candidateCount ?? "not_available")}</div>
+      <div><strong>stronger_trigger_available:</strong> ${esc(stronger ? "true" : "false")}</div>
+    </div>
+  `;
+
+  // Candidates: show a short list from timeline with same signature if available
+  const candidates = (FOC.timeline?.events || []).filter(ev => (ev.description || "").toString().toLowerCase().includes((name || "").toString().toLowerCase())).slice(0, 6);
+  candidatesEl.innerHTML = candidates.length ? candidates.map(c => `<div class="mono text-[13px] text-slate-300">${esc(c.timestamp)} — ${esc(c.description || c.details?.signature || "unknown")} (${esc(c.related_alert_id || c.alert_id || "no-id")})</div>`).join("") : `<div class="text-sm text-slate-400">No similar candidates found in timeline.</div>`;
+
+  // Quality label derived from score and severity
+  let quality = "unknown";
+  const s = Number(selectionScore || 0);
+  if (s >= 400) quality = "strong";
+  else if (s >= 250) quality = "medium";
+  else if (s > 0) quality = "weak";
+  if (!selectionScore && (severity || "").toString().toLowerCase() === "high") quality = quality === "unknown" ? "medium" : quality;
+  qualityEl.textContent = `Trigger quality: ${quality}`;
+  qualityEl.className = `tag rounded-full px-3 py-2 text-[11px] font-black tracking-[0.2em] uppercase ${statusClass(quality)}`;
+}
+
+function renderBlockers() {
+  const panel = byId("gaps-panel");
+  const summary = byId("gaps-summary");
+  if (!FOC.readiness_report) return;
+  const blockers = FOC.readiness_report.missing_prerequisites || FOC.readiness_report.readiness?.missing_prerequisites || [];
+  const sections = FOC.readiness_report.sections || {};
+  const manifestDerived = FOC.manifest?.derived_context || {};
+
+  const items = (blockers || []).map(key => {
+    const sec = sections[key] || {};
+    const status = sec.overall_status || "unknown";
+    const missing = _formatMissingList(sec);
+    const reason = sec.overall_status || "partial";
+    const source_expected = manifestDerived[key] || key + ".json";
+    const resolvable_locally = String(status || "").toLowerCase() !== "missing";
+    return `
+      <div class="glass-soft rounded-2xl p-4">
+        <div class="flex items-center justify-between">
+          <div class="font-black">${esc(key)}</div>
+          <div class="text-xs uppercase tracking-[0.12em] font-black ${statusClass(status)}">${esc(status)}</div>
+        </div>
+        <div class="text-sm text-slate-300 mt-2"><strong>missing:</strong> ${esc(missing)}</div>
+        <div class="text-sm text-slate-300 mt-1"><strong>reason:</strong> ${esc(reason)}</div>
+        <div class="text-sm text-slate-300 mt-1"><strong>expected_source:</strong> ${esc(source_expected)}</div>
+        <div class="text-sm text-slate-300 mt-1"><strong>resolvable_locally:</strong> ${esc(resolvable_locally ? "yes" : "no")}</div>
+      </div>
+    `;
+  });
+
+  if (panel) panel.innerHTML = items.join("") || `<div class="text-sm text-slate-400">No blockers listed.</div>`;
+  if (summary) summary.textContent = `${blockers.length} unresolved`; 
+}
+
+function renderDetectionAttestationSummary() {
+  const target = byId("alerts-summary");
+  if (!target) return;
+  const det = FOC.detection_attestation || {};
+  const observed = det.observed_detection_rules || [];
+  const sample = observed[0] || {};
+  const engine_version = sample.engine_version || "unknown";
+  const mitre = (sample.mitre_techniques || []).join(", ") || "not_available";
+  const rule_file = sample.rule_file || "not_available";
+  const rule_source = sample.source_reference || "not_available";
+  const enabled_at = sample.enabled_at || "not_available";
+
+  target.innerHTML = `
+    <div class="text-sm text-slate-300">
+      <div><strong>engine_version:</strong> ${esc(engine_version)}</div>
+      <div><strong>mitre_technique:</strong> ${esc(mitre)}</div>
+      <div><strong>rule_file:</strong> ${esc(rule_file)}</div>
+      <div><strong>rule_source:</strong> ${esc(rule_source)}</div>
+      <div><strong>enabled_at:</strong> ${esc(enabled_at)}</div>
+    </div>
+  `;
+}
+
+function renderForensicInterventionSummary() {
+  const panel = byId("cases-panel");
+  if (!panel) return;
+  const fi = FOC.forensic_intervention || {};
+  const intervention = (fi.interventions || [])[0] || null;
+  let commands = "not_available";
+  let reason = "commands not preserved in current sources";
+  if (intervention && Array.isArray(intervention.commands_executed) && intervention.commands_executed.length > 0) {
+    commands = intervention.commands_executed.map(c => esc(c)).join("<br>");
+    reason = "ok";
+  }
+
+  panel.innerHTML = `
+    <div class="text-sm text-slate-300">
+      <div><strong>case_id:</strong> ${esc(intervention?.case_id || "not_available")}</div>
+      <div><strong>trigger:</strong> ${esc(intervention?.trigger || "not_available")}</div>
+      <div><strong>commands_executed:</strong> ${commands}</div>
+      <div class="text-xs text-slate-400 mt-2"><strong>reason:</strong> ${esc(reason)}</div>
+    </div>
+  `;
+}
+
+function renderCausalNotReady() {
+  const note = byId("model-phase-note");
+  const rr = FOC.readiness_report || {};
+  const ready = rr.causal_reconstruction_ready === true || (rr.readiness && rr.readiness.causal_reconstruction_ready === true);
+  if (!note) return;
+  if (!ready) {
+    const missing = rr.missing_prerequisites || (rr.readiness && rr.readiness.missing_prerequisites) || [];
+    const list = (missing || []).map(m => `<div class="text-sm text-slate-300">- ${esc(m)}</div>`).join("");
+    note.innerHTML = `Causal reconstruction is not ready because some attestations remain partial and no forensic analysis has been executed yet.<div class="mt-3">${list}</div>`;
+  }
 }
 
 async function doBootstrap(force = false) {

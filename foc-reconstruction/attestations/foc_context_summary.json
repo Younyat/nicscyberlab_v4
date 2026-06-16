@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-16T18:27:02.481572+00:00",
+  "generated_at": "2026-06-16T21:11:01.337351+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
   "answers": {
@@ -20,19 +20,19 @@
       "source": "tools_bom.json"
     },
     "attacks_executed": {
-      "value": 50,
+      "value": 56,
       "source": "attack_attestation.json"
     },
     "detection_rules_active": {
-      "value": 94,
+      "value": 96,
       "source": "detection_attestation.json"
     },
     "alerts_generated": {
-      "value": 18538,
+      "value": 18963,
       "source": "alerts_normalized.json"
     },
     "attack_alert_correlations": {
-      "value": 126514,
+      "value": 35458,
       "source": "alert_correlation_summary.json"
     },
     "forensic_interventions": {
@@ -44,11 +44,11 @@
       "source": "case_manifest_link.json"
     },
     "primary_evidence_items": {
-      "value": 18,
+      "value": 20,
       "source": "acquisition_profile.json"
     },
     "analysis_outputs": {
-      "value": 108,
+      "value": 120,
       "source": "forensic_analysis_manifest.json"
     },
     "causal_reconstruction_ready": {
@@ -61,7 +61,6 @@
         "detection_attestation",
         "alerts_normalized",
         "alert_correlation",
-        "acquisition_profile",
         "forensic_intervention"
       ],
       "source": "foc_readiness_report.json"
@@ -88,7 +87,6 @@
       "detection_attestation",
       "alerts_normalized",
       "alert_correlation",
-      "acquisition_profile",
       "forensic_intervention"
     ]
   }

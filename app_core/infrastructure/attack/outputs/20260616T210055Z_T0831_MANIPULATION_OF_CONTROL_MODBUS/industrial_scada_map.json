@@ -1,0 +1,161 @@
+{
+  "generated_at_utc": "2026-06-16T21:01:02.259191+00:00",
+  "hmi_variable_refs": {
+    "t_0a7b6294-465141b8": [
+      {
+        "item_id": "outlet_led",
+        "item_type": "svg-ext-shapes_circle",
+        "view_id": "v_tank"
+      }
+    ],
+    "t_25f32b8c-b8ea402b": [
+      {
+        "item_id": "HXT_43daf555-3b194e38",
+        "item_type": "svg-ext-html_switch",
+        "view_id": "v_tank"
+      },
+      {
+        "item_id": "inlet_a12164df-51ec44b6",
+        "item_type": "svg-ext-shapes_circle",
+        "view_id": "v_tank"
+      }
+    ],
+    "t_dda8122d-e01744a3": [
+      {
+        "item_id": "inlet_led",
+        "item_type": "svg-ext-shapes_circle",
+        "view_id": "v_tank"
+      }
+    ],
+    "t_inlet": [
+      {
+        "item_id": "HXT_2b70f6c1-2626413b",
+        "item_type": "svg-ext-html_switch",
+        "view_id": "v_tank"
+      }
+    ],
+    "t_level": [
+      {
+        "item_id": "VAL_f0e5e1e5-a3e94acb",
+        "item_type": "svg-ext-value",
+        "view_id": "v_tank"
+      },
+      {
+        "item_id": "H-GXP_aff230cf-da8b479e",
+        "item_type": "svg-ext-shapes-select",
+        "view_id": "v_tank"
+      },
+      {
+        "item_id": "HXI_2b4d523f-0d494868",
+        "item_type": "svg-ext-html_input",
+        "view_id": "v_tank"
+      },
+      {
+        "item_id": "GXP_4e8a84d1-72ed4db5",
+        "item_type": "svg-ext-gauge_progress",
+        "view_id": "v_tank"
+      }
+    ],
+    "t_level_max": [
+      {
+        "item_id": "HXI_ec8e5a61-c64a4260",
+        "item_type": "svg-ext-html_input",
+        "view_id": "v_tank"
+      }
+    ],
+    "t_outlet": [
+      {
+        "item_id": "HXT_75a7ac63-12da4caa",
+        "item_type": "svg-ext-html_switch",
+        "view_id": "v_tank"
+      },
+      {
+        "item_id": "outlet_2bda6bb8-adae4d92",
+        "item_type": "svg-ext-shapes_circle",
+        "view_id": "v_tank"
+      }
+    ]
+  },
+  "modbus_devices": [
+    {
+      "configured_endpoint": "10.0.2.22:502",
+      "device_id": "d_plc_tank",
+      "name": "PLC Control Tanque",
+      "polling_ms": 500,
+      "protocol": "ModbusTCP",
+      "slaveid": 1,
+      "tags": [
+        {
+          "address": 3,
+          "label": "Nivel",
+          "memaddress": "400000",
+          "name": "level",
+          "semantic_role": "process_level",
+          "tag_id": "t_level",
+          "type": "Int16"
+        },
+        {
+          "address": 4,
+          "label": "Umbral",
+          "memaddress": "400000",
+          "name": "level_max",
+          "semantic_role": "setpoint_threshold",
+          "tag_id": "t_level_max",
+          "type": "Int16"
+        },
+        {
+          "address": 7,
+          "label": "Entrada",
+          "memaddress": "000000",
+          "name": "airValveOpenStatus",
+          "semantic_role": "process_enable_condition",
+          "tag_id": "t_inlet",
+          "type": "Bool"
+        },
+        {
+          "address": 2,
+          "label": "Salida",
+          "memaddress": "000000",
+          "name": "openOutletValve",
+          "semantic_role": "outlet_valve_command",
+          "tag_id": "t_outlet",
+          "type": "Bool"
+        },
+        {
+          "address": 4,
+          "label": "outletValveOpenStatus",
+          "memaddress": "000000",
+          "name": "outletValveOpenStatus",
+          "semantic_role": "outlet_valve_status",
+          "tag_id": "t_0a7b6294-465141b8",
+          "type": "Bool"
+        },
+        {
+          "address": 5,
+          "label": "openInletValve",
+          "memaddress": "000000",
+          "name": "openInletValve",
+          "semantic_role": "inlet_valve_command",
+          "tag_id": "t_25f32b8c-b8ea402b",
+          "type": "Bool"
+        },
+        {
+          "address": 6,
+          "label": "inlletValveOpenStatus",
+          "memaddress": "000000",
+          "name": "inlletValveOpenStatus",
+          "semantic_role": "inlet_valve_status",
+          "tag_id": "t_dda8122d-e01744a3",
+          "type": "Bool"
+        }
+      ]
+    }
+  ],
+  "scada_type": "FUXA",
+  "source": "fuxa_mi_proyecto_simple.json",
+  "visual_metadata": {
+    "visual_endpoints": [
+      "10.0.2.67:502"
+    ]
+  }
+}

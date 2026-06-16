@@ -119,12 +119,115 @@ def _infer_case_artifacts(case_dir: Path, warnings: list[dict]) -> list[dict]:
     return out
 
 
+def _binding_maps(scenario_bom: dict) -> tuple[dict, dict]:
+    by_instance = {}
+    by_openstack = {}
+    for binding in scenario_bom.get("node_instance_bindings", []) or []:
+        if binding.get("instance_id"):
+            by_instance[binding["instance_id"]] = binding
+        if binding.get("openstack_instance_id") not in {"", None, "not_available"}:
+            by_openstack[binding["openstack_instance_id"]] = binding
+    return by_instance, by_openstack
+
+
+def _parse_case_pipeline(case_dir: Path, warnings: list[dict]) -> tuple[list[dict], dict, dict]:
+    pipeline_path = case_dir / "metadata" / "pipeline_events.jsonl"
+    events = read_jsonl_file(pipeline_path, warnings)
+    artifact_meta = {}
+    for event in events:
+        meta = event.get("meta") or {}
+        rel = meta.get("rel") or meta.get("artifact_rel")
+        if rel:
+            artifact_meta[str(rel)] = event
+    return events, artifact_meta, {"pipeline_path": relative_path(pipeline_path)}
+
+
+def _case_trigger_score(event: dict, target_node_ids: set[str], target_instance_ids: set[str], case_created_epoch: float | None) -> tuple[int, list[str]]:
+    details = event.get("details") or {}
+    score = 0
+    reasons = []
+    severity = str(details.get("triage_severity") or "").upper()
+    correlation = str(details.get("correlation_status") or "").lower()
+    signature = str(details.get("signature") or "").lower()
+    protocol = str(details.get("protocol") or "").lower()
+    node_id = str(event.get("related_node_id") or "")
+    instance_id = str(event.get("related_instance_id") or "")
+
+    if correlation == "confirmed":
+        score += 120
+        reasons.append("confirmed_correlation")
+    elif correlation == "inferred_medium":
+        score += 70
+        reasons.append("medium_correlation")
+    elif correlation in {"weak_candidate", "inferred_low"}:
+        score += 30
+        reasons.append("weak_correlation")
+
+    if severity == "CRITICAL":
+        score += 95
+    elif severity == "HIGH":
+        score += 80
+    elif severity == "MEDIUM":
+        score += 25
+    elif severity == "LOW":
+        score -= 15
+
+    if node_id and node_id in target_node_ids:
+        score += 55
+        reasons.append("target_node_match")
+    if instance_id and instance_id in target_instance_ids:
+        score += 35
+        reasons.append("target_instance_match")
+
+    if "modbus write" in signature:
+        score += 120
+        reasons.append("ot_write_signal")
+    elif signature.startswith("/"):
+        score += 95
+        reasons.append("fim_signal")
+
+    if details.get("recommend_forensics") is True:
+        score += 35
+        reasons.append("forensics_recommended")
+
+    if protocol in {"tcp", "modbus_tcp"}:
+        score += 15
+    elif protocol in {"icmp", "ipv6-icmp"}:
+        score -= 120
+        reasons.append("icmp_penalty")
+
+    if "ping detectado" in signature or "noise_signature" in str(details.get("correlation_reason") or ""):
+        score -= 180
+        reasons.append("noise_penalty")
+
+    if case_created_epoch:
+        try:
+            alert_epoch = float(details.get("ts_epoch") or 0.0)
+        except Exception:
+            alert_epoch = 0.0
+        if alert_epoch:
+            delta = case_created_epoch - alert_epoch
+            if 0 <= delta <= 300:
+                score += 45
+                reasons.append("temporal_close")
+            elif 0 <= delta <= 1800:
+                score += 25
+                reasons.append("temporal_compatible")
+            elif 0 <= delta <= 7200:
+                score += 10
+            else:
+                score -= 20
+
+    return score, reasons
+
+
 def build_indexes(scenario_bom: dict, tools_bom: dict, timeline: dict, sources_bundle: dict, id_mapping: dict | None = None) -> dict:
     warnings: list[dict] = []
     scenario_id = scenario_bom.get("scenario_id", "unknown")
     relationships: list[dict] = []
     artifacts_index: list[dict] = []
     id_mapping = id_mapping or read_id_mapping() or {}
+    binding_by_instance, binding_by_openstack = _binding_maps(scenario_bom)
 
     for node in scenario_bom.get("nodes", []):
         node_id = node.get("node_id", "unknown")
@@ -163,6 +266,7 @@ def build_indexes(scenario_bom: dict, tools_bom: dict, timeline: dict, sources_b
     }
     detection_events = [event for event in timeline.get("events", []) if event.get("event_type") == "detection_alert"]
 
+    attack_by_id = {}
     for path in sorted(project_path("app_core", "infrastructure", "attack", "outputs").glob("*/result.json")):
         data = read_json_file(path, warnings)
         if not isinstance(data, dict):
@@ -176,6 +280,13 @@ def build_indexes(scenario_bom: dict, tools_bom: dict, timeline: dict, sources_b
             if str(node.get("type") or "").lower() == target_role:
                 node_id = node.get("node_id", "unresolved")
                 break
+        attack_by_id[attack_id] = {
+            "attack_id": attack_id,
+            "target_node_id": node_id,
+            "target_ip": str(data.get("target_ip") or "").strip(),
+            "protocol": str(data.get("protocol") or "unknown").lower(),
+            "mitre_id": str(data.get("mitre_id") or "").upper(),
+        }
         _add_edge(relationships, "node", node_id, "attack_execution", "attack", attack_id, evidence=[relative_path(path)], details={"execution_id": execution_id}, relationship_status="inferred" if node_id == "unresolved" else "confirmed")
         matching_alerts = [
             event for event in detection_events
@@ -204,6 +315,10 @@ def build_indexes(scenario_bom: dict, tools_bom: dict, timeline: dict, sources_b
                         "instance_id": event.get("related_instance_id", "unresolved"),
                         "signature": details.get("signature", "unknown"),
                         "rule_id": details.get("rule_id", "unknown"),
+                        "collector": details.get("collector", details.get("source", "unknown")),
+                        "original_sensor": details.get("original_sensor", "unknown"),
+                        "protocol": details.get("protocol", "unknown"),
+                        "severity": details.get("triage_severity", "unknown"),
                     },
                 )
         else:
@@ -228,11 +343,72 @@ def build_indexes(scenario_bom: dict, tools_bom: dict, timeline: dict, sources_b
     for alert_id in triage_events.keys():
         _add_edge(relationships, "alert", alert_id, "triaged_as", "triage", alert_id)
 
+    detection_by_id = {event.get("related_alert_id"): event for event in detection_events if event.get("related_alert_id")}
     case_dirs = sorted(project_path("app_core", "infrastructure", "forensics", "evidence_store").glob("CASE-*"))
     cases_index = []
     for case_dir in case_dirs:
         case_id = make_id("case", case_dir.name)
         case_artifacts = _infer_case_artifacts(case_dir, warnings)
+        pipeline_events, pipeline_artifact_meta, pipeline_refs = _parse_case_pipeline(case_dir, warnings)
+        case_created = next((event for event in pipeline_events if str(event.get("event") or event.get("event_type") or "") == "case_created"), None)
+        orchestration = next((event for event in pipeline_events if str(event.get("event") or event.get("event_type") or "") == "dfir_orchestration_start"), None)
+        targeted_vm_ids = [str((event.get("meta") or {}).get("vm_id") or "") for event in pipeline_events if (event.get("meta") or {}).get("vm_id")]
+        if orchestration:
+            for target in ((orchestration.get("meta") or {}).get("targets") or []):
+                vm_id = str(target.get("vm_id") or "").strip()
+                if vm_id:
+                    targeted_vm_ids.append(vm_id)
+        target_bindings = [binding_by_openstack.get(vm_id) for vm_id in targeted_vm_ids if binding_by_openstack.get(vm_id)]
+        target_node_ids = sorted({binding.get("node_id") for binding in target_bindings if binding.get("node_id")})
+        target_instance_ids = sorted({binding.get("instance_id") for binding in target_bindings if binding.get("instance_id")})
+
+        candidate_alerts = []
+        fallback_alerts = []
+        case_created_epoch = None
+        if case_created and case_created.get("ts_epoch"):
+            try:
+                case_created_epoch = float(case_created.get("ts_epoch"))
+            except Exception:
+                case_created_epoch = None
+        for event in detection_events:
+            details = event.get("details") or {}
+            if details.get("recommend_forensics") is not True and str(details.get("triage_severity") or "").upper() not in {"HIGH", "CRITICAL"}:
+                continue
+            if case_created_epoch:
+                try:
+                    alert_epoch = float(event.get("details", {}).get("ts_epoch") or 0.0)
+                except Exception:
+                    alert_epoch = 0.0
+                if alert_epoch and alert_epoch > case_created_epoch:
+                    continue
+            score, reasons = _case_trigger_score(event, set(target_node_ids), set(target_instance_ids), case_created_epoch)
+            enriched = dict(event)
+            enriched["_trigger_score"] = score
+            enriched["_trigger_reasons"] = reasons
+            fallback_alerts.append(enriched)
+            if not target_node_ids or event.get("related_node_id") in target_node_ids:
+                candidate_alerts.append(enriched)
+        candidate_pool = candidate_alerts or fallback_alerts
+        candidate_pool.sort(
+            key=lambda item: (
+                item.get("_trigger_score", 0),
+                -float((item.get("details") or {}).get("ts_epoch") or 0.0),
+            ),
+            reverse=True,
+        )
+        trigger_alert = candidate_pool[0] if candidate_pool else None
+
+        for artifact in case_artifacts:
+            rel_path = artifact.get("path", "").replace(f"{relative_path(case_dir)}/", "")
+            meta_event = pipeline_artifact_meta.get(rel_path) or {}
+            vm_id = str(((meta_event.get("meta") or {}).get("vm_id")) or "")
+            binding = binding_by_openstack.get(vm_id) or {}
+            if binding:
+                artifact["related_instance_id"] = binding.get("instance_id", artifact.get("related_instance_id"))
+                artifact["related_node_id"] = binding.get("node_id", artifact.get("related_node_id"))
+                artifact.setdefault("details", {})
+                artifact["details"]["acquisition_timestamp"] = meta_event.get("ts_utc") or meta_event.get("ts")
+                artifact["details"]["pipeline_event"] = str(meta_event.get("event") or meta_event.get("event_type") or "")
         artifacts_index.extend(case_artifacts)
         cases_index.append(
             {
@@ -243,11 +419,56 @@ def build_indexes(scenario_bom: dict, tools_bom: dict, timeline: dict, sources_b
                 "manifest_path": f"{relative_path(case_dir)}/manifest.json",
                 "pipeline_path": f"{relative_path(case_dir)}/metadata/pipeline_events.jsonl",
                 "custody_path": f"{relative_path(case_dir)}/chain_of_custody.log",
+                "target_node_ids": target_node_ids,
+                "target_instance_ids": target_instance_ids,
+                "trigger_alert_id": (trigger_alert or {}).get("related_alert_id", "not_available"),
+                "trigger_type": "alert" if trigger_alert else ("manual_or_scheduled" if case_created else "unknown"),
+                "trigger_selection_score": (trigger_alert or {}).get("_trigger_score"),
+                "trigger_selection_reason": ",".join((trigger_alert or {}).get("_trigger_reasons") or []),
             }
         )
+        if trigger_alert:
+            _add_edge(
+                relationships,
+                "alert",
+                trigger_alert.get("related_alert_id", "unresolved"),
+                "triggered_case",
+                "case",
+                case_id,
+                relationship_status="confirmed",
+                correlation_status=(trigger_alert.get("details") or {}).get("correlation_status", "inferred_medium"),
+                correlation_confidence=(trigger_alert.get("details") or {}).get("correlation_confidence", "medium"),
+                correlation_reason="alert_triggered_forensic_case",
+                evidence=[trigger_alert.get("source_path", ""), pipeline_refs["pipeline_path"]],
+                details={
+                    "trigger_selection_score": trigger_alert.get("_trigger_score"),
+                    "trigger_selection_reason": ",".join(trigger_alert.get("_trigger_reasons") or []),
+                },
+            )
         for artifact in case_artifacts:
             _add_edge(relationships, "case", case_id, "contains_artifact", "artifact", artifact["artifact_id"])
             _add_edge(relationships, "evidence", artifact["evidence_id"], "preserved_in", "artifact", artifact["artifact_id"])
+            if trigger_alert:
+                _add_edge(
+                    relationships,
+                    "alert",
+                    trigger_alert.get("related_alert_id", "unresolved"),
+                    "linked_evidence",
+                    "artifact",
+                    artifact["artifact_id"],
+                    relationship_status="confirmed" if artifact.get("sha256") and artifact.get("related_node_id") != "unresolved" else "inferred",
+                    correlation_status="confirmed" if artifact.get("sha256") and artifact.get("related_node_id") != "unresolved" else "inferred_medium",
+                    correlation_confidence="high" if artifact.get("sha256") else "medium",
+                    correlation_reason="alert_case_artifact_linkage",
+                    evidence=[artifact.get("path", ""), pipeline_refs["pipeline_path"], f"{relative_path(case_dir)}/manifest.json"],
+                    details={
+                        "case_id": case_id,
+                        "artifact_type": artifact.get("artifact_type"),
+                        "related_node_id": artifact.get("related_node_id", "unresolved"),
+                        "related_instance_id": artifact.get("related_instance_id", "unresolved"),
+                        "trigger_selection_score": trigger_alert.get("_trigger_score"),
+                    },
+                )
             if "/analysis/" in artifact["path"] or artifact["artifact_type"] in {"vol3_output_dir", "tsk_output_dir"}:
                 _add_edge(relationships, "evidence", artifact["evidence_id"], "supports_analysis", "artifact", artifact["artifact_id"])
 

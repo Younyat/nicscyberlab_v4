@@ -195,6 +195,28 @@
       </div>
     </section>
 
+    <section id="trigger-selection-section" class="glass rounded-[28px] p-6 mb-6">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Trigger Selection</div>
+          <h2 class="text-2xl font-black mt-2">Selected Trigger & Quality</h2>
+          <p class="text-sm text-slate-300 mt-3 max-w-4xl">Shows the alert chosen as the acquisition trigger, why it was selected and the evaluated alternatives.</p>
+        </div>
+        <div id="trigger-quality" class="tag rounded-full px-3 py-2 text-[11px] font-black tracking-[0.2em] uppercase status-unknown">Trigger quality: unknown</div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
+        <div class="glass-soft rounded-2xl p-4">
+          <div class="text-xs uppercase tracking-[0.2em] text-slate-400 font-black">Trigger Selection Details</div>
+          <div id="trigger-panel" class="text-sm mt-3 text-slate-300 mono">No trigger data loaded</div>
+        </div>
+        <div class="glass-soft rounded-2xl p-4">
+          <div class="text-xs uppercase tracking-[0.2em] text-slate-400 font-black">Candidate Evaluation</div>
+          <div id="trigger-candidates" class="text-sm mt-3 text-slate-300">No data</div>
+        </div>
+      </div>
+    </section>
+
     <section class="glass rounded-[28px] p-6 mb-6">
       <div class="flex items-center justify-between gap-4">
         <div>
@@ -222,7 +244,7 @@
           <div class="flex items-center justify-between gap-3">
             <div>
               <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Donut Chart</div>
-              <h3 class="text-lg font-black mt-2">Detection Source Distribution</h3>
+              <h3 class="text-lg font-black mt-2">Detection Sensor Distribution</h3>
             </div>
             <div id="chart-donut-summary" class="text-xs text-slate-300">No data</div>
           </div>
@@ -258,7 +280,7 @@
         <div class="flex items-center justify-between gap-3">
           <div>
             <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Network Graph</div>
-            <h3 class="text-lg font-black mt-2">Causal Reconstruction Graph</h3>
+            <h3 class="text-lg font-black mt-2">FOC Structural-Evidential Graph</h3>
           </div>
           <div id="chart-network-summary" class="text-xs text-slate-300">No data</div>
         </div>

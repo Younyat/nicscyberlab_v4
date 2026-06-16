@@ -1409,6 +1409,72 @@ foc-reconstruction/attestations/alert_correlation.json
 
 This keeps the interface responsive while preserving full provenance for deep inspection or later export.
 
+### Dynamic and forensic closure before causal reconstruction
+
+The current FOC phase intentionally stops before `causal_graph.json` and focuses on strengthening three operational links that must exist first:
+
+1. `attack -> alert`
+2. `alert -> evidence`
+3. `evidence -> custody / case`
+
+The module now uses real platform sources to improve those links without mutating the original systems:
+
+- attack outputs and OT sidecars such as:
+  - `result.json`
+  - `modbus_transaction_log.json`
+  - `plc_state_before.json`
+  - `plc_state_after.json`
+  - `rollback_log.json`
+- normalized alert stores:
+  - `alerts.jsonl`
+  - `triage.jsonl`
+- Suricata-origin metadata preserved inside Wazuh-wrapped alerts:
+  - `signature_id`
+  - `mitre_ics`
+  - `attack_stage`
+  - `modbus_function`
+  - `eve.json` location reference
+- forensic case materials:
+  - `manifest.json`
+  - `pipeline_events.jsonl`
+  - `chain_of_custody.log`
+
+This phase also preserves an explicit distinction between:
+
+- `collector`
+  - for example `wazuh`
+- `original_sensor`
+  - for example `suricata`
+
+That distinction is important because many industrial detections are transported by Wazuh even though the original network sensor is Suricata.
+
+The summary correlation artifact now reports:
+
+- total alerts
+- relevant alerts
+- correlated alerts
+- confirmed correlations
+- weak correlations
+- unresolved alerts
+- noise alerts
+- missing expected alerts
+- top rules
+- alerts by original sensor
+- alerts by collector
+
+and the full correlation artifact remains available only on demand.
+
+The forensic linkage layer now attempts to connect:
+
+- the triggering alert
+- the forensic case
+- the acquisition profile
+- the preserved artifacts
+- the case manifest
+- the custody log
+
+If those links are only partially observed from real sources, the readiness state remains `partial`. The module does not promote the scenario to `causal_reconstruction_ready: true` until those links are strong enough and traceable.
+
 ### Panels exposed by the dashboard
 
 The user-facing reconstruction view is:

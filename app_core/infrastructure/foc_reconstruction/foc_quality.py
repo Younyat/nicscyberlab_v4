@@ -33,9 +33,11 @@ def _timeline_detection_summary(timeline: dict) -> dict:
     resolved = 0
     correlation_counts = {
         "confirmed": 0,
-        "inferred_high": 0,
         "inferred_medium": 0,
         "inferred_low": 0,
+        "weak_candidate": 0,
+        "uncorrelated": 0,
+        "noise": 0,
         "unresolved": 0,
     }
     for event in alerts:
@@ -54,8 +56,10 @@ def _timeline_detection_summary(timeline: dict) -> dict:
         relationship_quality = "not_generated_yet"
     elif confirmed == total and ratio >= 0.9:
         relationship_quality = "available"
-    else:
+    elif confirmed > 0 or correlation_counts["inferred_medium"] > 0 or correlation_counts["inferred_low"] > 0 or correlation_counts["weak_candidate"] > 0:
         relationship_quality = "partial"
+    else:
+        relationship_quality = "mostly_noise" if correlation_counts["noise"] > 0 else "partial"
     return {
         "attack_events": len(attacks),
         "alerts_total": total,
@@ -182,6 +186,11 @@ def load_quality_context() -> dict:
         "sources": read_generated_json(GENERATED_FILES["sources_index"]) or {},
         "relationships": read_generated_json(GENERATED_FILES["relationships_index"]) or {},
         "artifacts": read_generated_json(GENERATED_FILES["artifacts_index"]) or {},
+        "acquisition_profile": read_generated_json(GENERATED_FILES["acquisition_profile"]) or {},
+        "forensic_analysis_manifest": read_generated_json(GENERATED_FILES["forensic_analysis_manifest"]) or {},
+        "readiness": read_generated_json(GENERATED_FILES["foc_readiness_report"]) or {},
+        "context_summary": read_generated_json(GENERATED_FILES["foc_context_summary"]) or {},
+        "alert_correlation_summary": read_generated_json(GENERATED_FILES["alert_correlation_summary"]) or {},
     }
 
 
@@ -194,6 +203,10 @@ def build_status(context: dict | None = None) -> dict:
     sources = context.get("sources") or {}
     relationships = context.get("relationships") or {}
     artifacts = context.get("artifacts") or {}
+    acquisition_profile = context.get("acquisition_profile") or {}
+    forensic_analysis_manifest = context.get("forensic_analysis_manifest") or {}
+    readiness = context.get("readiness") or {}
+    correlation_summary = context.get("alert_correlation_summary") or {}
 
     if not isinstance(manifest, dict):
         scenario_exists = Path("scenario/scenario_file.json").exists()
@@ -219,15 +232,27 @@ def build_status(context: dict | None = None) -> dict:
     hashes_points = 10 if _count_hashes() > 0 else 0
     bindings_points = 10 if _bindings_complete(scenario_bom) else 0
 
-    confirmed_ratio = 0.0
-    if detection_summary["alerts_total"] > 0:
-        confirmed_ratio = rel_summary["attack_alert_confirmed_links"] / detection_summary["alerts_total"]
-    attack_alert_points = min(10, round(10 * confirmed_ratio, 2))
-    alert_evidence_points = 10 if rel_summary["alert_evidence_links"] > 0 else 0
+    confirmed_attack_ids = correlation_summary.get("confirmed_attack_ids") or 0
+    weak_attack_ids = correlation_summary.get("weak_attack_ids") or 0
+    observable_attack_ids = max(1, correlation_summary.get("observable_attack_ids") or 1)
+    unique_confirmed_pairs = correlation_summary.get("unique_confirmed_attack_pairs") or 0
+    unique_correlation_candidates = max(1, correlation_summary.get("unique_correlation_candidates") or 1)
+    family_ratio = (confirmed_attack_ids + (0.35 * weak_attack_ids)) / observable_attack_ids
+    precision_ratio = unique_confirmed_pairs / unique_correlation_candidates
+    attack_alert_points = min(10, round(10 * ((0.55 * family_ratio) + (0.45 * precision_ratio)), 2))
+
+    case_profiles = acquisition_profile.get("cases") or []
+    strong_cases = sum(1 for case in case_profiles if (case.get("trigger_selection_score") or 0) >= 180 and case.get("trigger_type") == "alert")
+    medium_cases = sum(1 for case in case_profiles if 100 <= (case.get("trigger_selection_score") or 0) < 180 and case.get("trigger_type") == "alert")
+    weak_cases = sum(1 for case in case_profiles if (case.get("trigger_selection_score") or 0) < 100 and case.get("trigger_type") == "alert")
+    case_count = max(1, len(case_profiles))
+    trigger_quality_ratio = (strong_cases + (0.5 * medium_cases) + (0.15 * weak_cases)) / case_count
+    evidence_link_ratio = min(1.0, rel_summary["alert_evidence_links"] / max(1, artifact_summary["preserved_evidence"] or 1))
+    alert_evidence_points = min(10, round(10 * trigger_quality_ratio * evidence_link_ratio, 2)) if rel_summary["alert_evidence_links"] > 0 else 0
     evidence_custody_points = 0
     if artifact_summary["custody_logs"] > 0:
         evidence_custody_points = 4
-    if artifact_summary["custody_logs"] > 0 and rel_summary["alert_evidence_links"] > 0:
+    if artifact_summary["custody_logs"] > 0 and rel_summary["alert_evidence_links"] > 0 and rel_summary["case_artifact_links"] > 0:
         evidence_custody_points = 10
     analysis_points = 10 if artifact_summary["analysis_outputs"] > 0 and rel_summary["evidence_analysis_links"] > 0 else 0
 
@@ -298,6 +323,9 @@ def build_status(context: dict | None = None) -> dict:
             "sources": len((sources or {}).get("sources", [])),
             "artifacts": len((artifacts or {}).get("artifacts", [])) if isinstance(artifacts, dict) else 0,
         },
+        "forensic_analysis_performed": bool(forensic_analysis_manifest.get("analysis_performed")),
+        "causal_reconstruction_ready": bool(readiness.get("causal_reconstruction_ready")),
+        "missing_prerequisites": readiness.get("missing_prerequisites") or [],
     }
 
 
@@ -309,6 +337,10 @@ def build_gaps(context: dict | None = None) -> dict:
     sources = context.get("sources") or {}
     relationships = context.get("relationships") or {}
     artifacts = context.get("artifacts") or {}
+    acquisition_profile = context.get("acquisition_profile") or {}
+    forensic_analysis_manifest = context.get("forensic_analysis_manifest") or {}
+    readiness = context.get("readiness") or {}
+    correlation_summary = context.get("alert_correlation_summary") or {}
 
     gaps: list[dict] = []
 
@@ -362,6 +394,11 @@ def build_gaps(context: dict | None = None) -> dict:
     rel_summary = _relationships_summary(relationships)
     detection_summary = _timeline_detection_summary(timeline)
     artifact_summary = _artifact_summary(artifacts)
+    case_profiles = acquisition_profile.get("cases") or []
+    strong_trigger_cases = sum(1 for case in case_profiles if (case.get("trigger_selection_score") or 0) >= 180 and case.get("trigger_type") == "alert")
+    weak_trigger_cases = sum(1 for case in case_profiles if case.get("trigger_type") == "alert" and (case.get("trigger_selection_score") or 0) < 180)
+    unique_confirmed_pairs = correlation_summary.get("unique_confirmed_attack_pairs") or 0
+    unique_candidate_pairs = correlation_summary.get("unique_correlation_candidates") or 0
 
     if rel_summary["attack_alert_confirmed_links"] == 0 and detection_summary["alerts_total"] > 0:
         add_gap(
@@ -382,6 +419,16 @@ def build_gaps(context: dict | None = None) -> dict:
             "Improve node or instance correlation for alert records.",
         )
 
+    if unique_candidate_pairs > 0 and unique_confirmed_pairs / max(1, unique_candidate_pairs) < 0.35:
+        add_gap(
+            "weak_attack_alert_correlation",
+            "high",
+            "partial",
+            "Attack-to-alert correlation exists but strong semantically compatible matches remain limited.",
+            "attack_attestation.json and alert_correlation_summary.json",
+            "Prefer confirmed protocol-compatible, MITRE-compatible, temporally compatible attack-alert matches over broad candidate linkage.",
+        )
+
     if rel_summary["alert_evidence_links"] == 0:
         add_gap(
             "missing_alert_to_evidence_link",
@@ -400,6 +447,16 @@ def build_gaps(context: dict | None = None) -> dict:
             "Forensic cases and artifacts exist, but no explicit alert-to-case or alert-to-evidence relation was established.",
             "CASE-* manifests, pipeline events, and alert identifiers",
             "Link the relevant alert identifiers to case creation, acquisition, and preserved evidence.",
+        )
+
+    if case_profiles and strong_trigger_cases == 0 and weak_trigger_cases > 0:
+        add_gap(
+            "weak_alert_to_evidence_traceability",
+            "high",
+            "partial",
+            "Evidence is preserved, but the forensic trigger is still dominated by weak or noisy alerts.",
+            "acquisition_profile.json and forensic_intervention.json",
+            "Select a temporally compatible high-confidence OT or FIM trigger before treating alert-to-evidence linkage as strong.",
         )
 
     if artifact_summary["preserved_evidence"] == 0 and (artifact_summary["acquisition_metadata"] > 0 or artifact_summary["forensic_inputs"] > 0):
@@ -442,6 +499,26 @@ def build_gaps(context: dict | None = None) -> dict:
                 "Run memory or disk analysis and regenerate FOC.",
             )
 
+    if case_profiles and not forensic_analysis_manifest.get("analysis_performed"):
+        add_gap(
+            "preservation_without_analysis",
+            "medium",
+            "pending",
+            "Preserved evidence exists, but no forensic analysis has been executed yet.",
+            "forensic_analysis_manifest.json",
+            "Keep the case in preservation-only state or execute analysis before generating semantic or causal outputs.",
+        )
+
+    if not forensic_analysis_manifest.get("analysis_performed"):
+        add_gap(
+            "semantic_report_not_generated",
+            "high",
+            "pending",
+            "Semantic report not generated because forensic analysis and alert-evidence linkage are incomplete.",
+            "forensic_analysis_manifest.json and case/evidence linkage",
+            "Complete forensic analysis and strengthen trigger-to-evidence linkage before semantic generation.",
+        )
+
     if not any(s.get("status") == "present" for s in (sources or {}).get("sources", [])):
         add_gap(
             "missing_sources",
@@ -462,9 +539,27 @@ def build_gaps(context: dict | None = None) -> dict:
             "Execute or preserve attack output records before regeneration.",
         )
 
-    critical_count = len([gap for gap in gaps if gap.get("severity") == "critical"])
+    if readiness.get("causal_reconstruction_ready") is False:
+        for missing in (readiness.get("missing_prerequisites") or []):
+            add_gap(
+                "causal_prerequisite_missing",
+                "high",
+                "pending",
+                f"Causal prerequisite '{missing}' is still incomplete.",
+                "foc_readiness_report.json",
+                "Complete the underlying attestation or linkage before enabling causal reconstruction.",
+            )
+
+    structural_critical = len([gap for gap in gaps if gap.get("type") in {"missing_scenario_id", "missing_node_instance_binding", "missing_sources"}])
+    forensic_critical = len([gap for gap in gaps if gap.get("type") in {"missing_chain_of_custody", "missing_alert_to_evidence_link", "case_exists_but_not_linked_to_alerts", "weak_alert_to_evidence_traceability", "preservation_without_analysis"}])
+    semantic_critical = len([gap for gap in gaps if gap.get("type") in {"semantic_report_not_generated"}])
+    causal_blockers = len([gap for gap in gaps if gap.get("type") in {"missing_confirmed_attack_alert_relation", "missing_alert_to_evidence_link", "case_exists_but_not_linked_to_alerts", "missing_chain_of_custody", "missing_forensic_analysis_result", "weak_attack_alert_correlation", "weak_alert_to_evidence_traceability", "semantic_report_not_generated", "causal_prerequisite_missing"}])
     return {
         "generated_at": utc_now(),
-        "critical_gaps": critical_count,
+        "critical_gaps": len([gap for gap in gaps if gap.get("severity") == "critical"]),
+        "structural_critical_gaps": structural_critical,
+        "forensic_critical_gaps": forensic_critical,
+        "semantic_critical_gaps": semantic_critical,
+        "causal_reconstruction_blockers": causal_blockers,
         "gaps": gaps,
     }
