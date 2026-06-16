@@ -1234,6 +1234,29 @@ Its principal outputs are:
 - `foc-reconstruction/validation/foc_readiness_report.json`
 - `foc-reconstruction/indexes/id_mapping.json`
 - `foc-reconstruction/indexes/sources_index.json`
+
+### Últimas mejoras en la vista FOC Reconstruction (2026-06-16)
+
+Se han añadido mejoras en la interfaz de `FOC Reconstruction` para mostrar con mayor claridad la calidad semántica del caso y las razones reales que impiden la reconstrucción causal completa. Cambios principales:
+
+- Panel **Trigger Selection**: muestra el `triggering_alert_id`, `triggering_alert_name`, `triggering_alert_severity`, `triggering_alert_original_sensor`, `triggering_alert_collector`, `triggering_alert_protocol`, `triggering_alert_mitre`, `trigger_selection_score`, `trigger_selection_reason`, `candidate_triggers_evaluated` y `stronger_trigger_available`. Permite entender por qué se seleccionó el trigger (por ejemplo `/etc/shadow_backup`) y no otro (por ejemplo ping).
+
+- Etiqueta **Trigger quality**: una etiqueta concisa (`strong`, `medium`, `weak`, `unknown`) derivada del `trigger_selection_score` y la severidad para evitar sobreventa de causalidad completa.
+
+- Lista de **Blockers reales**: se muestran las secciones que bloquean la reconstrucción (`attack_attestation`, `detection_attestation`, `alerts_normalized`, `alert_correlation`, `forensic_intervention`) con su estado actual, campos faltantes, razón de bloqueo, fuente esperada y si puede resolverse con fuentes locales.
+
+- Mejora en `detection_attestation`: la vista intentará rellenar honestamente campos verificables localmente como `engine_version`, `mitre_technique`, `rule_file`, `rule_source` y `enabled_at`. Si no existe fuente verificable, se mostrarán `unknown`/`not_available` y el readiness permanecerá como `partial`.
+
+- Mejora en `forensic_intervention`: se intenta extraer `commands_executed` desde las fuentes preservadas (pipeline events, manifests, chain of custody). Si no hay evidencia real, se muestra `commands_executed: not_available` y la razón `commands not preserved in current sources`.
+
+- Panel **Why causal reconstruction is not ready**: una explicación directa y concisa que lista las attestations incompletas y por qué impiden marcar `causal_reconstruction_ready: true`.
+
+Notas operativas:
+
+- La UI respeta el valor de `causal_reconstruction_ready` y no lo modifica. Permanecerá en `false` hasta que las attestations y enlaces sean suficientemente completos y trazables.
+- Umbrales de calidad del trigger (por defecto): `>=400` → `strong`, `250–399` → `medium`, `>0` → `weak`. Estos umbrales pueden ajustarse si se desea.
+
+Para ver los cambios en acción, abrir la página `app_core/static/foc_reconstruction.html` en la aplicación y recargar la reconstrucción (`Bootstrap` / `Regenerate` / `Refresh`).
 - `foc-reconstruction/indexes/artifacts_index.json`
 - `foc-reconstruction/indexes/relationships_index.json`
 - `foc-reconstruction/indexes/cases_index.json`
