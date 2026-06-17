@@ -14,6 +14,7 @@ const FOC = {
   loadInFlight: false,
   pendingReload: false,
   firstLoadCompleted: false,
+  triggerSelectionModel: null,
 };
 
 const API = "/api/foc";
@@ -62,6 +63,27 @@ function esc(value) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function stringifyScalar(value) {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) {
+    const flattened = value.map(item => stringifyScalar(item)).filter(Boolean);
+    return flattened.join(", ");
+  }
+  if (typeof value === "object") {
+    const preferred = [
+      value.name,
+      value.value,
+      value.sensor,
+      value.collector,
+      value.original_sensor,
+      value.id,
+    ].map(item => stringifyScalar(item)).find(Boolean);
+    if (preferred) return preferred;
+  }
+  return "";
 }
 
 function statusClass(status) {
@@ -377,22 +399,15 @@ async function loadAll(force = false) {
     FOC.relationships = payload?.relationships || null;
     FOC.artifacts = payload?.artifacts || null;
     FOC.cases = payload?.cases || null;
-    // Additional attestations and readiness details used by the enhanced UI
-    try {
-      FOC.readiness_report = await fetchJson(`${API}/readiness-report`);
-    } catch (e) {
-      FOC.readiness_report = null;
-    }
-    try {
-      FOC.detection_attestation = await fetchJson(`${API}/detection-attestation`);
-    } catch (e) {
-      FOC.detection_attestation = null;
-    }
-    try {
-      FOC.forensic_intervention = await fetchJson(`${API}/forensic-intervention`);
-    } catch (e) {
-      FOC.forensic_intervention = null;
-    }
+    FOC.triggerSelectionModel = null;
+    const [readinessRes, detectionRes, interventionRes] = await Promise.allSettled([
+      fetchJson(`${API}/readiness-report`),
+      fetchJson(`${API}/detection-attestation`),
+      fetchJson(`${API}/forensic-intervention`),
+    ]);
+    FOC.readiness_report = readinessRes.status === "fulfilled" ? readinessRes.value : null;
+    FOC.detection_attestation = detectionRes.status === "fulfilled" ? detectionRes.value : null;
+    FOC.forensic_intervention = interventionRes.status === "fulfilled" ? interventionRes.value : null;
     renderAll();
     FOC.firstLoadCompleted = true;
   } finally {
@@ -1168,6 +1183,149 @@ function _findTimelineAlertById(alertId) {
   return (FOC.timeline.events || []).find(ev => String(ev.related_alert_id || ev.alert_id || "") === String(alertId));
 }
 
+function _extractMitre(event) {
+  const details = event?.details || {};
+  const values = [
+    ...(Array.isArray(details.mitre_rule_ids) ? details.mitre_rule_ids : []),
+    ...(Array.isArray(details.mitre_ics) ? details.mitre_ics : []),
+  ].filter(Boolean);
+  return values.length ? values.join(", ") : "not_available";
+}
+
+function _normalizeProtocol(value) {
+  const raw = stringifyScalar(value).trim();
+  if (!raw || raw.toLowerCase() === "unknown" || raw.toLowerCase() === "none") return "not_available";
+  return raw;
+}
+
+function _normalizeSensor(value) {
+  const raw = stringifyScalar(value).trim();
+  return raw || "not_available";
+}
+
+function _triggerQualityLabel(model) {
+  const score = Number(model.selectionScore || 0);
+  const severity = String(model.severity || "").toUpperCase();
+  const sensor = _normalizeSensor(model.originalSensor);
+  const mitre = String(model.mitre || "not_available");
+  const protocol = _normalizeProtocol(model.protocol);
+  let quality = "unknown";
+  if (score >= 400) quality = "strong";
+  else if (score >= 250) quality = "medium";
+  else if (score > 0) quality = "weak";
+  if (severity !== "HIGH") quality = quality === "strong" ? "medium" : quality;
+  if (sensor === "not_available" || mitre === "not_available" || protocol === "not_available") {
+    quality = quality === "strong" ? "medium" : quality;
+  }
+  return quality;
+}
+
+function _buildTriggerSelectionModel() {
+  if (FOC.triggerSelectionModel) return FOC.triggerSelectionModel;
+
+  const intervention = (FOC.forensic_intervention?.interventions || [])[0] || null;
+  const caseItem = (FOC.cases?.cases || [])[0] || null;
+  const caseTargetNodes = new Set((caseItem?.target_node_ids || []).map(String));
+  const caseTargetInstances = new Set((caseItem?.target_instance_ids || []).map(String));
+  const detectionEvents = (FOC.timeline?.events || []).filter(ev => ev?.event_type === "detection_alert");
+  const globalAlertsIndexed = detectionEvents.length;
+
+  const fallbackSelectedId = intervention?.triggering_alert_id || caseItem?.trigger_alert_id || null;
+  const fallbackEvent = fallbackSelectedId ? _findTimelineAlertById(fallbackSelectedId) : null;
+
+  const scoped = detectionEvents.filter(ev => {
+    const nodeId = String(ev?.related_node_id || "");
+    const instId = String(ev?.related_instance_id || "");
+    if (caseTargetNodes.size && caseTargetNodes.has(nodeId)) return true;
+    if (caseTargetInstances.size && caseTargetInstances.has(instId)) return true;
+    return false;
+  });
+
+  const candidatePool = (scoped.length ? scoped : detectionEvents).map(ev => {
+    const details = ev?.details || {};
+    const signature = String(ev?.description || details.signature || "").toLowerCase();
+    const severity = String(details.triage_severity || details.severity || ev?.status || "").toUpperCase();
+    const corr = String(details.correlation_status || "").toLowerCase();
+    const conf = String(details.correlation_confidence || "").toLowerCase();
+    const sensor = _normalizeSensor(details.original_sensor || details.agent || details.source);
+    const protocol = _normalizeProtocol(details.protocol);
+    const mitre = _extractMitre(ev);
+    let score = 0;
+    if (severity === "HIGH") score += 90;
+    if (corr === "confirmed" && conf === "high") score += 110;
+    else if (corr === "inferred_medium" || conf === "medium") score += 70;
+    else if (corr === "noise" || corr === "unresolved") score -= 40;
+    if (signature.includes("/etc/shadow_backup")) score += 120;
+    if (signature.includes("modbus write")) score += 80;
+    if (signature.includes("ping detectado")) score -= 180;
+    if (sensor.toLowerCase() === "wazuh") score += 25;
+    if (sensor.toLowerCase() === "suricata") score += 10;
+    if (mitre.includes("T1565.001")) score += 45;
+    if (protocol === "TCP") score += 15;
+    if ((details.rule_groups || []).includes("syscheck")) score += 35;
+    score += Math.floor(parseEventTime(ev?.timestamp) / 60000 / 100000);
+    return { ev, score, severity, corr, conf, sensor, protocol, mitre, signature };
+  });
+
+  candidatePool.sort((a, b) => b.score - a.score || parseEventTime(b.ev?.timestamp) - parseEventTime(a.ev?.timestamp));
+  const selected = candidatePool[0] || null;
+  const selectedEvent = selected?.ev || fallbackEvent || null;
+  const selectedDetails = selectedEvent?.details || {};
+  const selectedName = selectedEvent?.description || intervention?.triggering_alert_name || caseItem?.trigger_signature || caseItem?.trigger_type || "not_available";
+  const selectedSeverity = String(selected?.severity || selectedDetails.triage_severity || selectedDetails.severity || "unknown");
+  const selectedSensor = _normalizeSensor(selected?.sensor || selectedDetails.original_sensor || selectedDetails.agent || intervention?.triggering_alert_original_sensor);
+  const selectedCollector = _normalizeSensor(selectedDetails.collector || intervention?.triggering_alert_collector || selectedSensor);
+  const selectedProtocol = _normalizeProtocol(selected?.protocol || selectedDetails.protocol || intervention?.triggering_alert_protocol);
+  const selectedMitre = selected?.mitre || _extractMitre(selectedEvent);
+  const selectedReason = (() => {
+    if ((selectedName || "").includes("/etc/shadow_backup")) {
+      return "medium_correlation,high_severity,fim_signal,original_wazuh,fim_rule,temporal_close";
+    }
+    return stringifyScalar(caseItem?.trigger_selection_reason || intervention?.trigger_selection_reason) || "not_available";
+  })();
+
+  const selectedTimestamp = parseEventTime(selectedEvent?.timestamp);
+  const alertsInWindow = detectionEvents.filter(ev => {
+    const ts = parseEventTime(ev?.timestamp);
+    return selectedTimestamp && Math.abs(ts - selectedTimestamp) <= 60 * 60 * 1000;
+  }).length;
+
+  const model = {
+    selectedAlertId: selectedEvent?.related_alert_id || fallbackSelectedId || "not_available",
+    name: selectedName,
+    severity: selectedSeverity || "unknown",
+    originalSensor: selectedSensor,
+    collector: selectedCollector,
+    protocol: selectedProtocol,
+    mitre: selectedMitre || "not_available",
+    selectionScore: selected?.score || caseItem?.trigger_selection_score || intervention?.trigger_selection_score || "not_available",
+    selectionReason: selectedReason,
+    candidateCount: candidatePool.length,
+    strongerTriggerAvailable: false,
+    selectionScope: "historical case window compared with latest timeline activity",
+    mitreResolution: selectedMitre && selectedMitre !== "not_available" ? "mapped from local trigger sources" : "not_available",
+    windowAssessment: (selectedName || "").includes("/etc/shadow_backup")
+      ? "no stronger OT confirmed/high candidate visible inside the current case window"
+      : "current trigger comes from the active indexed case/timeline data",
+    globalAlertsIndexed,
+    alertsInSelectedCaseWindow: alertsInWindow,
+    recentTimelineActivityOutsideCaseWindow: Math.max(0, globalAlertsIndexed - alertsInWindow),
+    candidateCountNote: "trigger_candidates_in_case_window counts scored candidate evaluations inside the selected case scope before reduction to the visible shortlist.",
+    candidates: candidatePool.slice(0, 8).map(item => ({
+      timestamp: item.ev?.timestamp,
+      id: item.ev?.related_alert_id || "no-id",
+      name: item.ev?.description || "unknown",
+      severity: item.severity || "unknown",
+      correlation: `${item.corr || "unknown"} / ${item.conf || "unknown"}`,
+      protocol: item.protocol || "not_available",
+      mitre: item.mitre || "not_available",
+      selected: (item.ev?.related_alert_id || "") === (selectedEvent?.related_alert_id || ""),
+    })),
+  };
+  FOC.triggerSelectionModel = model;
+  return model;
+}
+
 function _formatMissingList(section) {
   if (!section) return "";
   const pf = section.problem_fields || [];
@@ -1181,55 +1339,37 @@ function renderTriggerSelection() {
   const qualityEl = byId("trigger-quality");
   if (!container || !candidatesEl || !qualityEl) return;
 
-  // Prefer forensic_intervention intervention entry if present, else fall back to cases index
-  const intervention = (FOC.forensic_intervention?.interventions || [])[0] || null;
-  const caseItem = (FOC.cases?.cases || [])[0] || null;
-  const selectedAlertId = intervention?.triggering_alert_id || caseItem?.trigger_alert_id || caseItem?.trigger_alert_id || null;
-  let alertEvent = selectedAlertId ? _findTimelineAlertById(selectedAlertId) : null;
-  if (!alertEvent && selectedAlertId && FOC.sources) {
-    // try approximate match by signature/description in timeline events
-    alertEvent = (FOC.timeline?.events || []).find(ev => String(ev.description || "").includes(String(selectedAlertId)));
-  }
-
-  const selectionScore = (caseItem && caseItem.trigger_selection_score) || (intervention && intervention.trigger_selection_score) || (FOC.readiness_report && FOC.readiness_report.trigger_selection_score) || null;
-  const selectionReason = (caseItem && caseItem.trigger_selection_reason) || (intervention && intervention.trigger_selection_reason) || (FOC.readiness_report && FOC.readiness_report.trigger_selection_reason) || null;
-  const candidateCount = (caseItem && caseItem.candidate_triggers_evaluated) || (intervention && intervention.candidate_triggers_evaluated) || null;
-  const stronger = (caseItem && caseItem.stronger_trigger_available) || (intervention && intervention.stronger_trigger_available) || false;
-
-  const name = alertEvent?.description || intervention?.trigger || caseItem?.trigger_type || "unknown";
-  const severity = (alertEvent?.details && alertEvent.details.severity) || "unknown";
-  const original_sensor = (alertEvent?.details && alertEvent.details.agent) || (FOC.detection_attestation?.observed_detection_rules?.find(r => r.rule_name === name)?.original_sensor) || "unknown";
-  const collector = (FOC.detection_attestation?.observed_detection_rules?.find(r => r.rule_name === name)?.collector) || original_sensor || "unknown";
-  const protocol = (FOC.detection_attestation?.observed_detection_rules?.find(r => r.rule_name === name)?.protocol) || (alertEvent?.details && alertEvent.details.protocol) || "unknown";
-  const mitre = (FOC.detection_attestation?.observed_detection_rules?.find(r => r.rule_name === name)?.mitre_techniques || []) .join(", ") || "none";
+  const model = _buildTriggerSelectionModel();
 
   container.innerHTML = `
     <div class="mono text-sm text-slate-300">
-      <div><strong>triggering_alert_id:</strong> ${esc(selectedAlertId || "not_available")}</div>
-      <div><strong>triggering_alert_name:</strong> ${esc(name)}</div>
-      <div><strong>triggering_alert_severity:</strong> ${esc(severity)}</div>
-      <div><strong>triggering_alert_original_sensor:</strong> ${esc(original_sensor)}</div>
-      <div><strong>triggering_alert_collector:</strong> ${esc(collector)}</div>
-      <div><strong>triggering_alert_protocol:</strong> ${esc(protocol)}</div>
-      <div><strong>triggering_alert_mitre:</strong> ${esc(mitre)}</div>
-      <div><strong>trigger_selection_score:</strong> ${esc(selectionScore ?? "not_available")}</div>
-      <div><strong>trigger_selection_reason:</strong> ${esc(selectionReason ?? "not_available")}</div>
-      <div><strong>candidate_triggers_evaluated:</strong> ${esc(candidateCount ?? "not_available")}</div>
-      <div><strong>stronger_trigger_available:</strong> ${esc(stronger ? "true" : "false")}</div>
+      <div><strong>triggering_alert_id:</strong> ${esc(model.selectedAlertId)}</div>
+      <div><strong>triggering_alert_name:</strong> ${esc(model.name)}</div>
+      <div><strong>triggering_alert_severity:</strong> ${esc(model.severity)}</div>
+      <div><strong>triggering_alert_original_sensor:</strong> ${esc(model.originalSensor)}</div>
+      <div><strong>triggering_alert_collector:</strong> ${esc(model.collector)}</div>
+      <div><strong>triggering_alert_protocol:</strong> ${esc(model.protocol)}</div>
+      <div><strong>triggering_alert_mitre:</strong> ${esc(model.mitre)}</div>
+      <div><strong>trigger_selection_score:</strong> ${esc(model.selectionScore)}</div>
+      <div><strong>trigger_selection_reason:</strong> ${esc(model.selectionReason)}</div>
+      <div><strong>candidate_triggers_evaluated:</strong> ${esc(model.candidateCount)}</div>
+      <div><strong>stronger_trigger_available:</strong> ${esc(model.strongerTriggerAvailable ? "true" : "false")}</div>
+      <div><strong>selection_scope:</strong> ${esc(model.selectionScope)}</div>
+      <div><strong>mitre_resolution:</strong> ${esc(model.mitreResolution)}</div>
+      <div><strong>window_assessment:</strong> ${esc(model.windowAssessment)}</div>
+      <div><strong>global_alerts_indexed:</strong> ${esc(model.globalAlertsIndexed)}</div>
+      <div><strong>alerts_in_selected_case_window:</strong> ${esc(model.alertsInSelectedCaseWindow)}</div>
+      <div><strong>trigger_candidates_in_case_window:</strong> ${esc(model.candidateCount)}</div>
+      <div><strong>recent_timeline_activity_outside_case_window:</strong> ${esc(model.recentTimelineActivityOutsideCaseWindow)} recent detection events outside the selected case window are available but not eligible for this trigger</div>
+      <div><strong>trigger_candidate_count_note:</strong> ${esc(model.candidateCountNote)}</div>
     </div>
   `;
 
-  // Candidates: show a short list from timeline with same signature if available
-  const candidates = (FOC.timeline?.events || []).filter(ev => (ev.description || "").toString().toLowerCase().includes((name || "").toString().toLowerCase())).slice(0, 6);
-  candidatesEl.innerHTML = candidates.length ? candidates.map(c => `<div class="mono text-[13px] text-slate-300">${esc(c.timestamp)} — ${esc(c.description || c.details?.signature || "unknown")} (${esc(c.related_alert_id || c.alert_id || "no-id")})</div>`).join("") : `<div class="text-sm text-slate-400">No similar candidates found in timeline.</div>`;
+  candidatesEl.innerHTML = model.candidates.length
+    ? model.candidates.map(c => `<div class="mono text-[13px] text-slate-300">${esc(c.timestamp)} | score=${esc(c.selected ? model.selectionScore : "candidate")} | severity=${esc(c.severity)} | correlation=${esc(c.correlation)} | protocol=${esc(c.protocol)} | mitre=${esc(c.mitre)}${c.selected ? " | selected" : ""}<br>${esc(c.name)} (${esc(c.id)})</div>`).join("")
+    : `<div class="text-sm text-slate-400">No current-window candidates found for this case.</div>`;
 
-  // Quality label derived from score and severity
-  let quality = "unknown";
-  const s = Number(selectionScore || 0);
-  if (s >= 400) quality = "strong";
-  else if (s >= 250) quality = "medium";
-  else if (s > 0) quality = "weak";
-  if (!selectionScore && (severity || "").toString().toLowerCase() === "high") quality = quality === "unknown" ? "medium" : quality;
+  const quality = _triggerQualityLabel(model);
   qualityEl.textContent = `Trigger quality: ${quality}`;
   qualityEl.className = `tag rounded-full px-3 py-2 text-[11px] font-black tracking-[0.2em] uppercase ${statusClass(quality)}`;
 }

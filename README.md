@@ -1239,7 +1239,9 @@ Its principal outputs are:
 
 Se han añadido mejoras en la interfaz de `FOC Reconstruction` para mostrar con mayor claridad la calidad semántica del caso y las razones reales que impiden la reconstrucción causal completa. Cambios principales:
 
-- Panel **Trigger Selection**: muestra el `triggering_alert_id`, `triggering_alert_name`, `triggering_alert_severity`, `triggering_alert_original_sensor`, `triggering_alert_collector`, `triggering_alert_protocol`, `triggering_alert_mitre`, `trigger_selection_score`, `trigger_selection_reason`, `candidate_triggers_evaluated` y `stronger_trigger_available`. Permite entender por qué se seleccionó el trigger (por ejemplo `/etc/shadow_backup`) y no otro (por ejemplo ping).
+- Panel **Trigger Selection**: muestra el `triggering_alert_id`, `triggering_alert_name`, `triggering_alert_severity`, `triggering_alert_original_sensor`, `triggering_alert_collector`, `triggering_alert_protocol`, `triggering_alert_mitre`, `trigger_selection_score`, `trigger_selection_reason`, `candidate_triggers_evaluated` y `stronger_trigger_available`. La vista normaliza sensores mal serializados, intenta enriquecer MITRE/protocolo desde la timeline actual y separa `global_alerts_indexed`, `alerts_in_selected_case_window` y `trigger_candidates_in_case_window` para no mezclar actividad global con la ventana del caso.
+
+- **FOC JS cache-bust**: `app_core/static/foc_reconstruction.html` carga `app_core/static/js/foc_reconstruction.js` con un sufijo de versión (`?v=...`) para evitar que el navegador siga sirviendo una versión antigua del panel `Trigger Selection` después de una corrección frontend.
 
 - Etiqueta **Trigger quality**: una etiqueta concisa (`strong`, `medium`, `weak`, `unknown`) derivada del `trigger_selection_score` y la severidad para evitar sobreventa de causalidad completa.
 
