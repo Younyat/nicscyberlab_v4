@@ -1260,6 +1260,8 @@ Notas operativas:
 
 Para ver los cambios en acción, abrir la página `app_core/static/foc_reconstruction.html` en la aplicación y recargar la reconstrucción (`Bootstrap` / `Regenerate` / `Refresh`).
 
+The FOC dashboard KPI cards (`Alerts`, `Attacks`, `Triage`, `MITRE`) now fall back to aggregated reconstruction summaries when the browser does not render `timeline.events` correctly on first load. This avoids false zero values when the dashboard payload still contains valid indexed detections and attacks.
+
 ### Multilayer forensic analysis under demand
 
 `FOC Reconstruction` now includes an **on-demand multilayer forensic analysis workflow** for any preserved case found under:

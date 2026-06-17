@@ -9,6 +9,7 @@ const FOC = {
   relationships: null,
   artifacts: null,
   cases: null,
+  attack_attestation: null,
   stream: null,
   loadTimer: null,
   loadInFlight: false,
@@ -427,16 +428,18 @@ async function loadAll(force = false) {
     FOC.artifacts = payload?.artifacts || null;
     FOC.cases = payload?.cases || null;
     FOC.triggerSelectionModel = null;
-    const [casesRes, readinessRes, detectionRes, interventionRes] = await Promise.allSettled([
+    const [casesRes, readinessRes, detectionRes, interventionRes, attackAttRes] = await Promise.allSettled([
       fetchJson(`${API}/cases`),
       fetchJson(`${API}/readiness-report`),
       fetchJson(`${API}/detection-attestation`),
       fetchJson(`${API}/forensic-intervention`),
+      fetchJson(`${API}/attack-attestation`),
     ]);
     FOC.cases = casesRes.status === "fulfilled" ? casesRes.value : FOC.cases;
     FOC.readiness_report = readinessRes.status === "fulfilled" ? readinessRes.value : null;
     FOC.detection_attestation = detectionRes.status === "fulfilled" ? detectionRes.value : null;
     FOC.forensic_intervention = interventionRes.status === "fulfilled" ? interventionRes.value : null;
+    FOC.attack_attestation = attackAttRes.status === "fulfilled" ? attackAttRes.value : null;
     renderAll();
     FOC.firstLoadCompleted = true;
   } finally {
@@ -538,18 +541,30 @@ function renderAnalytics() {
 
 function renderAnalyticsKpis() {
   const artifactSummary = FOC.status?.artifact_summary || {};
+  const detectionSummary = FOC.status?.detection_summary || {};
   const events = FOC.timeline?.events || [];
-  const detectionAlerts = events.filter(ev => ev.event_type === "detection_alert").length;
-  const attacks = events.filter(ev => ev.event_type === "attack_execution").length;
-  const triage = events.filter(ev => ev.event_type === "triage_result").length;
+  const timelineDetectionAlerts = events.filter(ev => ev.event_type === "detection_alert").length;
+  const timelineAttacks = events.filter(ev => ev.event_type === "attack_execution").length;
+  const timelineTriage = events.filter(ev => ev.event_type === "triage_result").length;
+  const detectionAlerts = timelineDetectionAlerts || detectionSummary.alerts_total || 0;
+  const attacks = timelineAttacks || detectionSummary.attack_events || 0;
+  const triage = timelineTriage || detectionSummary.triage_total || 0;
   const cases = (FOC.cases?.cases || []).length;
   const evidence = artifactSummary.preserved_evidence || 0;
-  const mitreCount = new Set(
+  let mitreCount = new Set(
     events
       .filter(ev => ev.event_type === "attack_execution")
       .map(ev => ev.details?.mitre_id)
       .filter(Boolean)
   ).size;
+  if (!mitreCount) {
+    const attacksPayload = FOC.attack_attestation?.attacks || [];
+    mitreCount = new Set(
+      attacksPayload
+        .map(item => item?.mitre?.technique_id)
+        .filter(Boolean)
+    ).size;
+  }
 
   byId("analytics-kpis").innerHTML = [
     simpleValueCard("Alerts", detectionAlerts, "Detection alerts indexed"),
