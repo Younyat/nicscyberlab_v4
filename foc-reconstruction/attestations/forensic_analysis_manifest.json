@@ -1,10 +1,129 @@
 {
-  "generated_at": "2026-06-17T13:45:10.076166+00:00",
+  "generated_at": "2026-06-17T15:05:43.030203+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
-  "analysis_performed": false,
+  "analysis_performed": true,
   "analysis_events": [],
   "analysis_artifacts": [
+    {
+      "artifact_id": "art-7fda4d4c",
+      "artifact_type": "evidence_inventory.json",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/analysis/00_inventory/evidence_inventory.json",
+      "case_id": "case-63ceb018",
+      "sha256": "8a3a4074434fbbc9987b16314f0f2a338dc4090a00154d18bf7c5912eb09525e"
+    },
+    {
+      "artifact_id": "art-c3132f86",
+      "artifact_type": "integrity_custody_report.json",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/analysis/01_integrity_custody/integrity_custody_report.json",
+      "case_id": "case-63ceb018",
+      "sha256": "34a2a528c679bf085b6241d3e9627236f9084123a81d80877afdc09a14a607d5"
+    },
+    {
+      "artifact_id": "art-1cea996a",
+      "artifact_type": "clock_offset_report.json",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/analysis/02_time_validation/clock_offset_report.json",
+      "case_id": "case-63ceb018",
+      "sha256": "90c87cb7612fd7e424224d653cd40221c1030b32c9031d3ece91ccb16db91070"
+    },
+    {
+      "artifact_id": "art-5d9ac114",
+      "artifact_type": "network_findings.json",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/analysis/03_network/network_findings.json",
+      "case_id": "case-63ceb018",
+      "sha256": "b9434db700026f442b318d71f22144162259ab9d824415303352224c6c4e1b4a"
+    },
+    {
+      "artifact_id": "art-e1d6509d",
+      "artifact_type": "memory_findings.json",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/analysis/04_memory/memory_findings.json",
+      "case_id": "case-63ceb018",
+      "sha256": "b7e429664b9cb990addf7e7a686a15beef3292532752b39f4161345f818b1e64"
+    },
+    {
+      "artifact_id": "art-5942ff21",
+      "artifact_type": "disk_findings.json",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/analysis/05_disk/disk_findings.json",
+      "case_id": "case-63ceb018",
+      "sha256": "8b193e336851e71db415c654e9d9da38d2d2203ae3e673f96e9c323f9c6294c2"
+    },
+    {
+      "artifact_id": "art-a5b22316",
+      "artifact_type": "ot_findings.json",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/analysis/06_ot/ot_findings.json",
+      "case_id": "case-63ceb018",
+      "sha256": "e7ec0a98b37a5c74735ac7772300a9df795782991d4f88993ad115702319e386"
+    },
+    {
+      "artifact_id": "art-cd22412a",
+      "artifact_type": "alert_findings.json",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/analysis/07_alerts/alert_findings.json",
+      "case_id": "case-63ceb018",
+      "sha256": "29845fc664ca56dc11e1b00128691bb19801d51ce92f6c977e1aa2b5240449ee"
+    },
+    {
+      "artifact_id": "art-55c1bce3",
+      "artifact_type": "pipeline_findings.json",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/analysis/08_pipeline_custody/pipeline_findings.json",
+      "case_id": "case-63ceb018",
+      "sha256": "1515c79f3e0bbe1d99b9684fdea5f5282331e52f59d3c7871893021cdeaac03b"
+    },
+    {
+      "artifact_id": "art-cd785aac",
+      "artifact_type": "unified_forensic_timeline.json",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/analysis/09_timeline/unified_forensic_timeline.json",
+      "case_id": "case-63ceb018",
+      "sha256": "ad923446db4d0a1111c8f029f48d875799cfa5f2fddfd9527f5a6de1fe1f3334"
+    },
+    {
+      "artifact_id": "art-af210992",
+      "artifact_type": "cross_layer_findings.json",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/analysis/10_findings/cross_layer_findings.json",
+      "case_id": "case-63ceb018",
+      "sha256": "d94f18cc8f6ce54162e86381e869f6865cca4454ca2e2439465fc2a51c10907a"
+    },
+    {
+      "artifact_id": "art-189ae2d6",
+      "artifact_type": "analysis_status.json",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/analysis/analysis_status.json",
+      "case_id": "case-63ceb018",
+      "sha256": "7724c49967eda4bc3c1e0ee8ff00299dc79f0f3776d5e95aca64f37b3eeb16ef"
+    },
+    {
+      "artifact_id": "art-966edd9f",
+      "artifact_type": "foc_readiness_update.json",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/analysis/foc_readiness_update.json",
+      "case_id": "case-63ceb018",
+      "sha256": "2c55b4a093ac388f73bdb964da1682e30d3df539c0cf8861a0932345cdb52ed9"
+    },
+    {
+      "artifact_id": "art-db91495e",
+      "artifact_type": "forensic_analysis_manifest.json",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/analysis/forensic_analysis_manifest.json",
+      "case_id": "case-63ceb018",
+      "sha256": "21bfb78dee1d28f62aea046abf9eb0d025ecfaeb9c731f67df417c3e09e0ac60"
+    },
+    {
+      "artifact_id": "art-0354a6c2",
+      "artifact_type": "forensic_analysis_report.json",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/analysis/forensic_analysis_report.json",
+      "case_id": "case-63ceb018",
+      "sha256": "0cb938a19fb96677656a39edb48e56828715a3732a0b2ef9f9707f9f95a2b1b9"
+    },
+    {
+      "artifact_id": "art-53f13483",
+      "artifact_type": "forensic_analysis_summary.md",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/analysis/forensic_analysis_summary.md",
+      "case_id": "case-63ceb018",
+      "sha256": "ba38f6a3a10e2c921c5676d511f3c8b48d536004c2a4f76997cd7a514f90a54f"
+    },
+    {
+      "artifact_id": "art-8c2c9037",
+      "artifact_type": "preflight_validation.json",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/analysis/preflight_validation.json",
+      "case_id": "case-63ceb018",
+      "sha256": "8bbf354ccc2225bddb4aa81abd36cb399bb3b32345dad965a4a8c7e9bf2ca4b4"
+    },
     {
       "artifact_id": "art-35af1a5f",
       "artifact_type": "causal_graph.json",
@@ -902,6 +1021,17 @@
       "sha256": "00e435b2c7a583f0114fb09d102b5e2e50412a38647d6189e742120b5e05f15c"
     }
   ],
-  "analysis_status_note": "No forensic analysis events were observed; preserved evidence and reconstruction outputs must not be treated as primary forensic analysis.",
-  "reason": "preservation_only_case"
+  "case_analyses": [
+    {
+      "case_id": "case-63ceb018",
+      "report_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/analysis/forensic_analysis_report.json",
+      "status_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/analysis/analysis_status.json",
+      "analysis_status": "completed",
+      "analysis_id": "analysis-88f37b51a578",
+      "analysis_performed": true,
+      "report_generated_at": null
+    }
+  ],
+  "analysis_status_note": "Analysis outputs or analysis events were observed and linked below.",
+  "reason": null
 }

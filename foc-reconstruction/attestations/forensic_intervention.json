@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-17T13:45:10.076166+00:00",
+  "generated_at": "2026-06-17T15:05:43.030203+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
   "interventions": [
@@ -34,11 +34,14 @@
       ],
       "commands_executed": [],
       "collected_artifacts": [
+        "art-0354a6c2",
         "art-0399876e",
         "art-068d7678",
         "art-0fdcc86a",
         "art-148dda75",
         "art-1579e89e",
+        "art-189ae2d6",
+        "art-1cea996a",
         "art-233de542",
         "art-23c1d0c6",
         "art-2e3ff62a",
@@ -48,19 +51,28 @@
         "art-4764bd3d",
         "art-48aca5a2",
         "art-4f60c4a7",
+        "art-53f13483",
+        "art-55c1bce3",
+        "art-5942ff21",
+        "art-5d9ac114",
         "art-5e7d66cf",
         "art-636ee86d",
         "art-65b30fa4",
         "art-6646c6a3",
         "art-734995a1",
         "art-79979b03",
+        "art-7fda4d4c",
         "art-80d66c09",
         "art-82f9c67d",
         "art-8aa4f598",
+        "art-8c2c9037",
         "art-8f881f80",
+        "art-966edd9f",
         "art-9de04627",
         "art-9e0ed204",
+        "art-a5b22316",
         "art-ab1fc802",
+        "art-af210992",
         "art-b265fba9",
         "art-b33e1653",
         "art-b6bf2623",
@@ -69,13 +81,18 @@
         "art-bea64b13",
         "art-c11b1faf",
         "art-c1a8530b",
+        "art-c3132f86",
         "art-c444ece9",
         "art-c9c3e71d",
+        "art-cd22412a",
+        "art-cd785aac",
         "art-cf1dc2fc",
         "art-cf2fef09",
         "art-d4182275",
         "art-d96d3f58",
+        "art-db91495e",
         "art-dde3d770",
+        "art-e1d6509d",
         "art-e20895d5",
         "art-e588fceb",
         "art-e7454009",
@@ -96,43 +113,43 @@
       "manifest_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/manifest.json",
       "chain_of_custody_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/chain_of_custody.log",
       "chain_of_custody_events": [
-        "evt-fe4cabbb",
-        "evt-0aa852fa",
-        "evt-86c062c7",
-        "evt-b5b5e6ec",
-        "evt-d293078a",
-        "evt-67251db1",
-        "evt-1b9fa304",
-        "evt-25209a04",
-        "evt-e9e0a51b",
-        "evt-91169342",
-        "evt-e68b3186",
-        "evt-e14e9e66",
-        "evt-4a709566",
-        "evt-a395782f",
-        "evt-3b379c44",
-        "evt-dee95c02",
-        "evt-8eb2dfce",
-        "evt-e0cf2da3",
-        "evt-b12b7860",
-        "evt-84c20653",
-        "evt-8d64c671",
-        "evt-d5854db6",
-        "evt-4789e7af",
-        "evt-d05db411",
-        "evt-030b22b0",
-        "evt-e89d59fa",
-        "evt-ed18766d",
-        "evt-9ace830b",
-        "evt-b803e434",
-        "evt-ba81eb9d",
-        "evt-b82262b4",
-        "evt-6c617841",
-        "evt-ff42a921",
-        "evt-8e030650",
-        "evt-4052b7fc",
-        "evt-75d51bf7",
-        "evt-042ccbdf"
+        "evt-cccb5ded",
+        "evt-5f9e3b06",
+        "evt-7dd16f2e",
+        "evt-22a52d0a",
+        "evt-872f36b0",
+        "evt-54d0e40e",
+        "evt-e9ac914f",
+        "evt-d7c5cb52",
+        "evt-3f6df2fd",
+        "evt-882a7441",
+        "evt-86eb1aa6",
+        "evt-95109114",
+        "evt-cddd8918",
+        "evt-12693f06",
+        "evt-30fd3cf5",
+        "evt-06309a8b",
+        "evt-42c1709e",
+        "evt-908c1d43",
+        "evt-00624f7a",
+        "evt-6f34811c",
+        "evt-aec35026",
+        "evt-d0a3ed7a",
+        "evt-4182488c",
+        "evt-51d1f504",
+        "evt-bef25eda",
+        "evt-43c609f3",
+        "evt-e14fd899",
+        "evt-2e1b083a",
+        "evt-e87a21ba",
+        "evt-9c194e84",
+        "evt-50c38ea1",
+        "evt-55161ee7",
+        "evt-5440741c",
+        "evt-b02aa3b9",
+        "evt-bf15a8be",
+        "evt-b0ef8285",
+        "evt-9835c64a"
       ],
       "intervention_start_time": "2026-06-10T14:07:33Z",
       "intervention_end_time": "2026-06-16T21:04:48Z",
@@ -141,7 +158,7 @@
   ],
   "raw_events": [
     {
-      "timeline_event_id": "evt-fe4cabbb",
+      "timeline_event_id": "evt-cccb5ded",
       "event_type": "case_created",
       "timestamp": "2026-06-10T14:07:33Z",
       "status": "recorded",
@@ -165,7 +182,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-7d94a806",
+      "timeline_event_id": "evt-ac635c7b",
       "event_type": "dfir_orchestration_start",
       "timestamp": "2026-06-10T14:07:42Z",
       "status": "observed",
@@ -203,7 +220,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-91519bab",
+      "timeline_event_id": "evt-f6504546",
       "event_type": "ot_export_preserved",
       "timestamp": "2026-06-10T14:08:12Z",
       "status": "observed",
@@ -228,7 +245,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-b5b5e6ec",
+      "timeline_event_id": "evt-22a52d0a",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:08:12Z",
       "status": "recorded",
@@ -255,7 +272,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-d293078a",
+      "timeline_event_id": "evt-872f36b0",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:08:12Z",
       "status": "recorded",
@@ -282,7 +299,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-67251db1",
+      "timeline_event_id": "evt-54d0e40e",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:08:12Z",
       "status": "recorded",
@@ -309,7 +326,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-36e0da6f",
+      "timeline_event_id": "evt-b749abff",
       "event_type": "ot_export_preserved",
       "timestamp": "2026-06-10T14:08:42Z",
       "status": "observed",
@@ -334,7 +351,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-1b9fa304",
+      "timeline_event_id": "evt-e9ac914f",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:08:42Z",
       "status": "recorded",
@@ -361,7 +378,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-25209a04",
+      "timeline_event_id": "evt-d7c5cb52",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:08:42Z",
       "status": "recorded",
@@ -388,7 +405,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-e9e0a51b",
+      "timeline_event_id": "evt-3f6df2fd",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:08:42Z",
       "status": "recorded",
@@ -415,7 +432,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-0d7e1ebb",
+      "timeline_event_id": "evt-89d1dfa7",
       "event_type": "ot_export_preserved",
       "timestamp": "2026-06-10T14:09:10Z",
       "status": "observed",
@@ -440,7 +457,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-91169342",
+      "timeline_event_id": "evt-882a7441",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:09:10Z",
       "status": "recorded",
@@ -467,7 +484,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-e68b3186",
+      "timeline_event_id": "evt-86eb1aa6",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:09:10Z",
       "status": "recorded",
@@ -494,7 +511,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-e14e9e66",
+      "timeline_event_id": "evt-95109114",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:09:10Z",
       "status": "recorded",
@@ -521,7 +538,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-13e02831",
+      "timeline_event_id": "evt-7ef27c75",
       "event_type": "memory_preserved",
       "timestamp": "2026-06-10T14:10:44Z",
       "status": "observed",
@@ -552,7 +569,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-a395782f",
+      "timeline_event_id": "evt-12693f06",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:10:44Z",
       "status": "recorded",
@@ -581,7 +598,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-48e534d7",
+      "timeline_event_id": "evt-a8c7e3cf",
       "event_type": "memory_preserved",
       "timestamp": "2026-06-10T14:12:34Z",
       "status": "observed",
@@ -612,7 +629,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-dee95c02",
+      "timeline_event_id": "evt-06309a8b",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:12:34Z",
       "status": "recorded",
@@ -641,7 +658,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-348641c9",
+      "timeline_event_id": "evt-1b6e4fcf",
       "event_type": "memory_preserved",
       "timestamp": "2026-06-10T14:14:07Z",
       "status": "observed",
@@ -672,7 +689,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-e0cf2da3",
+      "timeline_event_id": "evt-908c1d43",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:14:07Z",
       "status": "recorded",
@@ -701,7 +718,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-e7dd8b9f",
+      "timeline_event_id": "evt-20336586",
       "event_type": "disk_preserved",
       "timestamp": "2026-06-10T14:17:58Z",
       "status": "observed",
@@ -725,7 +742,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-84c20653",
+      "timeline_event_id": "evt-6f34811c",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:17:58Z",
       "status": "recorded",
@@ -752,7 +769,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-afa6d410",
+      "timeline_event_id": "evt-ae7e9235",
       "event_type": "disk_preserved",
       "timestamp": "2026-06-10T14:21:07Z",
       "status": "observed",
@@ -776,7 +793,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-d5854db6",
+      "timeline_event_id": "evt-d0a3ed7a",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:21:07Z",
       "status": "recorded",
@@ -803,7 +820,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-af312d6d",
+      "timeline_event_id": "evt-07523386",
       "event_type": "disk_preserved",
       "timestamp": "2026-06-10T14:27:40Z",
       "status": "observed",
@@ -827,7 +844,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-f5c21c20",
+      "timeline_event_id": "evt-e741d539",
       "event_type": "dfir_orchestration_done",
       "timestamp": "2026-06-10T14:27:40Z",
       "status": "observed",
@@ -846,7 +863,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-d05db411",
+      "timeline_event_id": "evt-51d1f504",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-10T14:27:40Z",
       "status": "recorded",
@@ -873,7 +890,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-030b22b0",
+      "timeline_event_id": "evt-bef25eda",
       "event_type": "dfir_orchestration_done",
       "timestamp": "2026-06-10T14:27:40Z",
       "status": "recorded",
@@ -897,7 +914,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-64037403",
+      "timeline_event_id": "evt-03fe46ed",
       "event_type": "ot_export_preserved",
       "timestamp": "2026-06-16T13:26:50Z",
       "status": "observed",
@@ -922,7 +939,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-e89d59fa",
+      "timeline_event_id": "evt-43c609f3",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-16T13:26:50Z",
       "status": "recorded",
@@ -948,7 +965,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-ed18766d",
+      "timeline_event_id": "evt-e14fd899",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-16T13:26:50Z",
       "status": "recorded",
@@ -974,7 +991,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-9ace830b",
+      "timeline_event_id": "evt-2e1b083a",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-16T13:26:50Z",
       "status": "recorded",
@@ -1001,7 +1018,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-521e42f2",
+      "timeline_event_id": "evt-fef0efdc",
       "event_type": "ot_export_preserved",
       "timestamp": "2026-06-16T13:27:55Z",
       "status": "observed",
@@ -1026,7 +1043,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-b803e434",
+      "timeline_event_id": "evt-e87a21ba",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-16T13:27:55Z",
       "status": "recorded",
@@ -1052,7 +1069,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-ba81eb9d",
+      "timeline_event_id": "evt-9c194e84",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-16T13:27:55Z",
       "status": "recorded",
@@ -1078,7 +1095,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-b82262b4",
+      "timeline_event_id": "evt-50c38ea1",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-16T13:27:55Z",
       "status": "recorded",
@@ -1105,7 +1122,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-9ff3261f",
+      "timeline_event_id": "evt-1223b66e",
       "event_type": "ot_export_preserved",
       "timestamp": "2026-06-16T16:38:51Z",
       "status": "observed",
@@ -1130,7 +1147,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-6c617841",
+      "timeline_event_id": "evt-55161ee7",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-16T16:38:51Z",
       "status": "recorded",
@@ -1156,7 +1173,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-ff42a921",
+      "timeline_event_id": "evt-5440741c",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-16T16:38:51Z",
       "status": "recorded",
@@ -1182,7 +1199,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-8e030650",
+      "timeline_event_id": "evt-b02aa3b9",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-16T16:38:51Z",
       "status": "recorded",
@@ -1209,7 +1226,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-fe89ba4a",
+      "timeline_event_id": "evt-ecc7f926",
       "event_type": "ot_export_preserved",
       "timestamp": "2026-06-16T21:04:48Z",
       "status": "observed",
@@ -1234,7 +1251,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-4052b7fc",
+      "timeline_event_id": "evt-bf15a8be",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-16T21:04:48Z",
       "status": "recorded",
@@ -1260,7 +1277,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-75d51bf7",
+      "timeline_event_id": "evt-b0ef8285",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-16T21:04:48Z",
       "status": "recorded",
@@ -1286,7 +1303,7 @@
       }
     },
     {
-      "timeline_event_id": "evt-042ccbdf",
+      "timeline_event_id": "evt-9835c64a",
       "event_type": "acquire_preserved",
       "timestamp": "2026-06-16T21:04:48Z",
       "status": "recorded",

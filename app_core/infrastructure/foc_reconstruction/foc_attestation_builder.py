@@ -1324,11 +1324,33 @@ def build_attestations(
         ],
     }
 
+    case_analysis_reports = []
+    for case in cases_index:
+        case_path = project_path(*(str(case.get("path") or "").split("/"))) if case.get("path") else None
+        if not case_path or not case_path.is_dir():
+            continue
+        report_path = case_path / "analysis" / "forensic_analysis_report.json"
+        status_path = case_path / "analysis" / "analysis_status.json"
+        report_payload = _load_json_if_exists(report_path)
+        status_payload = _load_json_if_exists(status_path)
+        if report_payload or status_payload:
+            case_analysis_reports.append(
+                {
+                    "case_id": case.get("case_id"),
+                    "report_path": relative_path(report_path) if report_path.exists() else None,
+                    "status_path": relative_path(status_path) if status_path.exists() else None,
+                    "analysis_status": (status_payload or {}).get("status"),
+                    "analysis_id": (status_payload or {}).get("analysis_id"),
+                    "analysis_performed": bool(report_payload),
+                    "report_generated_at": (report_payload or {}).get("generated_at"),
+                }
+            )
+
     forensic_analysis_manifest = {
         "generated_at": generated_at,
         "scenario_id": scenario_id,
         "scenario_name": scenario_name,
-        "analysis_performed": bool(analysis_events),
+        "analysis_performed": bool(analysis_events) or any(item.get("analysis_performed") for item in case_analysis_reports),
         "analysis_events": [
             {
                 "timeline_event_id": event.get("timeline_event_id"),
@@ -1352,10 +1374,11 @@ def build_attestations(
             for artifact in artifacts
             if artifact.get("artifact_class") == "analysis_outputs"
         ],
+        "case_analyses": case_analysis_reports,
         "analysis_status_note": "No forensic analysis events were observed; preserved evidence and reconstruction outputs must not be treated as primary forensic analysis."
-        if not analysis_events
-        else "Analysis events were observed and linked below.",
-        "reason": "preservation_only_case" if not analysis_events else None,
+        if not analysis_events and not any(item.get("analysis_performed") for item in case_analysis_reports)
+        else "Analysis outputs or analysis events were observed and linked below.",
+        "reason": "preservation_only_case" if not analysis_events and not any(item.get("analysis_performed") for item in case_analysis_reports) else None,
     }
 
     expected_causal_edges = []

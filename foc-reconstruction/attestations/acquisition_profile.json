@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-17T13:45:10.076166+00:00",
+  "generated_at": "2026-06-17T15:05:43.030203+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
   "case_count": 1,
@@ -35,22 +35,39 @@
         "network_pcap"
       ],
       "acquired_artifacts": [
+        "alert_findings.json",
+        "analysis_status.json",
         "case_digest",
+        "clock_offset_report.json",
+        "cross_layer_findings.json",
         "custody_log",
+        "disk_findings.json",
         "disk_metadata",
         "disk_raw",
         "disk_sha256_file",
+        "evidence_inventory.json",
+        "foc_readiness_update.json",
+        "forensic_analysis_manifest.json",
+        "forensic_analysis_report.json",
+        "forensic_analysis_summary.md",
         "industrial_ot_export_modbus_tcp",
+        "integrity_custody_report.json",
         "ir_input",
         "ir_snapshot",
+        "memory_findings.json",
         "memory_lime",
         "memory_metadata",
         "memory_sha256_file",
+        "network_findings.json",
+        "ot_findings.json",
         "pcap",
         "pcap_metadata",
-        "time_sync"
+        "pipeline_findings.json",
+        "preflight_validation.json",
+        "time_sync",
+        "unified_forensic_timeline.json"
       ],
-      "artifact_count": 103,
+      "artifact_count": 120,
       "start_time": "2026-06-10T14:07:42Z",
       "end_time": "2026-06-16T21:04:48Z",
       "latency_alert_to_start_seconds": 198.167,
@@ -265,10 +282,10 @@
   ],
   "preserved_evidence_summary": {
     "network": 14,
-    "disk": 9,
-    "memory": 9,
+    "disk": 10,
+    "memory": 10,
     "logs": 131,
-    "ot_state": 180
+    "ot_state": 181
   },
   "trigger_quality_summary": {
     "strong": 1

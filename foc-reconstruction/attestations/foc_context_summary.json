@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-17T13:45:10.076166+00:00",
+  "generated_at": "2026-06-17T15:05:43.030203+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
   "answers": {
@@ -28,7 +28,7 @@
       "source": "detection_attestation.json"
     },
     "alerts_generated": {
-      "value": 37375,
+      "value": 37486,
       "source": "alerts_normalized.json"
     },
     "attack_alert_correlations": {
@@ -48,7 +48,7 @@
       "source": "acquisition_profile.json"
     },
     "analysis_outputs": {
-      "value": 128,
+      "value": 145,
       "source": "forensic_analysis_manifest.json"
     },
     "causal_reconstruction_ready": {
@@ -61,7 +61,8 @@
         "detection_attestation",
         "alerts_normalized",
         "alert_correlation",
-        "forensic_intervention"
+        "forensic_intervention",
+        "case_manifest_link"
       ],
       "source": "foc_readiness_report.json"
     }
@@ -87,7 +88,8 @@
       "detection_attestation",
       "alerts_normalized",
       "alert_correlation",
-      "forensic_intervention"
+      "forensic_intervention",
+      "case_manifest_link"
     ]
   }
 }

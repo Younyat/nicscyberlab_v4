@@ -15,11 +15,15 @@ const FOC = {
   pendingReload: false,
   firstLoadCompleted: false,
   triggerSelectionModel: null,
+  caseAnalysisStatuses: {},
+  selectedCaseId: null,
+  analysisPollTimer: null,
 };
 
 const API = "/api/foc";
 const DASHBOARD_API = `${API}/dashboard`;
 const STREAM_REFRESH_DEBOUNCE_MS = 1200;
+const ANALYSIS_STATUS_POLL_MS = 2500;
 
 async function fetchJson(url, options) {
   const res = await fetch(url, options);
@@ -31,6 +35,26 @@ async function fetchJson(url, options) {
 
 function byId(id) {
   return document.getElementById(id);
+}
+
+function analysisStatusUrl(caseId) {
+  return `${API}/cases/${encodeURIComponent(caseId)}/analysis-status`;
+}
+
+function analysisRunUrl(caseId, force = false) {
+  return `${API}/cases/${encodeURIComponent(caseId)}/analysis/run${force ? "?force=true" : ""}`;
+}
+
+function analysisValidateUrl(caseId) {
+  return `${API}/cases/${encodeURIComponent(caseId)}/analysis/validate`;
+}
+
+function analysisLogsUrl(caseId) {
+  return `${API}/cases/${encodeURIComponent(caseId)}/analysis/logs`;
+}
+
+function analysisReportUrl(caseId) {
+  return `${API}/cases/${encodeURIComponent(caseId)}/analysis/report`;
 }
 
 function setLoadingState(active, message = "Loading FOC reconstruction…") {
@@ -88,6 +112,9 @@ function stringifyScalar(value) {
 
 function statusClass(status) {
   const normalized = String(status || "").toLowerCase().replace(/\s+/g, "_");
+  if (normalized.startsWith("failed")) return "status-missing";
+  if (normalized.startsWith("skipped")) return "status-unknown";
+  if (normalized === "running") return "status-inferred";
   if (["confirmed", "complete", "valid", "active", "bound", "present", "available", "completed"].includes(normalized)) return "status-confirmed";
   if (["inferred", "partial", "bootstrap", "updated", "warning", "warnings", "mostly_available", "mostly_noise"].includes(normalized)) return "status-inferred";
   if (["missing", "critical", "insufficient", "unresolved", "error", "bootstrap_required"].includes(normalized)) return "status-missing";
@@ -400,11 +427,13 @@ async function loadAll(force = false) {
     FOC.artifacts = payload?.artifacts || null;
     FOC.cases = payload?.cases || null;
     FOC.triggerSelectionModel = null;
-    const [readinessRes, detectionRes, interventionRes] = await Promise.allSettled([
+    const [casesRes, readinessRes, detectionRes, interventionRes] = await Promise.allSettled([
+      fetchJson(`${API}/cases`),
       fetchJson(`${API}/readiness-report`),
       fetchJson(`${API}/detection-attestation`),
       fetchJson(`${API}/forensic-intervention`),
     ]);
+    FOC.cases = casesRes.status === "fulfilled" ? casesRes.value : FOC.cases;
     FOC.readiness_report = readinessRes.status === "fulfilled" ? readinessRes.value : null;
     FOC.detection_attestation = detectionRes.status === "fulfilled" ? detectionRes.value : null;
     FOC.forensic_intervention = interventionRes.status === "fulfilled" ? interventionRes.value : null;
@@ -1072,6 +1101,7 @@ function renderCases() {
   const cases = FOC.cases?.cases || [];
   const artifacts = FOC.artifacts?.artifacts || [];
   const artifactSummary = FOC.status?.artifact_summary || {};
+  const note = byId("cases-summary-note");
   const summaryHtml = `
     <div class="glass-soft rounded-3xl p-4">
       <div class="text-xs uppercase tracking-[0.2em] text-slate-400 font-black">Evidence Class Summary</div>
@@ -1083,7 +1113,19 @@ function renderCases() {
       </div>
     </div>
   `;
+  if (note) {
+    note.innerHTML = cases.length
+      ? "Preserved evidence is available. Run multilayer forensic analysis on demand to generate a validated forensic report from preserved evidence."
+      : "No preserved forensic case is currently indexed in FOC.";
+  }
   const casesHtml = cases.map(entry => {
+    const analysisStatus = FOC.caseAnalysisStatuses[entry.case_id] || null;
+    const availableLayers = analysisStatus?.available_layers || entry.available_layers || {};
+    const currentAnalysisState = analysisStatus?.status || entry.analysis_status || "not_started";
+    const runLabel = currentAnalysisState === "completed" ? "Rerun Multilayer Analysis" : currentAnalysisState === "running" ? "Analysis already running" : "Run Multilayer Forensic Analysis";
+    const layersList = Object.entries(availableLayers)
+      .map(([key, value]) => `<div class="mono text-[11px] ${value ? "status-confirmed" : "status-unknown"}">${esc(key)}: ${esc(value ? "available" : "not_available")}</div>`)
+      .join("");
     const caseArtifacts = artifacts.filter(a => a.case_id === entry.case_id).slice(0, 6);
     return `
       <div class="glass-soft rounded-3xl p-4">
@@ -1099,7 +1141,22 @@ function renderCases() {
           <div class="mono text-xs text-slate-300">${esc(entry.custody_path)}</div>
           <div class="mono text-xs text-slate-300">${esc(entry.pipeline_path)}</div>
         </div>
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+          <div class="glass rounded-2xl p-3">
+            <div class="text-xs uppercase tracking-[0.2em] text-slate-400 font-black">Forensic analysis</div>
+            <div class="mt-2 ${statusClass(currentAnalysisState)} font-black uppercase tracking-[0.12em] text-xs">${esc(currentAnalysisState)}</div>
+            <div class="mt-2 text-xs text-slate-300">${esc(currentAnalysisState === "completed" ? "Analysis outputs are available for this case." : "Preserved evidence is available, but no forensic analysis has been executed yet.")}</div>
+          </div>
+          <div class="glass rounded-2xl p-3">
+            <div class="text-xs uppercase tracking-[0.2em] text-slate-400 font-black">Available layers</div>
+            <div class="mt-2 space-y-1">${layersList || '<span class="text-slate-500 text-xs">not_loaded</span>'}</div>
+          </div>
+        </div>
         <div class="mt-3">${caseArtifacts.map(a => `<div class="mono text-xs text-slate-400">${esc(a.artifact_type)} → ${esc(a.artifact_id)}</div>`).join("")}</div>
+        <div class="flex flex-wrap gap-3 mt-4">
+          <button class="open-analysis-btn btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase" data-case-id="${esc(entry.case_id)}"${currentAnalysisState === "running" ? " disabled" : ""}>${esc(runLabel)}</button>
+          <button class="view-analysis-btn btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase" data-case-id="${esc(entry.case_id)}">Open Analysis Status</button>
+        </div>
       </div>
     `;
   }).join("") || `<div class="text-sm text-slate-400">No forensic cases indexed.</div>`;
@@ -1157,6 +1214,213 @@ function renderRelationships() {
       <div class="mt-3">${(edge.evidence || []).slice(0, 3).map(ev => `<div class="mono text-[11px] text-slate-400">${esc(ev)}</div>`).join("") || '<div class="text-xs text-slate-500">No direct evidence reference</div>'}</div>
     </div>
   `).join("") || `<div class="text-sm text-slate-400">No relationships indexed.</div>`;
+}
+
+async function fetchCaseAnalysisStatus(caseId) {
+  const payload = await fetchJson(analysisStatusUrl(caseId));
+  FOC.caseAnalysisStatuses[caseId] = payload;
+  return payload;
+}
+
+function stopAnalysisPolling() {
+  if (FOC.analysisPollTimer) {
+    clearTimeout(FOC.analysisPollTimer);
+    FOC.analysisPollTimer = null;
+  }
+}
+
+function scheduleAnalysisPolling(caseId) {
+  stopAnalysisPolling();
+  FOC.analysisPollTimer = setTimeout(async () => {
+    if (!FOC.selectedCaseId || FOC.selectedCaseId !== caseId) return;
+    try {
+      const status = await fetchCaseAnalysisStatus(caseId);
+      renderAnalysisModal(status);
+      if (status.status === "running") {
+        scheduleAnalysisPolling(caseId);
+      }
+      if (["completed", "partial", "failed"].includes(String(status.status || ""))) {
+        await loadAll(true);
+      }
+    } catch (_) {
+      scheduleAnalysisPolling(caseId);
+    }
+  }, ANALYSIS_STATUS_POLL_MS);
+}
+
+function openAnalysisModalShell() {
+  const modal = byId("analysis-modal");
+  if (!modal) return;
+  modal.classList.add("is-active");
+  modal.setAttribute("aria-hidden", "false");
+}
+
+function closeAnalysisModalShell() {
+  const modal = byId("analysis-modal");
+  if (!modal) return;
+  modal.classList.remove("is-active");
+  modal.setAttribute("aria-hidden", "true");
+  stopAnalysisPolling();
+}
+
+function renderAnalysisModal(status, extras = {}) {
+  const caseId = status?.case_id || FOC.selectedCaseId || "unknown";
+  const title = byId("analysis-modal-title");
+  const subtitle = byId("analysis-modal-subtitle");
+  const statusPanel = byId("analysis-status-panel");
+  const phasesPanel = byId("analysis-phases-panel");
+  const debugPanel = byId("analysis-debug-panel");
+  const layersPanel = byId("analysis-layers-panel");
+  const reportPanel = byId("analysis-report-panel");
+  const runBtn = byId("analysis-run-btn");
+  const validateBtn = byId("analysis-validate-btn");
+  const viewReportBtn = byId("analysis-view-report-btn");
+  if (!statusPanel || !phasesPanel || !debugPanel || !layersPanel || !reportPanel) return;
+
+  const caseEntry = (FOC.cases?.cases || []).find(item => item.case_id === caseId);
+  if (title) title.textContent = `Case analysis: ${caseEntry?.source_case_name || caseId}`;
+  if (subtitle) {
+    if (!status.evidence_available) {
+      subtitle.textContent = "Analysis cannot start because no preserved evidence is linked to this case.";
+    } else if (status.status === "running") {
+      subtitle.textContent = "Forensic analysis is running. This may take several minutes depending on disk, memory and PCAP size.";
+    } else if (status.status === "completed") {
+      subtitle.textContent = "Forensic analysis completed. The FOC readiness report has been updated, but semantic and causal reconstruction remain blocked until explicitly generated.";
+    } else if (status.status === "failed") {
+      subtitle.textContent = `Forensic analysis failed at phase: ${status.current_phase || "unknown"}. Open debug details to inspect the exact command, stderr and expected output.`;
+    } else {
+      subtitle.textContent = "Preserved evidence is available, but no forensic analysis has been executed yet. Run multilayer forensic analysis to unlock the Forensic Analysis Report.";
+    }
+  }
+
+  if (runBtn) {
+    runBtn.disabled = status.status === "running" || !status.evidence_available;
+    runBtn.textContent = status.status === "running" ? "Analysis already running" : "Run Multilayer Forensic Analysis";
+  }
+  if (validateBtn) validateBtn.disabled = status.status === "running";
+  if (viewReportBtn) viewReportBtn.disabled = !status.forensic_analysis_report_path;
+
+  statusPanel.innerHTML = `
+    <div><strong>case_id:</strong> ${esc(caseId)}</div>
+    <div><strong>analysis_id:</strong> ${esc(status.analysis_id || "not_available")}</div>
+    <div><strong>status:</strong> <span class="${statusClass(status.status)}">${esc(status.status || "unknown")}</span></div>
+    <div><strong>started_at:</strong> ${esc(status.started_at || "not_available")}</div>
+    <div><strong>updated_at:</strong> ${esc(status.updated_at || "not_available")}</div>
+    <div><strong>finished_at:</strong> ${esc(status.finished_at || "not_available")}</div>
+    <div><strong>current_phase:</strong> ${esc(status.current_phase || "not_available")}</div>
+    <div><strong>progress_percent:</strong> ${esc(status.progress_percent ?? 0)}%</div>
+    <div><strong>report:</strong> ${esc(status.forensic_analysis_report_path || "not_available")}</div>
+  `;
+
+  const phaseEntries = Object.entries(status.phases || {});
+  phasesPanel.innerHTML = phaseEntries.length
+    ? phaseEntries.map(([key, phase]) => `
+      <div class="glass rounded-2xl p-3">
+        <div class="flex items-center justify-between gap-3">
+          <div class="font-black">${esc(phase.label || key)}</div>
+          <div class="text-xs uppercase tracking-[0.12em] font-black ${statusClass(phase.status)}">${esc(phase.status || "pending")}</div>
+        </div>
+        <div class="mt-2 text-xs text-slate-300 mono">${esc(phase.output_path || "not_available")}</div>
+        <div class="mt-2 text-xs text-slate-400">stdout: ${esc(phase.stdout_path || "not_available")}</div>
+        <div class="mt-1 text-xs text-slate-400">stderr: ${esc(phase.stderr_path || "not_available")}</div>
+      </div>
+    `).join("")
+    : "No phase progress loaded.";
+
+  const warnings = (status.warnings || []).map(item => `${item.phase}: ${item.message}`).join("\n");
+  const errors = (status.errors || []).map(item => `${item.phase}: ${item.error_message || item.message}`).join("\n");
+  const logs = extras.logs?.logs || [];
+  debugPanel.innerHTML = `
+    <div><strong>warnings:</strong></div>
+    <div class="mono text-xs text-slate-400 mt-2 whitespace-pre-wrap">${esc(warnings || "none")}</div>
+    <div class="mt-4"><strong>errors:</strong></div>
+    <div class="mono text-xs text-slate-400 mt-2 whitespace-pre-wrap">${esc(errors || "none")}</div>
+    <div class="mt-4"><strong>logs:</strong></div>
+    <div class="space-y-3 mt-2">
+      ${logs.slice(0, 6).map(log => `
+        <div class="glass rounded-2xl p-3">
+          <div class="font-black">${esc(log.phase)}</div>
+          <div class="mono text-[11px] text-slate-400 mt-2">${esc(log.stdout_path || "not_available")}</div>
+          <div class="mono text-[11px] text-slate-400 mt-1">${esc(log.stderr_path || "not_available")}</div>
+          <div class="mono text-[11px] text-slate-300 mt-2 whitespace-pre-wrap">${esc(log.stderr_tail || log.stdout_tail || "no log tail")}</div>
+        </div>
+      `).join("") || '<div class="text-xs text-slate-500">no logs loaded</div>'}
+    </div>
+  `;
+
+  const layers = Object.entries(status.available_layers || {});
+  layersPanel.innerHTML = layers.length
+    ? layers.map(([key, value]) => `<div class="mono text-sm ${value ? "status-confirmed" : "status-unknown"}">${esc(key)}: ${esc(value ? "available" : "not_available")}</div>`).join("")
+    : "No layer inventory loaded.";
+
+  const report = extras.report || null;
+  reportPanel.textContent = report?.summary_preview || "No report loaded.";
+}
+
+async function openCaseAnalysis(caseId, autoRun = false) {
+  FOC.selectedCaseId = caseId;
+  openAnalysisModalShell();
+  const status = await fetchCaseAnalysisStatus(caseId);
+  const [logsRes, reportRes] = await Promise.allSettled([
+    fetchJson(analysisLogsUrl(caseId)),
+    fetchJson(analysisReportUrl(caseId)),
+  ]);
+  renderAnalysisModal(status, {
+    logs: logsRes.status === "fulfilled" ? logsRes.value : null,
+    report: reportRes.status === "fulfilled" ? reportRes.value : null,
+  });
+  if (autoRun && status.status !== "running") {
+    await runCaseAnalysis(caseId);
+    return;
+  }
+  if (status.status === "running") {
+    scheduleAnalysisPolling(caseId);
+  }
+}
+
+async function runCaseAnalysis(caseId, force = false) {
+  try {
+    await fetchJson(analysisRunUrl(caseId, force), { method: "POST" });
+  } catch (_) {
+    // The backend returns 409 when an analysis is already running. In that case
+    // we simply reload the persisted status and keep the modal in sync.
+  }
+  const status = await fetchCaseAnalysisStatus(caseId);
+  renderAnalysisModal(status);
+  scheduleAnalysisPolling(caseId);
+}
+
+async function validateCaseAnalysis(caseId) {
+  const [validation, logs, report] = await Promise.allSettled([
+    fetchJson(analysisValidateUrl(caseId), { method: "POST" }),
+    fetchJson(analysisLogsUrl(caseId)),
+    fetchJson(analysisReportUrl(caseId)),
+  ]);
+  const status = await fetchCaseAnalysisStatus(caseId);
+  renderAnalysisModal(status, {
+    logs: logs.status === "fulfilled" ? logs.value : null,
+    report: report.status === "fulfilled" ? report.value : null,
+  });
+  const debugPanel = byId("analysis-debug-panel");
+  if (debugPanel && validation.status === "fulfilled") {
+    const validationText = (validation.value.validation || []).map(item => `${item.phase}: ${item.status}${item.reason ? ` (${item.reason})` : ""}`).join("\n");
+    debugPanel.innerHTML += `<div class="mt-4"><strong>validation:</strong><div class="mono text-xs text-slate-400 mt-2 whitespace-pre-wrap">${esc(validationText || "no validation rows")}</div></div>`;
+  }
+}
+
+async function viewCaseAnalysisReport(caseId) {
+  const [status, logs, report] = await Promise.allSettled([
+    fetchCaseAnalysisStatus(caseId),
+    fetchJson(analysisLogsUrl(caseId)),
+    fetchJson(analysisReportUrl(caseId)),
+  ]);
+  renderAnalysisModal(
+    status.status === "fulfilled" ? status.value : (FOC.caseAnalysisStatuses[caseId] || { case_id: caseId }),
+    {
+      logs: logs.status === "fulfilled" ? logs.value : null,
+      report: report.status === "fulfilled" ? report.value : null,
+    }
+  );
 }
 
 function renderAll() {
@@ -1431,7 +1695,7 @@ function renderDetectionAttestationSummary() {
 }
 
 function renderForensicInterventionSummary() {
-  const panel = byId("cases-panel");
+  const panel = byId("forensic-intervention-summary");
   if (!panel) return;
   const fi = FOC.forensic_intervention || {};
   const intervention = (fi.interventions || [])[0] || null;
@@ -1522,6 +1786,34 @@ document.addEventListener("DOMContentLoaded", async () => {
   byId("btn-refresh").addEventListener("click", () => loadAll(true));
   byId("btn-regenerate").addEventListener("click", doRegenerate);
   byId("btn-bootstrap").addEventListener("click", () => doBootstrap(false));
+  byId("analysis-modal-close")?.addEventListener("click", closeAnalysisModalShell);
+  byId("analysis-modal")?.addEventListener("click", (event) => {
+    if (event.target?.id === "analysis-modal") {
+      closeAnalysisModalShell();
+    }
+  });
+  byId("analysis-run-btn")?.addEventListener("click", () => {
+    if (FOC.selectedCaseId) runCaseAnalysis(FOC.selectedCaseId).catch(() => {});
+  });
+  byId("analysis-validate-btn")?.addEventListener("click", () => {
+    if (FOC.selectedCaseId) validateCaseAnalysis(FOC.selectedCaseId).catch(() => {});
+  });
+  byId("analysis-view-report-btn")?.addEventListener("click", () => {
+    if (FOC.selectedCaseId) viewCaseAnalysisReport(FOC.selectedCaseId).catch(() => {});
+  });
+  byId("cases-panel")?.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target.closest("button[data-case-id]") : null;
+    if (!target) return;
+    const caseId = target.getAttribute("data-case-id");
+    if (!caseId) return;
+    if (target.classList.contains("open-analysis-btn")) {
+      openCaseAnalysis(caseId, true).catch(() => {});
+      return;
+    }
+    if (target.classList.contains("view-analysis-btn")) {
+      openCaseAnalysis(caseId, false).catch(() => {});
+    }
+  });
   document.querySelectorAll(".export-btn").forEach(btn => {
     btn.addEventListener("click", () => exportJson(btn.dataset.export));
   });

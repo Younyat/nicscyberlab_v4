@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-17T13:45:10.076166+00:00",
+  "generated_at": "2026-06-17T15:05:43.030203+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
   "causal_reconstruction_ready": false,
@@ -9,7 +9,8 @@
     "detection_attestation",
     "alerts_normalized",
     "alert_correlation",
-    "forensic_intervention"
+    "forensic_intervention",
+    "case_manifest_link"
   ],
   "sections": {
     "attack_attestation": {
@@ -302,64 +303,64 @@
       ]
     },
     "alerts_normalized": {
-      "record_count": 37375,
+      "record_count": 37486,
       "minimum_expected_records": 1,
       "overall_status": "partial",
       "fields": {
         "timestamp": {
           "path": "timestamp",
           "status": "ok",
-          "present_records": 37375,
-          "applicable_records": 37375,
+          "present_records": 37486,
+          "applicable_records": 37486,
           "coverage_ratio": 1.0,
           "missing_samples": []
         },
         "detector": {
           "path": "detector",
           "status": "ok",
-          "present_records": 37375,
-          "applicable_records": 37375,
+          "present_records": 37486,
+          "applicable_records": 37486,
           "coverage_ratio": 1.0,
           "missing_samples": []
         },
         "rule_id": {
           "path": "rule_id",
           "status": "ok",
-          "present_records": 37375,
-          "applicable_records": 37375,
+          "present_records": 37486,
+          "applicable_records": 37486,
           "coverage_ratio": 1.0,
           "missing_samples": []
         },
         "severity": {
           "path": "severity",
           "status": "ok",
-          "present_records": 37375,
-          "applicable_records": 37375,
+          "present_records": 37486,
+          "applicable_records": 37486,
           "coverage_ratio": 1.0,
           "missing_samples": []
         },
         "origin": {
           "path": "origin.ip",
           "status": "ok",
-          "present_records": 37375,
-          "applicable_records": 37375,
+          "present_records": 37486,
+          "applicable_records": 37486,
           "coverage_ratio": 1.0,
           "missing_samples": []
         },
         "destination": {
           "path": "destination.ip",
           "status": "ok",
-          "present_records": 37375,
-          "applicable_records": 37375,
+          "present_records": 37486,
+          "applicable_records": 37486,
           "coverage_ratio": 1.0,
           "missing_samples": []
         },
         "protocol": {
           "path": "protocol",
           "status": "partial",
-          "present_records": 16608,
-          "applicable_records": 37375,
-          "coverage_ratio": 0.4444,
+          "present_records": 16719,
+          "applicable_records": 37486,
+          "coverage_ratio": 0.446,
           "missing_samples": [
             "alr-3850971b",
             "alr-8c44dce6",
@@ -378,8 +379,8 @@
         "normalized_message": {
           "path": "normalized_message",
           "status": "ok",
-          "present_records": 37375,
-          "applicable_records": 37375,
+          "present_records": 37486,
+          "applicable_records": 37486,
           "coverage_ratio": 1.0,
           "missing_samples": []
         }
@@ -662,44 +663,59 @@
       "problem_fields": []
     },
     "case_manifest_link": {
-      "record_count": 103,
+      "record_count": 120,
       "minimum_expected_records": 1,
-      "overall_status": "ok",
+      "overall_status": "partial",
       "fields": {
         "case_id": {
           "path": "case_id",
           "status": "ok",
-          "present_records": 103,
-          "applicable_records": 103,
+          "present_records": 120,
+          "applicable_records": 120,
           "coverage_ratio": 1.0,
           "missing_samples": []
         },
         "manifest_path": {
           "path": "manifest_path",
           "status": "ok",
-          "present_records": 103,
-          "applicable_records": 103,
+          "present_records": 120,
+          "applicable_records": 120,
           "coverage_ratio": 1.0,
           "missing_samples": []
         },
         "artifact_exists": {
           "path": "artifact_exists",
           "status": "ok",
-          "present_records": 103,
-          "applicable_records": 103,
+          "present_records": 120,
+          "applicable_records": 120,
           "coverage_ratio": 1.0,
           "missing_samples": []
         },
         "artifact_in_manifest": {
           "path": "artifact_in_manifest",
-          "status": "ok",
+          "status": "partial",
           "present_records": 103,
-          "applicable_records": 103,
-          "coverage_ratio": 1.0,
-          "missing_samples": []
+          "applicable_records": 120,
+          "coverage_ratio": 0.8583,
+          "missing_samples": [
+            "case-63ceb018",
+            "case-63ceb018",
+            "case-63ceb018",
+            "case-63ceb018",
+            "case-63ceb018",
+            "case-63ceb018",
+            "case-63ceb018",
+            "case-63ceb018",
+            "case-63ceb018",
+            "case-63ceb018",
+            "case-63ceb018",
+            "case-63ceb018"
+          ]
         }
       },
-      "problem_fields": []
+      "problem_fields": [
+        "artifact_in_manifest"
+      ]
     }
   },
   "notes": [

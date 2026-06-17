@@ -36,7 +36,27 @@ def _artifact_classification(artifact_type: str) -> tuple[str, bool]:
         "custody_log",
     }
     forensic_inputs = {"ir_input", "ir_snapshot", "fsr_eval"}
-    analysis_outputs = {"vol3_output_dir", "tsk_output_dir"}
+    analysis_outputs = {
+        "vol3_output_dir",
+        "tsk_output_dir",
+        "analysis_status.json",
+        "preflight_validation.json",
+        "evidence_inventory.json",
+        "integrity_custody_report.json",
+        "clock_offset_report.json",
+        "network_findings.json",
+        "memory_findings.json",
+        "disk_findings.json",
+        "ot_findings.json",
+        "alert_findings.json",
+        "pipeline_findings.json",
+        "unified_forensic_timeline.json",
+        "cross_layer_findings.json",
+        "forensic_analysis_report.json",
+        "forensic_analysis_manifest.json",
+        "forensic_analysis_summary.md",
+        "foc_readiness_update.json",
+    }
     if normalized in {
         "causal_graph.json",
         "causal_path_recoverability.json",
@@ -140,6 +160,41 @@ def _parse_case_pipeline(case_dir: Path, warnings: list[dict]) -> tuple[list[dic
         if rel:
             artifact_meta[str(rel)] = event
     return events, artifact_meta, {"pipeline_path": relative_path(pipeline_path)}
+
+
+def _infer_case_analysis_artifacts(case_dir: Path, case_id: str) -> list[dict]:
+    analysis_dir = case_dir / "analysis"
+    if not analysis_dir.is_dir():
+        return []
+    out = []
+    for path in sorted(analysis_dir.rglob("*")):
+        if not path.is_file():
+            continue
+        artifact_type = path.name
+        artifact_class, is_primary = _artifact_classification(artifact_type)
+        if artifact_class != "analysis_outputs":
+            continue
+        ref = clone(empty_artifact_reference())
+        ref.update(
+            {
+                "artifact_id": _artifact_id(case_dir.name, relative_path(path)),
+                "evidence_id": _evidence_id(case_dir.name, relative_path(path)),
+                "id_origin": "derived_from_analysis_output",
+                "artifact_type": artifact_type,
+                "artifact_class": artifact_class,
+                "is_primary_evidence": is_primary,
+                "path": relative_path(path),
+                "case_id": case_id,
+                "related_instance_id": "unresolved",
+                "related_node_id": "unresolved",
+                "sha256": hashlib.sha256(path.read_bytes()).hexdigest() if path.stat().st_size <= 8 * 1024 * 1024 else "",
+                "size": path.stat().st_size,
+                "status": "indexed",
+                "details": {"analysis_output": True},
+            }
+        )
+        out.append(ref)
+    return out
 
 
 def _case_trigger_score(event: dict, target_node_ids: set[str], target_instance_ids: set[str], case_created_epoch: float | None) -> tuple[int, list[str]]:
@@ -349,6 +404,7 @@ def build_indexes(scenario_bom: dict, tools_bom: dict, timeline: dict, sources_b
     for case_dir in case_dirs:
         case_id = make_id("case", case_dir.name)
         case_artifacts = _infer_case_artifacts(case_dir, warnings)
+        analysis_artifacts = _infer_case_analysis_artifacts(case_dir, case_id)
         pipeline_events, pipeline_artifact_meta, pipeline_refs = _parse_case_pipeline(case_dir, warnings)
         case_created = next((event for event in pipeline_events if str(event.get("event") or event.get("event_type") or "") == "case_created"), None)
         orchestration = next((event for event in pipeline_events if str(event.get("event") or event.get("event_type") or "") == "dfir_orchestration_start"), None)
@@ -409,13 +465,14 @@ def build_indexes(scenario_bom: dict, tools_bom: dict, timeline: dict, sources_b
                 artifact.setdefault("details", {})
                 artifact["details"]["acquisition_timestamp"] = meta_event.get("ts_utc") or meta_event.get("ts")
                 artifact["details"]["pipeline_event"] = str(meta_event.get("event") or meta_event.get("event_type") or "")
-        artifacts_index.extend(case_artifacts)
+        all_case_artifacts = [*case_artifacts, *analysis_artifacts]
+        artifacts_index.extend(all_case_artifacts)
         cases_index.append(
             {
                 "case_id": case_id,
                 "source_case_name": case_dir.name,
                 "path": relative_path(case_dir),
-                "artifacts_count": len(case_artifacts),
+                "artifacts_count": len(all_case_artifacts),
                 "manifest_path": f"{relative_path(case_dir)}/manifest.json",
                 "pipeline_path": f"{relative_path(case_dir)}/metadata/pipeline_events.jsonl",
                 "custody_path": f"{relative_path(case_dir)}/chain_of_custody.log",
@@ -445,7 +502,7 @@ def build_indexes(scenario_bom: dict, tools_bom: dict, timeline: dict, sources_b
                     "trigger_selection_reason": ",".join(trigger_alert.get("_trigger_reasons") or []),
                 },
             )
-        for artifact in case_artifacts:
+        for artifact in all_case_artifacts:
             _add_edge(relationships, "case", case_id, "contains_artifact", "artifact", artifact["artifact_id"])
             _add_edge(relationships, "evidence", artifact["evidence_id"], "preserved_in", "artifact", artifact["artifact_id"])
             if trigger_alert:

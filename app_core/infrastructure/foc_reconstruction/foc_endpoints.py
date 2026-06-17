@@ -5,6 +5,14 @@ import threading
 
 from flask import Blueprint, Response, jsonify, request
 
+from .foc_case_analysis import (
+    analysis_logs,
+    analysis_report,
+    cases_with_analysis_state,
+    load_analysis_status,
+    run_analysis,
+    validate_analysis,
+)
 from .foc_config import GENERATED_FILES
 from .foc_bootstrap import bootstrap_existing_context, read_id_mapping
 from .foc_events import iter_events_since, safe_notify_foc, snapshot_watch_state
@@ -108,7 +116,51 @@ def api_foc_artifacts():
 
 @foc_bp.route("/api/foc/cases", methods=["GET"])
 def api_foc_cases():
-    return _read_or_404("cases_index")
+    return jsonify(cases_with_analysis_state()), 200
+
+
+@foc_bp.route("/api/foc/cases/<case_id>/analysis-status", methods=["GET"])
+def api_foc_case_analysis_status(case_id: str):
+    payload = load_analysis_status(case_id)
+    if payload.get("error") == "case_not_found":
+        return jsonify(payload), 404
+    return jsonify(payload), 200
+
+
+@foc_bp.route("/api/foc/cases/<case_id>/analysis/run", methods=["POST"])
+def api_foc_case_analysis_run(case_id: str):
+    force_arg = str(request.args.get("force", "false")).strip().lower()
+    force = force_arg in {"1", "true", "yes", "on"}
+    payload = run_analysis(case_id, force=force)
+    if payload.get("error") == "case_not_found":
+        return jsonify(payload), 404
+    if payload.get("error") == "analysis_already_running":
+        return jsonify(payload), 409
+    return jsonify(payload), 202
+
+
+@foc_bp.route("/api/foc/cases/<case_id>/analysis/logs", methods=["GET"])
+def api_foc_case_analysis_logs(case_id: str):
+    payload = analysis_logs(case_id)
+    if payload.get("error") == "case_not_found":
+        return jsonify(payload), 404
+    return jsonify(payload), 200
+
+
+@foc_bp.route("/api/foc/cases/<case_id>/analysis/report", methods=["GET"])
+def api_foc_case_analysis_report(case_id: str):
+    payload = analysis_report(case_id)
+    if payload is None:
+        return jsonify({"error": "analysis_report_not_found", "case_id": case_id}), 404
+    return jsonify(payload), 200
+
+
+@foc_bp.route("/api/foc/cases/<case_id>/analysis/validate", methods=["POST"])
+def api_foc_case_analysis_validate(case_id: str):
+    payload = validate_analysis(case_id)
+    if payload.get("error") == "case_not_found":
+        return jsonify(payload), 404
+    return jsonify(payload), 200
 
 
 @foc_bp.route("/api/foc/id-mapping", methods=["GET"])

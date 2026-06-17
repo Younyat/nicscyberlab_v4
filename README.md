@@ -1259,6 +1259,107 @@ Notas operativas:
 - Umbrales de calidad del trigger (por defecto): `>=400` → `strong`, `250–399` → `medium`, `>0` → `weak`. Estos umbrales pueden ajustarse si se desea.
 
 Para ver los cambios en acción, abrir la página `app_core/static/foc_reconstruction.html` en la aplicación y recargar la reconstrucción (`Bootstrap` / `Regenerate` / `Refresh`).
+
+### Multilayer forensic analysis under demand
+
+`FOC Reconstruction` now includes an **on-demand multilayer forensic analysis workflow** for any preserved case found under:
+
+```bash
+app_core/infrastructure/forensics/evidence_store/CASE-*
+```
+
+This workflow is intentionally **not automatic**. Opening the FOC dashboard does not execute analysis. Instead, the **Evidence and Cases** panel exposes a case-level action:
+
+- `Run Multilayer Forensic Analysis`
+
+This action is only meaningful when preserved evidence already exists for the selected case. The goal is to turn a preserved case into a validated analytical object without coupling the workflow to a single hardcoded `CASE-*`.
+
+The backend now exposes dedicated case-analysis endpoints:
+
+- `GET /api/foc/cases`
+- `GET /api/foc/cases/{case_id}/analysis-status`
+- `POST /api/foc/cases/{case_id}/analysis/run`
+- `GET /api/foc/cases/{case_id}/analysis/logs`
+- `GET /api/foc/cases/{case_id}/analysis/report`
+- `POST /api/foc/cases/{case_id}/analysis/validate`
+
+The analysis is executed in background and persists its own runtime state per case at:
+
+```bash
+<CASE_DIR>/analysis/analysis_status.json
+```
+
+The phase workflow is explicit and validated. The current implementation uses the following sequence:
+
+- `preflight_validation`
+- `evidence_inventory`
+- `integrity_custody_validation`
+- `temporal_validation`
+- `network_analysis`
+- `memory_analysis`
+- `disk_analysis`
+- `ot_export_analysis`
+- `alerts_detection_analysis`
+- `pipeline_custody_analysis`
+- `unified_forensic_timeline`
+- `cross_layer_findings`
+- `forensic_analysis_report_generation`
+- `foc_readiness_update`
+
+Generated outputs are written inside the case itself, under:
+
+- `analysis/00_inventory/evidence_inventory.json`
+- `analysis/01_integrity_custody/integrity_custody_report.json`
+- `analysis/02_time_validation/clock_offset_report.json`
+- `analysis/03_network/network_findings.json`
+- `analysis/04_memory/memory_findings.json`
+- `analysis/05_disk/disk_findings.json`
+- `analysis/06_ot/ot_findings.json`
+- `analysis/07_alerts/alert_findings.json`
+- `analysis/08_pipeline_custody/pipeline_findings.json`
+- `analysis/09_timeline/unified_forensic_timeline.json`
+- `analysis/10_findings/cross_layer_findings.json`
+- `analysis/forensic_analysis_manifest.json`
+- `analysis/forensic_analysis_report.json`
+- `analysis/forensic_analysis_summary.md`
+
+The dashboard shows phase-level state as:
+
+- `pending`
+- `running`
+- `completed`
+- `skipped_*`
+- `failed_*`
+
+This is important because the workflow must remain honest:
+
+- if a memory dump does not exist, memory analysis is skipped
+- if a RAW disk exists but Sleuth Kit is missing, disk analysis fails with an explicit dependency error
+- if a preserved artifact cannot be read, the failing phase records the expected output, debug paths, and the suggested action
+
+The workflow reuses the real local analysis surface already present in the repository:
+
+- `app_core/infrastructure/forensics/scripts/analyze_network_pcap.sh`
+- `app_core/infrastructure/forensics/scripts/analyze_memory_vol3.sh`
+- `app_core/infrastructure/forensics/scripts/analyze_disk_tsk.sh`
+- `app_core/infrastructure/forensics/scripts/build_case_timeline.py`
+- `e2_max_clock_offset.sh` as an available temporal helper when applicable
+
+The FOC layer remains read-only with respect to:
+
+- OpenStack deployment
+- Terraform / Ansible
+- attack execution
+- Suricata / Wazuh configuration
+- primary evidence content
+
+It only adds **derived analysis outputs** under the selected case and then regenerates the FOC view so that:
+
+- `Analysis` can stop being `0 / 10`
+- `Forensic` can move beyond `NOT_COMPLETED`
+- `Semantic` stays blocked until explicitly generated later
+- `causal_reconstruction_ready` remains `false`
+
 - `foc-reconstruction/indexes/artifacts_index.json`
 - `foc-reconstruction/indexes/relationships_index.json`
 - `foc-reconstruction/indexes/cases_index.json`
