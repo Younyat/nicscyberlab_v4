@@ -19,6 +19,33 @@ const FOC = {
   caseAnalysisStatuses: {},
   selectedCaseId: null,
   analysisPollTimer: null,
+  graphState: {
+    layers: {
+      topology: true,
+      attack: true,
+      detection: true,
+      attack_alert: true,
+      evidence: true,
+      custody: true,
+      analysis: true,
+      timeline: false,
+      findings: false,
+      semantic: false,
+      causal: false,
+    },
+    filters: {
+      node: "all",
+      severity: "all",
+      mitre: "all",
+      sensor: "all",
+      confirmedOnly: false,
+      hideNoise: false,
+      evidenceLinkedOnly: false,
+    },
+    selected: null,
+    cacheKey: "",
+    aggregate: null,
+  },
 };
 
 const API = "/api/foc";
@@ -797,107 +824,757 @@ function renderTechniqueRanking() {
   `;
 }
 
-function renderNetworkGraph() {
-  const host = byId("chart-network");
-  const summary = byId("chart-network-summary");
+const GRAPH_LAYER_META = {
+  topology: { label: "Topology", color: "#94a3b8" },
+  attack: { label: "Attack", color: "#ef4444" },
+  detection: { label: "Detection", color: "#f59e0b" },
+  attack_alert: { label: "Attack→Alert", color: "#f97316" },
+  evidence: { label: "Evidence", color: "#22d3ee" },
+  custody: { label: "Custody", color: "#22c55e" },
+  analysis: { label: "Analysis", color: "#a855f7" },
+  timeline: { label: "Timeline", color: "#64748b" },
+  findings: { label: "Findings", color: "#8b5cf6" },
+  semantic: { label: "Semantic", color: "#8b5cf6" },
+  causal: { label: "Causal", color: "#7c3aed" },
+};
+
+function graphLayerAvailable(layer) {
+  if (layer === "semantic") {
+    return String(FOC.status?.maturity?.semantic || "unknown").toLowerCase() !== "not_generated";
+  }
+  if (layer === "causal") {
+    return FOC.readiness_report?.causal_reconstruction_ready === true;
+  }
+  if (layer === "analysis") {
+    return Number(FOC.status?.components?.analysis_outputs || 0) > 0 || (FOC.cases?.cases || []).some(entry => String(entry.analysis_status || "").toLowerCase() === "completed");
+  }
+  if (layer === "findings") {
+    return Number(FOC.status?.components?.analysis_outputs || 0) > 0;
+  }
+  if (layer === "timeline") {
+    return Number(FOC.status?.components?.timeline || 0) > 0 || Number((FOC.timeline?.events || []).length) > 0;
+  }
+  return true;
+}
+
+function graphFilters() {
+  return FOC.graphState.filters;
+}
+
+function graphLayers() {
+  return FOC.graphState.layers;
+}
+
+function matchesGraphNodeFilter(nodeId) {
+  const selected = graphFilters().node;
+  return !selected || selected === "all" || selected === nodeId;
+}
+
+function buildGraphAggregate() {
+  const cacheKey = [
+    FOC.status?.last_update || "",
+    FOC.scenario?.generated_at || "",
+    (FOC.timeline?.events || []).length,
+    (FOC.attack_attestation?.attacks || []).length,
+    (FOC.detection_attestation?.observed_detection_rules || []).length,
+    (FOC.artifacts?.artifacts || []).length,
+    (FOC.cases?.cases || []).length,
+  ].join("|");
+  if (FOC.graphState.cacheKey === cacheKey && FOC.graphState.aggregate) {
+    return FOC.graphState.aggregate;
+  }
+
   const scenario = FOC.scenario || {};
-  const rels = FOC.relationships?.edges || [];
-  const nodes = (scenario.nodes || []).slice(0, 8);
-  const nodeById = new Map(nodes.map(node => [node.node_id, node]));
-  if (!nodes.length) {
-    summary.textContent = "No data";
-    host.innerHTML = `<div class="text-sm text-slate-400">No structural-evidential graph available.</div>`;
+  const scenarioNodes = (scenario.nodes || []).map(node => ({
+    ...node,
+    normalized_type: String(node.type || "node").toLowerCase(),
+  }));
+  const attackEvents = FOC.attack_attestation?.attacks || [];
+  const detectionRules = FOC.detection_attestation?.observed_detection_rules || [];
+  const timelineEvents = FOC.timeline?.events || [];
+  const artifactEntries = FOC.artifacts?.artifacts || [];
+  const cases = FOC.cases?.cases || [];
+  const detectionSummary = FOC.status?.detection_summary || {};
+  const nodeStats = new Map();
+
+  scenarioNodes.forEach(node => {
+    nodeStats.set(node.node_id, {
+      node,
+      attacks: { total: 0, success: 0, failed: 0, byTechnique: new Map() },
+      detections: { total: 0, bySeverity: new Map(), bySensor: new Map(), collectors: new Map(), confirmed: 0, inferred: 0, noise: 0, unresolved: 0 },
+      timeline: { attacks: 0, alerts: 0, triage: 0 },
+      evidence: { total: 0, byType: new Map() },
+      cases: new Set(),
+    });
+  });
+
+  attackEvents.forEach(entry => {
+    const target = entry.target || {};
+    const nodeId = target.node_id;
+    if (!nodeId || !nodeStats.has(nodeId)) return;
+    const stats = nodeStats.get(nodeId);
+    stats.attacks.total += 1;
+    if (String(entry.execution_status || "").toLowerCase() === "success") stats.attacks.success += 1;
+    else stats.attacks.failed += 1;
+    const mitre = stringifyScalar(entry.mitre?.technique_id) || "unknown";
+    stats.attacks.byTechnique.set(mitre, (stats.attacks.byTechnique.get(mitre) || 0) + 1);
+  });
+
+  detectionRules.forEach(entry => {
+    const nodeId = entry.node_id;
+    if (!nodeId || !nodeStats.has(nodeId)) return;
+    const severity = String(entry.severity || "unknown").toUpperCase();
+    const sensor = stringifyScalar(entry.original_sensor || entry.detector || "unknown");
+    const collector = stringifyScalar(entry.collector || "unknown");
+    const stats = nodeStats.get(nodeId);
+    stats.detections.total += 1;
+    stats.detections.bySeverity.set(severity, (stats.detections.bySeverity.get(severity) || 0) + 1);
+    stats.detections.bySensor.set(sensor, (stats.detections.bySensor.get(sensor) || 0) + 1);
+    stats.detections.collectors.set(collector, (stats.detections.collectors.get(collector) || 0) + 1);
+  });
+
+  timelineEvents.forEach(event => {
+    const nodeId = event.related_node_id;
+    if (!nodeId || !nodeStats.has(nodeId)) return;
+    const stats = nodeStats.get(nodeId);
+    if (event.event_type === "attack_execution") stats.timeline.attacks += 1;
+    if (event.event_type === "detection_alert") stats.timeline.alerts += 1;
+    if (event.event_type === "triage_result") stats.timeline.triage += 1;
+  });
+
+  const seenArtifacts = new Set();
+  artifactEntries.forEach(entry => {
+    const dedupeKey = `${entry.artifact_id || "na"}|${entry.artifact_type || "unknown"}|${entry.case_id || "na"}|${entry.path || "na"}`;
+    if (seenArtifacts.has(dedupeKey)) return;
+    seenArtifacts.add(dedupeKey);
+    const caseId = entry.case_id;
+    const nodeId = entry.source_node_id;
+    if (nodeId && nodeStats.has(nodeId)) {
+      const stats = nodeStats.get(nodeId);
+      stats.evidence.total += 1;
+      stats.evidence.byType.set(entry.artifact_type || "unknown", (stats.evidence.byType.get(entry.artifact_type || "unknown") || 0) + 1);
+      if (caseId) stats.cases.add(caseId);
+    }
+  });
+
+  cases.forEach(entry => {
+    (entry.target_node_ids || []).forEach(nodeId => {
+      if (nodeStats.has(nodeId)) nodeStats.get(nodeId).cases.add(entry.case_id);
+    });
+  });
+
+  const evidenceTypes = new Map();
+  [...seenArtifacts].forEach(key => {
+    const [, artifactType] = key.split("|");
+    evidenceTypes.set(artifactType, (evidenceTypes.get(artifactType) || 0) + 1);
+  });
+
+  const aggregate = {
+    scenarioNodes,
+    nodeStats,
+    evidenceTypes: [...evidenceTypes.entries()].map(([type, count]) => ({ type, count })).sort((a, b) => b.count - a.count),
+    cases,
+    detectionSummary,
+    timelineSummary: {
+      attacks: detectionSummary.attack_events || 0,
+      alerts: detectionSummary.alerts_total || 0,
+      triage: detectionSummary.triage_total || 0,
+    },
+    mitreOptions: [...new Set(attackEvents.map(item => stringifyScalar(item.mitre?.technique_id)).filter(Boolean))].sort(),
+    sensorOptions: [...new Set(detectionRules.map(item => stringifyScalar(item.original_sensor || item.detector)).filter(Boolean))].sort(),
+  };
+
+  FOC.graphState.cacheKey = cacheKey;
+  FOC.graphState.aggregate = aggregate;
+  return aggregate;
+}
+
+function graphDetailList(items) {
+  return items.map(item => `<div class="text-sm text-slate-300">${item}</div>`).join("");
+}
+
+function renderGraphDetail(payload = null) {
+  const panel = byId("graph-detail-panel");
+  if (!panel) return;
+  if (!payload) {
+    const activeLayers = Object.entries(graphLayers())
+      .filter(([key, enabled]) => enabled && graphLayerAvailable(key))
+      .map(([key]) => GRAPH_LAYER_META[key]?.label || key);
+    panel.innerHTML = `
+      <div class="text-sm text-slate-300">Select a graph node or relation to inspect its aggregated FOC context.</div>
+      <div class="mt-4">${graphDetailList([
+        `<strong>Active layers:</strong> ${esc(activeLayers.join(", ") || "none")}`,
+        "<strong>Rendering mode:</strong> aggregated snapshot",
+        "<strong>Evidence policy:</strong> no individual alert or artifact explosion in the overview graph",
+      ])}</div>
+    `;
     return;
   }
-  const attackCounts = new Map();
-  const alertCounts = new Map();
-  const nodeAttackEvents = (FOC.timeline?.events || []).filter(ev => ev.event_type === "attack_execution");
-  const nodeAlertEvents = (FOC.timeline?.events || []).filter(ev => ev.event_type === "detection_alert");
-  nodeAttackEvents.forEach(ev => {
-    const nodeId = ev.related_node_id;
-    if (nodeId && nodeById.has(nodeId)) attackCounts.set(nodeId, (attackCounts.get(nodeId) || 0) + 1);
-  });
-  nodeAlertEvents.forEach(ev => {
-    const nodeId = ev.related_node_id;
-    if (nodeId && nodeById.has(nodeId)) alertCounts.set(nodeId, (alertCounts.get(nodeId) || 0) + 1);
-  });
+  panel.innerHTML = `
+    <div class="text-xs uppercase tracking-[0.18em] text-slate-400 font-black">${esc(payload.kind || "selection")}</div>
+    <div class="text-xl font-black mt-2">${esc(payload.title || "Selected element")}</div>
+    <div class="mt-4 space-y-2">${graphDetailList(payload.lines || [])}</div>
+  `;
+}
 
-  const layout = [
-    { x: 180, y: 80 },
-    { x: 420, y: 80 },
-    { x: 660, y: 80 },
-    { x: 300, y: 220 },
-    { x: 540, y: 220 },
-    { x: 780, y: 220 },
-    { x: 180, y: 360 },
-    { x: 420, y: 360 },
-  ];
-  const positions = new Map();
-  nodes.forEach((node, idx) => {
-    const pos = layout[idx] || { x: 180 + (idx * 120), y: 80 };
-    const type = String(node.type || "").toLowerCase();
-    const color = type.includes("attack") ? "#f59e0b" : (type.includes("monitor") ? "#38bdf8" : (type.includes("plc") ? "#22c55e" : (type.includes("scada") ? "#a855f7" : "#ef4444")));
-    positions.set(node.node_id, { ...pos, color, node });
-  });
+function graphNodeColor(type) {
+  const raw = String(type || "").toLowerCase();
+  if (raw.includes("attack")) return "#ef4444";
+  if (raw.includes("monitor")) return "#38bdf8";
+  if (raw.includes("plc")) return "#22c55e";
+  if (raw.includes("scada")) return "#a855f7";
+  if (raw.includes("victim")) return "#f97316";
+  return "#94a3b8";
+}
 
-  const structuralEdges = (scenario.edges || [])
-    .filter(edge => positions.has(edge.source_node_id) && positions.has(edge.target_node_id))
-    .map(edge => ({
-      from: edge.source_node_id,
-      to: edge.target_node_id,
-      label: "network",
-      color: "rgba(148,163,184,0.35)",
-    }));
-  const industrialEdges = (scenario.industrial_linkages || [])
-    .filter(link => positions.has(link.ot_node_id) && positions.has(link.linked_to))
-    .map(link => ({
-      from: link.linked_to,
-      to: link.ot_node_id,
-      label: "it↔ot",
-      color: "rgba(34,197,94,0.5)",
-    }));
-  const detectionEdges = rels
-    .filter(edge => edge.relation === "produced_alert" && edge.details?.node_id && positions.has(edge.details.node_id))
-    .slice(0, 12)
-    .map(edge => ({
-      from: edge.details.node_id,
-      to: edge.details.node_id,
-      label: edge.correlation_status || "alert",
-      color: edge.correlation_status === "confirmed" ? "rgba(239,68,68,0.6)" : "rgba(234,179,8,0.5)",
-    }));
+function graphEdgeLabelClass(edge) {
+  if (edge.style === "confirmed") return "";
+  if (edge.style === "inferred") return 'stroke-dasharray="8 6"';
+  if (edge.style === "unresolved") return 'stroke-dasharray="4 8"';
+  return 'stroke-dasharray="2 8"';
+}
 
-  const allEdges = [...structuralEdges, ...industrialEdges];
-  const svgEdges = allEdges.map(edge => {
-    const a = positions.get(edge.from);
-    const b = positions.get(edge.to);
-    if (!a || !b) return "";
-    const midX = (a.x + b.x) / 2;
-    const midY = (a.y + b.y) / 2;
+function topMapEntries(mapLike, limit = 3) {
+  return [...(mapLike || new Map()).entries()].sort((a, b) => b[1] - a[1]).slice(0, limit);
+}
+
+function renderGraphControls(aggregate) {
+  const layerHost = byId("graph-layer-controls");
+  const nodeSelect = byId("graph-filter-node");
+  const mitreSelect = byId("graph-filter-mitre");
+  const sensorSelect = byId("graph-filter-sensor");
+  if (!layerHost || !nodeSelect || !mitreSelect || !sensorSelect) return;
+
+  layerHost.innerHTML = Object.entries(GRAPH_LAYER_META).map(([key, meta]) => {
+    const enabled = graphLayers()[key];
+    const available = graphLayerAvailable(key);
+    const unavailableText = key === "semantic" ? "unavailable" : (key === "causal" ? "blocked" : "unavailable");
     return `
-      <line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${edge.color}" stroke-width="3" />
-      <text x="${midX}" y="${midY - 8}" text-anchor="middle" fill="#8fa3bf" font-size="10">${esc(edge.label)}</text>
+      <button
+        class="graph-layer-btn tag rounded-full px-3 py-2 text-[11px] font-black tracking-[0.14em] uppercase ${enabled && available ? "text-slate-100" : "text-slate-400 opacity-70"}"
+        data-layer="${esc(key)}"
+        ${available ? "" : "data-disabled=true"}
+        style="border-color:${meta.color}55;background:${enabled && available ? `${meta.color}22` : 'rgba(15,23,42,0.7)'}"
+      >${esc(meta.label)}${available ? "" : `: ${esc(unavailableText)}`}</button>
     `;
   }).join("");
 
-  const svgNodes = [...positions.values()].map(meta => `
-    <g>
-      <circle cx="${meta.x}" cy="${meta.y}" r="34" fill="${meta.color}" opacity="0.9"></circle>
-      <text x="${meta.x}" y="${meta.y - 46}" text-anchor="middle" fill="#8fa3bf" font-size="10">${esc(meta.node.type || "node")}</text>
-      <text x="${meta.x}" y="${meta.y - 4}" text-anchor="middle" fill="#08101b" font-size="11" font-weight="800">${esc(meta.node.name || meta.node.node_id)}</text>
-      <text x="${meta.x}" y="${meta.y + 14}" text-anchor="middle" fill="#08101b" font-size="9">${esc((meta.node.name || "").length > 16 ? "" : (meta.node.linked_to ? "linked" : ""))}</text>
-      <text x="${meta.x}" y="${meta.y + 54}" text-anchor="middle" fill="#8fa3bf" font-size="10">A:${esc(attackCounts.get(meta.node.node_id) || 0)} | D:${esc(alertCounts.get(meta.node.node_id) || 0)}</text>
-    </g>
-  `).join("");
+  const selectedNode = graphFilters().node || "all";
+  nodeSelect.innerHTML = [`<option value="all">All nodes</option>`]
+    .concat(aggregate.scenarioNodes.map(node => `<option value="${esc(node.node_id)}">${esc(node.name || node.node_id)}</option>`))
+    .join("");
+  nodeSelect.value = aggregate.scenarioNodes.some(node => node.node_id === selectedNode) ? selectedNode : "all";
 
-  const legend = detectionEdges.length ? `<div class="text-xs text-slate-400 mt-3">Node counters: A = attack executions targeting the node, D = detection alerts resolved to the node.</div>` : `<div class="text-xs text-slate-400 mt-3">Node counters: A = attack executions targeting the node, D = detection alerts resolved to the node.</div>`;
-  summary.textContent = `${nodes.length} nodes | ${allEdges.length} structural edges | ${nodeAlertEvents.length} detection events`;
+  const selectedMitre = graphFilters().mitre || "all";
+  mitreSelect.innerHTML = [`<option value="all">All techniques</option>`]
+    .concat(aggregate.mitreOptions.map(id => `<option value="${esc(id)}">${esc(id)}</option>`))
+    .join("");
+  mitreSelect.value = aggregate.mitreOptions.includes(selectedMitre) ? selectedMitre : "all";
+
+  const selectedSensor = graphFilters().sensor || "all";
+  sensorSelect.innerHTML = [`<option value="all">All sensors</option>`]
+    .concat(aggregate.sensorOptions.map(sensor => `<option value="${esc(sensor)}">${esc(sensor)}</option>`))
+    .join("");
+  sensorSelect.value = aggregate.sensorOptions.includes(selectedSensor) ? selectedSensor : "all";
+
+  byId("graph-filter-severity").value = graphFilters().severity || "all";
+  byId("graph-filter-confirmed").checked = !!graphFilters().confirmedOnly;
+  byId("graph-filter-hide-noise").checked = !!graphFilters().hideNoise;
+  byId("graph-filter-evidence-linked").checked = !!graphFilters().evidenceLinkedOnly;
+}
+
+function renderNetworkGraph() {
+  const host = byId("chart-network");
+  const summary = byId("chart-network-summary");
+  const aggregate = buildGraphAggregate();
+  renderGraphControls(aggregate);
+
+  if (!aggregate.scenarioNodes.length) {
+    summary.textContent = "No data";
+    host.innerHTML = `<div class="text-sm text-slate-400">No reconstruction snapshot is available.</div>`;
+    renderGraphDetail(null);
+    return;
+  }
+
+  const filters = graphFilters();
+  const layers = graphLayers();
+  const nodes = [];
+  const edges = [];
+  const positions = new Map();
+  const graphNodePayload = new Map();
+  const graphEdgePayload = new Map();
+  const scenarioNodes = aggregate.scenarioNodes
+    .filter(node => node.normalized_type !== "monitor" || filters.node === node.node_id)
+    .filter(node => matchesGraphNodeFilter(node.node_id));
+
+  const baseY = [96, 190, 284, 378, 472];
+  scenarioNodes.forEach((node, idx) => {
+    const y = baseY[idx] || (96 + (idx * 84));
+    positions.set(node.node_id, { x: 150, y });
+    const stats = aggregate.nodeStats.get(node.node_id);
+    if (!layers.topology) return;
+    nodes.push({
+      id: node.node_id,
+      x: 150,
+      y,
+      label: node.name || node.node_id,
+      subtitle: String(node.type || "node").replaceAll("_", " "),
+      foot: `A:${stats?.attacks.total || 0} D:${stats?.timeline.alerts || stats?.detections.total || 0} E:${stats?.evidence.total || 0}`,
+      color: graphNodeColor(node.type),
+      shape: "circle",
+      layer: "topology",
+    });
+    graphNodePayload.set(node.node_id, {
+      kind: "Topology node",
+      title: node.name || node.node_id,
+      lines: [
+        `<strong>Type:</strong> ${esc(String(node.type || "node").replaceAll("_", " "))}`,
+        `<strong>Attacks targeting node:</strong> ${esc(stats?.attacks.total || 0)}`,
+        `<strong>Detection alerts:</strong> ${esc(stats?.timeline.alerts || stats?.detections.total || 0)}`,
+        `<strong>Triage records:</strong> ${esc(stats?.timeline.triage || 0)}`,
+        `<strong>Evidence linked:</strong> ${esc(stats?.evidence.total || 0)}`,
+        `<strong>Cases:</strong> ${esc(stats ? stats.cases.size : 0)}`,
+        `<strong>Top MITRE:</strong> ${esc(topMapEntries(stats?.attacks.byTechnique || new Map(), 3).map(([key, value]) => `${key} x${value}`).join(", ") || "not_available")}`,
+        `<strong>Sensors:</strong> ${esc(topMapEntries(stats?.detections.bySensor || new Map(), 3).map(([key, value]) => `${key} x${value}`).join(", ") || "not_available")}`,
+      ],
+    });
+  });
+
+  if (layers.topology) {
+    (FOC.scenario?.edges || []).forEach((edge, idx) => {
+      if (!positions.has(edge.source_node_id) || !positions.has(edge.target_node_id)) return;
+      const id = `edge-struct-${idx}`;
+      edges.push({ id, from: edge.source_node_id, to: edge.target_node_id, label: "network", color: "rgba(148,163,184,0.45)", style: "confirmed", width: 2 });
+      graphEdgePayload.set(id, {
+        kind: "Topology relation",
+        title: "Network linkage",
+        lines: [
+          `<strong>Relation:</strong> network`,
+          `<strong>Source:</strong> ${esc(edge.source_node_id)}`,
+          `<strong>Target:</strong> ${esc(edge.target_node_id)}`,
+          "<strong>Basis:</strong> scenario_bom structural edge",
+        ],
+      });
+    });
+
+    (FOC.scenario?.industrial_linkages || []).forEach((edge, idx) => {
+      if (!positions.has(edge.linked_to) || !positions.has(edge.ot_node_id)) return;
+      const id = `edge-itot-${idx}`;
+      edges.push({ id, from: edge.linked_to, to: edge.ot_node_id, label: "it↔ot", color: "rgba(34,197,94,0.55)", style: "confirmed", width: 2 });
+      graphEdgePayload.set(id, {
+        kind: "Industrial linkage",
+        title: "IT / OT linkage",
+        lines: [
+          `<strong>Relation:</strong> IT ↔ OT`,
+          `<strong>Source:</strong> ${esc(edge.linked_to)}`,
+          `<strong>Target:</strong> ${esc(edge.ot_node_id)}`,
+          "<strong>Basis:</strong> scenario_bom industrial linkage",
+        ],
+      });
+    });
+  }
+
+  const selectedMitre = filters.mitre;
+  const selectedSeverity = String(filters.severity || "all").toUpperCase();
+  const selectedSensor = filters.sensor;
+
+  if (layers.attack) {
+    scenarioNodes.forEach(node => {
+      const stats = aggregate.nodeStats.get(node.node_id);
+      if (!stats || !stats.attacks.total) return;
+      const topTechnique = topMapEntries(stats.attacks.byTechnique, 1)[0];
+      if (selectedMitre !== "all" && (!topTechnique || topTechnique[0] !== selectedMitre)) return;
+      const attackNodeId = `attack-${node.node_id}`;
+      nodes.push({
+        id: attackNodeId,
+        x: 370,
+        y: positions.get(node.node_id).y,
+        label: `ATT x${stats.attacks.total}`,
+        subtitle: topTechnique ? topTechnique[0] : "technique mix",
+        foot: `${stats.attacks.success} success / ${stats.attacks.failed} failed`,
+        color: GRAPH_LAYER_META.attack.color,
+        shape: "rect",
+        layer: "attack",
+      });
+      edges.push({ id: `edge-attack-${node.node_id}`, from: node.node_id, to: attackNodeId, label: "targets", color: "rgba(239,68,68,0.65)", style: "confirmed", width: 2 });
+      graphNodePayload.set(attackNodeId, {
+        kind: "Attack aggregate",
+        title: `${node.name || node.node_id} attack surface`,
+        lines: [
+          `<strong>Total attack executions:</strong> ${esc(stats.attacks.total)}`,
+          `<strong>Successful:</strong> ${esc(stats.attacks.success)}`,
+          `<strong>Failed:</strong> ${esc(stats.attacks.failed)}`,
+          `<strong>Technique distribution:</strong> ${esc(topMapEntries(stats.attacks.byTechnique, 4).map(([key, value]) => `${key} x${value}`).join(", ") || "not_available")}`,
+        ],
+      });
+      graphEdgePayload.set(`edge-attack-${node.node_id}`, {
+        kind: "Attack relation",
+        title: "Attack targeting aggregate",
+        lines: [
+          `<strong>Status:</strong> confirmed aggregate`,
+          `<strong>Meaning:</strong> attacks attested against this node`,
+          `<strong>Filter basis:</strong> attack_attestation target.node_id`,
+        ],
+      });
+    });
+  }
+
+  if (layers.detection) {
+    scenarioNodes.forEach(node => {
+      const stats = aggregate.nodeStats.get(node.node_id);
+      if (!stats) return;
+      const severityCount = selectedSeverity === "ALL" ? stats.detections.total : (stats.detections.bySeverity.get(selectedSeverity) || 0);
+      const sensorCount = selectedSensor === "all" ? stats.detections.total : (stats.detections.bySensor.get(selectedSensor) || 0);
+      let effectiveCount = stats.timeline.alerts || stats.detections.total;
+      if (selectedSeverity !== "ALL") {
+        effectiveCount = severityCount;
+      }
+      if (selectedSensor !== "all") {
+        effectiveCount = selectedSeverity !== "ALL" ? Math.min(effectiveCount, sensorCount) : sensorCount;
+      }
+      if (!effectiveCount) return;
+      const detNodeId = `det-${node.node_id}`;
+      nodes.push({
+        id: detNodeId,
+        x: 610,
+        y: positions.get(node.node_id).y,
+        label: `DET x${effectiveCount}`,
+        subtitle: topMapEntries(stats.detections.bySensor, 1)[0]?.[0] || "sensor mix",
+        foot: topMapEntries(stats.detections.bySeverity, 1)[0] ? `${topMapEntries(stats.detections.bySeverity, 1)[0][0]} dominant` : "aggregated",
+        color: GRAPH_LAYER_META.detection.color,
+        shape: "rect",
+        layer: "detection",
+      });
+      edges.push({ id: `edge-det-${node.node_id}`, from: node.node_id, to: detNodeId, label: "detected", color: "rgba(245,158,11,0.7)", style: "confirmed", width: 2 });
+      graphNodePayload.set(detNodeId, {
+        kind: "Detection aggregate",
+        title: `${node.name || node.node_id} detection surface`,
+        lines: [
+          `<strong>Observed detection records:</strong> ${esc(stats.detections.total)}`,
+          `<strong>Timeline alerts:</strong> ${esc(stats.timeline.alerts)}`,
+          `<strong>Severity distribution:</strong> ${esc(topMapEntries(stats.detections.bySeverity, 4).map(([key, value]) => `${key} x${value}`).join(", ") || "not_available")}`,
+          `<strong>Original sensors:</strong> ${esc(topMapEntries(stats.detections.bySensor, 4).map(([key, value]) => `${key} x${value}`).join(", ") || "not_available")}`,
+          `<strong>Collectors:</strong> ${esc(topMapEntries(stats.detections.collectors, 4).map(([key, value]) => `${key} x${value}`).join(", ") || "not_available")}`,
+        ],
+      });
+      graphEdgePayload.set(`edge-det-${node.node_id}`, {
+        kind: "Detection relation",
+        title: "Detection aggregate relation",
+        lines: [
+          `<strong>Meaning:</strong> detection observations resolved to this node`,
+          `<strong>Collector/original sensor split:</strong> preserved`,
+        ],
+      });
+    });
+  }
+
+  if (layers.attack_alert) {
+    const correlationCounts = aggregate.detectionSummary.correlation_counts || {};
+    const statuses = [
+      { key: "confirmed", label: "Confirmed", y: 110, color: "#ef4444", style: "confirmed" },
+      { key: "inferred_medium", label: "Inferred", y: 190, color: "#f59e0b", style: "inferred" },
+      { key: "unresolved", label: "Unresolved", y: 270, color: "#94a3b8", style: "unresolved" },
+      { key: "noise", label: "Noise", y: 350, color: "#64748b", style: "noise" },
+    ].filter(item => !(filters.hideNoise && item.key === "noise"));
+    const corrNodeId = "corr-root";
+    nodes.push({
+      id: corrNodeId,
+      x: 840,
+      y: 230,
+      label: "ATT→ALERT",
+      subtitle: "correlation surface",
+      foot: `${aggregate.detectionSummary.confirmed_ratio_text || "0/0"} confirmed`,
+      color: GRAPH_LAYER_META.attack_alert.color,
+      shape: "rect",
+      layer: "attack_alert",
+    });
+    graphNodePayload.set(corrNodeId, {
+      kind: "Correlation aggregate",
+      title: "Attack to alert correlation surface",
+      lines: [
+        `<strong>Confirmed:</strong> ${esc(correlationCounts.confirmed || 0)}`,
+        `<strong>Inferred medium:</strong> ${esc(correlationCounts.inferred_medium || 0)}`,
+        `<strong>Inferred low:</strong> ${esc(correlationCounts.inferred_low || 0)}`,
+        `<strong>Weak candidates:</strong> ${esc(correlationCounts.weak_candidate || 0)}`,
+        `<strong>Unresolved:</strong> ${esc(correlationCounts.unresolved || 0)}`,
+        `<strong>Noise:</strong> ${esc(correlationCounts.noise || 0)}`,
+      ],
+    });
+    statuses.forEach(item => {
+      const value = Number(correlationCounts[item.key] || 0);
+      if (filters.confirmedOnly && item.key !== "confirmed") return;
+      const id = `corr-${item.key}`;
+      nodes.push({
+        id,
+        x: 1040,
+        y: item.y,
+        label: `${item.label} x${value}`,
+        subtitle: "aggregate relation",
+        foot: item.key.replaceAll("_", " "),
+        color: item.color,
+        shape: "rect",
+        layer: "attack_alert",
+      });
+      edges.push({ id: `edge-${id}`, from: corrNodeId, to: id, label: item.label.toLowerCase(), color: `${item.color}aa`, style: item.style, width: 2 });
+      graphNodePayload.set(id, {
+        kind: "Correlation status",
+        title: `${item.label} correlations`,
+        lines: [
+          `<strong>Count:</strong> ${esc(value)}`,
+          `<strong>Status type:</strong> ${esc(item.label)}`,
+          "<strong>Basis:</strong> FOC detection summary correlation counts",
+        ],
+      });
+      graphEdgePayload.set(`edge-${id}`, {
+        kind: "Correlation relation",
+        title: `${item.label} status edge`,
+        lines: [
+          `<strong>Visual style:</strong> ${esc(item.style)}`,
+          "<strong>Meaning:</strong> aggregated correlation class from indexed alerts",
+        ],
+      });
+    });
+  }
+
+  const caseEntry = aggregate.cases[0] || null;
+  if (layers.evidence && caseEntry && (!filters.evidenceLinkedOnly || Number(caseEntry.artifacts_count || 0) > 0)) {
+    const caseNodeId = `case-${caseEntry.case_id}`;
+    nodes.push({
+      id: caseNodeId,
+      x: 330,
+      y: 510,
+      label: caseEntry.source_case_name || caseEntry.case_id,
+      subtitle: "forensic case",
+      foot: `${caseEntry.artifacts_count || 0} indexed artifacts`,
+      color: GRAPH_LAYER_META.evidence.color,
+      shape: "rect",
+      layer: "evidence",
+    });
+    graphNodePayload.set(caseNodeId, {
+      kind: "Forensic case",
+      title: caseEntry.source_case_name || caseEntry.case_id,
+      lines: [
+        `<strong>Case id:</strong> ${esc(caseEntry.case_id)}`,
+        `<strong>Artifacts indexed:</strong> ${esc(caseEntry.artifacts_count || 0)}`,
+        `<strong>Trigger alert:</strong> ${esc(caseEntry.trigger_alert_id || "not_available")}`,
+        `<strong>Trigger type:</strong> ${esc(caseEntry.trigger_type || "not_available")}`,
+        `<strong>Target nodes:</strong> ${esc((caseEntry.target_node_ids || []).join(", ") || "not_available")}`,
+      ],
+    });
+
+    aggregate.evidenceTypes.slice(0, 6).forEach((entry, idx) => {
+      const id = `evidence-${entry.type}`;
+      nodes.push({
+        id,
+        x: 500 + ((idx % 3) * 170),
+        y: 470 + (Math.floor(idx / 3) * 90),
+        label: `${entry.type} x${entry.count}`,
+        subtitle: "evidence group",
+        foot: "aggregated artifacts",
+        color: GRAPH_LAYER_META.evidence.color,
+        shape: "rect",
+        layer: "evidence",
+      });
+      edges.push({ id: `edge-${id}`, from: caseNodeId, to: id, label: "preserves", color: "rgba(34,211,238,0.7)", style: "confirmed", width: 2 });
+      graphNodePayload.set(id, {
+        kind: "Evidence group",
+        title: entry.type,
+        lines: [
+          `<strong>Count:</strong> ${esc(entry.count)}`,
+          "<strong>Meaning:</strong> aggregated evidence type linked to the indexed case set",
+        ],
+      });
+      graphEdgePayload.set(`edge-${id}`, {
+        kind: "Evidence relation",
+        title: "Case to evidence relation",
+        lines: [
+          `<strong>Relation:</strong> preserves`,
+          "<strong>Basis:</strong> artifacts_index grouped by artifact_type",
+        ],
+      });
+    });
+  }
+
+  if (layers.custody && caseEntry) {
+    const custodyNodeId = "custody-root";
+    nodes.push({
+      id: custodyNodeId,
+      x: 1010,
+      y: 470,
+      label: "Custody",
+      subtitle: "verification state",
+      foot: `${FOC.status?.components?.evidence_custody_chain || 0}/10 score`,
+      color: GRAPH_LAYER_META.custody.color,
+      shape: "rect",
+      layer: "custody",
+    });
+    graphNodePayload.set(custodyNodeId, {
+      kind: "Custody aggregate",
+      title: "Chain of custody overview",
+      lines: [
+        `<strong>Evidence/custody component:</strong> ${esc(FOC.status?.components?.evidence_custody_chain || 0)} / 10`,
+        `<strong>Custody path:</strong> ${esc(caseEntry.custody_path || "not_available")}`,
+        `<strong>Manifest path:</strong> ${esc(caseEntry.manifest_path || "not_available")}`,
+      ],
+    });
+    if (caseEntry) {
+      edges.push({ id: "edge-custody-case", from: `case-${caseEntry.case_id}`, to: custodyNodeId, label: "custody", color: "rgba(34,197,94,0.75)", style: "confirmed", width: 2 });
+      graphEdgePayload.set("edge-custody-case", {
+        kind: "Custody relation",
+        title: "Case to custody linkage",
+        lines: [
+          "<strong>Relation:</strong> custody / verification",
+          "<strong>Basis:</strong> indexed manifest and chain of custody records",
+        ],
+      });
+    }
+  }
+
+  if (layers.analysis) {
+    const analysisNodeId = "analysis-root";
+    const analysisAvailable = graphLayerAvailable("analysis");
+    nodes.push({
+      id: analysisNodeId,
+      x: 1010,
+      y: 560,
+      label: analysisAvailable ? "Analysis" : "Analysis unavailable",
+      subtitle: analysisAvailable ? "forensic outputs" : "not executed yet",
+      foot: analysisAvailable ? `${FOC.status?.components?.analysis_outputs || 0}/10 score` : "run on demand",
+      color: GRAPH_LAYER_META.analysis.color,
+      shape: "rect",
+      layer: "analysis",
+    });
+    graphNodePayload.set(analysisNodeId, {
+      kind: "Analysis layer",
+      title: analysisAvailable ? "Forensic analysis available" : "Forensic analysis has not been executed yet",
+      lines: analysisAvailable ? [
+        `<strong>Analysis outputs component:</strong> ${esc(FOC.status?.components?.analysis_outputs || 0)} / 10`,
+        "<strong>Meaning:</strong> PCAP, memory, disk or OT analysis outputs are indexed",
+      ] : [
+        "Forensic analysis has not been executed yet.",
+        "This layer remains informative until multilayer analysis produces validated outputs.",
+      ],
+    });
+  }
+
+  if (layers.timeline) {
+    const id = "timeline-root";
+    nodes.push({
+      id,
+      x: 170,
+      y: 560,
+      label: "Timeline",
+      subtitle: "phase aggregate",
+      foot: `${aggregate.timelineSummary.attacks}/${aggregate.timelineSummary.alerts}/${aggregate.timelineSummary.triage}`,
+      color: GRAPH_LAYER_META.timeline.color,
+      shape: "rect",
+      layer: "timeline",
+    });
+    graphNodePayload.set(id, {
+      kind: "Timeline aggregate",
+      title: "Lifecycle and incident timeline",
+      lines: [
+        `<strong>Attack events:</strong> ${esc(aggregate.timelineSummary.attacks)}`,
+        `<strong>Detection alerts:</strong> ${esc(aggregate.timelineSummary.alerts)}`,
+        `<strong>Triage results:</strong> ${esc(aggregate.timelineSummary.triage)}`,
+        "<strong>Policy:</strong> aggregated only, full event sequence remains in the timeline panel",
+      ],
+    });
+  }
+
+  if (layers.findings) {
+    const id = "findings-root";
+    const analysisAvailable = graphLayerAvailable("findings");
+    nodes.push({
+      id,
+      x: 840,
+      y: 560,
+      label: analysisAvailable ? "Findings" : "Findings unavailable",
+      subtitle: analysisAvailable ? "cross-layer outputs" : "awaiting analysis",
+      foot: analysisAvailable ? "analysis-backed" : "not generated",
+      color: GRAPH_LAYER_META.findings.color,
+      shape: "rect",
+      layer: "findings",
+    });
+    graphNodePayload.set(id, {
+      kind: "Findings layer",
+      title: analysisAvailable ? "Cross-layer findings available" : "Cross-layer findings unavailable",
+      lines: analysisAvailable ? [
+        "Analysis-derived findings are available in indexed outputs.",
+      ] : [
+        "Cross-layer findings remain unavailable until analysis outputs are generated.",
+      ],
+    });
+  }
+
+  nodes.forEach(node => {
+    positions.set(node.id, { x: node.x, y: node.y });
+  });
+
+  const visibleNodeIds = new Set(nodes.map(node => node.id));
+  const visibleEdges = edges.filter(edge => visibleNodeIds.has(edge.from) && visibleNodeIds.has(edge.to)).slice(0, 90);
+  const viewBox = "0 0 1120 620";
+
+  summary.textContent = `${nodes.length} nodes | ${visibleEdges.length} edges | aggregated snapshot`;
   host.innerHTML = `
-    <svg viewBox="0 0 920 420" class="w-full h-auto">
-      ${svgEdges}
-      ${svgNodes}
+    <svg viewBox="${viewBox}" class="w-full h-auto">
+      ${visibleEdges.map(edge => {
+        const a = positions.get(edge.from);
+        const b = positions.get(edge.to);
+        if (!a || !b) return "";
+        const midX = ((a.x + b.x) / 2).toFixed(1);
+        const midY = ((a.y + b.y) / 2).toFixed(1);
+        return `
+          <g class="cursor-pointer" data-graph-edge="${esc(edge.id)}">
+            <line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${edge.color}" stroke-width="${edge.width || 2}" ${graphEdgeLabelClass(edge)} />
+            <text x="${midX}" y="${midY - 8}" text-anchor="middle" fill="#94a3b8" font-size="10">${esc(edge.label)}</text>
+          </g>
+        `;
+      }).join("")}
+      ${nodes.map(node => {
+        const titleY = node.shape === "circle" ? node.y - 40 : node.y - 28;
+        const body = node.shape === "circle"
+          ? `<circle cx="${node.x}" cy="${node.y}" r="30" fill="${node.color}" opacity="0.92" stroke="rgba(226,232,240,0.18)" stroke-width="2"></circle>`
+          : `<rect x="${node.x - 58}" y="${node.y - 28}" width="116" height="56" rx="18" fill="${node.color}" opacity="0.92" stroke="rgba(226,232,240,0.18)" stroke-width="2"></rect>`;
+        return `
+          <g class="cursor-pointer" data-graph-node="${esc(node.id)}">
+            <text x="${node.x}" y="${titleY}" text-anchor="middle" fill="#8fa3bf" font-size="10">${esc(node.subtitle)}</text>
+            ${body}
+            <text x="${node.x}" y="${node.y - 4}" text-anchor="middle" fill="#08101b" font-size="11" font-weight="800">${esc(node.label)}</text>
+            <text x="${node.x}" y="${node.y + 14}" text-anchor="middle" fill="#08101b" font-size="9">${esc(node.foot || "")}</text>
+          </g>
+        `;
+      }).join("")}
     </svg>
-    ${legend}
+    <div class="text-xs text-slate-400 mt-3">Visual semantics: gray structure, red attack, amber detection, orange correlation, cyan evidence, green custody, purple analysis, dashed edges for inferred or unresolved relations.</div>
   `;
+
+  if (FOC.graphState.selected?.type === "node" && graphNodePayload.has(FOC.graphState.selected.id)) {
+    renderGraphDetail(graphNodePayload.get(FOC.graphState.selected.id));
+  } else if (FOC.graphState.selected?.type === "edge" && graphEdgePayload.has(FOC.graphState.selected.id)) {
+    renderGraphDetail(graphEdgePayload.get(FOC.graphState.selected.id));
+  } else {
+    renderGraphDetail(null);
+  }
+
+  host.onclick = (event) => {
+    const node = event.target.closest("[data-graph-node]");
+    const edge = event.target.closest("[data-graph-edge]");
+    if (node) {
+      const id = node.getAttribute("data-graph-node");
+      FOC.graphState.selected = { type: "node", id };
+      renderGraphDetail(graphNodePayload.get(id) || null);
+      return;
+    }
+    if (edge) {
+      const id = edge.getAttribute("data-graph-edge");
+      FOC.graphState.selected = { type: "edge", id };
+      renderGraphDetail(graphEdgePayload.get(id) || null);
+      return;
+    }
+    FOC.graphState.selected = null;
+    renderGraphDetail(null);
+  };
 }
 
 function renderScenario() {
@@ -1229,6 +1906,57 @@ function renderRelationships() {
       <div class="mt-3">${(edge.evidence || []).slice(0, 3).map(ev => `<div class="mono text-[11px] text-slate-400">${esc(ev)}</div>`).join("") || '<div class="text-xs text-slate-500">No direct evidence reference</div>'}</div>
     </div>
   `).join("") || `<div class="text-sm text-slate-400">No relationships indexed.</div>`;
+}
+
+function bindGraphControls() {
+  const layerHost = byId("graph-layer-controls");
+  layerHost?.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-layer]");
+    if (!btn || btn.getAttribute("data-disabled") === "true") return;
+    const key = btn.getAttribute("data-layer");
+    if (!Object.prototype.hasOwnProperty.call(FOC.graphState.layers, key)) return;
+    FOC.graphState.layers[key] = !FOC.graphState.layers[key];
+    if (!FOC.graphState.layers[key] && FOC.graphState.selected?.id?.startsWith(key)) {
+      FOC.graphState.selected = null;
+    }
+    renderNetworkGraph();
+  });
+
+  byId("graph-filter-node")?.addEventListener("change", (event) => {
+    FOC.graphState.filters.node = event.target.value || "all";
+    FOC.graphState.selected = null;
+    renderNetworkGraph();
+  });
+  byId("graph-filter-severity")?.addEventListener("change", (event) => {
+    FOC.graphState.filters.severity = event.target.value || "all";
+    FOC.graphState.selected = null;
+    renderNetworkGraph();
+  });
+  byId("graph-filter-mitre")?.addEventListener("change", (event) => {
+    FOC.graphState.filters.mitre = event.target.value || "all";
+    FOC.graphState.selected = null;
+    renderNetworkGraph();
+  });
+  byId("graph-filter-sensor")?.addEventListener("change", (event) => {
+    FOC.graphState.filters.sensor = event.target.value || "all";
+    FOC.graphState.selected = null;
+    renderNetworkGraph();
+  });
+  byId("graph-filter-confirmed")?.addEventListener("change", (event) => {
+    FOC.graphState.filters.confirmedOnly = !!event.target.checked;
+    FOC.graphState.selected = null;
+    renderNetworkGraph();
+  });
+  byId("graph-filter-hide-noise")?.addEventListener("change", (event) => {
+    FOC.graphState.filters.hideNoise = !!event.target.checked;
+    FOC.graphState.selected = null;
+    renderNetworkGraph();
+  });
+  byId("graph-filter-evidence-linked")?.addEventListener("change", (event) => {
+    FOC.graphState.filters.evidenceLinkedOnly = !!event.target.checked;
+    FOC.graphState.selected = null;
+    renderNetworkGraph();
+  });
 }
 
 async function fetchCaseAnalysisStatus(caseId) {
@@ -1801,6 +2529,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   byId("btn-refresh").addEventListener("click", () => loadAll(true));
   byId("btn-regenerate").addEventListener("click", doRegenerate);
   byId("btn-bootstrap").addEventListener("click", () => doBootstrap(false));
+  bindGraphControls();
   byId("analysis-modal-close")?.addEventListener("click", closeAnalysisModalShell);
   byId("analysis-modal")?.addEventListener("click", (event) => {
     if (event.target?.id === "analysis-modal") {

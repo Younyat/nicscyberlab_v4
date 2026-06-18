@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-18T08:10:36.001635+00:00",
+  "generated_at": "2026-06-18T13:34:17.043580+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
   "scenario": {
@@ -1263,6 +1263,180 @@
         "unauthorized_control_command",
         "process_state_change",
         "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-5402854b",
+      "display_name": "ICMP Reconnaissance",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7",
+      "target_ip": "10.0.2.9",
+      "protocol": "unknown",
+      "target_port": null,
+      "modbus_function": null,
+      "register_reference": null,
+      "value": null,
+      "expected_alerts": [
+        "icmp_sweep",
+        "host_discovery",
+        "active_scanning"
+      ]
+    },
+    {
+      "attack_id": "atk-68f139aa",
+      "display_name": "Unauthorized SSH Attempt",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7",
+      "target_ip": "10.0.2.9",
+      "protocol": "unknown",
+      "target_port": null,
+      "modbus_function": null,
+      "register_reference": null,
+      "value": null,
+      "expected_alerts": [
+        "failed_ssh_login",
+        "multiple_authentication_failures",
+        "ssh_bruteforce_validation"
+      ]
+    },
+    {
+      "attack_id": "atk-25f9f5c2",
+      "display_name": "Controlled File Tamper",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7",
+      "target_ip": "10.0.2.9",
+      "protocol": "unknown",
+      "target_port": null,
+      "modbus_function": null,
+      "register_reference": null,
+      "value": null,
+      "expected_alerts": [
+        "file_modified",
+        "fim_integrity_alert",
+        "stored_data_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-d03c67e4",
+      "display_name": "Data Exfiltration",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7",
+      "target_ip": "10.0.2.9",
+      "protocol": "unknown",
+      "target_port": null,
+      "modbus_function": null,
+      "register_reference": null,
+      "value": null,
+      "expected_alerts": [
+        "outbound_file_transfer",
+        "scp_transfer",
+        "http_upload",
+        "exfiltration_activity"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "10.0.2.22",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-761a78ab",
+      "display_name": "Multi-Vector Validation",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7",
+      "target_ip": "10.0.2.9",
+      "protocol": "unknown",
+      "target_port": null,
+      "modbus_function": null,
+      "register_reference": null,
+      "value": null,
+      "expected_alerts": [
+        "port_scan",
+        "failed_ssh_login",
+        "fim_integrity_alert",
+        "exfiltration_activity",
+        "modbus_write_register"
+      ]
+    },
+    {
+      "attack_id": "atk-96954f5b",
+      "display_name": "ICS Remote System Discovery",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7",
+      "target_ip": "10.0.2.9",
+      "protocol": "unknown",
+      "target_port": null,
+      "modbus_function": null,
+      "register_reference": null,
+      "value": null,
+      "expected_alerts": [
+        "ot_subnet_probing",
+        "remote_system_discovery",
+        "suricata_scan_alert"
+      ]
+    },
+    {
+      "attack_id": "atk-b60ff047",
+      "display_name": "Point and Tag Identification",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7",
+      "target_ip": "10.0.2.9",
+      "protocol": "unknown",
+      "target_port": null,
+      "modbus_function": null,
+      "register_reference": null,
+      "value": null,
+      "expected_alerts": [
+        "modbus_read_burst",
+        "register_enumeration",
+        "suricata_modbus_alert"
+      ]
+    },
+    {
+      "attack_id": "atk-3c0015d5",
+      "display_name": "Automated Collection",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7",
+      "target_ip": "10.0.2.9",
+      "protocol": "unknown",
+      "target_port": null,
+      "modbus_function": null,
+      "register_reference": null,
+      "value": null,
+      "expected_alerts": [
+        "modbus_read_pattern",
+        "process_state_collection",
+        "suricata_modbus_alert"
+      ]
+    },
+    {
+      "attack_id": "atk-6a3a2cae",
+      "display_name": "Unauthorized Command Message",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "10.0.2.22",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "unexpected_modbus_source",
+        "unauthorized_modbus_write",
+        "wazuh_suricata_ingest"
       ]
     }
   ],
@@ -3266,6 +3440,212 @@
         "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
         "app_core/infrastructure/attack/outputs/20260617T113729Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
       ]
+    },
+    {
+      "edge_id": "atk-5402854b:execution_to_target",
+      "source": "atk-5402854b",
+      "target": "node-e1ac03b8",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081311Z_T1595_ACTIVE_SCANNING_ICMP_RECON/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-68f139aa:execution_to_target",
+      "source": "atk-68f139aa",
+      "target": "node-e1ac03b8",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081333Z_T1110_001_SSH_PASSWORD_GUESSING/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-25f9f5c2:execution_to_target",
+      "source": "atk-25f9f5c2",
+      "target": "node-e1ac03b8",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081355Z_T1565_001_STORED_DATA_MANIPULATION_FIM/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-d03c67e4:execution_to_target",
+      "source": "atk-d03c67e4",
+      "target": "node-e1ac03b8",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081411Z_T1048_EXFILTRATION_OVER_ALTERNATIVE_PROTOCOL/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081439Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081439Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081439Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T081439Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T081439Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-761a78ab:execution_to_target",
+      "source": "atk-761a78ab",
+      "target": "node-e1ac03b8",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081510Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-761a78ab:rollback",
+      "source": "atk-761a78ab",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        null,
+        "app_core/infrastructure/attack/outputs/20260618T081510Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-96954f5b:execution_to_target",
+      "source": "atk-96954f5b",
+      "target": "node-e1ac03b8",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081552Z_T0846_ICS_REMOTE_SYSTEM_DISCOVERY/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-b60ff047:execution_to_target",
+      "source": "atk-b60ff047",
+      "target": "node-e1ac03b8",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081622Z_T0861_POINT_AND_TAG_IDENTIFICATION/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-3c0015d5:execution_to_target",
+      "source": "atk-3c0015d5",
+      "target": "node-e1ac03b8",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081643Z_T0802_AUTOMATED_COLLECTION/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6a3a2cae:execution_to_target",
+      "source": "atk-6a3a2cae",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081732Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6a3a2cae:modbus_write",
+      "source": "atk-6a3a2cae",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081732Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6a3a2cae:state_change",
+      "source": "atk-6a3a2cae",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081732Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T081732Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6a3a2cae:rollback",
+      "source": "atk-6a3a2cae",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T081732Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE/rollback_log.json"
+      ]
     }
   ],
   "required_evidence_by_edge": [
@@ -4437,6 +4817,126 @@
       "required_evidence": [
         "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
         "app_core/infrastructure/attack/outputs/20260617T113729Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-5402854b:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081311Z_T1595_ACTIVE_SCANNING_ICMP_RECON/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-68f139aa:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081333Z_T1110_001_SSH_PASSWORD_GUESSING/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-25f9f5c2:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081355Z_T1565_001_STORED_DATA_MANIPULATION_FIM/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-d03c67e4:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081411Z_T1048_EXFILTRATION_OVER_ALTERNATIVE_PROTOCOL/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081439Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081439Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081439Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T081439Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T081439Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-761a78ab:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081510Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-761a78ab:rollback",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081510Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-96954f5b:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081552Z_T0846_ICS_REMOTE_SYSTEM_DISCOVERY/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-b60ff047:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081622Z_T0861_POINT_AND_TAG_IDENTIFICATION/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-3c0015d5:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081643Z_T0802_AUTOMATED_COLLECTION/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6a3a2cae:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081732Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6a3a2cae:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081732Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6a3a2cae:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T081732Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T081732Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6a3a2cae:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T081732Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE/rollback_log.json"
       ]
     }
   ],

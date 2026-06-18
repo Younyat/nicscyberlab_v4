@@ -299,14 +299,72 @@
       </div>
 
       <div class="glass-soft rounded-[28px] p-5 mt-5">
-        <div class="flex items-center justify-between gap-3">
+        <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
-            <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Network Graph</div>
-            <h3 class="text-lg font-black mt-2">FOC Structural-Evidential Graph</h3>
+            <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">FOC Reconstruction Graph Suite</div>
+            <h3 class="text-lg font-black mt-2">FOC Reconstruction Snapshot</h3>
+            <div class="text-xs text-slate-400 mt-3 max-w-3xl">This graph represents the latest reconstructed FOC state from indexed artifacts. It is not a live monitoring topology unless live mode is explicitly enabled.</div>
           </div>
           <div id="chart-network-summary" class="text-xs text-slate-300">No data</div>
         </div>
-        <div id="chart-network" class="mt-4"></div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 mt-5">
+          <div class="xl:col-span-8">
+            <div id="graph-layer-controls" class="flex flex-wrap gap-2"></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mt-4">
+              <label class="glass rounded-2xl px-3 py-3 text-xs text-slate-300">
+                <div class="uppercase tracking-[0.18em] text-slate-400 font-black mb-2">Node</div>
+                <select id="graph-filter-node" class="w-full bg-transparent text-slate-200 outline-none">
+                  <option value="all">All nodes</option>
+                </select>
+              </label>
+              <label class="glass rounded-2xl px-3 py-3 text-xs text-slate-300">
+                <div class="uppercase tracking-[0.18em] text-slate-400 font-black mb-2">Severity</div>
+                <select id="graph-filter-severity" class="w-full bg-transparent text-slate-200 outline-none">
+                  <option value="all">All severities</option>
+                  <option value="HIGH">HIGH</option>
+                  <option value="MEDIUM">MEDIUM</option>
+                  <option value="LOW">LOW</option>
+                </select>
+              </label>
+              <label class="glass rounded-2xl px-3 py-3 text-xs text-slate-300">
+                <div class="uppercase tracking-[0.18em] text-slate-400 font-black mb-2">MITRE</div>
+                <select id="graph-filter-mitre" class="w-full bg-transparent text-slate-200 outline-none">
+                  <option value="all">All techniques</option>
+                </select>
+              </label>
+              <label class="glass rounded-2xl px-3 py-3 text-xs text-slate-300">
+                <div class="uppercase tracking-[0.18em] text-slate-400 font-black mb-2">Sensor</div>
+                <select id="graph-filter-sensor" class="w-full bg-transparent text-slate-200 outline-none">
+                  <option value="all">All sensors</option>
+                </select>
+              </label>
+            </div>
+            <div class="flex flex-wrap gap-3 mt-4 text-xs text-slate-300">
+              <label class="tag rounded-full px-3 py-2 flex items-center gap-2">
+                <input id="graph-filter-confirmed" type="checkbox">
+                <span>Show only confirmed</span>
+              </label>
+              <label class="tag rounded-full px-3 py-2 flex items-center gap-2">
+                <input id="graph-filter-hide-noise" type="checkbox">
+                <span>Hide noise</span>
+              </label>
+              <label class="tag rounded-full px-3 py-2 flex items-center gap-2">
+                <input id="graph-filter-evidence-linked" type="checkbox">
+                <span>Show only evidence-linked</span>
+              </label>
+            </div>
+            <div id="chart-network" class="mt-4"></div>
+          </div>
+
+          <div class="xl:col-span-4">
+            <div class="glass rounded-[24px] p-4 h-full">
+              <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Graph Drill-Down</div>
+              <h4 class="text-base font-black mt-2">Selected Node or Relation</h4>
+              <div id="graph-detail-panel" class="mt-4 text-sm text-slate-300">Select a graph node or relation to inspect its aggregated FOC context.</div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 

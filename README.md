@@ -1269,6 +1269,8 @@ Para ver los cambios en acción, abrir la página `app_core/static/foc_reconstru
 
 The FOC dashboard KPI cards (`Alerts`, `Attacks`, `Triage`, `MITRE`) now fall back to aggregated reconstruction summaries when the browser does not render `timeline.events` correctly on first load. This avoids false zero values when the dashboard payload still contains valid indexed detections and attacks.
 
+The graph panel in `FOC Reconstruction` has also been upgraded into a lightweight **FOC Reconstruction Graph Suite** without changing the backend reconstruction logic. The graph now presents an aggregated **FOC Reconstruction Snapshot** with visual layer toggles (`Topology`, `Attack`, `Detection`, `Attack→Alert`, `Evidence`, `Custody`, `Analysis`, `Timeline`, `Findings`, `Semantic`, `Causal`), lightweight client-side filters, and a drill-down side panel. It does not render every raw alert or artifact as an individual node, does not recalculate causal logic in the browser, and keeps `Semantic` / `Causal` explicitly unavailable or blocked when those layers do not yet exist in real FOC data.
+
 ### Multilayer forensic analysis under demand
 
 `FOC Reconstruction` now includes an **on-demand multilayer forensic analysis workflow** for any preserved case found under:

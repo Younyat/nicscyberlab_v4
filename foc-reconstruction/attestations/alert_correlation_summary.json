@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-06-18T08:10:36.001635+00:00",
+  "generated_at": "2026-06-18T13:34:17.043580+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
-  "total_correlation_records": 38526,
-  "total_alerts": 37956,
-  "relevant_alerts": 21617,
-  "correlated_alerts": 9600,
-  "confirmed_correlations": 9600,
+  "total_correlation_records": 40189,
+  "total_alerts": 38655,
+  "relevant_alerts": 21801,
+  "correlated_alerts": 9900,
+  "confirmed_correlations": 9900,
   "weak_correlations": 0,
-  "unresolved_alerts": 28908,
+  "unresolved_alerts": 30266,
   "noise_alerts": 0,
   "false_positive_candidates": 0,
-  "missing_expected_alerts_total": 26,
+  "missing_expected_alerts_total": 35,
   "bucket_counts": {
-    "correlated": 9600,
-    "uncorrelated": 28908,
-    "noise": 16339,
+    "correlated": 9900,
+    "uncorrelated": 30266,
+    "noise": 16854,
     "false_positive_candidate": 0,
-    "missing_expected_alert": 26,
+    "missing_expected_alert": 35,
     "weak_candidate": 0,
     "inferred_low": 0,
     "inferred_medium": 0
@@ -25,95 +25,95 @@
   "top_signatures": [
     {
       "label": "NICS CyberLab ICS RAW Modbus function 03 read holding registers burst",
-      "count": 8064
+      "count": 8316
     },
     {
       "label": "NICS CyberLab ICS RAW Modbus function 01 read coils burst",
-      "count": 7872
+      "count": 8118
     },
     {
       "label": "NICS CyberLab ICS Modbus write multiple registers",
-      "count": 7296
+      "count": 7524
     },
     {
       "label": "/etc/suricata/suricata.yaml",
-      "count": 3912
+      "count": 4104
     },
     {
       "label": "NICS CyberLab ICS RAW Modbus function 03 read holding registers",
-      "count": 3072
+      "count": 3168
     },
     {
       "label": "NICS CyberLab ICS Modbus write single register",
-      "count": 2304
+      "count": 2376
     },
     {
       "label": "/etc/suricata/suricata.yaml.nics-modbus-backup-20260614185438",
-      "count": 1024
+      "count": 1056
     },
     {
       "label": "/etc/suricata/suricata.yaml.nics-modbus-backup-20260614190525",
-      "count": 1024
+      "count": 1056
     },
     {
       "label": "/etc/suricata/suricata.yaml.nics-modbus-backup-20260614203742",
-      "count": 1024
+      "count": 1056
     },
     {
       "label": "/etc/suricata/suricata.yaml.nics-modbus-backup-20260614210325",
-      "count": 1024
+      "count": 1056
     }
   ],
   "top_rule_ids": [
     {
       "label": "86601",
-      "count": 28608
+      "count": 29502
     },
     {
       "label": "554",
-      "count": 5216
+      "count": 5472
     },
     {
       "label": "550",
-      "count": 4524
+      "count": 4872
     },
     {
       "label": "5710",
-      "count": 160
+      "count": 320
     }
   ],
   "top_nodes": [
     {
       "label": "node-e1ac03b8",
-      "count": 20560
+      "count": 21566
     },
     {
       "label": "node-f9ca9bfc",
-      "count": 17408
+      "count": 17952
     },
     {
       "label": "node-c800d431",
-      "count": 540
+      "count": 648
     }
   ],
   "severity_distribution": [
     {
       "label": "HIGH",
-      "count": 17243
+      "count": 17275
     },
     {
       "label": "LOW",
-      "count": 16665
+      "count": 17172
     },
     {
       "label": "MEDIUM",
-      "count": 4048
+      "count": 4208
     }
   ],
   "alerts_by_node": [
     {
       "label": "node-e1ac03b8",
-      "count": 15380
+      "count": 15656
     },
     {
       "label": "node-f9ca9bfc",
@@ -121,7 +121,7 @@
     },
     {
       "label": "node-c800d431",
-      "count": 10548
+      "count": 10971
     }
   ],
   "alerts_by_mitre_technique": [
@@ -149,21 +149,21 @@
   "alerts_by_original_sensor": [
     {
       "label": "wazuh",
-      "count": 20991
+      "count": 21183
     },
     {
       "label": "suricata",
-      "count": 16965
+      "count": 17472
     }
   ],
   "alerts_by_collector": [
     {
       "label": "wazuh",
-      "count": 37956
+      "count": 38655
     }
   ],
   "unique_confirmed_attack_pairs": 3,
-  "unique_correlation_candidates": 40,
+  "unique_correlation_candidates": 50,
   "confirmed_attack_ids": 1,
   "weak_attack_ids": 0,
   "observable_attack_ids": 1,

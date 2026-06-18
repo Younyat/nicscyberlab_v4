@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-18T08:10:36.001635+00:00",
+  "generated_at": "2026-06-18T13:34:17.043580+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
   "active_detection_stack": [
@@ -9202,6 +9202,141 @@
       "source_reference": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260617-170317Z/alerts.jsonl#0ded88353edd4e6e834be27233f8ebb8"
     },
     {
+      "detector": "wazuh",
+      "collector": "wazuh",
+      "original_sensor": "wazuh",
+      "detector_engine": "wazuh",
+      "engine_version": null,
+      "rule_active": true,
+      "rule_id": "5710",
+      "collector_rule_id": "5710",
+      "rule_name": "Jun 18 08:23:56 fuxa-instance sshd[190833]: Invalid user debian from 10.0.2.214 port 59484",
+      "severity": "MEDIUM",
+      "signature": "Jun 18 08:23:56 fuxa-instance sshd[190833]: Invalid user debian from 10.0.2.214 port 59484",
+      "rule_file": null,
+      "rule_hash": "da32c88bbea6b3b7705d159cfa893c8ea74820c86159663e389f14298fca4883",
+      "rule_hash_sha256": "da32c88bbea6b3b7705d159cfa893c8ea74820c86159663e389f14298fca4883",
+      "rule_hash_status": "observed_collector_rule",
+      "rule_source": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260618-074708Z/alerts.jsonl#raw.rule",
+      "mitre_techniques": [],
+      "node_id": "node-e1ac03b8",
+      "node_name": "SCADA",
+      "instance_id": "inst-a495cfe7",
+      "instance_name": "FUXA_Instance",
+      "protocol": "unknown",
+      "enabled_status": true,
+      "enabled_at": null,
+      "source_reference": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260618-074708Z/alerts.jsonl#e34f3053e7b347039ee608a0f086bfdb"
+    },
+    {
+      "detector": "wazuh",
+      "collector": "wazuh",
+      "original_sensor": "wazuh",
+      "detector_engine": "wazuh",
+      "engine_version": null,
+      "rule_active": true,
+      "rule_id": "5710",
+      "collector_rule_id": "5710",
+      "rule_name": "Jun 18 08:23:58 fuxa-instance sshd[190835]: Invalid user debian from 10.0.2.214 port 48812",
+      "severity": "MEDIUM",
+      "signature": "Jun 18 08:23:58 fuxa-instance sshd[190835]: Invalid user debian from 10.0.2.214 port 48812",
+      "rule_file": null,
+      "rule_hash": "7c514a1a583c5433b98bdc94da4108d3c6ad4763b84fd9d937600749eb4afe2f",
+      "rule_hash_sha256": "7c514a1a583c5433b98bdc94da4108d3c6ad4763b84fd9d937600749eb4afe2f",
+      "rule_hash_status": "observed_collector_rule",
+      "rule_source": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260618-074708Z/alerts.jsonl#raw.rule",
+      "mitre_techniques": [],
+      "node_id": "node-e1ac03b8",
+      "node_name": "SCADA",
+      "instance_id": "inst-a495cfe7",
+      "instance_name": "FUXA_Instance",
+      "protocol": "unknown",
+      "enabled_status": true,
+      "enabled_at": null,
+      "source_reference": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260618-074708Z/alerts.jsonl#c4ce3f13c85d4c6baa6e112be9b6cea0"
+    },
+    {
+      "detector": "wazuh",
+      "collector": "wazuh",
+      "original_sensor": "wazuh",
+      "detector_engine": "wazuh",
+      "engine_version": null,
+      "rule_active": true,
+      "rule_id": "5710",
+      "collector_rule_id": "5710",
+      "rule_name": "Jun 18 08:23:59 fuxa-instance sshd[190837]: Invalid user debian from 10.0.2.214 port 62086",
+      "severity": "MEDIUM",
+      "signature": "Jun 18 08:23:59 fuxa-instance sshd[190837]: Invalid user debian from 10.0.2.214 port 62086",
+      "rule_file": null,
+      "rule_hash": "ae5c0e0ab0619b605c239816df34fb6140deae6648032a9d09d77393a64037f7",
+      "rule_hash_sha256": "ae5c0e0ab0619b605c239816df34fb6140deae6648032a9d09d77393a64037f7",
+      "rule_hash_status": "observed_collector_rule",
+      "rule_source": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260618-074708Z/alerts.jsonl#raw.rule",
+      "mitre_techniques": [],
+      "node_id": "node-e1ac03b8",
+      "node_name": "SCADA",
+      "instance_id": "inst-a495cfe7",
+      "instance_name": "FUXA_Instance",
+      "protocol": "unknown",
+      "enabled_status": true,
+      "enabled_at": null,
+      "source_reference": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260618-074708Z/alerts.jsonl#b1ee770267af4ca696a8ad8025616399"
+    },
+    {
+      "detector": "wazuh",
+      "collector": "wazuh",
+      "original_sensor": "wazuh",
+      "detector_engine": "wazuh",
+      "engine_version": null,
+      "rule_active": true,
+      "rule_id": "5710",
+      "collector_rule_id": "5710",
+      "rule_name": "Jun 18 08:24:00 fuxa-instance sshd[190839]: Invalid user debian from 10.0.2.214 port 47676",
+      "severity": "MEDIUM",
+      "signature": "Jun 18 08:24:00 fuxa-instance sshd[190839]: Invalid user debian from 10.0.2.214 port 47676",
+      "rule_file": null,
+      "rule_hash": "193e4eacb09283359636532f9965643d96439b92c970c1083d5c7589afe71ac9",
+      "rule_hash_sha256": "193e4eacb09283359636532f9965643d96439b92c970c1083d5c7589afe71ac9",
+      "rule_hash_status": "observed_collector_rule",
+      "rule_source": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260618-074708Z/alerts.jsonl#raw.rule",
+      "mitre_techniques": [],
+      "node_id": "node-e1ac03b8",
+      "node_name": "SCADA",
+      "instance_id": "inst-a495cfe7",
+      "instance_name": "FUXA_Instance",
+      "protocol": "unknown",
+      "enabled_status": true,
+      "enabled_at": null,
+      "source_reference": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260618-074708Z/alerts.jsonl#19cc367990574bedbc40acaa3659a3d5"
+    },
+    {
+      "detector": "wazuh",
+      "collector": "wazuh",
+      "original_sensor": "wazuh",
+      "detector_engine": "wazuh",
+      "engine_version": null,
+      "rule_active": true,
+      "rule_id": "5710",
+      "collector_rule_id": "5710",
+      "rule_name": "Jun 18 08:24:02 fuxa-instance sshd[190842]: Invalid user debian from 10.0.2.214 port 45069",
+      "severity": "MEDIUM",
+      "signature": "Jun 18 08:24:02 fuxa-instance sshd[190842]: Invalid user debian from 10.0.2.214 port 45069",
+      "rule_file": null,
+      "rule_hash": "372e71778691e6e0d6b35436dea8925ded8fd889d2d398cfcb86b01bb4e593c8",
+      "rule_hash_sha256": "372e71778691e6e0d6b35436dea8925ded8fd889d2d398cfcb86b01bb4e593c8",
+      "rule_hash_status": "observed_collector_rule",
+      "rule_source": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260618-074708Z/alerts.jsonl#raw.rule",
+      "mitre_techniques": [],
+      "node_id": "node-e1ac03b8",
+      "node_name": "SCADA",
+      "instance_id": "inst-a495cfe7",
+      "instance_name": "FUXA_Instance",
+      "protocol": "unknown",
+      "enabled_status": true,
+      "enabled_at": null,
+      "source_reference": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260618-074708Z/alerts.jsonl#e16547d957a74573b7e518f413a1ce2c"
+    },
+    {
       "detector": "suricata",
       "collector": "wazuh",
       "original_sensor": "suricata",
@@ -9430,14 +9565,14 @@
     }
   ],
   "summary": {
-    "alerts_total": 37956,
+    "alerts_total": 38655,
     "suricata_visible_alerts": 0,
     "wazuh_visible_alerts": 0,
-    "observed_rule_count": 345,
+    "observed_rule_count": 350,
     "engines": [
       {
         "label": "wazuh",
-        "count": 334
+        "count": 339
       },
       {
         "label": "suricata",
@@ -9447,17 +9582,17 @@
     "original_sensor_distribution": [
       {
         "label": "wazuh",
-        "count": 20991
+        "count": 21183
       },
       {
         "label": "suricata",
-        "count": 16965
+        "count": 17472
       }
     ],
     "collector_distribution": [
       {
         "label": "wazuh",
-        "count": 37956
+        "count": 38655
       }
     ]
   }

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-18T08:10:36.001635+00:00",
+  "generated_at": "2026-06-18T13:34:17.043580+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
   "attacks": [
@@ -4403,6 +4403,760 @@
         "app_core/infrastructure/attack/outputs/20260617T113729Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
         "app_core/infrastructure/attack/outputs/20260617T113729Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json",
         "app_core/infrastructure/attack/outputs/20260617T113729Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-3fb8c91d",
+      "attack_id": "atk-5402854b",
+      "attack_name": "ICMP Reconnaissance",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "ICMP Reconnaissance",
+      "mitre": {
+        "domain": "Enterprise",
+        "technique_id": "T1595",
+        "technique_name": "Active Scanning",
+        "tactic": "Reconnaissance"
+      },
+      "execution": {
+        "started_at": "2026-06-18T08:13:11.191614+00:00",
+        "completed_at": "2026-06-18T08:13:16.293641+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "controlled",
+        "detection_engine": "Suricata + Wazuh",
+        "success_criteria": "exit_code_zero"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-e1ac03b8",
+        "instance_id": "inst-a495cfe7",
+        "instance_name": "FUXA_Instance",
+        "node_name": "SCADA",
+        "target_role": "scada",
+        "effective_target_role": "SCADA",
+        "target_ip": "10.0.2.9",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "unknown",
+        "target_port": null,
+        "modbus_function": null,
+        "register_reference": null,
+        "value": null,
+        "slave_id": null,
+        "data_type": null,
+        "parameters": {},
+        "expected_alerts": [
+          "icmp_sweep",
+          "host_discovery",
+          "active_scanning"
+        ],
+        "rollback_required": false,
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260618T081311Z_T1595_ACTIVE_SCANNING_ICMP_RECON/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260618T081311Z_T1595_ACTIVE_SCANNING_ICMP_RECON/result.json",
+        "app_core/infrastructure/attack/outputs/20260618T081311Z_T1595_ACTIVE_SCANNING_ICMP_RECON/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260618T081311Z_T1595_ACTIVE_SCANNING_ICMP_RECON/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T081311Z_T1595_ACTIVE_SCANNING_ICMP_RECON/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260618T081311Z_T1595_ACTIVE_SCANNING_ICMP_RECON/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-f85802bc",
+      "attack_id": "atk-68f139aa",
+      "attack_name": "Unauthorized SSH Attempt",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Unauthorized SSH Attempt",
+      "mitre": {
+        "domain": "Enterprise",
+        "technique_id": "T1110.001",
+        "technique_name": "Password Guessing",
+        "tactic": "Credential Access"
+      },
+      "execution": {
+        "started_at": "2026-06-18T08:13:33.978966+00:00",
+        "completed_at": "2026-06-18T08:13:43.060226+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "detection_validation",
+        "detection_engine": "Wazuh",
+        "success_criteria": "exit_code_zero"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-e1ac03b8",
+        "instance_id": "inst-a495cfe7",
+        "instance_name": "FUXA_Instance",
+        "node_name": "SCADA",
+        "target_role": "scada",
+        "effective_target_role": "SCADA",
+        "target_ip": "10.0.2.9",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "unknown",
+        "target_port": null,
+        "modbus_function": null,
+        "register_reference": null,
+        "value": null,
+        "slave_id": null,
+        "data_type": null,
+        "parameters": {},
+        "expected_alerts": [
+          "failed_ssh_login",
+          "multiple_authentication_failures",
+          "ssh_bruteforce_validation"
+        ],
+        "rollback_required": false,
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260618T081333Z_T1110_001_SSH_PASSWORD_GUESSING/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260618T081333Z_T1110_001_SSH_PASSWORD_GUESSING/result.json",
+        "app_core/infrastructure/attack/outputs/20260618T081333Z_T1110_001_SSH_PASSWORD_GUESSING/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260618T081333Z_T1110_001_SSH_PASSWORD_GUESSING/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T081333Z_T1110_001_SSH_PASSWORD_GUESSING/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260618T081333Z_T1110_001_SSH_PASSWORD_GUESSING/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-9b424298",
+      "attack_id": "atk-25f9f5c2",
+      "attack_name": "Controlled File Tamper",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Controlled File Tamper",
+      "mitre": {
+        "domain": "Enterprise",
+        "technique_id": "T1565.001",
+        "technique_name": "Stored Data Manipulation",
+        "tactic": "Impact"
+      },
+      "execution": {
+        "started_at": "2026-06-18T08:13:55.789254+00:00",
+        "completed_at": "2026-06-18T08:13:59.212044+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "controlled",
+        "detection_engine": "Wazuh FIM",
+        "success_criteria": "exit_code_zero"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-e1ac03b8",
+        "instance_id": "inst-a495cfe7",
+        "instance_name": "FUXA_Instance",
+        "node_name": "SCADA",
+        "target_role": "scada",
+        "effective_target_role": "SCADA",
+        "target_ip": "10.0.2.9",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "unknown",
+        "target_port": null,
+        "modbus_function": null,
+        "register_reference": null,
+        "value": null,
+        "slave_id": null,
+        "data_type": null,
+        "parameters": {},
+        "expected_alerts": [
+          "file_modified",
+          "fim_integrity_alert",
+          "stored_data_manipulation"
+        ],
+        "rollback_required": false,
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260618T081355Z_T1565_001_STORED_DATA_MANIPULATION_FIM/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260618T081355Z_T1565_001_STORED_DATA_MANIPULATION_FIM/result.json",
+        "app_core/infrastructure/attack/outputs/20260618T081355Z_T1565_001_STORED_DATA_MANIPULATION_FIM/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260618T081355Z_T1565_001_STORED_DATA_MANIPULATION_FIM/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T081355Z_T1565_001_STORED_DATA_MANIPULATION_FIM/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260618T081355Z_T1565_001_STORED_DATA_MANIPULATION_FIM/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-419480ac",
+      "attack_id": "atk-d03c67e4",
+      "attack_name": "Data Exfiltration",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Data Exfiltration",
+      "mitre": {
+        "domain": "Enterprise",
+        "technique_id": "T1048",
+        "technique_name": "Exfiltration Over Alternative Protocol",
+        "tactic": "Exfiltration"
+      },
+      "execution": {
+        "started_at": "2026-06-18T08:14:11.386192+00:00",
+        "completed_at": "2026-06-18T08:14:13.287225+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "controlled",
+        "detection_engine": "Suricata + Wazuh",
+        "success_criteria": "exit_code_zero"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-e1ac03b8",
+        "instance_id": "inst-a495cfe7",
+        "instance_name": "FUXA_Instance",
+        "node_name": "SCADA",
+        "target_role": "scada",
+        "effective_target_role": "SCADA",
+        "target_ip": "10.0.2.9",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "unknown",
+        "target_port": null,
+        "modbus_function": null,
+        "register_reference": null,
+        "value": null,
+        "slave_id": null,
+        "data_type": null,
+        "parameters": {},
+        "expected_alerts": [
+          "outbound_file_transfer",
+          "scp_transfer",
+          "http_upload",
+          "exfiltration_activity"
+        ],
+        "rollback_required": false,
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260618T081411Z_T1048_EXFILTRATION_OVER_ALTERNATIVE_PROTOCOL/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260618T081411Z_T1048_EXFILTRATION_OVER_ALTERNATIVE_PROTOCOL/result.json",
+        "app_core/infrastructure/attack/outputs/20260618T081411Z_T1048_EXFILTRATION_OVER_ALTERNATIVE_PROTOCOL/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260618T081411Z_T1048_EXFILTRATION_OVER_ALTERNATIVE_PROTOCOL/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T081411Z_T1048_EXFILTRATION_OVER_ALTERNATIVE_PROTOCOL/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260618T081411Z_T1048_EXFILTRATION_OVER_ALTERNATIVE_PROTOCOL/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-979eea9c",
+      "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Modbus Register Manipulation",
+      "mitre": {
+        "domain": "ICS",
+        "technique_id": "T0831",
+        "technique_name": "Manipulation of Control",
+        "tactic": "Impair Process Control"
+      },
+      "execution": {
+        "started_at": "2026-06-18T08:14:39.945045+00:00",
+        "completed_at": "2026-06-18T08:14:59.740081+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "restore_by_default",
+        "detection_engine": "Suricata + Wazuh",
+        "success_criteria": "state_changed_and_observed"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
+        "target_role": "scada",
+        "effective_target_role": "PLC",
+        "target_ip": "10.0.2.22",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "modbus_tcp",
+        "target_port": 502,
+        "modbus_function": "16",
+        "register_reference": 4,
+        "value": 30,
+        "slave_id": 1,
+        "data_type": "4:int",
+        "parameters": {},
+        "expected_alerts": [
+          "modbus_write_register",
+          "unauthorized_control_command",
+          "process_state_change",
+          "control_manipulation"
+        ],
+        "rollback_required": true,
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260618T081439Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260618T081439Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "app_core/infrastructure/attack/outputs/20260618T081439Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260618T081439Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T081439Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260618T081439Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-6bc0a2ad",
+      "attack_id": "atk-761a78ab",
+      "attack_name": "Multi-Vector Validation",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Multi-Vector Validation",
+      "mitre": {
+        "domain": "Enterprise + ICS",
+        "technique_id": "MULTIPLE",
+        "technique_name": "Composite ATT&CK Validation Chain",
+        "tactic": "Multi-stage Detection Validation"
+      },
+      "execution": {
+        "started_at": "2026-06-18T08:15:10.734258+00:00",
+        "completed_at": "2026-06-18T08:15:16.269060+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "controlled_chain",
+        "detection_engine": "Suricata + Wazuh",
+        "success_criteria": "exit_code_zero"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-e1ac03b8",
+        "instance_id": "inst-a495cfe7",
+        "instance_name": "FUXA_Instance",
+        "node_name": "SCADA",
+        "target_role": "scada",
+        "effective_target_role": "SCADA",
+        "target_ip": "10.0.2.9",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "unknown",
+        "target_port": null,
+        "modbus_function": null,
+        "register_reference": null,
+        "value": null,
+        "slave_id": null,
+        "data_type": null,
+        "parameters": {},
+        "expected_alerts": [
+          "port_scan",
+          "failed_ssh_login",
+          "fim_integrity_alert",
+          "exfiltration_activity",
+          "modbus_write_register"
+        ],
+        "rollback_required": true,
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260618T081510Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260618T081510Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
+        "app_core/infrastructure/attack/outputs/20260618T081510Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260618T081510Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T081510Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260618T081510Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-5f46a748",
+      "attack_id": "atk-96954f5b",
+      "attack_name": "ICS Remote System Discovery",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "ICS Remote System Discovery",
+      "mitre": {
+        "domain": "ICS",
+        "technique_id": "T0846",
+        "technique_name": "Remote System Discovery",
+        "tactic": "Discovery"
+      },
+      "execution": {
+        "started_at": "2026-06-18T08:15:52.540167+00:00",
+        "completed_at": "2026-06-18T08:16:10.034533+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "read_only",
+        "detection_engine": "Suricata + Wazuh",
+        "success_criteria": "exit_code_zero"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-e1ac03b8",
+        "instance_id": "inst-a495cfe7",
+        "instance_name": "FUXA_Instance",
+        "node_name": "SCADA",
+        "target_role": "scada",
+        "effective_target_role": "SCADA",
+        "target_ip": "10.0.2.9",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "unknown",
+        "target_port": null,
+        "modbus_function": null,
+        "register_reference": null,
+        "value": null,
+        "slave_id": null,
+        "data_type": null,
+        "parameters": {},
+        "expected_alerts": [
+          "ot_subnet_probing",
+          "remote_system_discovery",
+          "suricata_scan_alert"
+        ],
+        "rollback_required": false,
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260618T081552Z_T0846_ICS_REMOTE_SYSTEM_DISCOVERY/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260618T081552Z_T0846_ICS_REMOTE_SYSTEM_DISCOVERY/result.json",
+        "app_core/infrastructure/attack/outputs/20260618T081552Z_T0846_ICS_REMOTE_SYSTEM_DISCOVERY/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260618T081552Z_T0846_ICS_REMOTE_SYSTEM_DISCOVERY/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T081552Z_T0846_ICS_REMOTE_SYSTEM_DISCOVERY/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260618T081552Z_T0846_ICS_REMOTE_SYSTEM_DISCOVERY/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-d8d78782",
+      "attack_id": "atk-b60ff047",
+      "attack_name": "Point and Tag Identification",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Point and Tag Identification",
+      "mitre": {
+        "domain": "ICS",
+        "technique_id": "T0861",
+        "technique_name": "Point and Tag Identification",
+        "tactic": "Discovery"
+      },
+      "execution": {
+        "started_at": "2026-06-18T08:16:22.566375+00:00",
+        "completed_at": "2026-06-18T08:16:34.226856+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "read_only",
+        "detection_engine": "Suricata",
+        "success_criteria": "exit_code_zero"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-e1ac03b8",
+        "instance_id": "inst-a495cfe7",
+        "instance_name": "FUXA_Instance",
+        "node_name": "SCADA",
+        "target_role": "scada",
+        "effective_target_role": "SCADA",
+        "target_ip": "10.0.2.9",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "unknown",
+        "target_port": null,
+        "modbus_function": null,
+        "register_reference": null,
+        "value": null,
+        "slave_id": null,
+        "data_type": null,
+        "parameters": {},
+        "expected_alerts": [
+          "modbus_read_burst",
+          "register_enumeration",
+          "suricata_modbus_alert"
+        ],
+        "rollback_required": false,
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260618T081622Z_T0861_POINT_AND_TAG_IDENTIFICATION/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260618T081622Z_T0861_POINT_AND_TAG_IDENTIFICATION/result.json",
+        "app_core/infrastructure/attack/outputs/20260618T081622Z_T0861_POINT_AND_TAG_IDENTIFICATION/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260618T081622Z_T0861_POINT_AND_TAG_IDENTIFICATION/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T081622Z_T0861_POINT_AND_TAG_IDENTIFICATION/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260618T081622Z_T0861_POINT_AND_TAG_IDENTIFICATION/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-12f3c54b",
+      "attack_id": "atk-3c0015d5",
+      "attack_name": "Automated Collection",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Automated Collection",
+      "mitre": {
+        "domain": "ICS",
+        "technique_id": "T0802",
+        "technique_name": "Automated Collection",
+        "tactic": "Collection"
+      },
+      "execution": {
+        "started_at": "2026-06-18T08:16:43.034620+00:00",
+        "completed_at": "2026-06-18T08:17:02.982223+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "read_only",
+        "detection_engine": "Suricata + Wazuh",
+        "success_criteria": "exit_code_zero"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-e1ac03b8",
+        "instance_id": "inst-a495cfe7",
+        "instance_name": "FUXA_Instance",
+        "node_name": "SCADA",
+        "target_role": "scada",
+        "effective_target_role": "SCADA",
+        "target_ip": "10.0.2.9",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "unknown",
+        "target_port": null,
+        "modbus_function": null,
+        "register_reference": null,
+        "value": null,
+        "slave_id": null,
+        "data_type": null,
+        "parameters": {},
+        "expected_alerts": [
+          "modbus_read_pattern",
+          "process_state_collection",
+          "suricata_modbus_alert"
+        ],
+        "rollback_required": false,
+        "rollback_command": null,
+        "command": null,
+        "modbus_operation": "unknown",
+        "expected_effect": null,
+        "expected_plc_state_change": null
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260618T081643Z_T0802_AUTOMATED_COLLECTION/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260618T081643Z_T0802_AUTOMATED_COLLECTION/result.json",
+        "app_core/infrastructure/attack/outputs/20260618T081643Z_T0802_AUTOMATED_COLLECTION/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260618T081643Z_T0802_AUTOMATED_COLLECTION/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T081643Z_T0802_AUTOMATED_COLLECTION/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260618T081643Z_T0802_AUTOMATED_COLLECTION/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-612c8ac4",
+      "attack_id": "atk-6a3a2cae",
+      "attack_name": "Unauthorized Command Message",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Unauthorized Command Message",
+      "mitre": {
+        "domain": "ICS",
+        "technique_id": "T1692.001",
+        "technique_name": "Unauthorized Command Message",
+        "tactic": "Execution"
+      },
+      "execution": {
+        "started_at": "2026-06-18T08:17:32.368061+00:00",
+        "completed_at": "2026-06-18T08:17:54.409672+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "restore_by_default",
+        "detection_engine": "Suricata + Wazuh",
+        "success_criteria": "state_changed_and_observed"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
+        "target_role": "scada",
+        "effective_target_role": "PLC",
+        "target_ip": "10.0.2.22",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "modbus_tcp",
+        "target_port": 502,
+        "modbus_function": "16",
+        "register_reference": 4,
+        "value": 30,
+        "slave_id": 1,
+        "data_type": "4:int",
+        "parameters": {},
+        "expected_alerts": [
+          "unexpected_modbus_source",
+          "unauthorized_modbus_write",
+          "wazuh_suricata_ingest"
+        ],
+        "rollback_required": true,
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": "logical target role 'scada' differs from command-resolved node 'PLC'"
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260618T081732Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260618T081732Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE/result.json",
+        "app_core/infrastructure/attack/outputs/20260618T081732Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260618T081732Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T081732Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260618T081732Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE/rollback_log.json"
       ]
     }
   ]
