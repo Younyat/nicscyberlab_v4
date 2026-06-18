@@ -337,6 +337,176 @@ aside {
     line-height: 1.7;
 }
 
+.attack-info-entry {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+}
+
+.attack-info-trigger {
+    flex: 0 0 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    border: 2px solid rgba(255, 51, 102, 0.45);
+    background: rgba(255, 51, 102, 0.08);
+    color: #ff7ea3;
+    font-size: 14px;
+    transition: all 0.18s ease;
+    box-shadow: 0 10px 30px rgba(255, 51, 102, 0.12);
+}
+
+.attack-info-trigger:hover,
+.attack-info-trigger.active {
+    background: rgba(255, 51, 102, 0.18);
+    border-color: rgba(255, 51, 102, 0.82);
+    color: #ffd1df;
+    transform: translateX(1px);
+}
+
+.attack-info-popup {
+    position: fixed;
+    z-index: 1200;
+    width: min(380px, calc(100vw - 48px));
+    padding: 18px 18px 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 51, 102, 0.30);
+    background: linear-gradient(180deg, rgba(10, 14, 39, 0.88), rgba(10, 14, 39, 0.94));
+    backdrop-filter: blur(18px);
+    box-shadow: 0 28px 60px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.attack-info-popup.hidden {
+    display: none;
+}
+
+.attack-info-popup-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.attack-info-popup-kicker {
+    font-size: 9px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.24em;
+    color: rgba(255, 157, 180, 0.72);
+    margin-bottom: 4px;
+}
+
+.attack-info-popup-title {
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    color: #ffffff;
+    line-height: 1.35;
+}
+
+.attack-info-popup-close {
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.72);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.18s ease;
+}
+
+.attack-info-popup-close:hover {
+    background: rgba(255, 51, 102, 0.18);
+    color: #ffffff;
+    border-color: rgba(255, 51, 102, 0.46);
+}
+
+.attack-info-popup-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.attack-info-popup-chip {
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.attack-info-popup-chip-label {
+    display: block;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: rgba(0, 255, 136, 0.62);
+    margin-bottom: 4px;
+}
+
+.attack-info-popup-chip-value {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.attack-info-popup-section {
+    margin-top: 12px;
+}
+
+.attack-info-popup-section-title {
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: rgba(255, 157, 180, 0.72);
+    margin-bottom: 6px;
+}
+
+.attack-info-popup-copy {
+    font-size: 11px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.84);
+}
+
+.attack-info-popup-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.attack-info-popup-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 9px;
+    border-radius: 999px;
+    background: rgba(0, 255, 136, 0.08);
+    border: 1px solid rgba(0, 255, 136, 0.16);
+    color: rgba(219, 255, 236, 0.92);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.attack-info-popup-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #7ce8ff;
+}
+
 .advanced-attack-chip {
     display: inline-flex;
     align-items: center;
@@ -502,17 +672,27 @@ aside {
                 <div class="attack-category-title">Reconnaissance</div>
                 <div class="attack-category-meta">Discovery and target profiling</div>
                 <div class="attack-category-actions">
-                    <button onclick="launchFromSidebar()"
-                            class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
-                        <i class="fas fa-satellite-dish animate-pulse"></i>
-                        ICMP RECONNAISSANCE · T1595
-                        <i class="fas fa-chevron-right opacity-0 group-hover:opacity-100 transition-all"></i>
-                    </button>
-                    <button onclick="launchPortScanFromSidebar()"
-                            class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
-                        <i class="fas fa-network-wired"></i>
-                        PORT SCAN RECONNAISSANCE · T1046
-                    </button>
+                    <div class="attack-info-entry">
+                        <button onclick="launchFromSidebar()"
+                                class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
+                            <i class="fas fa-satellite-dish animate-pulse"></i>
+                            ICMP RECONNAISSANCE · T1595
+                            <i class="fas fa-chevron-right opacity-0 group-hover:opacity-100 transition-all"></i>
+                        </button>
+                        <button type="button" class="attack-info-trigger" data-attack-info="icmp_reconnaissance" aria-label="Show MITRE information for ICMP Reconnaissance">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <div class="attack-info-entry">
+                        <button onclick="launchPortScanFromSidebar()"
+                                class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
+                            <i class="fas fa-network-wired"></i>
+                            PORT SCAN RECONNAISSANCE · T1046
+                        </button>
+                        <button type="button" class="attack-info-trigger" data-attack-info="port_scan_reconnaissance" aria-label="Show MITRE information for Port Scan Reconnaissance">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -520,11 +700,16 @@ aside {
                 <div class="attack-category-title">Unauthorized Access</div>
                 <div class="attack-category-meta">Credential abuse and failed access attempts</div>
                 <div class="attack-category-actions">
-                    <button onclick="launchUnauthorizedSSH(currentLockedTarget.ip, currentLockedTarget.os)"
-                            class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
-                        <i class="fas fa-user-secret"></i>
-                        UNAUTHORIZED SSH ATTEMPT · T1110.001
-                    </button>
+                    <div class="attack-info-entry">
+                        <button onclick="launchUnauthorizedSSH(currentLockedTarget.ip, currentLockedTarget.os)"
+                                class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
+                            <i class="fas fa-user-secret"></i>
+                            UNAUTHORIZED SSH ATTEMPT · T1110.001
+                        </button>
+                        <button type="button" class="attack-info-trigger" data-attack-info="unauthorized_ssh_attempt" aria-label="Show MITRE information for Unauthorized SSH Attempt">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -532,12 +717,17 @@ aside {
                 <div class="attack-category-title">Integrity / FIM</div>
                 <div class="attack-category-meta">Controlled file manipulation and integrity monitoring</div>
                 <div class="attack-category-actions">
-                    <button onclick="launchFileTamperFromSidebar()"
-                            class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
-                        <i class="fas fa-file-signature"></i>
-                        CONTROLLED FILE TAMPER · T1565.001
-                        <i class="fas fa-chevron-right opacity-0 group-hover:opacity-100 transition-all"></i>
-                    </button>
+                    <div class="attack-info-entry">
+                        <button onclick="launchFileTamperFromSidebar()"
+                                class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
+                            <i class="fas fa-file-signature"></i>
+                            CONTROLLED FILE TAMPER · T1565.001
+                            <i class="fas fa-chevron-right opacity-0 group-hover:opacity-100 transition-all"></i>
+                        </button>
+                        <button type="button" class="attack-info-trigger" data-attack-info="controlled_file_tamper" aria-label="Show MITRE information for Controlled File Tamper">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -545,11 +735,16 @@ aside {
                 <div class="attack-category-title">Exfiltration</div>
                 <div class="attack-category-meta">Collection and outbound data movement</div>
                 <div class="attack-category-actions">
-                    <button onclick="launchDataExfilFromSidebar()"
-                            class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
-                        <i class="fas fa-download"></i>
-                        DATA EXFILTRATION · T1048
-                    </button>
+                    <div class="attack-info-entry">
+                        <button onclick="launchDataExfilFromSidebar()"
+                                class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
+                            <i class="fas fa-download"></i>
+                            DATA EXFILTRATION · T1048
+                        </button>
+                        <button type="button" class="attack-info-trigger" data-attack-info="data_exfiltration" aria-label="Show MITRE information for Data Exfiltration">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -557,11 +752,16 @@ aside {
                 <div class="attack-category-title">ICS / OT</div>
                 <div class="attack-category-meta">Industrial protocol manipulation and process impact</div>
                 <div class="attack-category-actions">
-                    <button onclick="launchModbusAttackFromSidebar()"
-                            class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
-                        <i class="fas fa-microchip"></i>
-                        MODBUS REGISTER MANIPULATION · T0831
-                    </button>
+                    <div class="attack-info-entry">
+                        <button onclick="launchModbusAttackFromSidebar()"
+                                class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
+                            <i class="fas fa-microchip"></i>
+                            MODBUS REGISTER MANIPULATION · T0831
+                        </button>
+                        <button type="button" class="attack-info-trigger" data-attack-info="modbus_register_manipulation" aria-label="Show MITRE information for Modbus Register Manipulation">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -569,12 +769,17 @@ aside {
                 <div class="attack-category-title">Multi-Vector Exercise</div>
                 <div class="attack-category-meta">Detection validation across multiple alert families</div>
                 <div class="attack-category-actions">
-                    <button onclick="launchMultiVectorFromSidebar()"
-                            class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
-                        <i class="fas fa-layer-group"></i>
-                        MULTI-VECTOR VALIDATION · ATT&CK CHAIN
-                        <i class="fas fa-chevron-right opacity-0 group-hover:opacity-100 transition-all"></i>
-                    </button>
+                    <div class="attack-info-entry">
+                        <button onclick="launchMultiVectorFromSidebar()"
+                                class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
+                            <i class="fas fa-layer-group"></i>
+                            MULTI-VECTOR VALIDATION · ATT&CK CHAIN
+                            <i class="fas fa-chevron-right opacity-0 group-hover:opacity-100 transition-all"></i>
+                        </button>
+                        <button type="button" class="attack-info-trigger" data-attack-info="multi_vector_validation" aria-label="Show MITRE information for Multi-Vector Validation">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -582,11 +787,16 @@ aside {
                 <div class="attack-category-title">Advanced ATT&CK Techniques</div>
                 <div class="attack-category-meta">MITRE-aligned experiment profiles with detection and DFIR semantics</div>
                 <div class="attack-category-actions">
-                    <button onclick="toggleAdvancedAttackPanel()"
-                            class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
-                        <i class="fas fa-book-skull"></i>
-                        ADVANCED ATT&CK TECHNIQUES
-                    </button>
+                    <div class="attack-info-entry">
+                        <button onclick="toggleAdvancedAttackPanel()"
+                                class="w-full py-4 bg-[#ff3366]/10 border-2 border-[#ff3366] rounded-xl text-[#ff3366] font-black text-xs tracking-widest hover:bg-[#ff3366]/20 transition-all flex items-center justify-center gap-3 group">
+                            <i class="fas fa-book-skull"></i>
+                            ADVANCED ATT&CK TECHNIQUES
+                        </button>
+                        <button type="button" class="attack-info-trigger" data-attack-info="advanced_attack_techniques" aria-label="Show MITRE information for Advanced ATT&CK Techniques">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -800,6 +1010,19 @@ aside {
         </div>
     </div>
 
+    <div id="attack-info-popup" class="attack-info-popup hidden" aria-hidden="true">
+        <div class="attack-info-popup-header">
+            <div>
+                <div class="attack-info-popup-kicker">MITRE ATT&amp;CK Context</div>
+                <div id="attack-info-popup-title" class="attack-info-popup-title">Attack Profile</div>
+            </div>
+            <button type="button" id="attack-info-popup-close" class="attack-info-popup-close" aria-label="Close MITRE ATT&CK information">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="attack-info-popup-body"></div>
+    </div>
+
     <script>
         let cy;
         let autoRefresh = false;
@@ -835,6 +1058,210 @@ aside {
                 description: "Host-visible techniques focused on authentication, command execution, discovery, and FIM telemetry."
             }
         ];
+        const attackInfoMap = {
+            icmp_reconnaissance: {
+                profileName: "ICMP RECONNAISSANCE",
+                mitreId: "T1595",
+                officialName: "Active Scanning",
+                domain: "Enterprise",
+                tactic: "Reconnaissance",
+                meaning: "Active network probing to identify reachable systems or exposed infrastructure.",
+                nicsContext: "ICMP ping sweep or active host discovery from the attacker node.",
+                expectedEvidence: [
+                    "ICMP packets",
+                    "Source IP",
+                    "Destination IP",
+                    "Timestamps",
+                    "Reachable hosts",
+                    "PCAP if enabled"
+                ],
+                expectedDetection: [
+                    "Suricata",
+                    "Zeek",
+                    "Wazuh",
+                    "Abnormal ICMP volume"
+                ],
+                referenceUrl: "https://attack.mitre.org/techniques/T1595/",
+                extraNote: "Optional additional mapping: T1595.001 Scanning IP Blocks when scanning IP ranges."
+            },
+            port_scan_reconnaissance: {
+                profileName: "PORT SCAN RECONNAISSANCE",
+                mitreId: "T1046",
+                officialName: "Network Service Discovery",
+                domain: "Enterprise",
+                tactic: "Discovery",
+                meaning: "Discovery of open ports, network services, and exposed applications.",
+                nicsContext: "Attacker scans one or more victim nodes to identify exposed services before later actions.",
+                expectedEvidence: [
+                    "Connection attempts",
+                    "Destination ports",
+                    "Protocols",
+                    "Source IP",
+                    "Destination IP",
+                    "Scan timing",
+                    "Zeek logs",
+                    "PCAP"
+                ],
+                expectedDetection: [
+                    "Zeek conn logs",
+                    "Suricata scan alerts",
+                    "Wazuh network alerts"
+                ],
+                referenceUrl: "https://attack.mitre.org/techniques/T1046/"
+            },
+            unauthorized_ssh_attempt: {
+                profileName: "UNAUTHORIZED SSH ATTEMPT",
+                mitreId: "T1110.001",
+                officialName: "Password Guessing",
+                domain: "Enterprise",
+                tactic: "Credential Access",
+                meaning: "Repeated authentication attempts using guessed credentials.",
+                nicsContext: "Attacker attempts SSH authentication against a victim node using invalid or guessed credentials.",
+                expectedEvidence: [
+                    "Failed SSH login attempts",
+                    "Attempted username",
+                    "Source IP",
+                    "Target IP",
+                    "Timestamps",
+                    "auth logs"
+                ],
+                expectedDetection: [
+                    "Wazuh authentication alerts",
+                    "Linux auth.log",
+                    "SSH brute-force rules"
+                ],
+                referenceUrl: "https://attack.mitre.org/techniques/T1110/001/",
+                extraNote: "Optional additional mapping: T1110.003 Password Spraying if the same password is tested across many users."
+            },
+            controlled_file_tamper: {
+                profileName: "CONTROLLED FILE TAMPER",
+                mitreId: "T1565.001",
+                officialName: "Stored Data Manipulation",
+                domain: "Enterprise",
+                tactic: "Impact",
+                meaning: "Modification of stored data to alter integrity, system state, or decision-making.",
+                nicsContext: "Controlled modification, creation, or deletion of monitored files to validate file integrity monitoring.",
+                expectedEvidence: [
+                    "File path",
+                    "Previous hash",
+                    "New hash",
+                    "Timestamp",
+                    "User or process if available",
+                    "FIM event"
+                ],
+                expectedDetection: [
+                    "Wazuh FIM alert",
+                    "File hash mismatch",
+                    "Integrity monitoring rule"
+                ],
+                referenceUrl: "https://attack.mitre.org/techniques/T1565/001/"
+            },
+            data_exfiltration: {
+                profileName: "DATA EXFILTRATION",
+                mitreId: "T1048",
+                officialName: "Exfiltration Over Alternative Protocol",
+                domain: "Enterprise",
+                tactic: "Exfiltration",
+                meaning: "Outbound movement of data using a protocol different from the main command and control channel.",
+                nicsContext: "Controlled outbound transfer from one node to another to validate exfiltration detection and network evidence preservation.",
+                expectedEvidence: [
+                    "Transferred file or data object",
+                    "Source IP",
+                    "Destination IP",
+                    "Protocol",
+                    "Volume",
+                    "Timestamp",
+                    "PCAP if enabled"
+                ],
+                expectedDetection: [
+                    "Zeek logs",
+                    "Suricata alerts",
+                    "Wazuh alerts",
+                    "Abnormal outbound traffic"
+                ],
+                referenceUrl: "https://attack.mitre.org/techniques/T1048/",
+                extraNote: "Optional additional mapping: T1048.003 Exfiltration Over Unencrypted Non-C2 Protocol if the experiment uses an unencrypted non-C2 protocol."
+            },
+            modbus_register_manipulation: {
+                profileName: "MODBUS REGISTER MANIPULATION",
+                mitreId: "T0831",
+                officialName: "Manipulation of Control",
+                domain: "ICS",
+                tactic: "Impact",
+                meaning: "Manipulation of an industrial control process.",
+                nicsContext: "Attacker sends Modbus write operations to the PLC, modifying registers, setpoints, or process values visible in PLC logic or SCADA/HMI.",
+                expectedEvidence: [
+                    "Modbus function code",
+                    "Register address",
+                    "Previous value",
+                    "New value",
+                    "Source IP",
+                    "PLC IP",
+                    "Timestamp",
+                    "PCAP",
+                    "PLC or SCADA state change"
+                ],
+                expectedDetection: [
+                    "Suricata Modbus rules",
+                    "Zeek ICS logs if available",
+                    "Wazuh alert after IDS ingestion",
+                    "Comparison between network command and PLC/SCADA state"
+                ],
+                referenceUrl: "https://attack.mitre.org/techniques/T0831/",
+                extraNote: "Additional recommended mapping: T1692.001 Command Message when the experiment sends unauthorized Modbus commands to the PLC. Additional reference: https://attack.mitre.org/techniques/T1692/001/"
+            },
+            multi_vector_validation: {
+                profileName: "MULTI-VECTOR VALIDATION",
+                mitreId: "ATT&CK CHAIN",
+                officialName: "Multi-alert validation chain",
+                domain: "Enterprise + ICS",
+                tactic: "Cross-tactic validation",
+                meaning: "Validate that NICS CyberLab can execute, detect, correlate, and preserve evidence from multiple attack families within the same controlled experiment.",
+                nicsContext: "Combined exercise joining reconnaissance, discovery, credential access, integrity impact, exfiltration, and OT control manipulation in one controlled validation chain.",
+                expectedEvidence: [
+                    "Network traffic",
+                    "PCAP files",
+                    "IDS alerts",
+                    "Authentication logs",
+                    "File integrity alerts",
+                    "PLC register changes",
+                    "SCADA/HMI state changes",
+                    "Forensic case timeline"
+                ],
+                expectedDetection: [
+                    "Suricata",
+                    "Zeek",
+                    "Wazuh",
+                    "FIM",
+                    "Authentication monitoring",
+                    "OT protocol detection rules"
+                ],
+                referenceUrl: "https://attack.mitre.org/",
+                extraNote: "Included techniques: T1595 Active Scanning; T1046 Network Service Discovery; T1110.001 Password Guessing; T1565.001 Stored Data Manipulation; T1048 Exfiltration Over Alternative Protocol; T0831 Manipulation of Control; T1692.001 Command Message."
+            },
+            advanced_attack_techniques: {
+                profileName: "ADVANCED ATT&CK TECHNIQUES",
+                mitreId: "Reserved",
+                officialName: "Future validated ATT&CK experiment profiles",
+                domain: "Enterprise + ICS",
+                tactic: "Reserved",
+                meaning: "This section is reserved for future or extended MITRE ATT&CK experiment profiles. Only techniques that are actually implemented, executable, detectable, and able to generate forensic evidence inside NICS CyberLab should be displayed here.",
+                nicsContext: "Reserved for future validated profiles only. Unsupported techniques must not be shown as available.",
+                expectedEvidence: [
+                    "Only for implemented future profiles"
+                ],
+                expectedDetection: [
+                    "Execution",
+                    "Persistence",
+                    "Defense Evasion",
+                    "Lateral Movement",
+                    "Impact",
+                    "ICS-specific attack chains",
+                    "Combined IT/OT attack paths"
+                ],
+                referenceUrl: "https://attack.mitre.org/"
+            }
+        };
 
         const ROLE_CONFIG = {
             plc:       { icon: "fa-microchip", color: "#00aaff", label: "PLC CONTROLLER" },
@@ -846,6 +1273,8 @@ aside {
         };
 let monitorStream = null;
 const OT_ROLES = new Set(["plc", "scada"]);
+let activeAttackInfoKey = null;
+let activeAttackInfoTrigger = null;
 
 function isOtRole(role) {
     return OT_ROLES.has(String(role || "").toLowerCase());
@@ -865,6 +1294,132 @@ async function fetchJSON(url, label) {
 
 function normalizeName(name) {
     return String(name || "").trim().toLowerCase();
+}
+
+function attackInfoElements() {
+    return {
+        popup: document.getElementById("attack-info-popup"),
+        title: document.getElementById("attack-info-popup-title"),
+        body: document.getElementById("attack-info-popup-body"),
+        close: document.getElementById("attack-info-popup-close")
+    };
+}
+
+function attackInfoList(items) {
+    return (items || []).map(item => `<span class="attack-info-popup-pill">${item}</span>`).join("");
+}
+
+function buildAttackInfoPopupBody(info) {
+    const extra = info.extraNote ? `
+        <div class="attack-info-popup-section">
+            <div class="attack-info-popup-section-title">Additional Note</div>
+            <div class="attack-info-popup-copy">${info.extraNote}</div>
+        </div>
+    ` : "";
+
+    return `
+        <div class="attack-info-popup-grid">
+            <div class="attack-info-popup-chip">
+                <span class="attack-info-popup-chip-label">Profile</span>
+                <span class="attack-info-popup-chip-value">${info.profileName}</span>
+            </div>
+            <div class="attack-info-popup-chip">
+                <span class="attack-info-popup-chip-label">MITRE ID</span>
+                <span class="attack-info-popup-chip-value">${info.mitreId}</span>
+            </div>
+            <div class="attack-info-popup-chip">
+                <span class="attack-info-popup-chip-label">Official Name</span>
+                <span class="attack-info-popup-chip-value">${info.officialName}</span>
+            </div>
+            <div class="attack-info-popup-chip">
+                <span class="attack-info-popup-chip-label">Domain / Tactic</span>
+                <span class="attack-info-popup-chip-value">${info.domain} · ${info.tactic}</span>
+            </div>
+        </div>
+        <div class="attack-info-popup-section">
+            <div class="attack-info-popup-section-title">Operational Meaning</div>
+            <div class="attack-info-popup-copy">${info.meaning}</div>
+        </div>
+        <div class="attack-info-popup-section">
+            <div class="attack-info-popup-section-title">How It Appears In NICS CyberLab</div>
+            <div class="attack-info-popup-copy">${info.nicsContext}</div>
+        </div>
+        <div class="attack-info-popup-section">
+            <div class="attack-info-popup-section-title">Expected Evidence</div>
+            <div class="attack-info-popup-list">${attackInfoList(info.expectedEvidence)}</div>
+        </div>
+        <div class="attack-info-popup-section">
+            <div class="attack-info-popup-section-title">Expected Detection Sources</div>
+            <div class="attack-info-popup-list">${attackInfoList(info.expectedDetection)}</div>
+        </div>
+        ${extra}
+        <a class="attack-info-popup-link" href="${info.referenceUrl}" target="_blank" rel="noopener noreferrer">
+            <i class="fas fa-up-right-from-square"></i>
+            MITRE official reference
+        </a>
+    `;
+}
+
+function closeAttackInfoPopup() {
+    const { popup } = attackInfoElements();
+    if (!popup) return;
+    popup.classList.add("hidden");
+    popup.setAttribute("aria-hidden", "true");
+    if (activeAttackInfoTrigger) {
+        activeAttackInfoTrigger.classList.remove("active");
+        activeAttackInfoTrigger.setAttribute("aria-expanded", "false");
+    }
+    activeAttackInfoTrigger = null;
+    activeAttackInfoKey = null;
+}
+
+function positionAttackInfoPopup(triggerEl, popupEl) {
+    const triggerRect = triggerEl.getBoundingClientRect();
+    const popupRect = popupEl.getBoundingClientRect();
+    const gap = 16;
+    const viewportPadding = 18;
+    let left = triggerRect.right + gap;
+    if (left + popupRect.width > window.innerWidth - viewportPadding) {
+        left = triggerRect.left - popupRect.width - gap;
+    }
+    if (left < viewportPadding) {
+        left = Math.max(viewportPadding, Math.round((window.innerWidth - popupRect.width) / 2));
+    }
+    let top = triggerRect.top - 8;
+    if (top + popupRect.height > window.innerHeight - viewportPadding) {
+        top = window.innerHeight - popupRect.height - viewportPadding;
+    }
+    if (top < viewportPadding) {
+        top = viewportPadding;
+    }
+    popupEl.style.left = `${Math.round(left)}px`;
+    popupEl.style.top = `${Math.round(top)}px`;
+}
+
+function openAttackInfoPopup(key, triggerEl) {
+    const info = attackInfoMap[key];
+    const { popup, title, body } = attackInfoElements();
+    if (!info || !popup || !title || !body || !triggerEl) return;
+
+    if (activeAttackInfoKey === key && !popup.classList.contains("hidden")) {
+        closeAttackInfoPopup();
+        return;
+    }
+
+    if (activeAttackInfoTrigger) {
+        activeAttackInfoTrigger.classList.remove("active");
+        activeAttackInfoTrigger.setAttribute("aria-expanded", "false");
+    }
+
+    title.textContent = `${info.profileName} · ${info.mitreId}`;
+    body.innerHTML = buildAttackInfoPopupBody(info);
+    popup.classList.remove("hidden");
+    popup.setAttribute("aria-hidden", "false");
+    activeAttackInfoKey = key;
+    activeAttackInfoTrigger = triggerEl;
+    triggerEl.classList.add("active");
+    triggerEl.setAttribute("aria-expanded", "true");
+    positionAttackInfoPopup(triggerEl, popup);
 }
 
 function normalizeAttackCatalogEntries(attacks) {
@@ -909,6 +1464,45 @@ async function loadAttackCatalog() {
         ATTACK_CATALOG = normalizeAttackCatalogEntries(fallbackAttacks);
         renderAdvancedAttackPanel();
     }
+}
+
+document.addEventListener("click", (event) => {
+    const trigger = event.target.closest(".attack-info-trigger");
+    const { popup } = attackInfoElements();
+
+    if (trigger) {
+        event.preventDefault();
+        event.stopPropagation();
+        openAttackInfoPopup(trigger.dataset.attackInfo, trigger);
+        return;
+    }
+
+    if (!popup || popup.classList.contains("hidden")) return;
+    if (popup.contains(event.target)) return;
+    closeAttackInfoPopup();
+});
+
+document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+        closeAttackInfoPopup();
+    }
+});
+
+window.addEventListener("resize", () => {
+    const { popup } = attackInfoElements();
+    if (!popup || popup.classList.contains("hidden") || !activeAttackInfoTrigger) return;
+    positionAttackInfoPopup(activeAttackInfoTrigger, popup);
+});
+
+window.addEventListener("scroll", () => {
+    const { popup } = attackInfoElements();
+    if (!popup || popup.classList.contains("hidden") || !activeAttackInfoTrigger) return;
+    positionAttackInfoPopup(activeAttackInfoTrigger, popup);
+}, true);
+
+const attackInfoCloseBtn = document.getElementById("attack-info-popup-close");
+if (attackInfoCloseBtn) {
+    attackInfoCloseBtn.addEventListener("click", closeAttackInfoPopup);
 }
 
 function toggleAdvancedAttackPanel() {

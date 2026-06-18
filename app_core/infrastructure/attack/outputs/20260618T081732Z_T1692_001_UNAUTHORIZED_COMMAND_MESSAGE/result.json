@@ -1,0 +1,244 @@
+{
+  "attack_id": "T1692_001_UNAUTHORIZED_COMMAND_MESSAGE",
+  "attacker_ip": "10.0.2.214",
+  "case_dir": "",
+  "chain_of_custody": [
+    {
+      "action": "attack_execution_started",
+      "artifact": "result.json",
+      "operator": "dashboard_tactical_hud",
+      "timestamp": "2026-06-18T08:17:32.368077+00:00"
+    },
+    {
+      "action": "attack_execution_completed",
+      "artifact": "result.json",
+      "operator": "dashboard_tactical_hud",
+      "timestamp": "2026-06-18T08:17:54.416803+00:00"
+    }
+  ],
+  "completed_at": "2026-06-18T08:17:54.409672+00:00",
+  "detection_engine": "Suricata + Wazuh",
+  "dfir_escalation": true,
+  "display_name": "Unauthorized Command Message",
+  "execution_mode": "restore_by_default",
+  "exit_code": 0,
+  "expected_alerts": [
+    "unexpected_modbus_source",
+    "unauthorized_modbus_write",
+    "wazuh_suricata_ingest"
+  ],
+  "expected_artifacts": [
+    "source_ip",
+    "destination_ip",
+    "function_code",
+    "register",
+    "value",
+    "modbus_pcap",
+    "suricata_alert",
+    "wazuh_alert",
+    "plc_state_before.json",
+    "plc_state_after.json"
+  ],
+  "forensic_case_event": true,
+  "generated_artifacts": [
+    {
+      "path": "causal_edges.json",
+      "sha256": "78f260241c7b0772701dd8d14624146581030657cb251454b39ca02b918a322e",
+      "size": 901
+    },
+    {
+      "path": "ics_attack_policy.json",
+      "sha256": "2f15435ca1d2381633c0ff60d3f908a0a774e31eb1ad78f84ce3f36beb93ca30",
+      "size": 1094
+    },
+    {
+      "path": "industrial_asset_register_map.json",
+      "sha256": "8f4e97789596ba0072846bf3214693d846eb7a699455b1055b38d17ffe4625f9",
+      "size": 6692
+    },
+    {
+      "path": "industrial_modbus_validation.json",
+      "sha256": "3c37b5fac9b62ad4288033fa171666ab01b03ed08d8c3f9086bb23e93c4d58d5",
+      "size": 6770
+    },
+    {
+      "path": "industrial_plc_map.json",
+      "sha256": "c33a582f4e8f715024a80681341511756b3a9d28883fd879c2b4b7a57e2edf2d",
+      "size": 2025
+    },
+    {
+      "path": "industrial_runtime_assets.json",
+      "sha256": "294974fbf37fcf77b1215a001711029a3cf70e86279cdaa20dead4b9e5a5e746",
+      "size": 4274
+    },
+    {
+      "path": "industrial_scada_map.json",
+      "sha256": "ffbdb7b3d389d87fa7dc0c01b31aa24f52ead4077900a6dcce92b1a576890cfd",
+      "size": 4113
+    },
+    {
+      "path": "modbus_transaction_log.json",
+      "sha256": "6307d16d41c0c9df4e77be27cfb8dcf1e00a3c0409f5ce02347eef1565dd8e06",
+      "size": 2147
+    },
+    {
+      "path": "plc_state_after.json",
+      "sha256": "e7e716281099fcd11688edf1f32fcab91bea1c600c42700fee09b9a8e795959c",
+      "size": 5416
+    },
+    {
+      "path": "plc_state_before.json",
+      "sha256": "ed5a12e4d0c51df09aaa501b42e2477bd29e38b3e1dd939b70a70560e9e3e151",
+      "size": 5416
+    },
+    {
+      "path": "plc_state_restored.json",
+      "sha256": "382328da3429538cc1669fa4a50d9b1496b82968783704c5f3d85fb2780a8212",
+      "size": 5416
+    },
+    {
+      "path": "rollback_log.json",
+      "sha256": "26ad2afffe28fa332db52d7b1019c151dcf88ee104c3104b2a51d769a9608963",
+      "size": 305
+    },
+    {
+      "path": "unauthorized_command_message.json",
+      "sha256": "c3e61d480bb885bba300396662f9dc86c57b254b5df467883cd0b4800e29bf49",
+      "size": 600
+    },
+    {
+      "path": "uncertainty_report.json",
+      "sha256": "6d04ca424b740c4a4f3a881e8737319b4da10e0f362412e259417058fefa20d7",
+      "size": 469
+    }
+  ],
+  "mitre_domain": "ICS",
+  "mitre_id": "T1692.001",
+  "mitre_technique": "Unauthorized Command Message",
+  "output_dir": "/home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260618T081732Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE",
+  "parameters": {},
+  "raw_event_stream": [
+    "===========================================",
+    "ATT&CK PROFILE: T1692.001 - Unauthorized Command Message",
+    "TARGET: 10.0.2.22",
+    "TARGET PARAMETER: level_max",
+    "MODE: UNAUTHORIZED MODBUS WRITE WITH ROLLBACK",
+    "===========================================",
+    "{",
+    "  \"artifacts\": [",
+    "    {",
+    "      \"path\": \"unauthorized_command_message.json\",",
+    "      \"sha256\": \"c3e61d480bb885bba300396662f9dc86c57b254b5df467883cd0b4800e29bf49\",",
+    "      \"size\": 600",
+    "    },",
+    "    {",
+    "      \"path\": \"modbus_transaction_log.json\",",
+    "      \"sha256\": \"6307d16d41c0c9df4e77be27cfb8dcf1e00a3c0409f5ce02347eef1565dd8e06\",",
+    "      \"size\": 2147",
+    "    },",
+    "    {",
+    "      \"path\": \"plc_state_before.json\",",
+    "      \"sha256\": \"ed5a12e4d0c51df09aaa501b42e2477bd29e38b3e1dd939b70a70560e9e3e151\",",
+    "      \"size\": 5416",
+    "    },",
+    "    {",
+    "      \"path\": \"plc_state_after.json\",",
+    "      \"sha256\": \"e7e716281099fcd11688edf1f32fcab91bea1c600c42700fee09b9a8e795959c\",",
+    "      \"size\": 5416",
+    "    },",
+    "    {",
+    "      \"path\": \"plc_state_restored.json\",",
+    "      \"sha256\": \"382328da3429538cc1669fa4a50d9b1496b82968783704c5f3d85fb2780a8212\",",
+    "      \"size\": 5416",
+    "    },",
+    "    {",
+    "      \"path\": \"rollback_log.json\",",
+    "      \"sha256\": \"26ad2afffe28fa332db52d7b1019c151dcf88ee104c3104b2a51d769a9608963\",",
+    "      \"size\": 305",
+    "    },",
+    "    {",
+    "      \"path\": \"causal_edges.json\",",
+    "      \"sha256\": \"78f260241c7b0772701dd8d14624146581030657cb251454b39ca02b918a322e\",",
+    "      \"size\": 901",
+    "    },",
+    "    {",
+    "      \"path\": \"uncertainty_report.json\",",
+    "      \"sha256\": \"6d04ca424b740c4a4f3a881e8737319b4da10e0f362412e259417058fefa20d7\",",
+    "      \"size\": 469",
+    "    }",
+    "  ],",
+    "  \"attack_id\": \"T1692_001_UNAUTHORIZED_COMMAND_MESSAGE\",",
+    "  \"target_ip\": \"10.0.2.22\"",
+    "}"
+  ],
+  "rollback_required": true,
+  "safety_policy": "Only allowed test registers. Rollback required.",
+  "severity": "HIGH",
+  "started_at": "2026-06-18T08:17:32.368061+00:00",
+  "stderr": [],
+  "stdout": [
+    "===========================================",
+    "ATT&CK PROFILE: T1692.001 - Unauthorized Command Message",
+    "TARGET: 10.0.2.22",
+    "TARGET PARAMETER: level_max",
+    "MODE: UNAUTHORIZED MODBUS WRITE WITH ROLLBACK",
+    "===========================================",
+    "{",
+    "  \"artifacts\": [",
+    "    {",
+    "      \"path\": \"unauthorized_command_message.json\",",
+    "      \"sha256\": \"c3e61d480bb885bba300396662f9dc86c57b254b5df467883cd0b4800e29bf49\",",
+    "      \"size\": 600",
+    "    },",
+    "    {",
+    "      \"path\": \"modbus_transaction_log.json\",",
+    "      \"sha256\": \"6307d16d41c0c9df4e77be27cfb8dcf1e00a3c0409f5ce02347eef1565dd8e06\",",
+    "      \"size\": 2147",
+    "    },",
+    "    {",
+    "      \"path\": \"plc_state_before.json\",",
+    "      \"sha256\": \"ed5a12e4d0c51df09aaa501b42e2477bd29e38b3e1dd939b70a70560e9e3e151\",",
+    "      \"size\": 5416",
+    "    },",
+    "    {",
+    "      \"path\": \"plc_state_after.json\",",
+    "      \"sha256\": \"e7e716281099fcd11688edf1f32fcab91bea1c600c42700fee09b9a8e795959c\",",
+    "      \"size\": 5416",
+    "    },",
+    "    {",
+    "      \"path\": \"plc_state_restored.json\",",
+    "      \"sha256\": \"382328da3429538cc1669fa4a50d9b1496b82968783704c5f3d85fb2780a8212\",",
+    "      \"size\": 5416",
+    "    },",
+    "    {",
+    "      \"path\": \"rollback_log.json\",",
+    "      \"sha256\": \"26ad2afffe28fa332db52d7b1019c151dcf88ee104c3104b2a51d769a9608963\",",
+    "      \"size\": 305",
+    "    },",
+    "    {",
+    "      \"path\": \"causal_edges.json\",",
+    "      \"sha256\": \"78f260241c7b0772701dd8d14624146581030657cb251454b39ca02b918a322e\",",
+    "      \"size\": 901",
+    "    },",
+    "    {",
+    "      \"path\": \"uncertainty_report.json\",",
+    "      \"sha256\": \"6d04ca424b740c4a4f3a881e8737319b4da10e0f362412e259417058fefa20d7\",",
+    "      \"size\": 469",
+    "    }",
+    "  ],",
+    "  \"attack_id\": \"T1692_001_UNAUTHORIZED_COMMAND_MESSAGE\",",
+    "  \"target_ip\": \"10.0.2.22\"",
+    "}"
+  ],
+  "success": true,
+  "tactic": "Execution",
+  "target_image": "ubuntu-22.04",
+  "target_ip": "10.0.2.9",
+  "target_role": "scada",
+  "target_user": "ubuntu",
+  "timeline_event": {
+    "dfir_relevant": true,
+    "event_type": "attack_execution",
+    "severity": "HIGH"
+  }
+}

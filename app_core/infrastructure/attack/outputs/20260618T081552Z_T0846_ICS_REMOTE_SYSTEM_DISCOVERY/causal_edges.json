@@ -1,0 +1,23 @@
+{
+  "attack_id": "T0846_ICS_REMOTE_SYSTEM_DISCOVERY",
+  "edges": [
+    {
+      "from": "attacker",
+      "relation": "observed_or_contacted",
+      "status": "confirmed",
+      "to": "plc_modbus_service"
+    },
+    {
+      "from": "plc_modbus_service",
+      "relation": "supports_register_resolution",
+      "status": "confirmed",
+      "to": "industrial_register_map"
+    }
+  ],
+  "generated_at_utc": "2026-06-18T08:16:09.843990+00:00",
+  "mitre_id": "T0846.001",
+  "scenario_id": "scn-f2ecdb50",
+  "source_ip": "10.0.2.214",
+  "target_ip": "10.0.2.22",
+  "target_role": "industrial_plc"
+}

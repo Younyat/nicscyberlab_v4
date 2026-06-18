@@ -1,0 +1,38 @@
+{
+  "attack_id": "T0846_ICS_REMOTE_SYSTEM_DISCOVERY",
+  "generated_at_utc": "2026-06-18T08:16:09.843980+00:00",
+  "mitre_id": "T0846.001",
+  "observed_services": [
+    {
+      "asset": "plc",
+      "ip": "10.0.2.22",
+      "port": 502,
+      "reachable": true
+    },
+    {
+      "asset": "scada",
+      "ip": "10.0.2.9",
+      "port": 1881,
+      "reachable": true
+    },
+    {
+      "asset": "scada",
+      "ip": "10.0.2.9",
+      "port": 1880,
+      "reachable": false
+    },
+    {
+      "asset": "scada",
+      "ip": "10.0.2.9",
+      "port": 80,
+      "reachable": false
+    },
+    {
+      "asset": "scada",
+      "ip": "10.0.2.9",
+      "port": 443,
+      "reachable": false
+    }
+  ],
+  "scenario_id": "scn-f2ecdb50"
+}

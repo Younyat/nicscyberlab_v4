@@ -1,0 +1,194 @@
+{
+  "attack_id": "T0861_POINT_AND_TAG_IDENTIFICATION",
+  "attacker_ip": "10.0.2.214",
+  "case_dir": "",
+  "chain_of_custody": [
+    {
+      "action": "attack_execution_started",
+      "artifact": "result.json",
+      "operator": "dashboard_tactical_hud",
+      "timestamp": "2026-06-18T08:16:22.566398+00:00"
+    },
+    {
+      "action": "attack_execution_completed",
+      "artifact": "result.json",
+      "operator": "dashboard_tactical_hud",
+      "timestamp": "2026-06-18T08:16:34.229012+00:00"
+    }
+  ],
+  "completed_at": "2026-06-18T08:16:34.226856+00:00",
+  "detection_engine": "Suricata",
+  "dfir_escalation": false,
+  "display_name": "Point and Tag Identification",
+  "execution_mode": "read_only",
+  "exit_code": 0,
+  "expected_alerts": [
+    "modbus_read_burst",
+    "register_enumeration",
+    "suricata_modbus_alert"
+  ],
+  "expected_artifacts": [
+    "register_map.json",
+    "read_register_log.json",
+    "modbus_pcap",
+    "suricata_modbus_alert",
+    "case_timeline_event"
+  ],
+  "forensic_case_event": false,
+  "generated_artifacts": [
+    {
+      "path": "causal_edges.json",
+      "sha256": "3e491868eede9b50de7eb4f642d326ed717ef9d81f0fe4de8d1128cbfe72a98c",
+      "size": 587
+    },
+    {
+      "path": "ics_attack_policy.json",
+      "sha256": "41693eb7ba178e9142a870189bf35615558fd342f55a6d373bc124b25d227c7a",
+      "size": 1094
+    },
+    {
+      "path": "industrial_asset_register_map.json",
+      "sha256": "63eb85d1de3ad62a31a735cf02fdd40018d6e5c03a173c8ba63e800520a99307",
+      "size": 6692
+    },
+    {
+      "path": "industrial_modbus_validation.json",
+      "sha256": "3c37b5fac9b62ad4288033fa171666ab01b03ed08d8c3f9086bb23e93c4d58d5",
+      "size": 6770
+    },
+    {
+      "path": "industrial_plc_map.json",
+      "sha256": "e1ab5b91e150ca869f735dca6c8a783795971ba51989a25191bd6ea849f51648",
+      "size": 2025
+    },
+    {
+      "path": "industrial_runtime_assets.json",
+      "sha256": "d635c9b181ece2fbb3566878d715227df3dcc06084432e17f7e8b732b7edab78",
+      "size": 4274
+    },
+    {
+      "path": "industrial_scada_map.json",
+      "sha256": "cf289738dfc43d5f819e3ef89dbba834196fecc2a8d5fee15ba5fd4fc67a8e84",
+      "size": 4113
+    },
+    {
+      "path": "plc_state_before.json",
+      "sha256": "6731fc179049b3aaf0fe3e440a0cee8ce10e9729b86e9c901675ae3b2aa4a9ae",
+      "size": 5416
+    },
+    {
+      "path": "read_register_log.json",
+      "sha256": "f5192f4d04eb865112f62da03b7c9bf9d841289141b767b3e438a00bf4104c2e",
+      "size": 5652
+    },
+    {
+      "path": "register_map.json",
+      "sha256": "286279eb40822b730bfdc6d328b5148dc1c93be1bba50a8443d60fd7ab78b3c5",
+      "size": 6260
+    },
+    {
+      "path": "uncertainty_report.json",
+      "sha256": "30040ae10e9b1ee9f17845f0810314ab28e23cdf90139989fb335900e9006528",
+      "size": 1006
+    }
+  ],
+  "mitre_domain": "ICS",
+  "mitre_id": "T0861",
+  "mitre_technique": "Point and Tag Identification",
+  "output_dir": "/home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260618T081622Z_T0861_POINT_AND_TAG_IDENTIFICATION",
+  "parameters": {},
+  "raw_event_stream": [
+    "===========================================",
+    "ATT&CK PROFILE: T0861 - Point and Tag Identification",
+    "TARGET: 10.0.2.9",
+    "MODE: READ-ONLY MODBUS TAG RESOLUTION",
+    "===========================================",
+    "{",
+    "  \"artifacts\": [",
+    "    {",
+    "      \"path\": \"register_map.json\",",
+    "      \"sha256\": \"286279eb40822b730bfdc6d328b5148dc1c93be1bba50a8443d60fd7ab78b3c5\",",
+    "      \"size\": 6260",
+    "    },",
+    "    {",
+    "      \"path\": \"read_register_log.json\",",
+    "      \"sha256\": \"f5192f4d04eb865112f62da03b7c9bf9d841289141b767b3e438a00bf4104c2e\",",
+    "      \"size\": 5652",
+    "    },",
+    "    {",
+    "      \"path\": \"plc_state_before.json\",",
+    "      \"sha256\": \"6731fc179049b3aaf0fe3e440a0cee8ce10e9729b86e9c901675ae3b2aa4a9ae\",",
+    "      \"size\": 5416",
+    "    },",
+    "    {",
+    "      \"path\": \"causal_edges.json\",",
+    "      \"sha256\": \"3e491868eede9b50de7eb4f642d326ed717ef9d81f0fe4de8d1128cbfe72a98c\",",
+    "      \"size\": 587",
+    "    },",
+    "    {",
+    "      \"path\": \"uncertainty_report.json\",",
+    "      \"sha256\": \"30040ae10e9b1ee9f17845f0810314ab28e23cdf90139989fb335900e9006528\",",
+    "      \"size\": 1006",
+    "    }",
+    "  ],",
+    "  \"attack_id\": \"T0861_POINT_AND_TAG_IDENTIFICATION\",",
+    "  \"target_ip\": \"10.0.2.9\",",
+    "  \"validated_reads\": 7",
+    "}"
+  ],
+  "rollback_required": false,
+  "safety_policy": "Read-only. No register writes.",
+  "severity": "MEDIUM",
+  "started_at": "2026-06-18T08:16:22.566375+00:00",
+  "stderr": [],
+  "stdout": [
+    "===========================================",
+    "ATT&CK PROFILE: T0861 - Point and Tag Identification",
+    "TARGET: 10.0.2.9",
+    "MODE: READ-ONLY MODBUS TAG RESOLUTION",
+    "===========================================",
+    "{",
+    "  \"artifacts\": [",
+    "    {",
+    "      \"path\": \"register_map.json\",",
+    "      \"sha256\": \"286279eb40822b730bfdc6d328b5148dc1c93be1bba50a8443d60fd7ab78b3c5\",",
+    "      \"size\": 6260",
+    "    },",
+    "    {",
+    "      \"path\": \"read_register_log.json\",",
+    "      \"sha256\": \"f5192f4d04eb865112f62da03b7c9bf9d841289141b767b3e438a00bf4104c2e\",",
+    "      \"size\": 5652",
+    "    },",
+    "    {",
+    "      \"path\": \"plc_state_before.json\",",
+    "      \"sha256\": \"6731fc179049b3aaf0fe3e440a0cee8ce10e9729b86e9c901675ae3b2aa4a9ae\",",
+    "      \"size\": 5416",
+    "    },",
+    "    {",
+    "      \"path\": \"causal_edges.json\",",
+    "      \"sha256\": \"3e491868eede9b50de7eb4f642d326ed717ef9d81f0fe4de8d1128cbfe72a98c\",",
+    "      \"size\": 587",
+    "    },",
+    "    {",
+    "      \"path\": \"uncertainty_report.json\",",
+    "      \"sha256\": \"30040ae10e9b1ee9f17845f0810314ab28e23cdf90139989fb335900e9006528\",",
+    "      \"size\": 1006",
+    "    }",
+    "  ],",
+    "  \"attack_id\": \"T0861_POINT_AND_TAG_IDENTIFICATION\",",
+    "  \"target_ip\": \"10.0.2.9\",",
+    "  \"validated_reads\": 7",
+    "}"
+  ],
+  "success": true,
+  "tactic": "Discovery",
+  "target_image": "ubuntu-22.04",
+  "target_ip": "10.0.2.9",
+  "target_role": "scada",
+  "target_user": "ubuntu",
+  "timeline_event": {
+    "dfir_relevant": false,
+    "event_type": "attack_execution",
+    "severity": "MEDIUM"
+  }
+}

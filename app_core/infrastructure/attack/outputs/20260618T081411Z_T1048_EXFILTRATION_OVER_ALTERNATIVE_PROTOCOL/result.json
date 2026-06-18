@@ -1,0 +1,88 @@
+{
+  "attack_id": "T1048_EXFILTRATION_OVER_ALTERNATIVE_PROTOCOL",
+  "attacker_ip": "10.0.2.214",
+  "case_dir": "",
+  "chain_of_custody": [
+    {
+      "action": "attack_execution_started",
+      "artifact": "result.json",
+      "operator": "dashboard_tactical_hud",
+      "timestamp": "2026-06-18T08:14:11.386210+00:00"
+    },
+    {
+      "action": "attack_execution_completed",
+      "artifact": "result.json",
+      "operator": "dashboard_tactical_hud",
+      "timestamp": "2026-06-18T08:14:13.287251+00:00"
+    }
+  ],
+  "completed_at": "2026-06-18T08:14:13.287225+00:00",
+  "detection_engine": "Suricata + Wazuh",
+  "dfir_escalation": true,
+  "display_name": "Data Exfiltration",
+  "execution_mode": "controlled",
+  "exit_code": 0,
+  "expected_alerts": [
+    "outbound_file_transfer",
+    "scp_transfer",
+    "http_upload",
+    "exfiltration_activity"
+  ],
+  "expected_artifacts": [
+    "source_file_hash",
+    "destination_file_hash",
+    "transfer_log",
+    "pcap",
+    "suricata_eve_json",
+    "wazuh_alert",
+    "execution_log"
+  ],
+  "forensic_case_event": true,
+  "mitre_domain": "Enterprise",
+  "mitre_id": "T1048",
+  "mitre_technique": "Exfiltration Over Alternative Protocol",
+  "output_dir": "/home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260618T081411Z_T1048_EXFILTRATION_OVER_ALTERNATIVE_PROTOCOL",
+  "parameters": {},
+  "raw_event_stream": [
+    "===========================================",
+    "DATA EXFILTRATION ATTACK",
+    "===========================================",
+    "[INFO] Attempting to retrieve /etc/passwd from victim",
+    "[EXFIL] Warning: Permanently added '10.0.2.9' (ED25519) to the list of known hosts.",
+    "",
+    "[SUCCESS] Data exfiltrated",
+    "[FILE SIZE] 35 /tmp/exfil_passwd.txt",
+    "===========================================",
+    "EXFILTRATION COMPLETE",
+    "===========================================",
+    "[EXIT CODE] 0"
+  ],
+  "rollback_required": false,
+  "safety_policy": "Exfiltrate only lab-generated files under /tmp/nics_attack_lab.",
+  "severity": "HIGH",
+  "started_at": "2026-06-18T08:14:11.386192+00:00",
+  "stderr": [],
+  "stdout": [
+    "===========================================",
+    "DATA EXFILTRATION ATTACK",
+    "===========================================",
+    "[INFO] Attempting to retrieve /etc/passwd from victim",
+    "[EXFIL] Warning: Permanently added '10.0.2.9' (ED25519) to the list of known hosts.",
+    "[SUCCESS] Data exfiltrated",
+    "[FILE SIZE] 35 /tmp/exfil_passwd.txt",
+    "===========================================",
+    "EXFILTRATION COMPLETE",
+    "==========================================="
+  ],
+  "success": true,
+  "tactic": "Exfiltration",
+  "target_image": "ubuntu-22.04",
+  "target_ip": "10.0.2.9",
+  "target_role": "scada",
+  "target_user": "ubuntu",
+  "timeline_event": {
+    "dfir_relevant": true,
+    "event_type": "attack_execution",
+    "severity": "HIGH"
+  }
+}

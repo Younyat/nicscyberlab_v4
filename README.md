@@ -459,6 +459,13 @@ This design separates:
 - the **execution backend**
 - the **forensic expectations**
 
+The Attack Lab view also includes a frontend-only informational MITRE layer:
+
+- each primary attack card exposes a compact chevron
+- clicking the chevron opens a transparent explanatory panel
+- the panel shows the profile name, MITRE ID, domain, tactic, operational meaning, expected evidence, expected detection sources, and the official MITRE reference
+- this panel is educational only and does **not** execute attacks, call the backend, change attack state, or alter the scenario graph
+
 ### MITRE provenance and methodological rationale
 
 The attack catalog is derived from **MITRE ATT&CK** and **MITRE ATT&CK for ICS**, which provide publicly recognized technique identifiers, tactic placement, and adversary-behavior semantics.

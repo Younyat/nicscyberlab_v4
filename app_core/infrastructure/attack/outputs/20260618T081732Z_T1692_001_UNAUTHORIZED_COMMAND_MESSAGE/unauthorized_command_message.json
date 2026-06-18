@@ -1,0 +1,22 @@
+{
+  "attack_id": "T1692_001_UNAUTHORIZED_COMMAND_MESSAGE",
+  "mitre_id": "T1692.001",
+  "parameters": {
+    "function_code_class": "holding_register_write",
+    "register": 4,
+    "semantic_target": "level_max",
+    "value": 30
+  },
+  "result": {
+    "after_value": 30,
+    "before_value": 50,
+    "restored_value": 50
+  },
+  "run_id": "20260618T081732Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE",
+  "scenario_id": "scn-f2ecdb50",
+  "source_ip": "10.0.2.214",
+  "target_ip": "10.0.2.22",
+  "target_role": "industrial_plc",
+  "timestamp_utc": "2026-06-18T08:17:54.262322+00:00",
+  "tool_used": "mbpoll"
+}
