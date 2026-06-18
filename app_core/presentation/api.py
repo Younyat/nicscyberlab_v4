@@ -2759,6 +2759,10 @@ api_bp.register_blueprint(ALERTS_API_BP)
 from app_core.infrastructure.forensics.forensics_report_api import forensics_report_bp
 api_bp.register_blueprint(forensics_report_bp)
 
+#------------------------------------------- Node health
+from app_core.infrastructure.node_health.node_health_api import node_health_bp
+api_bp.register_blueprint(node_health_bp)
+
 #------------------------------------------- FOC reconstruction
 try:
     from app_core.infrastructure.foc_reconstruction.foc_endpoints import foc_bp

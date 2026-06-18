@@ -641,6 +641,22 @@ The outer wrapper connects by SSH and executes `pre_memory_cleanup_inside_node.s
 - its parent directory
 - `/tmp/LiME`
 
+### Independent node health dashboard
+
+The repository includes an independent operational module for node-state inspection:
+
+- view: `node_health.html`
+- route: `/node-health`
+- backend: `app_core/infrastructure/node_health/node_health_api.py`
+
+This module does not alter the existing FOC, attack, detection or forensic workflows. It provides:
+
+- OpenStack-driven node discovery with no hardcoded node list
+- OS-aware SSH user selection derived from the instance image
+- per-node live health probe for CPU, RAM, disk and key services
+- an embedded action console
+- one-click safe disk cleanup over SSH using `pre_memory_cleanup_inside_node.sh`
+
 The industrial resolver is implemented in:
 
 ```bash

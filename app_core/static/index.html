@@ -1631,6 +1631,13 @@
           </div>
           <span id="wf-comparisons" class="side-state status-unknown">Unknown</span>
         </div>
+        <div class="side-item" data-view="node_health" tabindex="0" role="button">
+          <div class="side-item-main">
+            <span class="side-glyph">11</span>
+            <div class="side-text"><span>Node Health</span><span class="side-sub">Resource and cleanup</span></div>
+          </div>
+          <span id="wf-node-health" class="side-state status-unknown">Unknown</span>
+        </div>
       </nav>
 
       <div class="side-status">
@@ -1790,8 +1797,17 @@
               <div class="stage-dot"></div>
             </div>
 
-            <div onclick="openView('honeyv')" class="card-option flex flex-col items-center justify-center p-5">
+            <div onclick="openView('node_health')" class="card-option flex flex-col items-center justify-center p-5">
               <div class="stage-number">12</div>
+              <div class="stage-icon">NH</div>
+              <div class="stage-kicker text-content" data-es="SALUD" data-en="HEALTH">SALUD</div>
+              <div class="stage-title text-content" data-es="Node Health" data-en="Node Health">Node Health</div>
+              <div class="stage-desc text-content" data-es="Estado operativo de nodos, CPU, RAM, disco y limpieza segura remota." data-en="Operational node state, CPU, RAM, disk and safe remote cleanup.">Estado operativo de nodos, CPU, RAM, disco y limpieza segura remota.</div>
+              <div class="stage-dot"></div>
+            </div>
+
+            <div onclick="openView('honeyv')" class="card-option flex flex-col items-center justify-center p-5">
+              <div class="stage-number">13</div>
               <div class="stage-icon">HX</div>
               <div class="stage-kicker text-content" data-es="EXCHANGE" data-en="EXCHANGE">EXCHANGE</div>
               <div class="stage-title text-content" data-es="Lab Exchange" data-en="Lab Exchange">Lab Exchange</div>
@@ -1800,7 +1816,7 @@
             </div>
 
             <div onclick="openView('etc_lab')" class="card-option flex flex-col items-center justify-center p-5">
-              <div class="stage-number">13</div>
+              <div class="stage-number">14</div>
               <div class="stage-icon">ETC</div>
               <div class="stage-kicker text-content" data-es="IA" data-en="AI">IA</div>
               <div class="stage-title text-content" data-es="ETC Lab" data-en="ETC Lab">ETC Lab</div>
@@ -1809,7 +1825,7 @@
             </div>
 
             <div onclick="openView('ciberia_lab')" class="card-option flex flex-col items-center justify-center p-5">
-              <div class="stage-number">14</div>
+              <div class="stage-number">15</div>
               <div class="stage-icon">AI</div>
               <div class="stage-kicker text-content" data-es="FLUJOS" data-en="FLOWS">FLUJOS</div>
               <div class="stage-title text-content" data-es="CiberIA Lab" data-en="CiberIA Lab">CiberIA Lab</div>
