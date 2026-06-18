@@ -61,8 +61,12 @@ def build_execution_result(
         "detection_engine": attack["detection_engine"],
         "severity": attack["severity"],
         "execution_mode": attack["execution_mode"],
+        "requested_target_ip": payload.get("target_ip") or payload.get("target"),
+        "requested_target_role": payload.get("target_role", ""),
         "target_ip": payload.get("target_ip") or payload.get("target"),
         "target_role": payload.get("target_role", ""),
+        "effective_target_ip": payload.get("target_ip") or payload.get("target"),
+        "effective_target_role": payload.get("target_role", ""),
         "target_user": target_user,
         "target_image": target_image,
         "attacker_ip": attacker_ip,
@@ -90,6 +94,35 @@ def build_execution_result(
                 "artifact": "result.json",
             }
         ],
+    }
+
+
+def _normalize_target_role(role: str) -> str:
+    role_map = {
+        "industrial_plc": "plc",
+        "industrial_scada": "scada",
+    }
+    normalized = str(role or "").strip().lower()
+    return role_map.get(normalized, normalized)
+
+
+def _load_effective_target_metadata(output_dir: str) -> Dict[str, Any]:
+    scenario_chain = Path(output_dir) / "scenario_attack_chain.json"
+    if not scenario_chain.is_file():
+        return {}
+    try:
+        payload = json.loads(scenario_chain.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    target_ip = payload.get("effective_target_ip") or payload.get("target_ip")
+    target_role = payload.get("effective_target_role") or payload.get("target_role")
+    requested_ip = payload.get("requested_target_ip")
+    requested_role = payload.get("requested_target_role")
+    return {
+        "requested_target_ip": requested_ip,
+        "requested_target_role": _normalize_target_role(requested_role),
+        "effective_target_ip": target_ip,
+        "effective_target_role": _normalize_target_role(target_role),
     }
 
 
@@ -319,6 +352,27 @@ def stream_local_attack_execution(
     result["success"] = exit_code == 0 and not result["stderr"]
     result["raw_event_stream"] = raw_lines
     result["generated_artifacts"] = _collect_generated_artifacts(output_dir)
+    effective_target = _load_effective_target_metadata(output_dir)
+    if effective_target:
+        if effective_target.get("requested_target_ip"):
+            result["requested_target_ip"] = effective_target["requested_target_ip"]
+        if effective_target.get("requested_target_role"):
+            result["requested_target_role"] = effective_target["requested_target_role"]
+        if effective_target.get("effective_target_ip"):
+            result["effective_target_ip"] = effective_target["effective_target_ip"]
+            result["target_ip"] = effective_target["effective_target_ip"]
+        if effective_target.get("effective_target_role"):
+            result["effective_target_role"] = effective_target["effective_target_role"]
+            result["target_role"] = effective_target["effective_target_role"]
+        if (
+            result.get("requested_target_ip")
+            and result.get("effective_target_ip")
+            and result["requested_target_ip"] != result["effective_target_ip"]
+        ):
+            result["target_resolution_status"] = "effective_target_differs_from_requested_target"
+            result["target_resolution_note"] = (
+                "The requested UI target differs from the effective industrial control endpoint used by the attack script."
+            )
     result["forensic_case_event"] = result["dfir_escalation"]
     result["chain_of_custody"].append(
         {

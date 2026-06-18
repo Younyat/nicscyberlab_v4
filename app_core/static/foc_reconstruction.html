@@ -310,6 +310,21 @@
 
         <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 mt-5">
           <div class="xl:col-span-8">
+            <div class="glass rounded-[24px] p-4 mb-4">
+              <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                <div>
+                  <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Investigation Questions</div>
+                  <h4 class="text-base font-black mt-2">Question Driven Investigation Mode</h4>
+                  <div class="text-xs text-slate-400 mt-2">Apply a forensic question preset to focus the graph on the exact evidence needed to answer that question. You can still change filters manually afterwards.</div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <button id="graph-reset-view-btn" class="btn-secondary rounded-2xl px-3 py-2 text-[11px] font-extrabold tracking-[0.14em] uppercase">Reset View</button>
+                  <button id="graph-save-custom-btn" class="btn-secondary rounded-2xl px-3 py-2 text-[11px] font-extrabold tracking-[0.14em] uppercase">Save Custom View</button>
+                </div>
+              </div>
+              <div id="graph-current-view" class="text-xs text-slate-300 mt-4">Default FOC overview</div>
+              <div id="investigation-questions" class="mt-4 space-y-3 max-h-[340px] overflow-auto"></div>
+            </div>
             <div id="graph-layer-controls" class="flex flex-wrap gap-2"></div>
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mt-4">
               <label class="glass rounded-2xl px-3 py-3 text-xs text-slate-300">

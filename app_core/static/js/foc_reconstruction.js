@@ -39,12 +39,14 @@ const FOC = {
       mitre: "all",
       sensor: "all",
       confirmedOnly: false,
-      hideNoise: false,
-      evidenceLinkedOnly: false,
+      hideNoise: true,
+      evidenceLinkedOnly: true,
+      correlationFocus: "all",
     },
     selected: null,
     cacheKey: "",
     aggregate: null,
+    activeQuestionId: null,
   },
 };
 
@@ -838,6 +840,167 @@ const GRAPH_LAYER_META = {
   causal: { label: "Causal", color: "#7c3aed" },
 };
 
+const DEFAULT_GRAPH_VIEW = {
+  layers: {
+    topology: true,
+    attack: true,
+    detection: true,
+    attack_alert: true,
+    evidence: true,
+    custody: true,
+    analysis: true,
+    timeline: false,
+    findings: false,
+    semantic: false,
+    causal: false,
+  },
+  filters: {
+    node: "all",
+    severity: "all",
+    mitre: "all",
+    sensor: "all",
+    confirmedOnly: false,
+    hideNoise: true,
+    evidenceLinkedOnly: true,
+    correlationFocus: "all",
+  },
+};
+
+const CUSTOM_GRAPH_VIEW_KEY = "nics_foc_graph_custom_view";
+
+const INVESTIGATION_QUESTIONS = [
+  {
+    id: "affected_assets",
+    title: "What systems were affected?",
+    purpose: "Identify the incident scope before entering forensic detail.",
+    preset: {
+      layers: { topology: true, attack: true, detection: false, attack_alert: false, evidence: false, custody: false, analysis: false, timeline: false, findings: false, semantic: false, causal: false },
+      filters: { node: "all", severity: "all", mitre: "all", sensor: "all", confirmedOnly: false, hideNoise: true, evidenceLinkedOnly: false, correlationFocus: "all" },
+    },
+    answer: "The graph shows the affected assets and their high-level attack footprint first, without distracting detection or evidential detail.",
+    evidenceBasis: "Scenario structure plus indexed attack aggregates by target node.",
+    practicalConclusion: "The analyst can identify the incident scope quickly.",
+    limitations: "This view does not prove which detections or artifacts support each asset yet.",
+  },
+  {
+    id: "attacks_by_asset",
+    title: "Which attacks targeted each asset?",
+    purpose: "Understand offensive activity by target without alert volume.",
+    preset: {
+      layers: { topology: true, attack: true, detection: false, attack_alert: false, evidence: false, custody: false, analysis: false, timeline: false, findings: false, semantic: false, causal: false },
+      filters: { node: "all", severity: "all", mitre: "all", sensor: "all", confirmedOnly: false, hideNoise: true, evidenceLinkedOnly: false, correlationFocus: "all" },
+    },
+    answer: "The graph groups attack executions by target node and MITRE technique so offensive activity can be reviewed asset by asset.",
+    evidenceBasis: "Attack attestation aggregates with target-node resolution.",
+    practicalConclusion: "The analyst can compare which assets were probed or manipulated.",
+    limitations: "Execution status and aggregate counts do not alone prove monitoring coverage.",
+  },
+  {
+    id: "detections_by_target",
+    title: "Which detections were generated for each target?",
+    purpose: "Review the monitoring surface per target and per sensor.",
+    preset: {
+      layers: { topology: true, attack: true, detection: true, attack_alert: false, evidence: false, custody: false, analysis: false, timeline: false, findings: false, semantic: false, causal: false },
+      filters: { node: "all", severity: "HIGH", mitre: "all", sensor: "all", confirmedOnly: false, hideNoise: true, evidenceLinkedOnly: false, correlationFocus: "all" },
+    },
+    answer: "The graph shows aggregated detection groups by target, highlighting dominant severity and original sensor versus collector.",
+    evidenceBasis: "Detection attestation and indexed alert summaries.",
+    practicalConclusion: "The analyst can see whether the monitoring layer observed the activity and which detection source contributed.",
+    limitations: "This view is about observation, not direct proof of attack-to-alert linkage.",
+  },
+  {
+    id: "confirmed_attack_alert",
+    title: "Which alerts are clearly linked to attack activity?",
+    purpose: "Focus on primary alert evidence only.",
+    preset: {
+      layers: { topology: false, attack: true, detection: true, attack_alert: true, evidence: true, custody: false, analysis: false, timeline: false, findings: false, semantic: false, causal: false },
+      filters: { node: "all", severity: "all", mitre: "all", sensor: "all", confirmedOnly: true, hideNoise: true, evidenceLinkedOnly: true, correlationFocus: "confirmed" },
+    },
+    answer: "The graph shows only confirmed attack-to-alert correlation groups and hides low-value noise.",
+    evidenceBasis: "Attack outputs, indexed detections and evidence-linked correlation summaries already present in FOC.",
+    practicalConclusion: "These alerts are the strongest alert evidence for the reconstructed scenario.",
+    limitations: "Confirmed correlation is not the same as full causality. It still reflects correlation backed by indexed evidence.",
+  },
+  {
+    id: "uncertain_alerts",
+    title: "Which alerts are still uncertain and require analyst review?",
+    purpose: "Separate verified evidence from uncertain correlation.",
+    preset: {
+      layers: { topology: false, attack: false, detection: true, attack_alert: true, evidence: false, custody: false, analysis: false, timeline: false, findings: false, semantic: false, causal: false },
+      filters: { node: "all", severity: "all", mitre: "all", sensor: "all", confirmedOnly: false, hideNoise: false, evidenceLinkedOnly: false, correlationFocus: "uncertain" },
+    },
+    answer: "The graph highlights inferred and unresolved correlation groups that still require analyst review.",
+    evidenceBasis: "Detection-summary correlation classes derived from indexed alerts.",
+    practicalConclusion: "The analyst can avoid presenting unresolved alert groups as proven facts.",
+    limitations: "Uncertain alerts may still become relevant after deeper artifact review.",
+  },
+  {
+    id: "noise_alerts",
+    title: "Which alerts are probably noise?",
+    purpose: "Justify which detections are excluded from the main reconstruction.",
+    preset: {
+      layers: { topology: false, attack: false, detection: true, attack_alert: true, evidence: false, custody: false, analysis: false, timeline: false, findings: false, semantic: false, causal: false },
+      filters: { node: "all", severity: "all", mitre: "all", sensor: "all", confirmedOnly: false, hideNoise: false, evidenceLinkedOnly: false, correlationFocus: "noise" },
+    },
+    answer: "The graph isolates low-value or non-actionable alert groups classified as noise.",
+    evidenceBasis: "FOC correlation summary and detection aggregates.",
+    practicalConclusion: "The analyst can justify why these alerts are excluded from the primary forensic path.",
+    limitations: "Noise does not necessarily mean false; it means low value for the main reconstruction.",
+  },
+  {
+    id: "supporting_evidence",
+    title: "What evidence supports the reconstruction?",
+    purpose: "Show the preserved artifacts supporting the scenario.",
+    preset: {
+      layers: { topology: false, attack: false, detection: false, attack_alert: false, evidence: true, custody: true, analysis: false, timeline: false, findings: false, semantic: false, causal: false },
+      filters: { node: "all", severity: "all", mitre: "all", sensor: "all", confirmedOnly: false, hideNoise: true, evidenceLinkedOnly: true, correlationFocus: "all" },
+    },
+    answer: "The graph shows the forensic case and grouped preserved evidence supporting the reconstruction.",
+    evidenceBasis: "Artifacts index, case manifests and evidence grouping already indexed by FOC.",
+    practicalConclusion: "The analyst can identify which preserved artifacts back the reconstruction.",
+    limitations: "This view does not inspect individual artifacts unless you drill down.",
+  },
+  {
+    id: "custody_complete",
+    title: "Is the chain of custody complete?",
+    purpose: "Assess whether preserved artifacts satisfy custody checks.",
+    preset: {
+      layers: { topology: false, attack: false, detection: false, attack_alert: false, evidence: true, custody: true, analysis: false, timeline: false, findings: false, semantic: false, causal: false },
+      filters: { node: "all", severity: "all", mitre: "all", sensor: "all", confirmedOnly: false, hideNoise: true, evidenceLinkedOnly: true, correlationFocus: "all" },
+    },
+    answer: "The graph emphasizes custody verification as an aggregated state over the preserved case set.",
+    evidenceBasis: "Indexed manifests, custody logs and evidence/custody completeness score.",
+    practicalConclusion: "The analyst can decide whether preserved artifacts satisfy platform custody checks.",
+    limitations: "This remains an aggregated custody view, not a per-artifact legal review.",
+  },
+  {
+    id: "analysis_complete",
+    title: "Is the forensic analysis complete?",
+    purpose: "Check whether analytical outputs exist and support reporting.",
+    preset: {
+      layers: { topology: false, attack: false, detection: false, attack_alert: false, evidence: true, custody: true, analysis: true, timeline: false, findings: true, semantic: false, causal: false },
+      filters: { node: "all", severity: "all", mitre: "all", sensor: "all", confirmedOnly: false, hideNoise: true, evidenceLinkedOnly: true, correlationFocus: "all" },
+    },
+    answer: "The graph shows whether indexed forensic analysis outputs exist and whether findings are available at aggregate level.",
+    evidenceBasis: "Analysis outputs component, case status and indexed findings layers.",
+    practicalConclusion: "The analyst can judge whether the case is ready for reporting or still needs more analysis.",
+    limitations: "Analysis availability does not automatically unlock semantic or causal reconstruction.",
+  },
+  {
+    id: "full_story",
+    title: "What happened in the full forensic story?",
+    purpose: "Show the end-to-end reconstructed scenario path.",
+    preset: {
+      layers: { topology: true, attack: true, detection: true, attack_alert: true, evidence: true, custody: true, analysis: true, timeline: false, findings: true, semantic: false, causal: false },
+      filters: { node: "all", severity: "all", mitre: "all", sensor: "all", confirmedOnly: true, hideNoise: true, evidenceLinkedOnly: true, correlationFocus: "confirmed" },
+    },
+    answer: "The graph shows the complete path from affected assets to attacks, detections, confirmed alert correlation, evidence preservation, custody and analysis.",
+    evidenceBasis: "Scenario BOM, attack attestation, detection aggregates, evidence groups, custody state and analysis outputs already indexed by FOC.",
+    practicalConclusion: "The analyst gets a defensible end-to-end reconstruction snapshot.",
+    limitations: "This still represents correlation and evidential support, not full causality unless explicitly generated later.",
+  },
+];
+
 function graphLayerAvailable(layer) {
   if (layer === "semantic") {
     return String(FOC.status?.maturity?.semantic || "unknown").toLowerCase() !== "not_generated";
@@ -863,6 +1026,92 @@ function graphFilters() {
 
 function graphLayers() {
   return FOC.graphState.layers;
+}
+
+function cloneGraphView(view) {
+  return {
+    layers: { ...(view?.layers || {}) },
+    filters: { ...(view?.filters || {}) },
+  };
+}
+
+function snapshotCurrentGraphView() {
+  return {
+    layers: { ...graphLayers() },
+    filters: { ...graphFilters() },
+  };
+}
+
+function loadSavedGraphView() {
+  try {
+    const raw = localStorage.getItem(CUSTOM_GRAPH_VIEW_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed;
+  } catch (_) {
+    return null;
+  }
+}
+
+function saveCurrentGraphView() {
+  try {
+    localStorage.setItem(CUSTOM_GRAPH_VIEW_KEY, JSON.stringify(snapshotCurrentGraphView()));
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function normalizeGraphState(view) {
+  const base = cloneGraphView(DEFAULT_GRAPH_VIEW);
+  const incoming = cloneGraphView(view);
+  return {
+    layers: { ...base.layers, ...incoming.layers },
+    filters: { ...base.filters, ...incoming.filters },
+  };
+}
+
+function applyGraphView(view, options = {}) {
+  const normalized = normalizeGraphState(view);
+  FOC.graphState.layers = normalized.layers;
+  FOC.graphState.filters = normalized.filters;
+  FOC.graphState.selected = null;
+  FOC.graphState.activeQuestionId = options.questionId || null;
+}
+
+function activeQuestion() {
+  return INVESTIGATION_QUESTIONS.find(item => item.id === FOC.graphState.activeQuestionId) || null;
+}
+
+function activeFilterSummary() {
+  const parts = [];
+  const enabledLayers = Object.entries(graphLayers())
+    .filter(([key, enabled]) => enabled && graphLayerAvailable(key))
+    .map(([key]) => GRAPH_LAYER_META[key]?.label || key);
+  if (enabledLayers.length) parts.push(`Layers: ${enabledLayers.join(", ")}`);
+  if (graphFilters().node !== "all") parts.push(`Node=${graphFilters().node}`);
+  if (graphFilters().severity !== "all") parts.push(`Severity=${graphFilters().severity}`);
+  if (graphFilters().mitre !== "all") parts.push(`MITRE=${graphFilters().mitre}`);
+  if (graphFilters().sensor !== "all") parts.push(`Sensor=${graphFilters().sensor}`);
+  if (graphFilters().confirmedOnly) parts.push("Confirmed only");
+  if (graphFilters().hideNoise) parts.push("Hide noise");
+  if (graphFilters().evidenceLinkedOnly) parts.push("Evidence linked only");
+  if (graphFilters().correlationFocus && graphFilters().correlationFocus !== "all") parts.push(`Correlation=${graphFilters().correlationFocus}`);
+  return parts;
+}
+
+function questionPresetPreview(question) {
+  const state = normalizeGraphState(question.preset);
+  const layers = Object.entries(state.layers).filter(([, enabled]) => enabled).map(([key]) => GRAPH_LAYER_META[key]?.label || key);
+  const filters = [];
+  if (state.filters.hideNoise) filters.push("Hide noise");
+  if (state.filters.confirmedOnly) filters.push("Confirmed only");
+  if (state.filters.evidenceLinkedOnly) filters.push("Evidence linked");
+  if (state.filters.severity !== "all") filters.push(`Severity ${state.filters.severity}`);
+  if (state.filters.sensor !== "all") filters.push(`Sensor ${state.filters.sensor}`);
+  if (state.filters.correlationFocus !== "all") filters.push(`Correlation ${state.filters.correlationFocus}`);
+  return `${layers.join(", ")}${filters.length ? ` | ${filters.join(", ")}` : ""}`;
 }
 
 function matchesGraphNodeFilter(nodeId) {
@@ -996,14 +1245,28 @@ function graphDetailList(items) {
 function renderGraphDetail(payload = null) {
   const panel = byId("graph-detail-panel");
   if (!panel) return;
+  const question = activeQuestion();
+  const questionBlock = question ? `
+    <div class="glass-soft rounded-2xl p-4 mb-4">
+      <div class="text-xs uppercase tracking-[0.18em] text-slate-400 font-black">Selected question</div>
+      <div class="text-lg font-black mt-2">${esc(question.title)}</div>
+      <div class="mt-3 space-y-2">
+        ${graphDetailList([
+          `<strong>Active filters:</strong> ${esc(activeFilterSummary().join(" | ") || "none")}`,
+          `<strong>Short answer:</strong> ${esc(question.answer)}`,
+          `<strong>Evidence basis:</strong> ${esc(question.evidenceBasis)}`,
+          `<strong>Practical conclusion:</strong> ${esc(question.practicalConclusion)}`,
+          `<strong>Limitations:</strong> ${esc(question.limitations)}`,
+        ])}
+      </div>
+    </div>
+  ` : "";
   if (!payload) {
-    const activeLayers = Object.entries(graphLayers())
-      .filter(([key, enabled]) => enabled && graphLayerAvailable(key))
-      .map(([key]) => GRAPH_LAYER_META[key]?.label || key);
     panel.innerHTML = `
+      ${questionBlock}
       <div class="text-sm text-slate-300">Select a graph node or relation to inspect its aggregated FOC context.</div>
       <div class="mt-4">${graphDetailList([
-        `<strong>Active layers:</strong> ${esc(activeLayers.join(", ") || "none")}`,
+        `<strong>Active layers:</strong> ${esc(Object.entries(graphLayers()).filter(([key, enabled]) => enabled && graphLayerAvailable(key)).map(([key]) => GRAPH_LAYER_META[key]?.label || key).join(", ") || "none")}`,
         "<strong>Rendering mode:</strong> aggregated snapshot",
         "<strong>Evidence policy:</strong> no individual alert or artifact explosion in the overview graph",
       ])}</div>
@@ -1011,6 +1274,7 @@ function renderGraphDetail(payload = null) {
     return;
   }
   panel.innerHTML = `
+    ${questionBlock}
     <div class="text-xs uppercase tracking-[0.18em] text-slate-400 font-black">${esc(payload.kind || "selection")}</div>
     <div class="text-xl font-black mt-2">${esc(payload.title || "Selected element")}</div>
     <div class="mt-4 space-y-2">${graphDetailList(payload.lines || [])}</div>
@@ -1081,6 +1345,50 @@ function renderGraphControls(aggregate) {
   byId("graph-filter-confirmed").checked = !!graphFilters().confirmedOnly;
   byId("graph-filter-hide-noise").checked = !!graphFilters().hideNoise;
   byId("graph-filter-evidence-linked").checked = !!graphFilters().evidenceLinkedOnly;
+  renderInvestigationQuestions();
+}
+
+function renderInvestigationQuestions() {
+  const host = byId("investigation-questions");
+  const currentView = byId("graph-current-view");
+  if (!host || !currentView) return;
+  const active = activeQuestion();
+  const savedCustom = loadSavedGraphView();
+  currentView.innerHTML = active
+    ? `<strong>Selected question:</strong> ${esc(active.title)}<br><span class="text-slate-400">${esc(activeFilterSummary().join(" | ") || "No active filters")}</span>`
+    : `Default FOC overview<br><span class="text-slate-400">${esc(activeFilterSummary().join(" | ") || "No active filters")}</span>`;
+
+  const questionCards = INVESTIGATION_QUESTIONS.map(question => {
+    const isActive = active?.id === question.id;
+    return `
+      <div class="glass-soft rounded-2xl p-4 ${isActive ? "ring-1 ring-sky-400/40" : ""}">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="text-sm font-black">${esc(question.title)}</div>
+            <div class="text-xs text-slate-400 mt-1">${esc(question.purpose)}</div>
+          </div>
+          <button class="question-apply-btn btn-secondary rounded-2xl px-3 py-2 text-[11px] font-extrabold tracking-[0.14em] uppercase" data-question-id="${esc(question.id)}">Apply</button>
+        </div>
+        <div class="text-[11px] text-slate-300 mt-3">${esc(questionPresetPreview(question))}</div>
+        ${isActive ? `<div class="text-xs text-sky-200 mt-3">${esc(question.answer)}</div>` : ""}
+      </div>
+    `;
+  });
+
+  const customCard = savedCustom ? `
+    <div class="glass-soft rounded-2xl p-4 border border-sky-400/20">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="text-sm font-black">Saved Custom View</div>
+          <div class="text-xs text-slate-400 mt-1">Reuse the current filter configuration later without recalculating data.</div>
+        </div>
+        <button class="question-apply-btn btn-secondary rounded-2xl px-3 py-2 text-[11px] font-extrabold tracking-[0.14em] uppercase" data-question-id="__custom__">Apply</button>
+      </div>
+      <div class="text-[11px] text-slate-300 mt-3">Stored locally in the browser for this view only.</div>
+    </div>
+  ` : "";
+
+  host.innerHTML = customCard + questionCards.join("");
 }
 
 function renderNetworkGraph() {
@@ -1112,7 +1420,6 @@ function renderNetworkGraph() {
     const y = baseY[idx] || (96 + (idx * 84));
     positions.set(node.node_id, { x: 150, y });
     const stats = aggregate.nodeStats.get(node.node_id);
-    if (!layers.topology) return;
     nodes.push({
       id: node.node_id,
       x: 150,
@@ -1270,12 +1577,22 @@ function renderNetworkGraph() {
 
   if (layers.attack_alert) {
     const correlationCounts = aggregate.detectionSummary.correlation_counts || {};
-    const statuses = [
+    let statuses = [
       { key: "confirmed", label: "Confirmed", y: 110, color: "#ef4444", style: "confirmed" },
       { key: "inferred_medium", label: "Inferred", y: 190, color: "#f59e0b", style: "inferred" },
       { key: "unresolved", label: "Unresolved", y: 270, color: "#94a3b8", style: "unresolved" },
       { key: "noise", label: "Noise", y: 350, color: "#64748b", style: "noise" },
-    ].filter(item => !(filters.hideNoise && item.key === "noise"));
+    ];
+    if (filters.hideNoise) {
+      statuses = statuses.filter(item => item.key !== "noise");
+    }
+    if (filters.correlationFocus === "confirmed") {
+      statuses = statuses.filter(item => item.key === "confirmed");
+    } else if (filters.correlationFocus === "uncertain") {
+      statuses = statuses.filter(item => ["inferred_medium", "unresolved"].includes(item.key));
+    } else if (filters.correlationFocus === "noise") {
+      statuses = statuses.filter(item => item.key === "noise");
+    }
     const corrNodeId = "corr-root";
     nodes.push({
       id: corrNodeId,
@@ -1303,6 +1620,7 @@ function renderNetworkGraph() {
     statuses.forEach(item => {
       const value = Number(correlationCounts[item.key] || 0);
       if (filters.confirmedOnly && item.key !== "confirmed") return;
+      if (filters.evidenceLinkedOnly && item.key !== "confirmed") return;
       const id = `corr-${item.key}`;
       nodes.push({
         id,
@@ -1920,6 +2238,35 @@ function bindGraphControls() {
       FOC.graphState.selected = null;
     }
     renderNetworkGraph();
+  });
+
+  byId("investigation-questions")?.addEventListener("click", (event) => {
+    const btn = event.target.closest(".question-apply-btn");
+    if (!btn) return;
+    const questionId = btn.getAttribute("data-question-id");
+    if (questionId === "__custom__") {
+      const saved = loadSavedGraphView();
+      if (saved) {
+        applyGraphView(saved, { questionId: null });
+        renderNetworkGraph();
+      }
+      return;
+    }
+    const question = INVESTIGATION_QUESTIONS.find(item => item.id === questionId);
+    if (!question) return;
+    applyGraphView(question.preset, { questionId: question.id });
+    renderNetworkGraph();
+  });
+
+  byId("graph-reset-view-btn")?.addEventListener("click", () => {
+    applyGraphView(DEFAULT_GRAPH_VIEW, { questionId: null });
+    renderNetworkGraph();
+  });
+
+  byId("graph-save-custom-btn")?.addEventListener("click", () => {
+    saveCurrentGraphView();
+    renderInvestigationQuestions();
+    renderGraphDetail(null);
   });
 
   byId("graph-filter-node")?.addEventListener("change", (event) => {

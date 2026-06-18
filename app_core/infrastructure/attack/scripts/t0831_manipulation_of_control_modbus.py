@@ -47,6 +47,31 @@ def _observed_services(context: dict) -> dict:
     }
 
 
+def _effective_plc_modbus_ip(context: dict) -> str:
+    plc_runtime = context.get("runtime_assets", {}).get("plc", {}) or {}
+    plc_register_map = context.get("register_map", {}).get("plc", {}) or {}
+    return (
+        plc_runtime.get("private_ip")
+        or plc_register_map.get("private_ip")
+        or plc_runtime.get("ip")
+        or plc_register_map.get("ip")
+        or "unknown"
+    )
+
+
+def _requested_target_role(context: dict, requested_target_ip: str) -> str:
+    normalized_ip = (requested_target_ip or "").strip()
+    if not normalized_ip:
+        return "unknown"
+    plc = context["runtime_assets"]["plc"]
+    scada = context["runtime_assets"]["scada"]
+    if normalized_ip in {plc.get("ip"), plc.get("floating_ip"), plc.get("private_ip")}:
+        return "plc"
+    if normalized_ip in {scada.get("ip"), scada.get("floating_ip"), scada.get("private_ip")}:
+        return "scada"
+    return "unknown"
+
+
 def main(argv: list[str]) -> int:
     params = load_params(argv)
     output_dir = output_dir_from_argv(argv)
@@ -54,7 +79,9 @@ def main(argv: list[str]) -> int:
     context = ensure_validated_context(output_dir, require_validation=True)
     clone_runtime_artifacts(output_dir)
     scenario_id = derive_scenario_id()
-    target_ip = context["register_map"]["plc"].get("ip") or argv[1] or "unknown"
+    requested_target_ip = argv[1] if len(argv) > 1 else ""
+    requested_target_role = _requested_target_role(context, requested_target_ip)
+    target_ip = _effective_plc_modbus_ip(context)
     write_target = policy_write_target(context, "level_max")
     validated = validated_address(context, "level_max")
 
@@ -86,6 +113,10 @@ def main(argv: list[str]) -> int:
         "scenario_id": scenario_id,
         "run_id": Path(output_dir).name,
         "generated_at_utc": utc_now(),
+        "requested_target_ip": requested_target_ip or "unknown",
+        "requested_target_role": requested_target_role,
+        "effective_target_ip": target_ip,
+        "effective_target_role": "industrial_plc",
         "target_ip": target_ip,
         "source_ip": attacker["source_ip"],
         "observed_services": _observed_services(context),
@@ -129,6 +160,10 @@ def main(argv: list[str]) -> int:
         "mitre_id": MITRE_ID,
         "scenario_id": scenario_id,
         "run_id": Path(output_dir).name,
+        "requested_target_ip": requested_target_ip or "unknown",
+        "requested_target_role": requested_target_role,
+        "effective_target_ip": target_ip,
+        "effective_target_role": "industrial_plc",
         "target_ip": target_ip,
         "target_role": "industrial_plc",
         "source_ip": attacker["source_ip"],
@@ -187,6 +222,10 @@ def main(argv: list[str]) -> int:
 
     summary = {
         "attack_id": ATTACK_ID,
+        "requested_target_ip": requested_target_ip or "unknown",
+        "requested_target_role": requested_target_role,
+        "effective_target_ip": target_ip,
+        "effective_target_role": "plc",
         "target_ip": target_ip,
         "rollback_ok": rollback_ok,
         "restored_ok": restored_ok,
