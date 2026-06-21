@@ -654,6 +654,11 @@ This module does not alter the existing FOC, attack, detection or forensic workf
 - OpenStack-driven node discovery with no hardcoded node list
 - OS-aware SSH user selection derived from the instance image
 - per-node live health probe for CPU, RAM, disk and key services
+- per-node IDS, SIEM and agent inventory derived from `tools-installer/installed` and `tools-installer-tmp`
+- live SSH inspection of tool runtime state, version, Suricata rule-files, NICS signatures and Wazuh local rule/FIM configuration
+- a tree-style security menu that separates package presence on node from service runtime state and lets the operator drill down per tool
+- per-tool rule inspection showing the real rule file content read from the node plus a compact interpretation for Suricata custom signatures
+- startup overview mode that shows only scenario-wide and host-wide state until the user explicitly selects a node
 - an embedded action console
 - one-click safe disk cleanup over SSH using `pre_memory_cleanup_inside_node.sh`
 

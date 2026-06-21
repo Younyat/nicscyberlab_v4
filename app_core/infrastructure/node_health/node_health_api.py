@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import os
+import re
 import shlex
 import subprocess
 from pathlib import Path
@@ -15,7 +17,10 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 STATIC_DIR = REPO_ROOT / "app_core" / "static"
 SSH_KEY_PATH = os.path.expanduser("~/.ssh/my_key")
 PROBE_SCRIPT_PATH = Path(__file__).resolve().parent / "scripts" / "probe_node_health_inside_node.sh"
+TOOLING_PROBE_SCRIPT_PATH = Path(__file__).resolve().parent / "scripts" / "probe_node_tooling_inside_node.sh"
 CLEANUP_SCRIPT_PATH = REPO_ROOT / "pre_memory_cleanup_inside_node.sh"
+TOOLS_INSTALLED_DIR = REPO_ROOT / "tools-installer" / "installed"
+TOOLS_TMP_DIR = REPO_ROOT / "tools-installer-tmp"
 
 
 def _connect():
@@ -117,6 +122,7 @@ def _normalize_node(conn, server) -> dict:
     os_label, image_name = _detect_os(conn, server)
     ssh_user = _map_user(image_name or os_label)
     preferred_ip = ip_floating or ip_private or ""
+    tool_inventory = _tool_inventory_for_instance(server.id, server.name)
     return {
         "id": server.id,
         "name": server.name,
@@ -131,6 +137,7 @@ def _normalize_node(conn, server) -> dict:
         "networks": networks,
         "availability_zone": getattr(server, "availability_zone", None),
         "flavor": getattr(getattr(server, "flavor", None), "get", lambda *_: None)("original_name") if getattr(server, "flavor", None) else None,
+        "tool_inventory": tool_inventory,
     }
 
 
@@ -151,6 +158,74 @@ def _find_node(instance_id: str) -> dict | None:
         if node["id"] == instance_id:
             return node
     return None
+
+
+def _run_local_text(cmd: list[str]) -> str:
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=10).stdout.strip()
+    except Exception:
+        return ""
+
+
+def _local_host_summary(nodes: list[dict]) -> dict:
+    root_df = _run_local_text(["df", "-P", "-B1", "/"]).splitlines()
+    mem_lines = _run_local_text(["free", "-m"]).splitlines()
+
+    root_total = root_used = root_avail = None
+    root_use_pct = None
+    if len(root_df) >= 2:
+        cols = root_df[1].split()
+        if len(cols) >= 6:
+            try:
+                root_total = int(cols[1])
+                root_used = int(cols[2])
+                root_avail = int(cols[3])
+                root_use_pct = cols[4]
+            except Exception:
+                pass
+
+    mem_total = mem_used = mem_avail = None
+    if mem_lines:
+        for line in mem_lines:
+            if line.startswith("Mem:"):
+                cols = line.split()
+                if len(cols) >= 7:
+                    try:
+                        mem_total = int(cols[1])
+                        mem_used = int(cols[2])
+                        mem_avail = int(cols[6])
+                    except Exception:
+                        pass
+                break
+
+    role_counts: dict[str, int] = {}
+    status_counts: dict[str, int] = {}
+    for node in nodes:
+        role = node.get("role", "unknown")
+        status = node.get("status", "UNKNOWN")
+        role_counts[role] = role_counts.get(role, 0) + 1
+        status_counts[status] = status_counts.get(status, 0) + 1
+
+    return {
+        "host": {
+            "hostname": _run_local_text(["hostname"]) or "not_available",
+            "date_utc": _run_local_text(["date", "-u", "+%Y-%m-%dT%H:%M:%SZ"]) or "not_available",
+            "loadavg": _run_local_text(["bash", "-lc", "cat /proc/loadavg | awk '{print $1\" \"$2\" \"$3}'"]) or "not_available",
+            "root_total_bytes": root_total,
+            "root_used_bytes": root_used,
+            "root_avail_bytes": root_avail,
+            "root_use_pct": root_use_pct,
+            "mem_total_mb": mem_total,
+            "mem_used_mb": mem_used,
+            "mem_avail_mb": mem_avail,
+        },
+        "scenario": {
+            "node_count": len(nodes),
+            "role_counts": role_counts,
+            "status_counts": status_counts,
+            "network_count": len({net.get("network") for node in nodes for net in node.get("networks", []) if net.get("network")}),
+        },
+    }
 
 
 def _network_graph(nodes: list[dict]) -> dict:
@@ -222,6 +297,145 @@ def _run_remote_script_capture(node: dict, script_path: Path, *, remote_dump: st
         text=True,
         timeout=timeout,
     )
+
+
+def _safe_instance_filename(instance_name: str) -> str:
+    safe_name = re.sub(r"[^a-zA-Z0-9_-]", "_", (instance_name or "").lower())
+    return f"{safe_name}_tools.json"
+
+
+def _read_json_file(path: Path) -> dict | None:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def _tool_category(tool_name: str) -> str:
+    name = (tool_name or "").lower()
+    if name == "suricata":
+        return "ids"
+    if name == "wazuh":
+        return "siem"
+    if name in {"wazuh_agent", "caldera_agent"}:
+        return "agent"
+    if "integration" in name:
+        return "integration"
+    if "fim" in name:
+        return "fim"
+    if name.startswith("rollback_suricata_"):
+        return "rule_pack"
+    if name.startswith("rollback_wazuh_"):
+        return "integration"
+    if name.startswith("caldera"):
+        return "orchestrator"
+    return "other"
+
+
+def _tool_display_name(tool_name: str) -> str:
+    custom = {
+        "suricata": "Suricata IDS",
+        "wazuh": "Wazuh Manager",
+        "wazuh_agent": "Wazuh Agent",
+        "wazuh_fim_realtime": "Wazuh FIM Realtime",
+        "rollback_suricata_ping_detection": "Suricata Ping Detection Rules",
+        "rollback_suricata_modbus_register_detection": "Suricata Modbus Register Rules",
+        "rollback_wazuh_suricata_integration": "Wazuh-Suricata Integration",
+        "caldera": "MITRE Caldera",
+        "caldera_agent": "Caldera Agent",
+        "caldera_ot_plugins": "Caldera OT Plugins",
+        "mbpoll": "mbpoll",
+        "nmap": "Nmap",
+    }
+    if tool_name in custom:
+        return custom[tool_name]
+    return tool_name.replace("_", " ").strip().title()
+
+
+def _runtime_probe_key(tool_name: str) -> str | None:
+    mapping = {
+        "suricata": "suricata",
+        "wazuh": "wazuh-manager",
+        "wazuh_agent": "wazuh-agent",
+        "zeek": "zeek",
+        "snort": "snort",
+        "openplc": "openplc",
+        "nmap": "nmap",
+        "mbpoll": "mbpoll",
+        "caldera": "caldera",
+        "caldera_agent": "caldera-agent",
+    }
+    return mapping.get(tool_name)
+
+
+def _expected_artifacts(tool_name: str) -> list[str]:
+    mapping = {
+        "rollback_suricata_ping_detection": ["nics-ping.rules"],
+        "rollback_suricata_modbus_register_detection": ["nics-modbus-register-manipulation.rules"],
+        "rollback_wazuh_suricata_integration": ["/var/ossec/etc/ossec.conf", "/var/ossec/logs/ossec.log"],
+        "wazuh_fim_realtime": ["/var/ossec/etc/ossec.conf"],
+    }
+    return mapping.get(tool_name, [])
+
+
+def _tool_inventory_for_instance(instance_id: str, instance_name: str) -> dict:
+    records: dict[str, dict] = {}
+    source_files: list[str] = []
+
+    installed_path = TOOLS_INSTALLED_DIR / f"{instance_id}.json"
+    installed_payload = _read_json_file(installed_path) if installed_path.exists() else None
+    tmp_payload = None
+    tmp_path = TOOLS_TMP_DIR / _safe_instance_filename(instance_name)
+    if tmp_path.exists():
+        tmp_payload = _read_json_file(tmp_path)
+    if tmp_payload:
+        source_files.append(str(tmp_path.relative_to(REPO_ROOT)))
+    if installed_payload:
+        source_files.append(str(installed_path.relative_to(REPO_ROOT)))
+
+    tmp_tools = (tmp_payload or {}).get("tools") or {}
+    installed_tools = (installed_payload or {}).get("installed_tools") or {}
+
+    merged: dict[str, str] = {}
+    for tool_name, status in tmp_tools.items():
+        merged[tool_name] = status
+    for tool_name, installed_at in installed_tools.items():
+        if tool_name not in merged:
+            merged[tool_name] = installed_at
+        elif merged[tool_name] in ("error", "pending", "uninstalling"):
+            continue
+        else:
+            merged[tool_name] = installed_at
+
+    for tool_name, merged_status in merged.items():
+        record = records.setdefault(
+            tool_name,
+            {
+                "id": tool_name,
+                "display_name": _tool_display_name(tool_name),
+                "category": _tool_category(tool_name),
+                "inventory_status": "unknown",
+                "installed_at": None,
+                "expected_artifacts": _expected_artifacts(tool_name),
+            },
+        )
+        if tool_name in installed_tools:
+            record["installed_at"] = installed_tools.get(tool_name)
+        if tool_name in tmp_tools and tmp_tools.get(tool_name) in ("error", "pending", "uninstalling"):
+            record["inventory_status"] = tmp_tools.get(tool_name)
+        else:
+            record["inventory_status"] = "installed" if tool_name in installed_tools or tmp_tools.get(tool_name) == "installed" else str(merged_status)
+
+    tools = sorted(records.values(), key=lambda item: (item["category"], item["display_name"].lower()))
+    counts: dict[str, int] = {}
+    for tool in tools:
+        counts[tool["category"]] = counts.get(tool["category"], 0) + 1
+    return {
+        "source_files": source_files,
+        "tools": tools,
+        "counts": counts,
+        "total": len(tools),
+    }
 
 
 def _parse_probe_output(stdout: str) -> dict:
@@ -334,6 +548,174 @@ def _parse_probe_output(stdout: str) -> dict:
     }
 
 
+def _parse_tooling_output(stdout: str) -> dict:
+    values: dict[str, str] = {}
+    sections: dict[str, list[str]] = {}
+    current_section = None
+    for raw_line in (stdout or "").splitlines():
+        line = raw_line.rstrip("\n")
+        if line.startswith("KV\t"):
+            _, key, value = line.split("\t", 2)
+            values[key] = value
+            continue
+        if line.startswith("SECTION\t"):
+            _, name, marker = line.split("\t", 2)
+            if marker == "BEGIN":
+                current_section = name
+                sections[current_section] = []
+            elif marker == "END":
+                current_section = None
+            continue
+        if current_section:
+            sections[current_section].append(line)
+
+    def _parse_pairs(lines: list[str]) -> dict[str, str]:
+        parsed: dict[str, str] = {}
+        for line in lines:
+            if "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            parsed[key.strip()] = value.strip()
+        return parsed
+
+    def _parse_file_sections(lines: list[str]) -> list[dict]:
+        files: list[dict] = []
+        current: dict | None = None
+        for line in lines:
+            if line.startswith("FILE\t"):
+                if current:
+                    files.append(current)
+                current = {"path": line.split("\t", 1)[1].strip(), "content_lines": []}
+                continue
+            if line.startswith("FILE_END\t"):
+                if current:
+                    files.append(current)
+                    current = None
+                continue
+            if current is not None:
+                current["content_lines"].append(line)
+        if current:
+            files.append(current)
+        return files
+
+    def _interpret_suricata_rule(raw_rule: str) -> str:
+        text = (raw_rule or "").strip()
+        if not text:
+            return "Empty rule line."
+        proto = "traffic"
+        direction = ""
+        if text.startswith("alert "):
+            parts = text.split("(", 1)[0].split()
+            if len(parts) >= 7:
+                proto = parts[1]
+                direction = f"{parts[2]} {parts[3]} {parts[4]} {parts[5]} {parts[6]}"
+        msg = "custom detection"
+        sid = None
+        if 'msg:"' in text:
+            msg = text.split('msg:"', 1)[1].split('"', 1)[0]
+        if "sid:" in text:
+            sid = text.split("sid:", 1)[1].split(";", 1)[0].strip()
+        hints: list[str] = []
+        if "itype:8" in text:
+            hints.append("ICMP echo request")
+        if "byte_test:1,=,0x10,7" in text:
+            hints.append("Modbus write multiple registers function 0x10")
+        if "byte_test:1,=,0x06,7" in text:
+            hints.append("Modbus write single register function 0x06")
+        if "byte_test:1,=,0x05,7" in text:
+            hints.append("Modbus write single coil function 0x05")
+        if "byte_test:1,=,0x0f,7" in text:
+            hints.append("Modbus write multiple coils function 0x0f")
+        hint_text = "; ".join(hints) if hints else "see raw rule options"
+        sid_text = f"sid {sid}" if sid else "no sid parsed"
+        direction_text = direction or "custom flow expression"
+        return f"{msg} | {sid_text} | alerts on {proto} {direction_text} | detects {hint_text}."
+
+    def _extract_suricata_rules(files: list[dict]) -> list[dict]:
+        parsed_rules: list[dict] = []
+        for file_entry in files:
+            path = file_entry.get("path", "unknown")
+            for line in file_entry.get("content_lines", []):
+                stripped = line.strip()
+                if not stripped or stripped.startswith("#") or not stripped.startswith("alert "):
+                    continue
+                parsed_rules.append(
+                    {
+                        "path": path,
+                        "raw": stripped,
+                        "interpretation": _interpret_suricata_rule(stripped),
+                    }
+                )
+        return parsed_rules
+
+    suricata_rule_contents = _parse_file_sections(sections.get("suricata_rule_contents", []))
+    wazuh_rule_contents = _parse_file_sections(sections.get("wazuh_rule_contents", []))
+
+    return {
+        "generated_at": values.get("date_utc", "not_available"),
+        "tool_presence": _parse_pairs(sections.get("tool_presence", [])),
+        "tool_status": _parse_pairs(sections.get("tool_status", [])),
+        "tool_versions": _parse_pairs(sections.get("tool_versions", [])),
+        "suricata": {
+            "active_rule_files": sections.get("suricata_rule_files", []),
+            "custom_signatures": sections.get("suricata_custom_signatures", []),
+            "rule_inventory": sections.get("suricata_rule_inventory", []),
+            "rule_contents": suricata_rule_contents,
+            "parsed_rules": _extract_suricata_rules(suricata_rule_contents),
+        },
+        "wazuh": {
+            "fim_paths": sections.get("wazuh_fim_paths", []),
+            "local_rules": sections.get("wazuh_local_rules", []),
+            "local_decoders": sections.get("wazuh_local_decoders", []),
+            "rule_inventory": sections.get("wazuh_rule_inventory", []),
+            "rule_contents": wazuh_rule_contents,
+        },
+        "raw_values": values,
+    }
+
+
+def _build_tooling_payload(node: dict) -> dict:
+    inventory = _tool_inventory_for_instance(node["id"], node.get("name", ""))
+    runtime = None
+    runtime_error = None
+    try:
+        result = _run_remote_script_capture(node, TOOLING_PROBE_SCRIPT_PATH, timeout=120)
+        if result.returncode == 0:
+            runtime = _parse_tooling_output(result.stdout)
+        else:
+            runtime_error = {
+                "message": "Remote tooling probe failed",
+                "stdout": result.stdout,
+                "stderr": result.stderr,
+                "returncode": result.returncode,
+            }
+    except Exception as exc:
+        runtime_error = {"message": str(exc)}
+
+    tools = []
+    runtime_presence = (runtime or {}).get("tool_presence", {})
+    runtime_status = (runtime or {}).get("tool_status", {})
+    runtime_versions = (runtime or {}).get("tool_versions", {})
+    for tool in inventory.get("tools", []):
+        enriched = dict(tool)
+        probe_key = _runtime_probe_key(tool["id"])
+        enriched["runtime_probe_key"] = probe_key
+        enriched["runtime_presence"] = runtime_presence.get(probe_key) if probe_key else None
+        enriched["runtime_status"] = runtime_status.get(probe_key) if probe_key else None
+        enriched["runtime_version"] = runtime_versions.get(probe_key) if probe_key else None
+        tools.append(enriched)
+
+    return {
+        "node": node,
+        "inventory": {
+            **inventory,
+            "tools": tools,
+        },
+        "runtime": runtime,
+        "runtime_error": runtime_error,
+    }
+
+
 @node_health_bp.route("/node-health")
 def node_health_view():
     return send_from_directory(STATIC_DIR, "node_health.html")
@@ -343,11 +725,13 @@ def node_health_view():
 def node_health_nodes():
     nodes = _list_nodes()
     graph = _network_graph(nodes)
+    summary = _local_host_summary(nodes)
     return jsonify(
         {
             "generated_at": subprocess.run(["date", "-u", "+%Y-%m-%dT%H:%M:%SZ"], capture_output=True, text=True).stdout.strip(),
             "nodes": nodes,
             "graph": graph,
+            "summary": summary,
             "count": len(nodes),
         }
     )
@@ -376,6 +760,14 @@ def node_health_probe(instance_id: str):
             "stdout": result.stdout,
         }
     )
+
+
+@node_health_bp.route("/api/node-health/nodes/<instance_id>/tooling", methods=["GET"])
+def node_health_tooling(instance_id: str):
+    node = _find_node(instance_id)
+    if not node:
+        return jsonify({"error": f"Instance not found: {instance_id}"}), 404
+    return jsonify(_build_tooling_payload(node))
 
 
 @node_health_bp.route("/api/node-health/nodes/<instance_id>/cleanup/stream", methods=["GET"])
@@ -436,4 +828,3 @@ def node_health_cleanup_stream(instance_id: str):
             "X-Accel-Buffering": "no",
         },
     )
-

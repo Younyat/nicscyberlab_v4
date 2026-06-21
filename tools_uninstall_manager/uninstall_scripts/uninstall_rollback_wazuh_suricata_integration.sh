@@ -30,30 +30,53 @@ cat > "$TEMP_WORK_DIR/wazuh-suricata-cleanup.yml" <<'EOF'
   become: true
   vars:
     remote_ossec: /var/ossec/etc/ossec.conf
+    remote_local_rules: /var/ossec/etc/rules/local_rules.xml
 
   tasks:
+    - name: 0. Verificar si ossec.conf existe
+      stat:
+        path: "{{ remote_ossec }}"
+      register: ossec_conf_stat
+
+    - name: 0b. Verificar si local_rules.xml existe
+      stat:
+        path: "{{ remote_local_rules }}"
+      register: local_rules_stat
+
     - name: 1. Eliminar bloque NICS_SURICATA de ossec.conf
       blockinfile:
         path: "{{ remote_ossec }}"
-        marker: "<!-- {mark} -->"
-        marker_begin: "NICS_SURICATA_BEGIN"
-        marker_end: "NICS_SURICATA_END"
+        marker: "<!-- {mark} NICS_SURICATA -->"
         state: absent
+      when: ossec_conf_stat.stat.exists
 
-    - name: 2. Reiniciar wazuh-agent
+    - name: 1b. Eliminar reglas locales OT Modbus de local_rules.xml
+      blockinfile:
+        path: "{{ remote_local_rules }}"
+        marker: "<!-- {mark} NICS_SURICATA_OT_MODBUS -->"
+        state: absent
+      when: local_rules_stat.stat.exists
+
+    - name: 2. Reiniciar wazuh-agent si existe ossec.conf
       service:
         name: wazuh-agent
         state: restarted
+      register: wazuh_restart
+      failed_when: false
+      when: ossec_conf_stat.stat.exists
 
-    - name: 3. Verificar que wazuh-agent sigue activo
+    - name: 3. Verificar que wazuh-agent sigue activo si pudo reiniciarse
       command: systemctl is-active wazuh-agent
       register: wazuh_status
       changed_when: false
-      failed_when: wazuh_status.stdout.strip() != "active"
+      failed_when: wazuh_restart.failed is defined and not wazuh_restart.failed and wazuh_status.stdout.strip() != "active"
+      when: ossec_conf_stat.stat.exists
 
     - name: 4. Mostrar resultado final
       debug:
-        msg: "Integracion Wazuh + Suricata eliminada correctamente"
+        msg: >-
+          Integracion Wazuh + Suricata eliminada correctamente
+          (o ya ausente en el nodo si no habia Wazuh local disponible).
 EOF
 
 echo "Iniciando rollback de integracion Wazuh + Suricata en $TARGET_IP con usuario $SSH_USER"
