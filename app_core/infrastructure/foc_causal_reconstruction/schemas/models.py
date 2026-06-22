@@ -33,6 +33,8 @@ class CausalEdge:
     temporal_status: str
     semantic_status: str
     integrity_status: str
+    graph_artifact_integrity_status: str = ""
+    case_wide_integrity_status: str = ""
     meaning: str = ""
     status_reason: str = ""
     limitations: list[str] = field(default_factory=list)

@@ -30,7 +30,9 @@ const FOC = {
   causalVisualState: {
     currentCaseId: null,
     currentStatus: null,
-    currentReport: null,
+    cachedUncertainty: null,
+    cachedGraphSummary: null,
+    cachedMarkdown: null,
     expandedDetails: {},
   },
   graphState: {
@@ -115,6 +117,14 @@ function causalRunUrl() {
 
 function causalReportUrl(caseId) {
   return `${API}/causal/report?case_id=${encodeURIComponent(caseId)}`;
+}
+
+function causalUncertaintyUrl(caseId) {
+  return `${API}/causal/uncertainty?case_id=${encodeURIComponent(caseId)}`;
+}
+
+function causalGraphSummaryUrl(caseId) {
+  return `${API}/causal/graph-summary?case_id=${encodeURIComponent(caseId)}`;
 }
 
 function setLoadingState(active, message = "Loading FOC reconstruction…") {
@@ -3025,6 +3035,26 @@ function renderCausalGraphPreview(graph) {
     return `<div class="text-sm text-slate-500">No causal graph preview is available yet.</div>`;
   }
   const byIdMap = new Map(nodes.map(node => [node.node_id, node]));
+  const truncatedBanner = graph?.truncated
+    ? `<div class="text-xs text-amber-300 mb-2">Graph preview truncated to ${edges.length} of ${graph.total_edges ?? edges.length} edges and ${nodes.length} of ${graph.total_nodes ?? nodes.length} nodes. Showing a flat table view.</div>`
+    : "";
+  if (graph?.truncated) {
+    return `
+      ${truncatedBanner}
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs text-slate-300">
+          <thead><tr class="text-left text-slate-400"><th class="pr-3">Source</th><th class="pr-3">Target</th><th class="pr-3">Relation</th><th>Support</th></tr></thead>
+          <tbody>
+            ${edges.map(edge => {
+              const source = byIdMap.get(edge.source);
+              const target = byIdMap.get(edge.target);
+              return `<tr><td class="pr-3">${esc(source?.label || edge.source)}</td><td class="pr-3">${esc(target?.label || edge.target)}</td><td class="pr-3">${esc(edge.relation_type || "")}</td><td class="${statusClass(edge.support_status)}">${esc(edge.support_status || "unknown")}</td></tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
   return `
     <div class="space-y-3">
       ${edges.map(edge => {
@@ -3095,7 +3125,8 @@ function renderCausalEdgeMatrixDetail(graph) {
             <div>Evidence missing: <span class="mono">${esc((edge.missing_evidence || []).join(", ") || "none")}</span></div>
             <div>Semantic check: <span class="mono">${esc(edge.semantic_status || "unknown")}</span></div>
             <div>Temporal check: <span class="mono">${esc(edge.temporal_status || "unknown")}</span></div>
-            <div>Integrity check: <span class="mono">${esc(edge.integrity_status || "unknown")}</span></div>
+            <div>Graph-artifact integrity: <span class="mono">${esc(edge.graph_artifact_integrity_status || edge.integrity_status || "unknown")}</span></div>
+            <div>Case-wide integrity: <span class="mono">${esc(edge.case_wide_integrity_status || "unknown")}</span></div>
           </div>
           <div class="mt-3 text-sm text-slate-300"><strong>Why this status:</strong> ${esc(edge.status_reason || "not_available")}</div>
           <div class="mt-2 text-sm text-slate-400">${esc((edge.limitations || []).join(" | ") || "no additional limitations")}</div>
@@ -3118,6 +3149,8 @@ function renderCausalUncertaintyDetail(uncertainty) {
         <div class="mt-1"><strong>Max clock offset:</strong> ${esc(t.max_clock_offset_seconds ?? "na")}s</div>
         <div class="mt-1"><strong>Synchronized:</strong> ${esc(String(t.synchronized ?? false))}</div>
         <div class="mt-2 text-slate-400">${esc(t.temporal_limitation || "")}</div>
+        ${t.temporal_warning ? `<div class="mt-2 text-amber-300 font-black">${esc(t.temporal_warning)}</div>` : ""}
+        ${t.temporal_caution ? `<div class="mt-1 text-amber-200">${esc(t.temporal_caution)}</div>` : ""}
       </div>
       <div class="glass-soft rounded-2xl p-4 text-sm text-slate-300">
         <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Evidence completeness</div>
@@ -3128,7 +3161,8 @@ function renderCausalUncertaintyDetail(uncertainty) {
         <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Integrity and custody</div>
         <div class="mt-2"><strong>Graph-scope integrity ratio:</strong> ${esc(i.graph_scope_integrity_ratio ?? "na")} (${esc(i.artifacts_present ?? "na")} / ${esc(i.artifacts_used_by_graph ?? "na")} artifacts referenced by the graph)</div>
         <div class="mt-1"><strong>Case-wide integrity ratio:</strong> ${esc(i.case_wide_integrity_ratio ?? "na")} (${esc(i.case_manifest_hash_validated ?? "na")} / ${esc(i.case_manifest_artifacts_total ?? "na")} manifest artifacts)</div>
-        <div class="mt-1"><strong>Integrity status:</strong> <span class="${statusClass(i.integrity_status)}">${esc(i.integrity_status || "unknown")}</span></div>
+        <div class="mt-1"><strong>Graph-artifact integrity status:</strong> <span class="${statusClass(i.graph_artifact_integrity_status)}">${esc(i.graph_artifact_integrity_status || "unknown")}</span></div>
+        <div class="mt-1"><strong>Case-wide integrity status:</strong> <span class="${statusClass(i.case_wide_integrity_status)}">${esc(i.case_wide_integrity_status || "unknown")}</span></div>
         <div class="mt-2 text-slate-400">${esc(i.integrity_limitation || "")}</div>
       </div>
     </div>
@@ -3147,18 +3181,27 @@ function renderCausalDetailSection(key, label, caseId, isExpanded, contentHtml) 
   `;
 }
 
-function renderCausalCockpit(status, report) {
+function renderCausalCockpit(status) {
   const caseId = status?.case_id || FOC.causalVisualState.currentCaseId || FOC.selectedCaseId || "unknown";
   const metricsPreview = status?.metrics_preview || {};
   const kpis = metricsPreview.kpis || [];
   const outputs = status?.outputs || {};
   const gts = status?.ground_truth_summary || {};
   const expanded = FOC.causalVisualState.expandedDetails || {};
-  const graph = report?.graph || {};
-  const uncertainty = report?.uncertainty || {};
+  const graphSummary = FOC.causalVisualState.cachedGraphSummary || null;
+  const uncertainty = FOC.causalVisualState.cachedUncertainty || null;
+  const markdown = FOC.causalVisualState.cachedMarkdown || null;
+  const warnings = status?.warnings || [];
 
   const staleBanner = status?.is_stale
-    ? `<div class="glass-soft rounded-2xl p-4 mt-4 text-sm text-amber-300">Causal reconstruction is stale because analysis outputs were modified after causal artifacts were generated. Re-run causal reconstruction to refresh this view.</div>`
+    ? `<div class="glass-soft rounded-2xl p-4 mt-4 text-sm text-amber-300 flex items-center justify-between gap-3">
+        <span>Causal reconstruction is stale because analysis outputs were modified after causal artifacts were generated.</span>
+        <button type="button" class="px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-200 font-black text-xs shrink-0" data-causal-regenerate="1" data-case-id="${esc(caseId)}">Regenerate Causal Reconstruction</button>
+      </div>`
+    : "";
+
+  const warningsBanner = warnings.length
+    ? `<div class="glass-soft rounded-2xl p-4 mt-4 text-sm text-amber-300 space-y-1">${warnings.map(w => `<div>${esc(w)}</div>`).join("")}</div>`
     : "";
 
   return `
@@ -3184,6 +3227,7 @@ function renderCausalCockpit(status, report) {
           </div>
         </div>
         <div class="glass-soft rounded-2xl p-4 mt-4 text-sm text-slate-300">${esc(metricsPreview.interpretation || status?.reason || "not_available")}</div>
+        ${warningsBanner}
         ${staleBanner}
       </div>
 
@@ -3215,32 +3259,59 @@ function renderCausalCockpit(status, report) {
         </div>
       </div>
 
-      ${renderCausalDetailSection("edges", "Edge status matrix", caseId, !!expanded.edges, report ? renderCausalEdgeMatrixDetail(graph) : '<div class="text-sm text-slate-400">Loading…</div>')}
-      ${renderCausalDetailSection("uncertainty", "Uncertainty budget", caseId, !!expanded.uncertainty, report ? renderCausalUncertaintyDetail(uncertainty) : '<div class="text-sm text-slate-400">Loading…</div>')}
-      ${renderCausalDetailSection("graph", "Causal graph preview", caseId, !!expanded.graph, report ? renderCausalGraphPreview(graph) : '<div class="text-sm text-slate-400">Loading…</div>')}
-      ${renderCausalDetailSection("report", "Raw markdown report", caseId, !!expanded.report, report ? `<div class="glass-soft rounded-2xl p-4 mono text-xs text-slate-300 whitespace-pre-wrap">${esc(report?.report_markdown || "not_available")}</div>` : '<div class="text-sm text-slate-400">Loading…</div>')}
+      ${renderCausalDetailSection("edges", "Edge status matrix", caseId, !!expanded.edges, graphSummary ? renderCausalEdgeMatrixDetail(graphSummary) : '<div class="text-sm text-slate-400">Loading…</div>')}
+      ${renderCausalDetailSection("uncertainty", "Uncertainty budget", caseId, !!expanded.uncertainty, uncertainty ? renderCausalUncertaintyDetail(uncertainty) : '<div class="text-sm text-slate-400">Loading…</div>')}
+      ${renderCausalDetailSection("graph", "Causal graph preview", caseId, !!expanded.graph, graphSummary ? renderCausalGraphPreview(graphSummary) : '<div class="text-sm text-slate-400">Loading…</div>')}
+      ${renderCausalDetailSection("report", "Raw markdown report", caseId, !!expanded.report, markdown !== null ? `<div class="glass-soft rounded-2xl p-4 mono text-xs text-slate-300 whitespace-pre-wrap">${esc(markdown || "not_available")}</div>` : '<div class="text-sm text-slate-400">Loading… (this section is the heaviest, fetched on demand)</div>')}
     </div>
   `;
 }
 
-async function ensureCausalReportLoaded(caseId) {
-  if (FOC.causalVisualState.currentReport) return FOC.causalVisualState.currentReport;
-  const report = await fetchJson(causalReportUrl(caseId)).catch(() => null);
-  FOC.causalVisualState.currentReport = report;
-  return report;
+// Each detail section fetches only what it needs, independently and lazily,
+// on first expand - opening one section never triggers a fetch for another.
+async function ensureCausalUncertaintyLoaded(caseId) {
+  if (FOC.causalVisualState.cachedUncertainty) return FOC.causalVisualState.cachedUncertainty;
+  const data = await fetchJson(causalUncertaintyUrl(caseId)).catch(() => null);
+  FOC.causalVisualState.cachedUncertainty = data;
+  return data;
 }
+
+async function ensureCausalGraphSummaryLoaded(caseId) {
+  if (FOC.causalVisualState.cachedGraphSummary) return FOC.causalVisualState.cachedGraphSummary;
+  const data = await fetchJson(causalGraphSummaryUrl(caseId)).catch(() => null);
+  FOC.causalVisualState.cachedGraphSummary = data;
+  return data;
+}
+
+// The raw markdown report only lives in the bundled /report endpoint - this
+// is the one section explicitly allowed to be heavier, per spec.
+async function ensureCausalMarkdownLoaded(caseId) {
+  if (FOC.causalVisualState.cachedMarkdown !== null) return FOC.causalVisualState.cachedMarkdown;
+  const report = await fetchJson(causalReportUrl(caseId)).catch(() => null);
+  const markdown = report?.report_markdown ?? "not_available";
+  FOC.causalVisualState.cachedMarkdown = markdown;
+  return markdown;
+}
+
+const CAUSAL_DETAIL_LOADERS = {
+  edges: ensureCausalGraphSummaryLoaded,
+  graph: ensureCausalGraphSummaryLoaded,
+  uncertainty: ensureCausalUncertaintyLoaded,
+  report: ensureCausalMarkdownLoaded,
+};
 
 async function toggleCausalDetail(caseId, key) {
   const expanded = FOC.causalVisualState.expandedDetails;
   expanded[key] = !expanded[key];
-  renderCausalReportModal(FOC.causalVisualState.currentStatus, FOC.causalVisualState.currentReport);
-  if (expanded[key] && !FOC.causalVisualState.currentReport) {
-    await ensureCausalReportLoaded(caseId);
-    renderCausalReportModal(FOC.causalVisualState.currentStatus, FOC.causalVisualState.currentReport);
+  renderCausalReportModal(FOC.causalVisualState.currentStatus);
+  const loader = CAUSAL_DETAIL_LOADERS[key];
+  if (expanded[key] && loader) {
+    await loader(caseId);
+    renderCausalReportModal(FOC.causalVisualState.currentStatus);
   }
 }
 
-function renderCausalReportModal(status, report = null) {
+function renderCausalReportModal(status) {
   const panel = byId("causal-report-modal-panel");
   const title = byId("causal-report-modal-title");
   const subtitle = byId("causal-report-modal-subtitle");
@@ -3258,9 +3329,8 @@ function renderCausalReportModal(status, report = null) {
   }
   FOC.causalVisualState.currentCaseId = caseId;
   FOC.causalVisualState.currentStatus = status;
-  if (report) FOC.causalVisualState.currentReport = report;
   const hasCockpitData = status && (status.outputs || status.ground_truth_summary || status.metrics_preview);
-  panel.innerHTML = hasCockpitData ? renderCausalCockpit(status, FOC.causalVisualState.currentReport) : renderCausalReportPlaceholder(status);
+  panel.innerHTML = hasCockpitData ? renderCausalCockpit(status) : renderCausalReportPlaceholder(status);
 }
 
 async function fetchCausalStatus(caseId) {
@@ -3272,7 +3342,7 @@ function scheduleCausalPolling(caseId) {
   FOC.causalPollTimer = setTimeout(async () => {
     try {
       const status = await fetchCausalStatus(caseId);
-      renderCausalReportModal(status, null);
+      renderCausalReportModal(status);
       if (status.status === "running") {
         scheduleCausalPolling(caseId);
       } else {
@@ -3285,16 +3355,22 @@ function scheduleCausalPolling(caseId) {
 }
 
 // Only causal_status.json is fetched on open - it already carries the KPI
-// summary, ground truth block and derived-outputs map. The heavier bundled
-// report (metrics+graph+uncertainty+markdown) is fetched lazily, once, the
-// first time the user expands any detail section (see toggleCausalDetail).
+// summary, ground truth block and derived-outputs map. Each detail section
+// (edges/graph, uncertainty, raw report) fetches its own narrow endpoint
+// lazily, once, the first time it is expanded (see toggleCausalDetail).
+function _resetCausalDetailCaches() {
+  FOC.causalVisualState.cachedUncertainty = null;
+  FOC.causalVisualState.cachedGraphSummary = null;
+  FOC.causalVisualState.cachedMarkdown = null;
+  FOC.causalVisualState.expandedDetails = {};
+}
+
 async function viewCausalReconstruction(caseId) {
   openCausalReportModalShell();
-  FOC.causalVisualState.currentReport = null;
-  FOC.causalVisualState.expandedDetails = {};
+  _resetCausalDetailCaches();
   const status = await fetchCausalStatus(caseId);
   FOC.selectedCaseId = caseId;
-  renderCausalReportModal(status, null);
+  renderCausalReportModal(status);
   if (status.status === "running") {
     scheduleCausalPolling(caseId);
   }
@@ -3302,9 +3378,8 @@ async function viewCausalReconstruction(caseId) {
 
 async function runCausalReconstruction(caseId) {
   openCausalReportModalShell();
-  FOC.causalVisualState.currentReport = null;
-  FOC.causalVisualState.expandedDetails = {};
-  renderCausalReportModal({ case_id: caseId, status: "running", progress_percent: 0, current_step: "queued", reason: "Starting background causal reconstruction…" }, null);
+  _resetCausalDetailCaches();
+  renderCausalReportModal({ case_id: caseId, status: "running", progress_percent: 0, current_step: "queued", reason: "Starting background causal reconstruction…" });
   const result = await fetchJson(causalRunUrl(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -3312,7 +3387,7 @@ async function runCausalReconstruction(caseId) {
   }).catch(async () => {
     return fetchCausalStatus(caseId);
   });
-  renderCausalReportModal(result, null);
+  renderCausalReportModal(result);
   if (result.status === "running") {
     scheduleCausalPolling(caseId);
   } else {
@@ -3931,11 +4006,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
   byId("causal-report-modal-panel")?.addEventListener("click", (event) => {
-    const target = event.target instanceof Element ? event.target.closest("button[data-causal-detail]") : null;
-    if (!target) return;
-    const key = target.getAttribute("data-causal-detail");
-    const caseId = target.getAttribute("data-case-id") || FOC.causalVisualState.currentCaseId || FOC.selectedCaseId;
-    if (key && caseId) toggleCausalDetail(caseId, key).catch(() => {});
+    if (!(event.target instanceof Element)) return;
+    const detailTarget = event.target.closest("button[data-causal-detail]");
+    if (detailTarget) {
+      const key = detailTarget.getAttribute("data-causal-detail");
+      const caseId = detailTarget.getAttribute("data-case-id") || FOC.causalVisualState.currentCaseId || FOC.selectedCaseId;
+      if (key && caseId) toggleCausalDetail(caseId, key).catch(() => {});
+      return;
+    }
+    const regenerateTarget = event.target.closest("button[data-causal-regenerate]");
+    if (regenerateTarget) {
+      const caseId = regenerateTarget.getAttribute("data-case-id") || FOC.causalVisualState.currentCaseId || FOC.selectedCaseId;
+      if (caseId) runCausalReconstruction(caseId).catch(() => {});
+    }
   });
   byId("analysis-generate-symbols-btn")?.addEventListener("click", () => {
     if (FOC.selectedCaseId) openSymbolGenModal();

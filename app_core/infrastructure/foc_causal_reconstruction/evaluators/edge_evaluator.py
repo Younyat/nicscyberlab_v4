@@ -74,10 +74,15 @@ def evaluate_edges(case_context: dict, requirement_evaluator, temporal_evaluator
         else:
             confidence = "low"
 
-        integrity_status = "verified"
+        # Scoped to only the artifacts this edge actually declares as required
+        # evidence - distinct from the case-wide custody/manifest verdict below,
+        # so a recovered edge is not misrepresented as resting on unverified evidence.
+        graph_artifact_integrity_status = "partial" if missing_evidence else "verified"
+        case_wide_integrity_status = "verified"
         if case_context.get("custody_context", {}).get("integrity_report", {}).get("status") == "partial":
-            integrity_status = "partial"
+            case_wide_integrity_status = "partial"
             limitations.append("Integrity and custody validation remains partial for this case.")
+        integrity_status = graph_artifact_integrity_status
         semantic_status = "supported"
         if any(result.get("status") == "missing" for result in requirement_results):
             semantic_status = "unsupported"
@@ -108,6 +113,8 @@ def evaluate_edges(case_context: dict, requirement_evaluator, temporal_evaluator
                 temporal_status=temporal_status,
                 semantic_status=semantic_status,
                 integrity_status=integrity_status,
+                graph_artifact_integrity_status=graph_artifact_integrity_status,
+                case_wide_integrity_status=case_wide_integrity_status,
                 meaning=meaning,
                 status_reason=status_reason,
                 limitations=_unique(limitations),
@@ -132,4 +139,4 @@ def _build_status_reason(
         if temporal_status == "unknown":
             return "Required evidence was found, but the temporal order could not be resolved from preserved timestamps."
         return f"Required evidence ({', '.join(required_evidence) or 'unspecified'}) is present but partially supported or not fully verified."
-    return f"All required evidence ({', '.join(required_evidence) or 'unspecified'}) is present, temporal order is {temporal_status}, integrity is {integrity_status}."
+    return f"All required evidence ({', '.join(required_evidence) or 'unspecified'}) is present, temporal order is {temporal_status}, graph-scope integrity is {integrity_status}."

@@ -45,6 +45,18 @@ def build_uncertainty_report(case_context: dict, metrics: dict, edges: list[dict
             f"{uncertainty_window_seconds:g}s."
         )
 
+    temporal_warning = None
+    temporal_caution = None
+    if temporal_confidence_state in {"ambiguous", "limited"} and max_clock_offset_seconds > 0:
+        temporal_warning = (
+            f"Temporal ordering is weak because the preserved clock offset is approximately "
+            f"{max_clock_offset_seconds:.0f} seconds."
+        )
+        temporal_caution = (
+            "Causal direction for time-dependent edges must be interpreted with caution because event "
+            "ordering falls under a large uncertainty window."
+        )
+
     expected_artifacts = list(case_context.get("ground_truth", {}).get("expected_artifacts") or [])
     recovered_expected_artifacts = int(metrics.get("recovered_expected_artifacts") or 0)
     missing_expected_artifacts = [item for item in expected_artifacts if item not in set(metrics.get("recovered_expected_artifact_types") or [])]
@@ -58,15 +70,29 @@ def build_uncertainty_report(case_context: dict, metrics: dict, edges: list[dict
     missing_artifacts = list(dict.fromkeys(custody_context.get("missing_artifacts") or []))
     graph_scope_integrity_ratio = round((len(verified_refs) / len(used_refs)), 4) if used_refs else None
     case_wide_integrity_ratio = round((hash_validated / manifest_total), 4) if manifest_total else None
-    integrity_status = "verified" if (case_wide_integrity_ratio == 1.0 and custody_chain_valid and not missing_artifacts) else "partial"
-    if integrity_status == "verified":
-        integrity_limitation = "All artifacts referenced by the causal graph are present, and the case-wide manifest hash validation ratio is 1.0."
+
+    # Split, per the user's spec, into what the graph itself uses (narrow,
+    # often verifiable) vs the case-wide manifest validation (broad, often
+    # partial because large memory/disk dumps are hash-skipped by policy).
+    # These two scopes answer different questions and must not be blended
+    # into one verdict the way the previous single `integrity_status` did.
+    graph_artifact_integrity_status = "verified" if (not used_refs or len(verified_refs) == len(used_refs)) else "partial"
+    case_wide_integrity_status = "verified" if (case_wide_integrity_ratio == 1.0 and custody_chain_valid and not missing_artifacts) else "partial"
+    integrity_status = case_wide_integrity_status  # kept for backward compatibility with existing CSV/markdown/JS
+
+    if graph_artifact_integrity_status == "verified" and case_wide_integrity_status == "partial":
+        integrity_limitation = "All graph-referenced artifacts are present, but the case-wide manifest validation is partial."
+    elif graph_artifact_integrity_status == "verified" and case_wide_integrity_status == "verified":
+        integrity_limitation = "All graph-referenced artifacts are present, and the case-wide manifest validation is verified."
+    elif graph_artifact_integrity_status == "partial" and case_wide_integrity_status == "verified":
+        integrity_limitation = (
+            f"Some artifacts referenced by the causal graph are not accounted for ({len(verified_refs)}/{len(used_refs)}), "
+            "even though the case-wide manifest validation is verified."
+        )
     else:
         integrity_limitation = (
-            f"All artifacts referenced by the causal graph are present and accounted for "
-            f"({len(verified_refs)}/{len(used_refs)}), but the case-wide manifest hash validation ratio is "
-            f"{case_wide_integrity_ratio} ({hash_validated}/{manifest_total}) because some artifacts "
-            f"(e.g. large memory/disk dumps that are hash-skipped by policy, or custody gaps) are not fully verified."
+            f"Some artifacts referenced by the causal graph are not accounted for ({len(verified_refs)}/{len(used_refs)}), "
+            "and the case-wide manifest validation is also partial."
         )
 
     limitations: list[str] = []
@@ -78,8 +104,10 @@ def build_uncertainty_report(case_context: dict, metrics: dict, edges: list[dict
         limitations.append("Some expected scenario artifacts are unavailable for the causal reconstruction input set.")
     if int(metrics.get("missing_edges") or 0) > 0:
         limitations.append("One or more expected causal edges remain missing because required evidence could not be recovered or verified.")
-    if integrity_status == "partial":
+    if case_wide_integrity_status == "partial" or graph_artifact_integrity_status == "partial":
         limitations.append(integrity_limitation)
+    if temporal_warning:
+        limitations.append(temporal_warning)
 
     return {
         "case_id": case_context.get("case_id"),
@@ -95,6 +123,8 @@ def build_uncertainty_report(case_context: dict, metrics: dict, edges: list[dict
             "synchronized": synchronized,
             "temporal_confidence_state": temporal_confidence_state,
             "temporal_limitation": temporal_limitation,
+            "temporal_warning": temporal_warning,
+            "temporal_caution": temporal_caution,
         },
         "completeness": {
             "expected_artifacts": len(expected_artifacts),
@@ -119,6 +149,8 @@ def build_uncertainty_report(case_context: dict, metrics: dict, edges: list[dict
             "case_manifest_hash_validated": hash_validated,
             "case_wide_integrity_ratio": case_wide_integrity_ratio,
             "custody_chain_valid": custody_chain_valid,
+            "graph_artifact_integrity_status": graph_artifact_integrity_status,
+            "case_wide_integrity_status": case_wide_integrity_status,
             "integrity_status": integrity_status,
             "integrity_limitation": integrity_limitation,
             # Kept for backward compatibility with the previous, less precise field name.

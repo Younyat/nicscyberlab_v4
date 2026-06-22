@@ -25,9 +25,11 @@ from .foc_paths import project_path
 from .foc_sources import utc_now
 from ..foc_causal_reconstruction.service import (
     causal_graph_payload,
+    causal_graph_summary_payload,
     causal_metrics_payload,
     causal_report_payload,
     causal_status_payload,
+    causal_uncertainty_payload,
     run_causal_reconstruction,
 )
 from ..forensics.volatility_symbols import (
@@ -267,6 +269,36 @@ def api_foc_causal_graph():
     report = causal_graph_payload(case_id, case_dir)
     if report is None:
         return jsonify({"error": "causal_graph_not_found", "case_id": case_id}), 404
+    return jsonify(report), 200
+
+
+@foc_bp.route("/api/foc/causal/uncertainty", methods=["GET"])
+def api_foc_causal_uncertainty():
+    case_id = str(request.args.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    payload, error = _causal_case_entry_or_404(case_id)
+    if error:
+        return error
+    _, case_dir = payload
+    report = causal_uncertainty_payload(case_id, case_dir)
+    if report is None:
+        return jsonify({"error": "causal_uncertainty_not_found", "case_id": case_id}), 404
+    return jsonify(report), 200
+
+
+@foc_bp.route("/api/foc/causal/graph-summary", methods=["GET"])
+def api_foc_causal_graph_summary():
+    case_id = str(request.args.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    payload, error = _causal_case_entry_or_404(case_id)
+    if error:
+        return error
+    _, case_dir = payload
+    report = causal_graph_summary_payload(case_id, case_dir)
+    if report is None:
+        return jsonify({"error": "causal_graph_summary_not_found", "case_id": case_id}), 404
     return jsonify(report), 200
 
 

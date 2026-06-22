@@ -2050,7 +2050,11 @@ This file is scenario-level, not case-level. It declares:
 - temporal rules
 - optional edge weights for weighted CPR
 
-If `scenario_ground_truth.json` is missing, or if it exists but does not define `expected_edges`, causal reconstruction is blocked and CPR is not calculated.
+If `scenario_ground_truth.json` is missing, or if it exists but does not define valid `expected_edges` (every edge must declare `edge_id`, `source`, `target`, and `required_evidence`), causal reconstruction is blocked and CPR is not calculated.
+
+The ground truth that was actually used is never left implicit. Every causal run surfaces a `ground_truth_summary` block with `ground_truth_status`, `ground_truth_path`, `ground_truth_version`, `scenario_id`, `expected_edges` (count), `ground_truth_loaded_at`, and `ground_truth_validation_status`, so the cockpit can always answer "which ground truth produced this CPR" instead of computing a recoverability score against an unstated reference.
+
+For the Modbus baseline scenario (`scn-b83dbbfb` / `industrial_file`), the expected causal path now includes two additional, evidence-grounded intermediate steps - `network_modbus_write` (driven by `analysis/03_network/network_findings.json`) and `plc_or_scada_state_observation` (driven by `analysis/06_ot/ot_findings.json`) - between the unauthorized Modbus write and the rest of the chain. The declared `target_register`/`expected_value` on these edges are explicitly labeled `register_value_basis: declared_in_ground_truth_not_packet_verified`, because the current network/OT parsers report Modbus traffic presence and OT record counts, not packet-level register/value extraction. Nothing is inferred beyond what the analyzers actually produce.
 
 ### Derived causal outputs
 
@@ -2075,17 +2079,15 @@ These files are analytical derivatives. They do not replace the original evidenc
 
 The causal module computes audit-oriented indicators such as:
 
-- `causal_path_recoverability`
+- `causal_path_recoverability` (CPR), with a derived `recoverability_label` (`mostly_recoverable`, `partially_recoverable`, `weak_recoverability`, `low_recoverability`) and a plain-language `interpretation` sentence so a CPR value is never shown without its caveat
 - `weighted_cpr`
-- `recovered_edges`
-- `degraded_edges`
-- `ambiguous_edges`
-- `missing_edges`
+- `recovered_edges`, `degraded_edges`, `ambiguous_edges`, `missing_edges`
 - `evidence_completeness_ratio`
-- `integrity_verification_ratio`
+- `integrity_verification_ratio`, now reported alongside a `graph_scope_integrity_ratio` (artifacts actually referenced by the graph) and a `case_wide_integrity_ratio` (manifest-wide hash validation) so a single ratio is never shown without explaining which scope it covers
 - `analysis_coverage_ratio`
-- `temporal_confidence_state`
-- `reconstruction_confidence`
+- `temporal_confidence_state`, reported together with the uncertainty window in seconds (not only milliseconds) and a one-line explanation of what that window means for event ordering
+- `reconstruction_confidence` - always labeled **composite but non-authoritative**, never presented as an absolute score
+- a `kpis` list attached to `reconstruction_metrics.json`, where every KPI carries its own `value`, `meaning` (formula), `interpretation`, and `severity`
 
 The status model for expected edges is restricted to:
 
@@ -2094,7 +2096,15 @@ The status model for expected edges is restricted to:
 - `ambiguous`
 - `missing`
 
-`recovered` is never assigned from pure temporal proximity or visual correlation alone. The system requires preserved, linked, and auditable evidence support. If support is partial or inferred, the edge is degraded or ambiguous instead of being presented as confirmed.
+`recovered` is never assigned from pure temporal proximity or visual correlation alone. The system requires preserved, linked, and auditable evidence support. An edge whose temporal check is declared but unresolved (`temporal_status: unknown`) can no longer be marked `recovered` either; it is downgraded to `degraded` with an explicit limitation. Only an edge with no temporal relation declared at all is `temporal_status: not_required`, which is the sole non-`supported` temporal state compatible with `recovered`. If support is partial, inferred, or temporally unresolved, the edge is degraded or ambiguous instead of being presented as confirmed.
+
+Execution success and reconstruction quality are tracked as three independent axes rather than one blended status:
+
+- `execution_status` (`not_started`, `running`, `completed`, `failed`) - whether the module ran technically
+- `reconstruction_state` (`not_available`, `blocked`, `completed`, `completed_with_degradation`, `weak_reconstruction`, `failed`) - the quality of the causal reconstruction produced
+- `scientific_confidence` (`strong`, `limited`, `weak`, `ambiguous`, `unknown`) - the interpretive weight the result can carry
+
+`scientific_confidence` can never be `strong` when the ambiguous-edge rate exceeds 20% or when integrity is only `partial`, regardless of how high CPR is. `execution_status: completed` with `progress_percent: 100` only ever means the run finished - it is never read as a claim that the causal reconstruction itself is strong.
 
 The graph is therefore a **derived causal-forensic reconstruction**, not a claim of absolute causality.
 
@@ -2183,24 +2193,60 @@ The dashboard exposes these scientific panels:
 
 ### Causal Reconstruction cockpit
 
-The `FOC Reconstruction` interface now exposes a dedicated on-demand causal action per case:
+The `FOC Reconstruction` interface exposes a dedicated on-demand causal action per case:
 
 - `Run Causal Reconstruction`
 - `View Causal Cockpit`
 
-The cockpit is intentionally loaded only when requested. It does not add heavy latency to the default FOC page load.
+Opening the cockpit only fetches the lightweight `causal_status.json` (execution/reconstruction/confidence triad, ground truth summary, KPI list, and a per-file `outputs` availability map). Each detail section then fetches only the narrow endpoint it needs, independently and lazily, the first time it is expanded: the edge matrix and graph preview call `GET /api/foc/causal/graph-summary` (capped to 15 nodes / 20 edges, with a flat-table fallback if a future scenario exceeds the cap), the uncertainty section calls `GET /api/foc/causal/uncertainty`, and only the raw markdown report - the one section explicitly allowed to be heavier - calls the bundled `GET /api/foc/causal/report`. Opening one section never triggers a fetch for another. Initial page load and case-list polling never trigger a recompute of causality or a full-graph render.
 
-When opened, the wide transparent modal renders a causal cockpit derived from normalized backend outputs and includes:
+The executive header shows the three status axes as distinct rows rather than one blended line:
 
-- executive status
-- KPI cards
-- edge status matrix
-- uncertainty budget summary
-- causal graph preview
-- limitations panel
-- raw artifact paths and markdown report access
+- **Execution status** - whether the module ran (`not_started`, `running`, `completed`, `failed`)
+- **Reconstruction state** - the quality of the result (`not_available`, `blocked`, `completed`, `completed_with_degradation`, `weak_reconstruction`, `failed`)
+- **Scientific confidence** - the interpretive weight it can carry (`strong`, `limited`, `weak`, `ambiguous`, `unknown`)
+
+Below that, the cockpit shows:
+
+- a **Ground Truth** panel (status, version, scenario_id, expected edge count, validation status, resolved path)
+- a **Derived Outputs** panel built from the same `available` / `not_available` / `invalid` map used by the raw artifact list, so the two can never contradict each other
+- KPI cards (CPR, weighted CPR, recovered/degraded/ambiguous/missing edges, evidence completeness, integrity verification, analysis coverage, temporal confidence, reconstruction confidence), each carrying its own meaning, interpretation, and severity
+- on-demand **Edge status matrix** (now including each edge's `meaning`, `status_reason`, and explicit "evidence found" / "evidence missing" labels), **Uncertainty budget** (temporal window in seconds with an explanation, plus the graph-scope vs. case-wide integrity breakdown), **Causal graph preview**, and **Raw markdown report**
+
+A stale-data banner appears when the underlying analysis outputs (memory findings, forensic analysis report, visual summary) were modified after the causal artifacts were last generated, and now carries a `Regenerate Causal Reconstruction` action wired to the same on-demand run call - staleness is never resolved automatically. When the preserved clock offset makes temporal ordering weak, the header also surfaces an explicit warning and caution sentence rather than burying that risk in the uncertainty detail section.
 
 The UI does not render a causal graph when `causal_graph.json` does not exist, and it does not present blocked or missing prerequisites as success.
+
+#### Profesionalización del Causal Reconstruction Cockpit (2026-06-22)
+
+Esta iteración corrige inconsistencias detectadas en la primera versión del cockpit y lo alinea con el plan técnico FOC causal and uncertainty:
+
+- Se separan tres estados independientes (`execution_status`, `reconstruction_state`, `scientific_confidence`) para que `Progress: 100%` nunca se interprete como "reconstrucción causal fuerte".
+- Se corrige la contradicción entre el panel `Derived Outputs` (que mostraba `not_available`) y `Raw artifacts access` (que mostraba las rutas reales): ambos paneles leen ahora el mismo mapa de disponibilidad calculado una sola vez en el backend.
+- Se corrige un bug real: el evaluador de memoria leía la clave `dumps_analysed` (no existe) en lugar de `dumps_analyzed`, por lo que el edge de análisis multicapa quedaba permanentemente `degraded` aunque el análisis de memoria hubiera sido efectivo.
+- Un edge solo puede quedar `recovered` con `temporal_status` en `supported` o `not_required`; un `temporal_status: unknown` ahora degrada el edge explícitamente en vez de marcarlo como recuperado.
+- El ratio de integridad se separa en `graph_scope_integrity_ratio` (artefactos usados por el grafo) y `case_wide_integrity_ratio` (validación de hash a nivel de manifest completo), cada uno con su fórmula explicada.
+- La ventana de incertidumbre se muestra también en segundos, con una frase interpretativa explícita sobre el impacto en el orden temporal de los edges.
+- Se añaden dos edges Modbus-específicos (`network_modbus_write`, `plc_or_scada_state_observation`) derivados de `network_findings.json` y `ot_findings.json` reales, sin inventar registro/valor a nivel de paquete.
+- `causal_status.json` pasa a ser la fuente ligera que lee la UI por defecto; el reporte completo (grafo, incertidumbre, markdown) se carga perezosamente solo cuando el analista despliega esa sección.
+- El reporte markdown se reestructura en 11 secciones fijas, incluyendo `Next Required Actions`.
+
+Ningún cambio de esta iteración toca adquisición, preservación, `manifest.json`/`chain_of_custody.log` originales, ejecución de ataques, detección, selección de trigger, ni los motores de análisis subyacentes (Volatility, TSK, tshark, exportación OT); solo se leen sus salidas ya escritas.
+
+#### Endurecimiento científico y de latencia del Causal Reconstruction Cockpit (2026-06-22)
+
+Esta segunda iteración no rehace el trabajo anterior: endurece puntos científicos concretos del modelo de edges y corrige la mayor fuente de latencia detectada, manteniendo el mismo límite de "no modificar" adquisición, preservación, ejecución de ataques, detección, selección de trigger ni los motores de análisis subyacentes.
+
+- **Latencia**: se detectó que `foc-reconstruction/attestations/alert_correlation.json` (~101 MB, 71.261 registros) se reparseaba sin caché en cada poll de `/api/foc/causal/status`. Se añade una caché en memoria con invalidación por `mtime` (correcta por construcción ante cambios reales) más un TTL de 30s como red de seguridad. El resultado medido: ~1.5-3s en frío frente a ~8ms en caliente dentro del mismo proceso del servidor.
+- El edge `attack_execution → ot_modbus_write` ya no puede quedar `recovered` solo con `attack_attestation`; ahora también exige `network_modbus_observation` (tráfico Modbus realmente observado).
+- Tres edges que antes declaraban `temporal_status: not_required` por omisión (sin `timestamp_ref` declarado) ahora declaran sus referencias temporales reales (`detection_observed_at`, `alert_observed_at`). Con los datos reales del caso (regla de detección sin `enabled_at`, correlación de alertas sin timestamp absoluto), el resultado honesto es `temporal_status: unknown`, que la regla estructural ya existente degrada explícitamente en vez de dejarlo pasar como `recovered` por omisión.
+- Cuando el offset de reloj preservado hace que el orden temporal sea poco fiable, se añaden dos frases explícitas en `uncertainty_report.json::temporal` (`temporal_warning`, `temporal_caution`) y se muestran en la cabecera del cockpit, no solo en el detalle de incertidumbre.
+- La integridad por edge se separa en `graph_artifact_integrity_status` (solo los artefactos que ese edge usa) y `case_wide_integrity_status` (validación de manifest a nivel de caso completo); `integrity_status` se mantiene como alias del primero por compatibilidad con CSV/markdown existentes.
+- `memory_analysis_useful` ya no se conforma con `dumps_analyzed > 0`: ahora también exige al menos un resultado con `status: completed` y `completed_plugins` no vacío. Si hay dumps pero ningún plugin efectivo, el edge queda `degraded` con el motivo `"Memory analysis exists, but no effective plugin output was produced."`.
+- Se añaden dos endpoints de solo lectura, `GET /api/foc/causal/uncertainty` y `GET /api/foc/causal/graph-summary` (este último limitado a 15 nodos / 20 edges, con `truncated: true` si una escena futura excede el límite), para que cada sección del cockpit cargue solo lo que necesita en vez de depender del reporte combinado.
+- Los edges Modbus a nivel de función/registro/valor de paquete siguen sin implementarse: ni `network_findings.json` ni `ot_findings.json` extraen hoy ese detalle a nivel de paquete, y añadir el edge sin esa base sería inventar evidencia. Queda documentado como trabajo futuro que depende de los parsers de red/OT, fuera del alcance de esta iteración.
+
+Ningún cambio de esta iteración toca adquisición, preservación, `manifest.json`/`chain_of_custody.log` originales, ejecución de ataques, detección, selección de trigger, ni los motores de análisis subyacentes; solo se leen sus salidas ya escritas, más el archivo `scenario_ground_truth.json` (cambios aditivos) y los artefactos bajo `derived/reconstruction/`.
 
 ### FOC performance and loading behavior
 

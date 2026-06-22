@@ -77,12 +77,14 @@
       "node_type": "detection_rule",
       "layer": "detection",
       "label": "Modbus detection surface",
+      "timestamp_ref": "detection_observed_at",
       "source_ref": "foc-reconstruction/attestations/detection_attestation.json"
     },
     "alert_observation": {
       "node_type": "alert_group",
       "layer": "alerts",
       "label": "Observed correlated alerts",
+      "timestamp_ref": "alert_observed_at",
       "source_ref": "foc-reconstruction/attestations/alert_correlation.json"
     },
     "forensic_case": {
@@ -116,7 +118,8 @@
       "relation_type": "issues_unauthorized_modbus_write",
       "weight": 1.0,
       "required_evidence": [
-        "attack_attestation"
+        "attack_attestation",
+        "network_modbus_observation"
       ],
       "selectors": {
         "attack_attestation": {
@@ -166,7 +169,9 @@
           "rule_file_contains": "nics-modbus-register-manipulation.rules",
           "mitre_techniques_contains": "T1692.001"
         }
-      }
+      },
+      "source_timestamp_ref": "attack_completed_at",
+      "target_timestamp_ref": "detection_observed_at"
     },
     {
       "edge_id": "edge_ot_write_to_plc_state_observation",
@@ -201,7 +206,9 @@
           "attack_id": "atk-6402b8e1",
           "protocol": "TCP"
         }
-      }
+      },
+      "source_timestamp_ref": "detection_observed_at",
+      "target_timestamp_ref": "alert_observed_at"
     },
     {
       "edge_id": "edge_alert_observation_to_forensic_case",
@@ -223,7 +230,9 @@
           "case_id": "case-63ceb018",
           "intervention_status": "completed"
         }
-      }
+      },
+      "source_timestamp_ref": "alert_observed_at",
+      "target_timestamp_ref": "intervention_started_at"
     },
     {
       "edge_id": "edge_forensic_case_to_preserved_case_evidence",

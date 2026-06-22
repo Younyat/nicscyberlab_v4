@@ -184,6 +184,31 @@ def _match_selector(item: dict, selector: dict | None) -> bool:
     return True
 
 
+def _primary_detection_rule(case_context: dict) -> dict | None:
+    ground_truth = case_context.get("ground_truth") or {}
+    for spec in ground_truth.get("expected_edges") or []:
+        selector = ((spec or {}).get("selectors") or {}).get("detection_attestation")
+        if selector:
+            records = (case_context.get("foc_context", {}).get("detection_attestation") or {}).get("observed_detection_rules") or []
+            match = next((item for item in records if isinstance(item, dict) and _match_selector(item, selector)), None)
+            if match:
+                return match
+    return None
+
+
+def _primary_alert_correlation_record(case_context: dict) -> dict | None:
+    ground_truth = case_context.get("ground_truth") or {}
+    for spec in ground_truth.get("expected_edges") or []:
+        selector = ((spec or {}).get("selectors") or {}).get("alert_correlation")
+        if selector:
+            alert_correlation = case_context.get("foc_context", {}).get("alert_correlation") or {}
+            records = alert_correlation.get("correlations") or alert_correlation.get("records") or []
+            match = next((item for item in records if isinstance(item, dict) and _match_selector(item, selector)), None)
+            if match:
+                return match
+    return None
+
+
 def _resolve_timestamp(case_context: dict, ref: str | None) -> tuple[str | None, str | None]:
     if not ref:
         return None, None
@@ -198,6 +223,8 @@ def _resolve_timestamp(case_context: dict, ref: str | None) -> tuple[str | None,
         "analysis_started_at": case_context.get("analysis_status", {}).get("started_at"),
         "analysis_finished_at": case_context.get("analysis_status", {}).get("finished_at") or analysis_report.get("generated_at"),
         "case_created_at": None,
+        "detection_observed_at": None,
+        "alert_observed_at": None,
     }
     primary_attack = case_context.get("primary_attack") or {}
     if primary_attack:
@@ -211,6 +238,12 @@ def _resolve_timestamp(case_context: dict, ref: str | None) -> tuple[str | None,
         event_type = event.get("event_type")
         if event_type == "case_created" and not mapping["case_created_at"]:
             mapping["case_created_at"] = event.get("timestamp")
+    detection_rule = _primary_detection_rule(case_context)
+    if detection_rule:
+        mapping["detection_observed_at"] = detection_rule.get("enabled_at") or detection_rule.get("observed_at")
+    alert_record = _primary_alert_correlation_record(case_context)
+    if alert_record:
+        mapping["alert_observed_at"] = alert_record.get("observed_at") or alert_record.get("alert_timestamp")
     source_map = {
         "attack_started_at": "foc-reconstruction/attestations/attack_attestation.json",
         "attack_completed_at": "foc-reconstruction/attestations/attack_attestation.json",
@@ -219,6 +252,8 @@ def _resolve_timestamp(case_context: dict, ref: str | None) -> tuple[str | None,
         "analysis_started_at": relative_path(case_context["case_path"] / "analysis" / "analysis_status.json"),
         "analysis_finished_at": relative_path(case_context["case_path"] / "analysis" / "forensic_analysis_report.json"),
         "case_created_at": "foc-reconstruction/attestations/forensic_intervention.json",
+        "detection_observed_at": "foc-reconstruction/attestations/detection_attestation.json",
+        "alert_observed_at": "foc-reconstruction/attestations/alert_correlation.json",
     }
     return mapping.get(ref), source_map.get(ref)
 
@@ -377,9 +412,17 @@ def _evaluate_requirement(case_context: dict, req_type: str, selector: dict | No
     if req_type == "memory_analysis_useful":
         findings = (analysis_summary.get("memory_findings") or {}).get("findings") or {}
         dumps_analyzed = int(findings.get("dumps_analyzed") or 0)
+        results = findings.get("results") or []
+        has_completed_plugins = any(
+            isinstance(item, dict) and str(item.get("status")) == "completed" and item.get("completed_plugins")
+            for item in results
+        )
         evidence_refs.append(relative_path(case_context["case_path"] / "analysis" / "04_memory" / "memory_findings.json"))
-        if dumps_analyzed > 0:
+        if dumps_analyzed > 0 and has_completed_plugins:
             return {"type": req_type, "status": "recovered", "evidence_refs": evidence_refs, "limitations": limitations}
+        if dumps_analyzed > 0:
+            limitations.append("Memory analysis exists, but no effective plugin output was produced.")
+            return {"type": req_type, "status": "degraded", "evidence_refs": evidence_refs, "limitations": limitations}
         limitations.append("Memory analysis exists but no effective dump analysis was recorded.")
         return {"type": req_type, "status": "degraded", "evidence_refs": evidence_refs, "limitations": limitations}
 
@@ -761,7 +804,8 @@ def _markdown_report(
                 f"- Confidence: `{edge.get('confidence')}`",
                 f"- Temporal status: `{edge.get('temporal_status')}`",
                 f"- Semantic status: `{edge.get('semantic_status')}`",
-                f"- Integrity status: `{edge.get('integrity_status')}`",
+                f"- Graph-artifact integrity status: `{edge.get('graph_artifact_integrity_status')}`",
+                f"- Case-wide integrity status: `{edge.get('case_wide_integrity_status')}`",
                 f"- Required evidence: `{', '.join(edge.get('required_evidence') or []) or 'none'}`",
                 f"- Evidence found: `{', '.join(edge.get('evidence_refs') or []) or 'not_available'}`",
                 f"- Evidence missing: `{', '.join(edge.get('missing_evidence') or []) or 'none'}`",
@@ -780,6 +824,10 @@ def _markdown_report(
             f"- Max clock offset: `{uncertainty.get('temporal', {}).get('max_clock_offset_seconds')}s`",
             f"- Synchronized: `{uncertainty.get('temporal', {}).get('synchronized')}`",
             f"- {uncertainty.get('temporal', {}).get('temporal_limitation')}",
+        ]
+        + ([f"- Warning: {uncertainty.get('temporal', {}).get('temporal_warning')}"] if uncertainty.get("temporal", {}).get("temporal_warning") else [])
+        + ([f"- Caution: {uncertainty.get('temporal', {}).get('temporal_caution')}"] if uncertainty.get("temporal", {}).get("temporal_caution") else [])
+        + [
             f"- Evidence completeness ratio: `{uncertainty.get('completeness', {}).get('evidence_completeness_ratio')}`",
             "",
             "## 8. Integrity and Custody Considerations",
@@ -790,7 +838,8 @@ def _markdown_report(
             f"- Case-wide manifest artifacts total: `{uncertainty.get('integrity', {}).get('case_manifest_artifacts_total')}`",
             f"- Case-wide manifest hash validated: `{uncertainty.get('integrity', {}).get('case_manifest_hash_validated')}`",
             f"- Case-wide integrity ratio: `{uncertainty.get('integrity', {}).get('case_wide_integrity_ratio')}`",
-            f"- Integrity status: `{uncertainty.get('integrity', {}).get('integrity_status')}`",
+            f"- Graph-artifact integrity status: `{uncertainty.get('integrity', {}).get('graph_artifact_integrity_status')}`",
+            f"- Case-wide integrity status: `{uncertainty.get('integrity', {}).get('case_wide_integrity_status')}`",
             f"- {uncertainty.get('integrity', {}).get('integrity_limitation')}",
             "",
             "## 9. Limitations",
@@ -1046,6 +1095,13 @@ def _run_once(case_id: str, case_path: Path, strict: bool = False, degraded_ok: 
         status["state"] = "completed"
         status["reason"] = "The preserved evidence supports all expected causal edges under the current controlled intervention model."
 
+    temporal_warning = uncertainty.get("temporal", {}).get("temporal_warning")
+    temporal_caution = uncertainty.get("temporal", {}).get("temporal_caution")
+    if temporal_warning:
+        status["warnings"].append(temporal_warning)
+    if temporal_caution:
+        status["warnings"].append(temporal_caution)
+
     status["current_step"] = "completed"
     status["finished_at"] = utc_now()
     status["progress_percent"] = 100
@@ -1145,6 +1201,40 @@ def causal_graph_payload(case_id: str, case_path: str | Path) -> dict | None:
         payload.setdefault("case_id", case_id)
         return payload
     return None
+
+
+def causal_uncertainty_payload(case_id: str, case_path: str | Path) -> dict | None:
+    payload = _json_load(_paths(Path(case_path))["uncertainty"])
+    if isinstance(payload, dict):
+        payload.setdefault("case_id", case_id)
+        return payload
+    return None
+
+
+# Defensive cap so a future scenario with a much larger ground truth never
+# ships an unbounded graph payload to the lightweight cockpit preview.
+_GRAPH_SUMMARY_NODE_CAP = 15
+_GRAPH_SUMMARY_EDGE_CAP = 20
+
+
+def causal_graph_summary_payload(case_id: str, case_path: str | Path) -> dict | None:
+    graph = _json_load(_paths(Path(case_path))["graph"])
+    if not isinstance(graph, dict):
+        return None
+    nodes = graph.get("nodes") or []
+    edges = graph.get("edges") or []
+    truncated = len(nodes) > _GRAPH_SUMMARY_NODE_CAP or len(edges) > _GRAPH_SUMMARY_EDGE_CAP
+    return {
+        "case_id": case_id,
+        "scenario_id": graph.get("scenario_id"),
+        "generated_at": graph.get("generated_at"),
+        "note": graph.get("note"),
+        "total_nodes": len(nodes),
+        "total_edges": len(edges),
+        "nodes": nodes[:_GRAPH_SUMMARY_NODE_CAP],
+        "edges": edges[:_GRAPH_SUMMARY_EDGE_CAP],
+        "truncated": truncated,
+    }
 
 
 def causal_report_payload(case_id: str, case_path: str | Path) -> dict | None:
