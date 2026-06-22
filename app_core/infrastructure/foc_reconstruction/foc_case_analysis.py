@@ -583,6 +583,14 @@ def _analysis_logs_dir(case_dir: Path) -> Path:
     return _analysis_dir(case_dir) / "logs"
 
 
+def _analysis_visual_dir(case_dir: Path) -> Path:
+    return _analysis_dir(case_dir) / "visual"
+
+
+def _analysis_visual_summary_path(case_dir: Path) -> Path:
+    return _analysis_visual_dir(case_dir) / "analysis_visual_summary.json"
+
+
 def _phase_log_paths(case_dir: Path, phase_key: str) -> tuple[Path, Path]:
     base = _analysis_logs_dir(case_dir) / phase_key
     return base.with_suffix(".stdout.log"), base.with_suffix(".stderr.log")
@@ -595,6 +603,328 @@ def _phase_output_path(case_dir: Path, phase_key: str) -> Path | None:
             return _analysis_dir(case_dir) / "preflight_validation.json"
         return None
     return _analysis_dir(case_dir) / rel
+
+
+def _first_nonempty(*values):
+    for value in values:
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+        if value not in (None, "", [], {}, ()):
+            return value
+    return None
+
+
+def _friendly_status_label(value: str | None) -> str:
+    raw = str(value or "unknown").strip().replace("_", " ")
+    if not raw:
+        raw = "unknown"
+    return raw[:1].upper() + raw[1:]
+
+
+def _phase_payload(case_dir: Path, phase_key: str) -> dict:
+    payload = _json_load(_phase_output_path(case_dir, phase_key) or Path())
+    return payload if isinstance(payload, dict) else {}
+
+
+def _phase_short_limitation(payload: dict, phase_status: str) -> str | None:
+    return _first_nonempty(
+        payload.get("not_executed_reason"),
+        (_message_list(payload.get("errors")) or [None])[0],
+        (_message_list(payload.get("limitations")) or [None])[0],
+        phase_status,
+    )
+
+
+def _completed_has_useful_output(phase_key: str, payload: dict) -> tuple[bool, str | None]:
+    findings = payload.get("findings")
+    if phase_key == "memory_analysis":
+        dump_results = payload.get("findings", {}).get("results") or []
+        dumps_analyzed = int(payload.get("findings", {}).get("dumps_analyzed") or 0)
+        completed_plugins = 0
+        for item in dump_results:
+            completed_plugins += len(item.get("completed_plugins") or [])
+        if dumps_analyzed <= 0 or completed_plugins <= 0:
+            return False, "Memory layer available and preflight passed, but no memory dump was effectively analyzed."
+        return True, None
+    if phase_key == "network_analysis":
+        analyzed = int((findings or {}).get("pcaps_analyzed") or 0)
+        return (analyzed > 0, None if analyzed > 0 else "Network phase completed but produced no effective PCAP analysis.")
+    if phase_key == "disk_analysis":
+        analyzed = int((findings or {}).get("disk_images_analyzed") or 0)
+        return (analyzed > 0, None if analyzed > 0 else "Disk phase completed but produced no effective disk-image analysis.")
+    if phase_key == "ot_export_analysis":
+        files = (findings or {}).get("files") or []
+        return (len(files) > 0, None if files else "OT export phase completed but produced no effective OT findings.")
+    if phase_key == "alerts_detection_analysis":
+        total = int((findings or {}).get("alerts_total") or 0)
+        return (total > 0, None if total > 0 else "Alert-analysis phase completed but no effective preserved alerts were summarized.")
+    if phase_key == "pipeline_custody_analysis":
+        total = int((findings or {}).get("pipeline_events_total") or 0) + int((findings or {}).get("custody_events_total") or 0)
+        return (total > 0, None if total > 0 else "Pipeline and custody phase completed but produced no effective event inventory.")
+    if phase_key == "unified_forensic_timeline":
+        rows = findings if isinstance(findings, list) else []
+        return (len(rows) > 0, None if rows else "Unified forensic timeline phase completed but no effective timeline rows were generated.")
+    if phase_key == "cross_layer_findings":
+        rows = findings if isinstance(findings, list) else []
+        return (len(rows) > 0, None if rows else "Cross-layer phase completed but produced no effective cross-layer findings.")
+    if phase_key == "forensic_analysis_report_generation":
+        return (bool(payload.get("analysis_status")), None if payload.get("analysis_status") else "Forensic report phase completed but no effective report status was produced.")
+    if phase_key == "foc_readiness_update":
+        return (bool((payload.get("findings") or {}).get("foc_manifest_updated_at")), None if (payload.get("findings") or {}).get("foc_manifest_updated_at") else "FOC readiness update completed but no effective refresh marker was produced.")
+    if phase_key == "preflight_validation":
+        return (bool(payload.get("findings")), None if payload.get("findings") else "Pre-flight validation completed but produced no effective findings.")
+    if phase_key == "evidence_inventory":
+        total = int((findings or {}).get("artifacts_total") or 0)
+        return (total > 0, None if total > 0 else "Evidence inventory completed but no effective artifacts were indexed.")
+    if phase_key == "integrity_custody_validation":
+        return (bool(payload.get("findings")), None if payload.get("findings") else "Integrity and custody validation completed but produced no effective output.")
+    if phase_key == "temporal_validation":
+        return (bool(payload.get("findings")), None if payload.get("findings") else "Temporal validation completed but produced no effective output.")
+    return (bool(findings) or bool(payload.get("tool_used")), None if (bool(findings) or bool(payload.get("tool_used"))) else "Completed phase produced no effective output.")
+
+
+def _derive_phase_visual_state(phase_key: str, phase_status: str, payload: dict) -> tuple[str, str, str | None]:
+    normalized = str(phase_status or "unknown")
+    if normalized == "running":
+        return "running", "running", _phase_short_limitation(payload, normalized)
+    if normalized == "pending":
+        return "pending", "pending", _phase_short_limitation(payload, normalized)
+    if normalized.startswith("failed"):
+        return "error", normalized, _phase_short_limitation(payload, normalized)
+    if normalized.startswith("skipped"):
+        return "unavailable", normalized, _phase_short_limitation(payload, normalized)
+    if normalized.startswith("partial"):
+        return "warning", normalized, _phase_short_limitation(payload, normalized)
+    if normalized == "completed":
+        useful, message = _completed_has_useful_output(phase_key, payload)
+        if useful:
+            return "success", "completed_with_useful_output", None
+        if phase_key == "memory_analysis":
+            return "warning", "completed_no_effective_memory_analysis", message
+        return "warning", "completed_no_effective_output", message
+    return "unavailable", normalized or "unknown", _phase_short_limitation(payload, normalized)
+
+
+def _phase_visual_summary_text(phase_key: str, payload: dict) -> str:
+    findings = payload.get("findings") or {}
+    if phase_key == "evidence_inventory":
+        return f"Artifacts indexed: {int(findings.get('artifacts_total') or 0)}"
+    if phase_key == "network_analysis":
+        return f"PCAPs analyzed: {int(findings.get('pcaps_analyzed') or 0)}"
+    if phase_key == "memory_analysis":
+        return f"Dumps analyzed: {int(findings.get('dumps_analyzed') or 0)}"
+    if phase_key == "disk_analysis":
+        return f"Disk images analyzed: {int(findings.get('disk_images_analyzed') or 0)}"
+    if phase_key == "ot_export_analysis":
+        return f"OT files: {len(findings.get('files') or [])}"
+    if phase_key == "alerts_detection_analysis":
+        return f"Alerts summarized: {int(findings.get('alerts_total') or 0)}"
+    if phase_key == "pipeline_custody_analysis":
+        return f"Pipeline events: {int(findings.get('pipeline_events_total') or 0)}, custody events: {int(findings.get('custody_events_total') or 0)}"
+    if phase_key == "unified_forensic_timeline":
+        return f"Timeline entries: {len(findings) if isinstance(findings, list) else 0}"
+    if phase_key == "cross_layer_findings":
+        return f"Cross-layer findings: {len(findings) if isinstance(findings, list) else 0}"
+    if phase_key == "forensic_analysis_report_generation":
+        return f"Report status: {payload.get('analysis_status') or payload.get('status') or 'unknown'}"
+    if phase_key == "foc_readiness_update":
+        return f"FOC manifest updated: {((payload.get('findings') or {}).get('foc_manifest_updated_at') or 'not_available')}"
+    return _friendly_status_label(payload.get("status"))
+
+
+def _build_pipeline_timeline_entries(status: dict) -> list[dict]:
+    rows: list[dict] = []
+    for phase_key, label, _ in ANALYSIS_PHASES:
+        phase = (status.get("phases") or {}).get(phase_key) or {}
+        rows.append(
+            {
+                "phase": phase_key,
+                "label": label,
+                "status": phase.get("status") or "pending",
+                "started_at": phase.get("started_at"),
+                "finished_at": phase.get("finished_at"),
+                "stdout_path": phase.get("stdout_path"),
+                "stderr_path": phase.get("stderr_path"),
+                "artifact_path": phase.get("output_path"),
+            }
+        )
+    return rows
+
+
+def _build_forensic_timeline_entries(case_dir: Path) -> list[dict]:
+    payload = _phase_payload(case_dir, "unified_forensic_timeline")
+    findings = payload.get("findings")
+    if not isinstance(findings, list):
+        return []
+    rows = []
+    for item in findings[:160]:
+        if not isinstance(item, dict):
+            continue
+        rows.append(
+            {
+                "timestamp": item.get("timestamp"),
+                "source": item.get("source"),
+                "event": item.get("event"),
+                "details": item.get("details") or {},
+            }
+        )
+    return rows
+
+
+def _analysis_visual_summary(case_entry: dict, case_dir: Path, status: dict) -> dict:
+    report = _json_load(_analysis_dir(case_dir) / "forensic_analysis_report.json") or {}
+    memory_findings = _phase_payload(case_dir, "memory_analysis")
+    layer_statuses: dict[str, dict] = {}
+    blockers: list[str] = []
+    warnings: list[str] = []
+    artifact_paths: dict[str, str | None] = {}
+    stdout_log_paths: dict[str, str | None] = {}
+    stderr_log_paths: dict[str, str | None] = {}
+
+    for phase_key, label, _ in ANALYSIS_PHASES:
+        phase = (status.get("phases") or {}).get(phase_key) or {}
+        payload = _phase_payload(case_dir, phase_key)
+        phase_status = str(phase.get("status") or "pending")
+        visual_state, effective_status, limitation = _derive_phase_visual_state(phase_key, phase_status, payload)
+        phase_warning = None
+        if visual_state == "warning":
+            phase_warning = limitation or _phase_short_limitation(payload, phase_status)
+        summary = _phase_visual_summary_text(phase_key, payload)
+        layer_statuses[phase_key] = {
+            "phase": phase_key,
+            "label": label,
+            "status": phase_status,
+            "effective_status": effective_status,
+            "artifact_path": phase.get("output_path"),
+            "stdout_log_path": phase.get("stdout_path"),
+            "stderr_log_path": phase.get("stderr_path"),
+            "warning": phase_warning,
+            "visual_state": visual_state,
+            "short_limitation": limitation,
+            "summary": summary,
+        }
+        artifact_paths[phase_key] = phase.get("output_path")
+        stdout_log_paths[phase_key] = phase.get("stdout_path")
+        stderr_log_paths[phase_key] = phase.get("stderr_path")
+        if visual_state == "error":
+            blockers.append(f"{label}: {limitation or 'phase failed'}")
+        elif visual_state == "warning":
+            warnings.append(f"{label}: {phase_warning or 'limited output'}")
+
+    memory_layer = layer_statuses.get("memory_analysis") or {}
+    if memory_layer.get("effective_status") == "completed_no_effective_memory_analysis":
+        blockers.append("Memory analysis finished, but no dump produced effective plugin results.")
+    if "integrity_custody_validation" in (status.get("partial_phases") or []):
+        blockers.append("Integrity or custody validation remains partial.")
+    blockers.append("Semantic reconstruction has not been generated.")
+    blockers.append("Causal reconstruction has not been generated.")
+
+    success_count = sum(1 for item in layer_statuses.values() if item["visual_state"] == "success")
+    warning_count = sum(1 for item in layer_statuses.values() if item["visual_state"] == "warning")
+    error_count = sum(1 for item in layer_statuses.values() if item["visual_state"] == "error")
+
+    if success_count == 0 and error_count == 0 and warning_count == 0:
+        evidence_analysis_status = "not_started"
+    elif error_count == 0 and warning_count == 0:
+        evidence_analysis_status = "completed"
+    elif success_count >= max(3, warning_count + error_count):
+        evidence_analysis_status = "mostly_completed"
+    else:
+        evidence_analysis_status = "partial"
+
+    forensic_reconstruction_status = "partial" if status.get("status") in {"completed", "partial", "running", "failed", "cancelled"} else "not_started"
+    if status.get("status") == "not_started":
+        forensic_reconstruction_status = "not_started"
+
+    if error_count > 0 or "integrity_custody_validation" in (status.get("partial_phases") or []) or memory_layer.get("effective_status") == "completed_no_effective_memory_analysis":
+        confidence_state = "limited"
+    elif warning_count > 0:
+        confidence_state = "constrained"
+    else:
+        confidence_state = "strong"
+
+    main_limitation = _first_nonempty(
+        blockers[0] if blockers else None,
+        report.get("status_note"),
+        "Pipeline execution completed, but forensic reconstruction remains partial because some layers are partial and semantic or causal reconstruction have not yet been generated.",
+    )
+
+    graph_nodes = [
+        {"id": "case", "label": case_entry.get("source_case_name") or case_entry.get("case_id"), "type": "case", "status": status.get("status"), "visual_state": "success", "summary": "Selected forensic case."},
+        {"id": "analysis_execution", "label": "Analysis execution", "type": "analysis", "status": status.get("status"), "visual_state": "success" if status.get("status") in {"completed", "partial"} else ("running" if status.get("status") == "running" else "warning"), "summary": f"Pipeline execution status: {status.get('status') or 'unknown'}"},
+        {"id": "evidence_inventory", "label": "Evidence inventory", "type": "layer", "status": layer_statuses["evidence_inventory"]["effective_status"], "visual_state": layer_statuses["evidence_inventory"]["visual_state"], "summary": layer_statuses["evidence_inventory"]["summary"]},
+        {"id": "integrity_custody_validation", "label": "Integrity and custody", "type": "layer", "status": layer_statuses["integrity_custody_validation"]["effective_status"], "visual_state": layer_statuses["integrity_custody_validation"]["visual_state"], "summary": layer_statuses["integrity_custody_validation"]["summary"]},
+        {"id": "network_findings", "label": "Network findings", "type": "layer", "status": layer_statuses["network_analysis"]["effective_status"], "visual_state": layer_statuses["network_analysis"]["visual_state"], "summary": layer_statuses["network_analysis"]["summary"]},
+        {"id": "disk_findings", "label": "Disk findings", "type": "layer", "status": layer_statuses["disk_analysis"]["effective_status"], "visual_state": layer_statuses["disk_analysis"]["visual_state"], "summary": layer_statuses["disk_analysis"]["summary"]},
+        {"id": "memory_findings", "label": "Memory findings", "type": "layer", "status": layer_statuses["memory_analysis"]["effective_status"], "visual_state": layer_statuses["memory_analysis"]["visual_state"], "summary": layer_statuses["memory_analysis"]["summary"]},
+        {"id": "ot_findings", "label": "OT findings", "type": "layer", "status": layer_statuses["ot_export_analysis"]["effective_status"], "visual_state": layer_statuses["ot_export_analysis"]["visual_state"], "summary": layer_statuses["ot_export_analysis"]["summary"]},
+        {"id": "alert_findings", "label": "Alert findings", "type": "layer", "status": layer_statuses["alerts_detection_analysis"]["effective_status"], "visual_state": layer_statuses["alerts_detection_analysis"]["visual_state"], "summary": layer_statuses["alerts_detection_analysis"]["summary"]},
+        {"id": "timeline", "label": "Unified timeline", "type": "layer", "status": layer_statuses["unified_forensic_timeline"]["effective_status"], "visual_state": layer_statuses["unified_forensic_timeline"]["visual_state"], "summary": layer_statuses["unified_forensic_timeline"]["summary"]},
+        {"id": "cross_layer_findings", "label": "Cross-layer findings", "type": "layer", "status": layer_statuses["cross_layer_findings"]["effective_status"], "visual_state": layer_statuses["cross_layer_findings"]["visual_state"], "summary": layer_statuses["cross_layer_findings"]["summary"]},
+        {"id": "reconstruction_blockers", "label": "Reconstruction blockers", "type": "blockers", "status": "present" if blockers else "none", "visual_state": "warning" if blockers else "success", "summary": f"Blockers: {len(blockers)}"},
+    ]
+    graph_edges = [
+        {"from": "case", "to": "analysis_execution", "label": "drives"},
+        {"from": "analysis_execution", "to": "evidence_inventory", "label": "produces"},
+        {"from": "analysis_execution", "to": "integrity_custody_validation", "label": "produces"},
+        {"from": "analysis_execution", "to": "network_findings", "label": "produces"},
+        {"from": "analysis_execution", "to": "disk_findings", "label": "produces"},
+        {"from": "analysis_execution", "to": "memory_findings", "label": "produces"},
+        {"from": "analysis_execution", "to": "ot_findings", "label": "produces"},
+        {"from": "analysis_execution", "to": "alert_findings", "label": "produces"},
+        {"from": "analysis_execution", "to": "timeline", "label": "produces"},
+        {"from": "analysis_execution", "to": "cross_layer_findings", "label": "produces"},
+        {"from": "integrity_custody_validation", "to": "reconstruction_blockers", "label": "limits"},
+        {"from": "memory_findings", "to": "reconstruction_blockers", "label": "limits"},
+        {"from": "cross_layer_findings", "to": "reconstruction_blockers", "label": "informs"},
+        {"from": "timeline", "to": "cross_layer_findings", "label": "supports"},
+        {"from": "alert_findings", "to": "cross_layer_findings", "label": "supports"},
+    ]
+
+    visual_recommendations = []
+    if memory_layer.get("effective_status") == "completed_no_effective_memory_analysis":
+        visual_recommendations.append("Review preserved memory artifacts and verify that at least one dump produces effective Volatility plugin output before treating the memory layer as evidentially useful.")
+    if "integrity_custody_validation" in (status.get("partial_phases") or []):
+        visual_recommendations.append("Review integrity and custody outputs before assigning high scientific confidence to downstream interpretations.")
+    if layer_statuses.get("unified_forensic_timeline", {}).get("visual_state") != "success":
+        visual_recommendations.append("Regenerate or inspect the unified forensic timeline before treating cross-layer chronology as complete.")
+    visual_recommendations.append("Semantic reconstruction is not generated in this stage.")
+    visual_recommendations.append("Causal reconstruction remains blocked until dedicated causal artifacts are generated.")
+
+    return {
+        "case_id": case_entry.get("case_id"),
+        "analysis_id": status.get("analysis_id"),
+        "case_path": relative_path(case_dir),
+        "started_at": status.get("started_at"),
+        "finished_at": status.get("finished_at"),
+        "progress_percent": status.get("progress_percent"),
+        "execution_status": status.get("status"),
+        "evidence_analysis_status": evidence_analysis_status,
+        "forensic_reconstruction_status": forensic_reconstruction_status,
+        "confidence_state": confidence_state,
+        "main_limitation": main_limitation,
+        "main_warnings": warnings[:12],
+        "blockers": blockers[:16],
+        "available_layers": status.get("available_layers") or {},
+        "layer_statuses": layer_statuses,
+        "artifact_paths": artifact_paths,
+        "stdout_log_paths": stdout_log_paths,
+        "stderr_log_paths": stderr_log_paths,
+        "graph_nodes": graph_nodes,
+        "graph_edges": graph_edges,
+        "pipeline_timeline_entries": _build_pipeline_timeline_entries(status),
+        "forensic_timeline_entries": _build_forensic_timeline_entries(case_dir),
+        "visual_recommendations": visual_recommendations,
+        "generated_report_path": status.get("forensic_analysis_report_path") or (relative_path(_analysis_dir(case_dir) / "forensic_analysis_report.json") if (_analysis_dir(case_dir) / "forensic_analysis_report.json").exists() else None),
+    }
+
+
+def _refresh_analysis_visual_summary(case_dir: Path, status: dict) -> None:
+    case_entry = get_case_entry(str(status.get("case_id")))
+    if not case_entry:
+        return
+    payload = _analysis_visual_summary(case_entry, case_dir, status)
+    _write_json(_analysis_visual_summary_path(case_dir), payload)
 
 
 def _list_case_entries() -> list[dict]:
@@ -658,6 +988,7 @@ def _default_analysis_status(case_entry: dict) -> dict:
     analysis_dir = _analysis_dir(case_dir)
     report_path = analysis_dir / "forensic_analysis_report.json"
     manifest_path = analysis_dir / "forensic_analysis_manifest.json"
+    visual_summary_path = _analysis_visual_summary_path(case_dir)
     status = "not_started"
     if report_path.is_file():
         status = "completed"
@@ -684,6 +1015,7 @@ def _default_analysis_status(case_entry: dict) -> dict:
         "analysis_dir": relative_path(analysis_dir),
         "forensic_analysis_report_path": relative_path(report_path) if report_path.exists() else None,
         "forensic_analysis_manifest_path": relative_path(manifest_path) if manifest_path.exists() else None,
+        "analysis_visual_summary_path": relative_path(visual_summary_path) if visual_summary_path.exists() else None,
         "evidence_available": inventory["artifacts_total"] > 0,
         "available_layers": inventory["layers"],
         "inventory_summary": inventory["artifact_type_counts"],
@@ -705,8 +1037,10 @@ def load_analysis_status(case_id: str) -> dict:
     payload.setdefault("partial_phases", [])
     report_path = _analysis_dir(case_dir) / "forensic_analysis_report.json"
     manifest_path = _analysis_dir(case_dir) / "forensic_analysis_manifest.json"
+    visual_summary_path = _analysis_visual_summary_path(case_dir)
     payload["forensic_analysis_report_path"] = relative_path(report_path) if report_path.exists() else None
     payload["forensic_analysis_manifest_path"] = relative_path(manifest_path) if manifest_path.exists() else None
+    payload["analysis_visual_summary_path"] = relative_path(visual_summary_path) if visual_summary_path.exists() else None
     inventory = _artifact_inventory(case_dir)
     payload["available_layers"] = inventory["layers"]
     payload["inventory_summary"] = inventory["artifact_type_counts"]
@@ -721,6 +1055,10 @@ def _write_status(case_dir: Path, status: dict) -> None:
     status["failed_phases"] = [key for key, phase in (status.get("phases") or {}).items() if str(phase.get("status")).startswith("failed")]
     status["skipped_phases"] = [key for key, phase in (status.get("phases") or {}).items() if str(phase.get("status")).startswith("skipped")]
     _write_json(_analysis_status_path(case_dir), status)
+    try:
+        _refresh_analysis_visual_summary(case_dir, status)
+    except Exception:
+        logger.warning("Failed to refresh analysis visual summary for %s", case_dir, exc_info=True)
 
 
 def _init_status(case_entry: dict, force: bool = False) -> dict:
@@ -2239,6 +2577,27 @@ def analysis_report(case_id: str) -> dict | None:
     report["summary_path"] = relative_path(summary_path) if summary_path.exists() else None
     report["summary_preview"] = summary_path.read_text(encoding="utf-8", errors="ignore")[:4000] if summary_path.exists() else None
     return report
+
+
+def analysis_visual_summary(case_id: str) -> dict | None:
+    case_entry = get_case_entry(case_id)
+    if not case_entry:
+        return None
+    case_dir = _case_dir_from_entry(case_entry)
+    summary_path = _analysis_visual_summary_path(case_dir)
+    payload = _json_load(summary_path)
+    if isinstance(payload, dict):
+        return payload
+    status = load_analysis_status(case_id)
+    if status.get("error"):
+        return None
+    try:
+        payload = _analysis_visual_summary(case_entry, case_dir, status)
+        _write_json(summary_path, payload)
+        return payload
+    except Exception:
+        logger.warning("Failed to build analysis visual summary for case %s", case_id, exc_info=True)
+        return None
 
 
 def generate_symbols_for_case(case_id: str, dump_id: str | None = None, ssh_user: str | None = None, ssh_key: str | None = None, vm_ip: str | None = None, vm_id: str | None = None) -> dict:

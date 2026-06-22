@@ -57,6 +57,7 @@ def _artifact_classification(artifact_type: str) -> tuple[str, bool]:
         "forensic_analysis_report.json",
         "forensic_analysis_manifest.json",
         "forensic_analysis_summary.md",
+        "analysis_visual_summary.json",
         "foc_readiness_update.json",
     }
     if normalized in {

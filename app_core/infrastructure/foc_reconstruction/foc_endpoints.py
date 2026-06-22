@@ -8,6 +8,7 @@ from flask import Blueprint, Response, jsonify, request
 from .foc_case_analysis import (
     analysis_logs,
     analysis_report,
+    analysis_visual_summary,
     cases_with_analysis_state,
     load_analysis_status,
     run_analysis,
@@ -161,6 +162,14 @@ def api_foc_case_analysis_report(case_id: str):
     payload = analysis_report(case_id)
     if payload is None:
         return jsonify({"error": "analysis_report_not_found", "case_id": case_id}), 404
+    return jsonify(payload), 200
+
+
+@foc_bp.route("/api/foc/cases/<case_id>/analysis/visual-summary", methods=["GET"])
+def api_foc_case_analysis_visual_summary(case_id: str):
+    payload = analysis_visual_summary(case_id)
+    if payload is None:
+        return jsonify({"error": "analysis_visual_summary_not_found", "case_id": case_id}), 404
     return jsonify(payload), 200
 
 

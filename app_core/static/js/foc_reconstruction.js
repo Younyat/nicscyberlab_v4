@@ -19,6 +19,13 @@ const FOC = {
   caseAnalysisStatuses: {},
   selectedCaseId: null,
   analysisPollTimer: null,
+  analysisVisualState: {
+    selectedNodeId: "case",
+    timelineMode: "pipeline",
+    showRaw: false,
+    reportRequested: false,
+    currentCaseEntryName: null,
+  },
   graphState: {
     layers: {
       topology: true,
@@ -87,6 +94,10 @@ function analysisReportUrl(caseId) {
   return `${API}/cases/${encodeURIComponent(caseId)}/analysis/report`;
 }
 
+function analysisVisualUrl(caseId) {
+  return `${API}/cases/${encodeURIComponent(caseId)}/analysis/visual-summary`;
+}
+
 function setLoadingState(active, message = "Loading FOC reconstruction…") {
   const shell = byId("loading-shell");
   const messageEl = byId("loading-message");
@@ -146,11 +157,28 @@ function statusClass(status) {
   if (normalized.startsWith("skipped")) return "status-unknown";
   if (normalized === "running") return "status-inferred";
   if (["confirmed", "complete", "valid", "active", "bound", "present", "available", "completed"].includes(normalized)) return "status-confirmed";
-  if (["inferred", "partial", "bootstrap", "updated", "warning", "warnings", "mostly_available", "mostly_noise"].includes(normalized)) return "status-inferred";
-  if (["missing", "critical", "insufficient", "unresolved", "error", "bootstrap_required"].includes(normalized)) return "status-missing";
-  if (["unknown", "not_available", "degraded", "not_completed", "not_generated"].includes(normalized)) return "status-unknown";
+  if (["inferred", "partial", "bootstrap", "updated", "warning", "warnings", "mostly_available", "mostly_noise", "mostly_completed", "constrained", "limited"].includes(normalized)) return "status-inferred";
+  if (["missing", "critical", "insufficient", "unresolved", "error", "bootstrap_required", "failed"].includes(normalized)) return "status-missing";
+  if (["unknown", "not_available", "degraded", "not_completed", "not_generated", "not_started"].includes(normalized)) return "status-unknown";
   if (["not_generated_yet"].includes(normalized)) return "status-updated";
   return "status-updated";
+}
+
+function visualStateClass(state) {
+  const normalized = String(state || "").toLowerCase();
+  if (normalized === "success") return "status-confirmed";
+  if (normalized === "warning") return "status-inferred";
+  if (normalized === "error") return "status-missing";
+  if (normalized === "running") return "status-updated";
+  if (normalized === "pending") return "status-unknown";
+  if (normalized === "unavailable") return "status-unknown";
+  return "status-unknown";
+}
+
+function titleizeStatus(value) {
+  return String(value || "unknown")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, ch => ch.toUpperCase());
 }
 
 function tag(label, value, cls = "") {
@@ -2166,6 +2194,7 @@ function renderCases() {
         <div class="flex flex-wrap gap-3 mt-4">
           <button class="open-analysis-btn btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase" data-case-id="${esc(entry.case_id)}"${currentAnalysisState === "running" ? " disabled" : ""}>${esc(runLabel)}</button>
           <button class="view-analysis-btn btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase" data-case-id="${esc(entry.case_id)}">Open Analysis Status</button>
+          <button class="view-analysis-report-btn btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase" data-case-id="${esc(entry.case_id)}">View Analysis Report</button>
         </div>
       </div>
     `;
@@ -2325,7 +2354,11 @@ function scheduleAnalysisPolling(caseId) {
     if (!FOC.selectedCaseId || FOC.selectedCaseId !== caseId) return;
     try {
       const status = await fetchCaseAnalysisStatus(caseId);
-      renderAnalysisModal(status);
+      renderAnalysisModal(status, {
+        logs: FOC.analysisVisualState.currentLogs || null,
+        report: FOC.analysisVisualState.currentReport || null,
+        visualSummary: FOC.analysisVisualState.reportRequested ? (FOC.analysisVisualState.currentSummary || null) : null,
+      });
       if (status.status === "running") {
         scheduleAnalysisPolling(caseId);
       }
@@ -2351,6 +2384,20 @@ function closeAnalysisModalShell() {
   modal.classList.remove("is-active");
   modal.setAttribute("aria-hidden", "true");
   stopAnalysisPolling();
+}
+
+function openAnalysisReportModalShell() {
+  const modal = byId("analysis-report-modal");
+  if (!modal) return;
+  modal.classList.add("is-active");
+  modal.setAttribute("aria-hidden", "false");
+}
+
+function closeAnalysisReportModalShell() {
+  const modal = byId("analysis-report-modal");
+  if (!modal) return;
+  modal.classList.remove("is-active");
+  modal.setAttribute("aria-hidden", "true");
 }
 
 function openSymbolGenModal() {
@@ -2389,7 +2436,14 @@ async function generateSymbolsForSelectedCase() {
     const res = await fetchJson(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     byId("symbolgen-status").textContent = res.status ? `status: ${res.status}` : "queued";
     await pollSymbolGenerationJob(caseId, res.job_id);
-    try { const status = await fetchCaseAnalysisStatus(caseId); renderAnalysisModal(status); } catch (_) {}
+    try {
+      const status = await fetchCaseAnalysisStatus(caseId);
+      renderAnalysisModal(status, {
+        logs: FOC.analysisVisualState.currentLogs || null,
+        report: FOC.analysisVisualState.currentReport || null,
+        visualSummary: FOC.analysisVisualState.reportRequested ? (FOC.analysisVisualState.currentSummary || null) : null,
+      });
+    } catch (_) {}
   } catch (err) {
     byId("symbolgen-status").textContent = `Request failed: ${err.message || err}`;
   } finally {
@@ -2448,7 +2502,7 @@ async function pollSymbolGenerationJob(caseId, jobId) {
   }
 }
 
-  async function cancelCaseAnalysis(caseId) {
+async function cancelCaseAnalysis(caseId) {
     if (!caseId) return;
     const btn = byId("analysis-cancel-btn");
     try {
@@ -2460,15 +2514,373 @@ async function pollSymbolGenerationJob(caseId, jobId) {
       const debugPanel = byId("analysis-debug-panel");
       if (debugPanel) debugPanel.innerHTML += `<div class="mt-4"><strong>cancel_request:</strong><div class="mono text-xs text-slate-400 mt-2 whitespace-pre-wrap">${esc(JSON.stringify(json, null, 2))}</div></div>`;
       // refresh status
-      try { const status = await fetchCaseAnalysisStatus(caseId); renderAnalysisModal(status); } catch (_) {}
+      try {
+        const status = await fetchCaseAnalysisStatus(caseId);
+        renderAnalysisModal(status, {
+          logs: FOC.analysisVisualState.currentLogs || null,
+          report: FOC.analysisVisualState.currentReport || null,
+          visualSummary: FOC.analysisVisualState.reportRequested ? (FOC.analysisVisualState.currentSummary || null) : null,
+        });
+      } catch (_) {}
       return json;
     } catch (err) {
       const debugPanel = byId("analysis-debug-panel");
       if (debugPanel) debugPanel.innerHTML += `<div class="mt-4"><strong>cancel_request_error:</strong><div class="mono text-xs text-slate-400 mt-2 whitespace-pre-wrap">${esc(String(err))}</div></div>`;
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = "Stop Analysis"; }
+  }
+}
+
+function analysisLabel(kind, value) {
+  const normalized = String(value || "").toLowerCase();
+  if (kind === "execution") {
+    if (normalized === "completed") return "Finished";
+    if (normalized === "partial") return "Finished with limitations";
+    if (normalized === "running") return "Running";
+    if (normalized === "failed") return "Failed";
+    if (normalized === "cancelled") return "Cancelled";
+    return titleizeStatus(value);
+  }
+  if (kind === "evidence") {
+    if (normalized === "mostly_completed") return "Mostly completed";
+    if (normalized === "completed") return "Completed";
+    if (normalized === "partial") return "Partial";
+    if (normalized === "failed") return "Failed";
+    return titleizeStatus(value);
+  }
+  if (kind === "reconstruction") {
+    if (normalized === "partial") return "Partial";
+    if (normalized === "completed") return "Completed";
+    if (normalized === "not_started") return "Not generated";
+    return titleizeStatus(value);
+  }
+  if (kind === "confidence") {
+    if (normalized === "limited") return "Limited";
+    if (normalized === "constrained") return "Constrained";
+    if (normalized === "strong") return "Strong";
+    return titleizeStatus(value);
+  }
+  return titleizeStatus(value);
+}
+
+function layerBadge(state, label) {
+  return `<span class="tag rounded-full px-2.5 py-1 text-[10px] font-black tracking-[0.14em] uppercase ${visualStateClass(state)}">${esc(label)}</span>`;
+}
+
+function renderEvidenceCoverageRing(summary) {
+  const layers = [
+    ["alerts", "Alerts", summary.layer_statuses?.alerts_detection_analysis],
+    ["chain_of_custody", "Custody", summary.layer_statuses?.integrity_custody_validation],
+    ["disk", "Disk", summary.layer_statuses?.disk_analysis],
+    ["memory", "Memory", summary.layer_statuses?.memory_analysis],
+    ["network", "Network", summary.layer_statuses?.network_analysis],
+    ["ot_exports", "OT", summary.layer_statuses?.ot_export_analysis],
+    ["time_sync", "Time", summary.layer_statuses?.temporal_validation],
+    ["timeline", "Timeline", summary.layer_statuses?.unified_forensic_timeline],
+    ["cross_layer_findings", "Cross-layer", summary.layer_statuses?.cross_layer_findings],
+  ];
+  const radius = 128;
+  const center = 170;
+  const nodes = layers.map(([, label, layer], index) => {
+    const angle = (-90 + (360 / layers.length) * index) * (Math.PI / 180);
+    const x = center + Math.cos(angle) * radius;
+    const y = center + Math.sin(angle) * radius;
+    const state = layer?.visual_state || "unavailable";
+    return `
+      <div style="position:absolute;left:${x - 42}px;top:${y - 20}px;width:84px"
+           class="text-center">
+        <div class="mx-auto rounded-full border px-2 py-2 text-[10px] font-black tracking-[0.12em] uppercase ${visualStateClass(state)}" style="background:rgba(15,23,42,0.86);border-color:rgba(148,163,184,0.16)">${esc(label)}</div>
+      </div>
+    `;
+  }).join("");
+  return `
+    <div class="relative mx-auto" style="width:340px;height:340px">
+      <div class="absolute inset-0 rounded-full border" style="border-color:rgba(148,163,184,0.12)"></div>
+      <div class="absolute inset-[42px] rounded-full border" style="border-color:rgba(148,163,184,0.08)"></div>
+      ${nodes}
+      <div class="absolute" style="left:${center - 64}px;top:${center - 64}px;width:128px;height:128px">
+        <div class="h-full w-full rounded-full border flex flex-col items-center justify-center text-center px-4" style="background:rgba(8,15,28,0.96);border-color:rgba(148,163,184,0.18)">
+          <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Case</div>
+          <div class="text-sm font-black mt-2">${esc(summary.case_id || "unknown")}</div>
+          <div class="text-[11px] text-slate-400 mt-1">${esc(analysisLabel("reconstruction", summary.forensic_reconstruction_status))}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderStructuralGraph(summary) {
+  const selectedId = FOC.analysisVisualState.selectedNodeId || summary.graph_nodes?.[0]?.id || "case";
+  const nodes = Array.isArray(summary.graph_nodes) ? summary.graph_nodes : [];
+  const selected = nodes.find(node => node.id === selectedId) || nodes[0] || null;
+  const edges = (summary.graph_edges || []).filter(edge => edge.from === selected?.id || edge.to === selected?.id);
+  return `
+    <div class="grid grid-cols-1 xl:grid-cols-12 gap-4">
+      <div class="xl:col-span-7">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          ${nodes.map(node => `
+            <button data-visual-node="${esc(node.id)}" class="glass rounded-2xl p-4 text-left ${String(node.id) === String(selected?.id) ? "ring-2 ring-sky-500/60" : ""}">
+              <div class="flex items-center justify-between gap-3">
+                <div class="font-black">${esc(node.label)}</div>
+                ${layerBadge(node.visual_state || "unavailable", node.type || "node")}
+              </div>
+              <div class="mt-2 text-xs text-slate-400">${esc(titleizeStatus(node.status || "unknown"))}</div>
+              <div class="mt-2 text-xs text-slate-300">${esc(node.summary || "No summary")}</div>
+            </button>
+          `).join("")}
+        </div>
+        <div class="glass rounded-2xl p-4 mt-4">
+          <div class="text-[11px] tracking-[0.18em] uppercase text-slate-400 font-black">Graph edges</div>
+          <div class="mt-3 space-y-2">
+            ${edges.length ? edges.map(edge => `
+              <div class="text-xs text-slate-300 mono">${esc(edge.from)} -> ${esc(edge.to)} <span class="text-slate-500">(${esc(edge.label || "edge")})</span></div>
+            `).join("") : '<div class="text-xs text-slate-500">No graph edges for the selected node.</div>'}
+          </div>
+        </div>
+      </div>
+      <div class="xl:col-span-5">
+        <div class="glass rounded-2xl p-4">
+          <div class="text-[11px] tracking-[0.18em] uppercase text-slate-400 font-black">Selected node</div>
+          ${selected ? `
+            <div class="flex items-center justify-between gap-3 mt-3">
+              <div class="text-xl font-black">${esc(selected.label)}</div>
+              ${layerBadge(selected.visual_state || "unavailable", selected.type || "node")}
+            </div>
+            <div class="mt-3 text-sm text-slate-300"><strong>status:</strong> ${esc(titleizeStatus(selected.status || "unknown"))}</div>
+            <div class="mt-1 text-sm text-slate-300"><strong>summary:</strong> ${esc(selected.summary || "No summary available.")}</div>
+            ${selected.id && summary.layer_statuses?.[selected.id] ? `
+              <div class="mt-4 space-y-2 text-sm text-slate-300">
+                <div><strong>effective status:</strong> ${esc(titleizeStatus(summary.layer_statuses[selected.id].effective_status || "unknown"))}</div>
+                <div><strong>artifact path:</strong> <span class="mono text-xs text-slate-400">${esc(summary.layer_statuses[selected.id].artifact_path || "not_available")}</span></div>
+                <div><strong>stdout log:</strong> <span class="mono text-xs text-slate-400">${esc(summary.layer_statuses[selected.id].stdout_log_path || "not_available")}</span></div>
+                <div><strong>stderr log:</strong> <span class="mono text-xs text-slate-400">${esc(summary.layer_statuses[selected.id].stderr_log_path || "not_available")}</span></div>
+                <div><strong>warning:</strong> ${esc(summary.layer_statuses[selected.id].warning || "none")}</div>
+                <div><strong>limitation:</strong> ${esc(summary.layer_statuses[selected.id].short_limitation || "none")}</div>
+              </div>
+            ` : ""}
+          ` : '<div class="mt-3 text-sm text-slate-500">No graph node selected.</div>'}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderAnalysisVisualCockpit(summary, report) {
+  if (!summary) {
+    return '<div class="text-sm text-slate-500">No visual summary loaded.</div>';
+  }
+  const timelineMode = FOC.analysisVisualState.timelineMode || "pipeline";
+  const pipelineEntries = Array.isArray(summary.pipeline_timeline_entries) ? summary.pipeline_timeline_entries : [];
+  const forensicEntries = Array.isArray(summary.forensic_timeline_entries) ? summary.forensic_timeline_entries : [];
+  const timelineEntries = timelineMode === "forensic" ? forensicEntries : pipelineEntries;
+  const matrixRows = Object.values(summary.layer_statuses || {});
+  const executionNarrative = String(summary.execution_status || "").toLowerCase() === "running"
+    ? "Pipeline execution is still running. Evidence-analysis and reconstruction indicators below are provisional until the final phases complete."
+    : "Pipeline execution completed, but forensic reconstruction remains partial because some layers are partial and semantic or causal reconstruction have not yet been generated.";
+  return `
+    <div class="space-y-5">
+      <div class="glass rounded-[24px] p-5">
+        <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Multilayer Forensic Evidence Cockpit</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-4">
+          <div class="glass-soft rounded-2xl p-4">
+            <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Case ID</div>
+            <div class="mono text-sm font-black mt-2">${esc(summary.case_id || "unknown")}</div>
+            <div class="text-xs text-slate-400 mt-2">Analysis ID: ${esc(summary.analysis_id || "not_available")}</div>
+          </div>
+          <div class="glass-soft rounded-2xl p-4">
+            <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Execution status</div>
+            <div class="text-xl font-black mt-2 ${statusClass(summary.execution_status)}">${esc(analysisLabel("execution", summary.execution_status))}</div>
+            <div class="text-xs text-slate-400 mt-2">Progress: ${esc(summary.progress_percent ?? 0)}%</div>
+          </div>
+          <div class="glass-soft rounded-2xl p-4">
+            <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Evidence analysis</div>
+            <div class="text-xl font-black mt-2 ${statusClass(summary.evidence_analysis_status)}">${esc(analysisLabel("evidence", summary.evidence_analysis_status))}</div>
+            <div class="text-xs text-slate-400 mt-2">Forensic reconstruction: ${esc(analysisLabel("reconstruction", summary.forensic_reconstruction_status))}</div>
+          </div>
+          <div class="glass-soft rounded-2xl p-4">
+            <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Scientific confidence</div>
+            <div class="text-xl font-black mt-2 ${statusClass(summary.confidence_state)}">${esc(analysisLabel("confidence", summary.confidence_state))}</div>
+            <div class="text-xs text-slate-400 mt-2">Report: <span class="mono">${esc(summary.generated_report_path || "not_available")}</span></div>
+          </div>
+        </div>
+        <div class="glass-soft rounded-2xl p-4 mt-4 text-sm text-slate-300">
+          <strong>Main limitation:</strong> ${esc(summary.main_limitation || "No main limitation recorded.")}
+        </div>
+        <div class="mt-3 text-xs text-slate-400">${esc(executionNarrative)}</div>
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-12 gap-5">
+        <div class="glass rounded-[24px] p-5 xl:col-span-7">
+          <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Layer status matrix</div>
+          <div class="space-y-3 mt-4">
+            ${matrixRows.map(layer => `
+              <div class="glass-soft rounded-2xl p-4">
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <div class="font-black">${esc(layer.label || layer.phase)}</div>
+                    <div class="text-xs text-slate-400 mt-1">artifact: <span class="mono">${esc(layer.artifact_path || "not_available")}</span></div>
+                  </div>
+                  <div class="flex flex-wrap gap-2 justify-end">
+                    ${layerBadge(layer.visual_state || "unavailable", layer.status || "unknown")}
+                    ${layerBadge(layer.visual_state || "unavailable", layer.effective_status || "unknown")}
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 text-xs text-slate-300">
+                  <div>stdout: <span class="mono text-slate-400">${esc(layer.stdout_log_path || "not_available")}</span></div>
+                  <div>stderr: <span class="mono text-slate-400">${esc(layer.stderr_log_path || "not_available")}</span></div>
+                </div>
+                <div class="mt-3 text-sm text-slate-300"><strong>summary:</strong> ${esc(layer.summary || "No summary.")}</div>
+                <div class="mt-1 text-sm text-slate-400"><strong>limitation:</strong> ${esc(layer.short_limitation || layer.warning || "none")}</div>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+        <div class="glass rounded-[24px] p-5 xl:col-span-5">
+          <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Evidence coverage ring</div>
+          <div class="mt-4">${renderEvidenceCoverageRing(summary)}</div>
+        </div>
+      </div>
+
+      <div class="glass rounded-[24px] p-5">
+        <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Structural-evidential analysis graph</div>
+        <div class="mt-4">${renderStructuralGraph(summary)}</div>
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-12 gap-5">
+        <div class="glass rounded-[24px] p-5 xl:col-span-7">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Timeline panel</div>
+              <div class="text-sm text-slate-300 mt-2">Switch between pipeline execution chronology and preserved forensic events.</div>
+            </div>
+            <div class="flex gap-2">
+              <button data-analysis-timeline-mode="pipeline" class="btn-secondary rounded-xl px-3 py-2 text-[11px] font-extrabold tracking-[0.14em] uppercase ${timelineMode === "pipeline" ? "ring-2 ring-sky-500/60" : ""}">Pipeline execution</button>
+              <button data-analysis-timeline-mode="forensic" class="btn-secondary rounded-xl px-3 py-2 text-[11px] font-extrabold tracking-[0.14em] uppercase ${timelineMode === "forensic" ? "ring-2 ring-sky-500/60" : ""}">Forensic events</button>
+            </div>
+          </div>
+          <div class="space-y-3 mt-4">
+            ${timelineEntries.length ? timelineEntries.map(item => `
+              <div class="glass-soft rounded-2xl p-4">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="font-black">${esc(item.label || item.event || item.phase || "entry")}</div>
+                  <div class="text-xs uppercase tracking-[0.12em] ${statusClass(item.status || "unknown")}">${esc(item.status || item.source || "unknown")}</div>
+                </div>
+                <div class="mt-2 text-xs text-slate-400">started: ${esc(item.started_at || item.timestamp || "not_available")}</div>
+                <div class="mt-1 text-xs text-slate-400">finished: ${esc(item.finished_at || "not_available")}</div>
+                ${item.artifact_path ? `<div class="mt-1 text-xs text-slate-400 mono">${esc(item.artifact_path)}</div>` : ""}
+                ${item.details ? `<div class="mt-2 text-xs text-slate-300 mono whitespace-pre-wrap">${esc(JSON.stringify(item.details, null, 2))}</div>` : ""}
+              </div>
+            `).join("") : `<div class="text-sm text-slate-500">${timelineMode === "forensic" ? "Unified forensic timeline has not been generated yet." : "No pipeline execution timeline entries are available."}</div>`}
+          </div>
+        </div>
+        <div class="glass rounded-[24px] p-5 xl:col-span-5">
+          <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Limitations</div>
+          <div class="space-y-2 mt-4">
+            ${(summary.blockers || []).map(item => `<div class="glass-soft rounded-2xl p-3 text-sm text-amber-300">${esc(item)}</div>`).join("") || '<div class="text-sm text-slate-500">No blockers recorded.</div>'}
+            ${(summary.main_warnings || []).map(item => `<div class="glass-soft rounded-2xl p-3 text-sm text-slate-300">${esc(item)}</div>`).join("")}
+            ${(summary.visual_recommendations || []).map(item => `<div class="text-xs text-slate-400">${esc(item)}</div>`).join("")}
+            <div class="glass-soft rounded-2xl p-3 text-sm text-slate-400">Semantic reconstruction: not generated</div>
+            <div class="glass-soft rounded-2xl p-3 text-sm text-slate-400">Causal reconstruction: blocked or not generated</div>
+          </div>
+        </div>
+      </div>
+
+      <details class="glass rounded-[24px] p-5">
+        <summary class="cursor-pointer text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Raw technical report access</summary>
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-4">
+          <div class="glass-soft rounded-2xl p-4">
+            <div class="font-black">Visual summary JSON</div>
+            <div class="mono text-xs text-slate-300 mt-3 whitespace-pre-wrap">${esc(JSON.stringify(summary, null, 2))}</div>
+          </div>
+          <div class="glass-soft rounded-2xl p-4">
+            <div class="font-black">Forensic analysis report JSON</div>
+            <div class="mono text-xs text-slate-300 mt-3 whitespace-pre-wrap">${esc(JSON.stringify(report || {}, null, 2))}</div>
+          </div>
+        </div>
+      </details>
+    </div>
+  `;
+}
+
+function renderAnalysisReportPlaceholder(status) {
+  const normalized = String(status?.status || "not_started").toLowerCase();
+  const missingOutputs = Object.entries(status?.phases || {})
+    .filter(([, phase]) => {
+      const phaseStatus = String(phase?.status || "");
+      return ["completed", "partial"].some(prefix => phaseStatus.startsWith(prefix)) && !phase?.output_path;
+    })
+    .map(([key, phase]) => `${phase.label || key}: missing output artifact`);
+
+  let title = "Visual report available on demand";
+  let body = "Press `View Report` to generate and load the Multilayer Forensic Evidence Cockpit for this case.";
+  if (normalized === "not_started") {
+    title = "No completed analysis is available yet";
+    body = "No multilayer forensic analysis has been executed for this case yet, so there is no visual cockpit to display.";
+  } else if (normalized === "running") {
+    title = "Analysis is still running";
+    body = `The multilayer analysis is still running at ${status?.progress_percent ?? 0}% in phase \`${status?.current_phase || "unknown"}\`. Press \`View Report\` again to request the latest available cockpit once outputs exist.`;
+  } else if (!status?.forensic_analysis_report_path && !status?.analysis_visual_summary_path) {
+    title = "Analysis finished but no visual report is ready";
+    body = "The pipeline has status information, but the visual report outputs are not yet available. Validate outputs or inspect missing phase artifacts before requesting the cockpit.";
+  }
+
+  return `
+    <div class="glass rounded-[24px] p-5">
+      <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Multilayer Forensic Evidence Cockpit</div>
+      <div class="text-xl font-black mt-3">${esc(title)}</div>
+      <div class="text-sm text-slate-300 mt-3">${esc(body)}</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
+        <div class="glass-soft rounded-2xl p-4">
+          <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Execution state</div>
+          <div class="mt-2 text-sm text-slate-300">status: <span class="${statusClass(status?.status)}">${esc(titleizeStatus(status?.status || "unknown"))}</span></div>
+          <div class="mt-1 text-sm text-slate-300">progress: ${esc(status?.progress_percent ?? 0)}%</div>
+          <div class="mt-1 text-sm text-slate-300">current phase: ${esc(status?.current_phase || "not_available")}</div>
+        </div>
+        <div class="glass-soft rounded-2xl p-4">
+          <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Known report outputs</div>
+          <div class="mt-2 text-xs text-slate-400 mono">report: ${esc(status?.forensic_analysis_report_path || "not_available")}</div>
+          <div class="mt-1 text-xs text-slate-400 mono">visual summary: ${esc(status?.analysis_visual_summary_path || "not_available")}</div>
+        </div>
+      </div>
+      <div class="glass-soft rounded-2xl p-4 mt-4">
+        <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Missing or incomplete items</div>
+        <div class="mt-3 space-y-2">
+          ${(missingOutputs.length ? missingOutputs : [])
+            .map(item => `<div class="text-sm text-amber-300">${esc(item)}</div>`).join("") || '<div class="text-sm text-slate-400">No explicit missing derived outputs detected from the current status payload.</div>'}
+          ${(status?.errors || []).slice(0, 6).map(item => `<div class="text-sm text-red-300">${esc(`${item.phase}: ${item.error_message || item.message || "unknown error"}`)}</div>`).join("")}
+          ${(status?.warnings || []).slice(0, 6).map(item => `<div class="text-sm text-slate-300">${esc(`${item.phase}: ${item.message || "warning"}`)}</div>`).join("")}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderAnalysisReportModal(status, extras = {}) {
+  const panel = byId("analysis-report-modal-panel");
+  const title = byId("analysis-report-modal-title");
+  const subtitle = byId("analysis-report-modal-subtitle");
+  if (!panel) return;
+  const caseId = status?.case_id || FOC.selectedCaseId || "unknown";
+  const caseEntry = (FOC.cases?.cases || []).find(item => item.case_id === caseId);
+  const caseName = caseEntry?.source_case_name || FOC.analysisVisualState.currentCaseEntryName || caseId;
+  if (title) title.textContent = `Analysis Report: ${caseName}`;
+  if (subtitle) {
+    if (String(status?.status || "").toLowerCase() === "running") {
+      subtitle.textContent = `Analysis is still running at ${status?.progress_percent ?? 0}% in phase ${status?.current_phase || "unknown"}. The report panel shows the latest available derived status without forcing new forensic execution.`;
+    } else if (String(status?.status || "").toLowerCase() === "not_started") {
+      subtitle.textContent = "No multilayer analysis has been executed yet. Run analysis first, then request the report on demand.";
+    } else {
+      subtitle.textContent = "This wide transparent window renders the on-demand multilayer forensic evidence cockpit and related technical context.";
     }
   }
+  const report = extras.report || null;
+  const visualSummary = extras.visualSummary || null;
+  FOC.analysisVisualState.currentReport = report;
+  FOC.analysisVisualState.currentSummary = visualSummary;
+  panel.innerHTML = (visualSummary || report)
+    ? renderAnalysisVisualCockpit(visualSummary, report)
+    : renderAnalysisReportPlaceholder(status);
+}
 
 function renderAnalysisModal(status, extras = {}) {
   const caseId = status?.case_id || FOC.selectedCaseId || "unknown";
@@ -2481,9 +2893,14 @@ function renderAnalysisModal(status, extras = {}) {
   const reportPanel = byId("analysis-report-panel");
   const runBtn = byId("analysis-run-btn");
   const validateBtn = byId("analysis-validate-btn");
-  const viewReportBtn = byId("analysis-view-report-btn");
   const cancelBtn = byId("analysis-cancel-btn");
   if (!statusPanel || !phasesPanel || !debugPanel || !layersPanel || !reportPanel) return;
+  FOC.analysisVisualState.currentCaseId = caseId;
+  FOC.analysisVisualState.currentStatus = status;
+  FOC.analysisVisualState.currentLogs = extras.logs || null;
+  FOC.analysisVisualState.currentReport = extras.report || null;
+  FOC.analysisVisualState.currentSummary = extras.visualSummary || null;
+  FOC.caseAnalysisStatuses[caseId] = status;
 
   const caseEntry = (FOC.cases?.cases || []).find(item => item.case_id === caseId);
   if (title) title.textContent = `Case analysis: ${caseEntry?.source_case_name || caseId}`;
@@ -2507,15 +2924,15 @@ function renderAnalysisModal(status, extras = {}) {
     runBtn.disabled = status.status === "running" || !status.evidence_available;
     runBtn.textContent = status.status === "running" ? "Analysis already running" : "Run Multilayer Forensic Analysis";
   }
+  const report = extras.report || null;
+  const visualSummary = extras.visualSummary || null;
+  const memory = report?.memory_analysis || null;
+  const visualSummaryPath = status.analysis_visual_summary_path || (visualSummary && status.analysis_dir ? `${status.analysis_dir}/visual/analysis_visual_summary.json` : null);
   if (cancelBtn) {
     cancelBtn.disabled = status.status !== "running";
     cancelBtn.textContent = status.status === "running" ? "Stop Analysis" : "Stop Analysis";
   }
   if (validateBtn) validateBtn.disabled = status.status === "running";
-  if (viewReportBtn) viewReportBtn.disabled = !status.forensic_analysis_report_path;
-
-  const report = extras.report || null;
-  const memory = report?.memory_analysis || null;
 
   statusPanel.innerHTML = `
     <div><strong>case_id:</strong> ${esc(caseId)}</div>
@@ -2528,6 +2945,13 @@ function renderAnalysisModal(status, extras = {}) {
     <div><strong>progress_percent:</strong> ${esc(status.progress_percent ?? 0)}%</div>
     <div><strong>partial_phases:</strong> ${esc((status.partial_phases || []).join(", ") || "none")}</div>
     <div><strong>report:</strong> ${esc(status.forensic_analysis_report_path || "not_available")}</div>
+    <div><strong>visual_summary:</strong> ${esc(visualSummaryPath || "not_available")}</div>
+    ${visualSummary ? `
+      <div class="mt-3"><strong>execution_status:</strong> <span class="${statusClass(visualSummary.execution_status)}">${esc(analysisLabel("execution", visualSummary.execution_status))}</span></div>
+      <div><strong>evidence_analysis_status:</strong> <span class="${statusClass(visualSummary.evidence_analysis_status)}">${esc(analysisLabel("evidence", visualSummary.evidence_analysis_status))}</span></div>
+      <div><strong>forensic_reconstruction_status:</strong> <span class="${statusClass(visualSummary.forensic_reconstruction_status)}">${esc(analysisLabel("reconstruction", visualSummary.forensic_reconstruction_status))}</span></div>
+      <div><strong>confidence_state:</strong> <span class="${statusClass(visualSummary.confidence_state)}">${esc(analysisLabel("confidence", visualSummary.confidence_state))}</span></div>
+    ` : ""}
   `;
 
   const phaseEntries = Object.entries(status.phases || {});
@@ -2594,60 +3018,28 @@ function renderAnalysisModal(status, extras = {}) {
     ? layers.map(([key, value]) => `<div class="mono text-sm ${value ? "status-confirmed" : "status-unknown"}">${esc(key)}: ${esc(value ? "available" : "not_available")}</div>`).join("")
     : "No layer inventory loaded.";
 
-  reportPanel.innerHTML = report ? `
-    <div class="space-y-4">
-      <div class="glass rounded-2xl p-4">
-        <div class="font-black">Forensic Analysis Report</div>
-        <div class="mt-2 text-xs text-slate-400">status: <span class="${statusClass(report.analysis_status || report.status)}">${esc(report.analysis_status || report.status || "unknown")}</span></div>
-        <div class="mt-1 text-xs text-slate-400">generated_at: ${esc(report.generated_at || "not_available")}</div>
-        <div class="mt-1 text-xs text-slate-400">status_note: ${esc(report.status_note || "not_available")}</div>
-      </div>
-      <div class="glass rounded-2xl p-4">
-        <div class="font-black">Memory Analysis Panel</div>
-        ${memory ? `
-          <div class="mt-2 text-sm"><strong>status:</strong> <span class="${statusClass(memory.status)}">${esc(memory.status || "unknown")}</span></div>
-          <div class="mt-1 text-sm"><strong>dumps analysed:</strong> ${esc(memory.dumps_analysed ?? 0)}</div>
-          <div class="mt-1 text-sm"><strong>completed plugins:</strong> ${esc((memory.plugins_completed || []).join(", ") || "none")}</div>
-          <div class="mt-1 text-sm"><strong>failed plugins:</strong> ${esc((memory.plugins_failed || []).join(", ") || "none")}</div>
-          <div class="mt-1 text-sm"><strong>analysis completed:</strong> ${esc(memory.analysis_completed ? "true" : "false")}</div>
-          <div class="mt-1 text-sm"><strong>preflight analysis_possible:</strong> ${esc(memory.preflight?.analysis_possible ? "true" : "false")}</div>
-          <div class="mt-1 text-sm"><strong>symbols found:</strong> ${esc(memory.preflight?.symbols_found ? "true" : "false")}</div>
-          <div class="mt-1 text-sm"><strong>blocking reason:</strong> ${esc(memory.preflight?.blocking_reason || memory.reason || "none")}</div>
-          <div class="mt-2 text-xs text-slate-400">${esc(memory.recommended_action || "No recommendation available.")}</div>
-          ${memory.status !== "completed" ? `<div class="mt-2 text-xs text-amber-300">Memory analysis could not be completed because Volatility 3 symbols for the captured kernel were not available or could not be matched.</div>` : ""}
-        ` : '<div class="mt-2 text-xs text-slate-500">No memory report loaded.</div>'}
-      </div>
-      <div class="glass rounded-2xl p-4">
-        <div class="font-black">Layer Status</div>
-        <div class="mt-2 space-y-1">
-          ${Object.entries(report.layer_status || {}).map(([key, value]) => `
-            <div class="text-xs text-slate-300">
-              <strong>${esc(value.label || key)}:</strong>
-              <span class="${statusClass(value.status)}">${esc(value.status || "unknown")}</span>
-              <span class="mono text-slate-500">${esc(value.output_path || "not_available")}</span>
-            </div>
-          `).join("") || '<div class="text-xs text-slate-500">No layer status loaded.</div>'}
-        </div>
-      </div>
-      <div class="glass rounded-2xl p-4">
-        <div class="font-black">Summary</div>
-        <div class="mono text-xs text-slate-300 mt-2 whitespace-pre-wrap">${esc(report.summary_preview || "No report summary loaded.")}</div>
-      </div>
-    </div>
-  ` : "No report loaded.";
+  reportPanel.classList.remove("mono", "whitespace-pre-wrap");
+  reportPanel.innerHTML = FOC.analysisVisualState.reportRequested
+    ? ((visualSummary || report) ? renderAnalysisVisualCockpit(visualSummary, report) : renderAnalysisReportPlaceholder(status))
+    : renderAnalysisReportPlaceholder(status);
 }
 
 async function openCaseAnalysis(caseId, autoRun = false) {
   FOC.selectedCaseId = caseId;
+  FOC.analysisVisualState.selectedNodeId = "case";
+  FOC.analysisVisualState.timelineMode = "pipeline";
+  FOC.analysisVisualState.reportRequested = false;
+  FOC.analysisVisualState.currentSummary = null;
+  FOC.analysisVisualState.currentReport = null;
   openAnalysisModalShell();
   const status = await fetchCaseAnalysisStatus(caseId);
-  const [logsRes, reportRes] = await Promise.allSettled([
+  const [logsRes] = await Promise.allSettled([
     fetchJson(analysisLogsUrl(caseId)),
-    fetchJson(analysisReportUrl(caseId)),
   ]);
   renderAnalysisModal(status, {
     logs: logsRes.status === "fulfilled" ? logsRes.value : null,
-    report: reportRes.status === "fulfilled" ? reportRes.value : null,
+    report: null,
+    visualSummary: null,
   });
   if (autoRun && status.status !== "running") {
     await runCaseAnalysis(caseId);
@@ -2666,20 +3058,24 @@ async function runCaseAnalysis(caseId, force = false) {
     // we simply reload the persisted status and keep the modal in sync.
   }
   const status = await fetchCaseAnalysisStatus(caseId);
-  renderAnalysisModal(status);
+  renderAnalysisModal(status, {
+    logs: FOC.analysisVisualState.currentLogs || null,
+    report: FOC.analysisVisualState.reportRequested ? (FOC.analysisVisualState.currentReport || null) : null,
+    visualSummary: FOC.analysisVisualState.reportRequested ? (FOC.analysisVisualState.currentSummary || null) : null,
+  });
   scheduleAnalysisPolling(caseId);
 }
 
 async function validateCaseAnalysis(caseId) {
-  const [validation, logs, report] = await Promise.allSettled([
+  const [validation, logs] = await Promise.allSettled([
     fetchJson(analysisValidateUrl(caseId), { method: "POST" }),
     fetchJson(analysisLogsUrl(caseId)),
-    fetchJson(analysisReportUrl(caseId)),
   ]);
   const status = await fetchCaseAnalysisStatus(caseId);
   renderAnalysisModal(status, {
     logs: logs.status === "fulfilled" ? logs.value : null,
-    report: report.status === "fulfilled" ? report.value : null,
+    report: FOC.analysisVisualState.reportRequested ? (FOC.analysisVisualState.currentReport || null) : null,
+    visualSummary: FOC.analysisVisualState.reportRequested ? (FOC.analysisVisualState.currentSummary || null) : null,
   });
   const debugPanel = byId("analysis-debug-panel");
   if (debugPanel && validation.status === "fulfilled") {
@@ -2689,18 +3085,29 @@ async function validateCaseAnalysis(caseId) {
 }
 
 async function viewCaseAnalysisReport(caseId) {
-  const [status, logs, report] = await Promise.allSettled([
+  FOC.analysisVisualState.reportRequested = true;
+  FOC.analysisVisualState.selectedNodeId = "case";
+  FOC.analysisVisualState.timelineMode = "pipeline";
+  const caseEntry = (FOC.cases?.cases || []).find(item => item.case_id === caseId);
+  FOC.analysisVisualState.currentCaseEntryName = caseEntry?.source_case_name || caseId;
+  openAnalysisReportModalShell();
+  const [status, logs, report, visualSummary] = await Promise.allSettled([
     fetchCaseAnalysisStatus(caseId),
     fetchJson(analysisLogsUrl(caseId)),
     fetchJson(analysisReportUrl(caseId)),
+    fetchJson(analysisVisualUrl(caseId)),
   ]);
-  renderAnalysisModal(
-    status.status === "fulfilled" ? status.value : (FOC.caseAnalysisStatuses[caseId] || { case_id: caseId }),
-    {
-      logs: logs.status === "fulfilled" ? logs.value : null,
-      report: report.status === "fulfilled" ? report.value : null,
-    }
-  );
+  const currentStatus = status.status === "fulfilled" ? status.value : (FOC.caseAnalysisStatuses[caseId] || { case_id: caseId });
+  FOC.selectedCaseId = caseId;
+  FOC.analysisVisualState.currentLogs = logs.status === "fulfilled" ? logs.value : null;
+  FOC.analysisVisualState.currentReport = report.status === "fulfilled" ? report.value : null;
+  FOC.analysisVisualState.currentSummary = visualSummary.status === "fulfilled" ? visualSummary.value : null;
+  FOC.analysisVisualState.currentStatus = currentStatus;
+  renderAnalysisReportModal(currentStatus, {
+    logs: FOC.analysisVisualState.currentLogs,
+    report: FOC.analysisVisualState.currentReport,
+    visualSummary: FOC.analysisVisualState.currentSummary,
+  });
 }
 
 function renderAll() {
@@ -3073,6 +3480,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       closeAnalysisModalShell();
     }
   });
+  byId("analysis-report-modal-close")?.addEventListener("click", closeAnalysisReportModalShell);
+  byId("analysis-report-modal")?.addEventListener("click", (event) => {
+    if (event.target?.id === "analysis-report-modal") {
+      closeAnalysisReportModalShell();
+    }
+  });
   byId("analysis-generate-symbols-btn")?.addEventListener("click", () => {
     if (FOC.selectedCaseId) openSymbolGenModal();
   });
@@ -3094,8 +3507,24 @@ document.addEventListener("DOMContentLoaded", async () => {
   byId("analysis-validate-btn")?.addEventListener("click", () => {
     if (FOC.selectedCaseId) validateCaseAnalysis(FOC.selectedCaseId).catch(() => {});
   });
-  byId("analysis-view-report-btn")?.addEventListener("click", () => {
-    if (FOC.selectedCaseId) viewCaseAnalysisReport(FOC.selectedCaseId).catch(() => {});
+  byId("analysis-report-modal-panel")?.addEventListener("click", (event) => {
+    if (!FOC.analysisVisualState.reportRequested) return;
+    const target = event.target instanceof Element ? event.target.closest("[data-visual-node],[data-analysis-timeline-mode]") : null;
+    if (!target) return;
+    if (target.hasAttribute("data-visual-node")) {
+      FOC.analysisVisualState.selectedNodeId = target.getAttribute("data-visual-node") || "case";
+    }
+    if (target.hasAttribute("data-analysis-timeline-mode")) {
+      FOC.analysisVisualState.timelineMode = target.getAttribute("data-analysis-timeline-mode") || "pipeline";
+    }
+    const currentStatus = FOC.analysisVisualState.currentStatus || (FOC.selectedCaseId ? FOC.caseAnalysisStatuses[FOC.selectedCaseId] : null);
+    if (currentStatus) {
+      renderAnalysisReportModal(currentStatus, {
+        logs: FOC.analysisVisualState.currentLogs || null,
+        report: FOC.analysisVisualState.currentReport || null,
+        visualSummary: FOC.analysisVisualState.currentSummary || null,
+      });
+    }
   });
   byId("cases-panel")?.addEventListener("click", (event) => {
     const target = event.target instanceof Element ? event.target.closest("button[data-case-id]") : null;
@@ -3108,6 +3537,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     if (target.classList.contains("view-analysis-btn")) {
       openCaseAnalysis(caseId, false).catch(() => {});
+      return;
+    }
+    if (target.classList.contains("view-analysis-report-btn")) {
+      viewCaseAnalysisReport(caseId).catch(() => {});
     }
   });
   document.querySelectorAll(".export-btn").forEach(btn => {

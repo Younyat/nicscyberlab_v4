@@ -1565,6 +1565,14 @@ This is important because the workflow must remain honest:
 - if a RAW disk exists but Sleuth Kit is missing, disk analysis fails with an explicit dependency error
 - if a preserved artifact cannot be read, the failing phase records the expected output, debug paths, and the suggested action
 
+The **visual interpretation** of this multilayer analysis is also intentionally **on-demand**. `FOC Reconstruction` does not load the full multilayer cockpit automatically when the main dashboard or the case-analysis modal is opened. Instead:
+
+- the modal first loads only lightweight execution state, phase state, and debug context
+- the analyst must explicitly press `View Analysis Report`
+- only then does the UI request the normalized visual summary and the derived report view
+
+This keeps the main FOC view responsive and avoids loading heavyweight forensic summaries when the user only wants to inspect status or phase progress.
+
 The workflow reuses the real local analysis surface already present in the repository:
 
 - `app_core/infrastructure/forensics/scripts/analyze_network_pcap.sh`
@@ -1572,6 +1580,110 @@ The workflow reuses the real local analysis surface already present in the repos
 - `app_core/infrastructure/forensics/scripts/analyze_disk_tsk.sh`
 - `app_core/infrastructure/forensics/scripts/build_case_timeline.py`
 - `e2_max_clock_offset.sh` as an available temporal helper when applicable
+
+### Multilayer Forensic Evidence Cockpit
+
+The multilayer workflow now produces a dedicated **visual summary layer** for `FOC Reconstruction`:
+
+```bash
+analysis/visual/analysis_visual_summary.json
+```
+
+This file is generated in backend as a **derived, normalized, read-only summary** of already existing authoritative outputs. The frontend does not parse large raw reports or phase text logs directly in order to build the cockpit.
+
+The corresponding API surface is:
+
+- `GET /api/foc/cases/{case_id}/analysis/visual-summary`
+
+The visual summary distinguishes three concepts that must not be conflated:
+
+- **pipeline execution status**
+- **evidence analysis status**
+- **forensic reconstruction status**
+
+This is scientifically important because a case can show:
+
+- `progress_percent = 100`
+- `execution_status = completed`
+- `forensic_reconstruction_status = partial`
+
+without contradiction. In that situation the pipeline finished, but some layers remain partial, ineffective, missing, or blocked, and semantic or causal reconstruction still has not been generated.
+
+The visual summary includes:
+
+- case and analysis identifiers
+- execution timestamps
+- progress percentage
+- execution status
+- evidence-analysis status
+- forensic-reconstruction status
+- confidence state
+- main limitation
+- warnings and blockers
+- available layers
+- normalized layer statuses
+- artifact and log paths
+- lightweight structural graph nodes and edges
+- pipeline timeline entries
+- forensic timeline entries
+- visual recommendations
+
+The cockpit is rendered as:
+
+- executive status header
+- layer status matrix
+- evidence coverage ring
+- structural-evidential analysis graph
+- timeline panel
+- limitations panel
+- optional raw technical view
+
+#### On-demand loading behavior
+
+The cockpit is only loaded when the user explicitly presses:
+
+- `View Analysis Report`
+
+This action is exposed at **case level**, alongside:
+
+- `Run Multilayer Forensic Analysis`
+- `Open Analysis Status`
+- `View Analysis Report`
+
+If the user opens the case-analysis modal without requesting the report:
+
+- the platform shows the current analysis status
+- the phase matrix
+- the debug panel
+- available evidence layers
+- and a placeholder explaining that the visual cockpit is available on demand
+
+When `View Analysis Report` is pressed, the cockpit is opened in a **separate wide transparent window** dedicated to visual interpretation. This keeps the status modal focused on execution and debugging, while the report window can use a broader layout for:
+
+- executive summary
+- evidence coverage ring
+- structural-evidential graph
+- timeline views
+- limitations
+- optional raw technical views
+
+If `View Analysis Report` is pressed while no completed or partial analysis exists, the UI reports that no analysis is available yet.
+
+If `View Analysis Report` is pressed while analysis is still running, the UI reports:
+
+- current execution status
+- current phase
+- current percentage
+- any already known missing or incomplete outputs
+
+If required report artifacts are still missing, the UI reports that fact explicitly instead of pretending the visual layer exists.
+
+In other words, `View Analysis Report` acts as an explicit **on-demand inspection action**, not as a blind file opener. It first checks the current analytical state and then either:
+
+- loads the cockpit
+- reports that analysis has not started
+- reports that analysis is still running
+- or reports that expected derived outputs are still missing or incomplete
 
 ### Memory-analysis integration inside FOC Reconstruction
 
@@ -1666,6 +1778,25 @@ The scientific rule is that missing Linux symbols must not falsely mark the whol
 - FOC readiness must reflect the real state of the analytical evidence
 
 This preserves rigor: the platform can continue building a defensible network, disk, OT, alert, and timeline reconstruction while still exposing that the memory layer remains incomplete until compatible Volatility 3 symbols exist.
+
+The same rigor is reflected in the visual cockpit. A phase marked `completed` is not automatically treated as green or evidentially useful. For example:
+
+- a memory phase that technically completed
+- but analyzed zero effective dumps
+- or produced zero effective plugin results
+
+is rendered as a **warning**, not as a full success.
+
+Likewise:
+
+- `skipped` is not success
+- empty output is not success
+- partial custody remains warning
+- unavailable timeline remains explicit
+- semantic reconstruction remains `not generated`
+- causal reconstruction remains `blocked or not generated`
+
+This prepares the visual base for later semantic and causal reconstruction work without manufacturing causal meaning ahead of time.
 
 The FOC layer remains read-only with respect to:
 
