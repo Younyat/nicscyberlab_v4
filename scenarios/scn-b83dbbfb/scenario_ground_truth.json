@@ -1,0 +1,219 @@
+{
+  "scenario_id": "scn-b83dbbfb",
+  "scenario_name": "industrial_file",
+  "description": "Ground truth for the controlled industrial Modbus reconstruction path. This file describes expected causal edges for post-preservation forensic reconstruction.",
+  "attack_expected": {
+    "technique_id": "T0831",
+    "technique_name": "Manipulation of Control",
+    "tool_used": "mbpoll",
+    "tool_version": "not_available",
+    "target": "PLC",
+    "protocol": "modbus_tcp",
+    "ot_function": "write_multiple_registers",
+    "register": 4,
+    "expected_value": 30,
+    "selector": {
+      "attack_id": "atk-6402b8e1",
+      "mitre.technique_id": "T0831",
+      "operation.protocol": "modbus_tcp",
+      "operation.modbus_function": "16",
+      "operation.register_reference": 4,
+      "operation.value": 30
+    }
+  },
+  "expected_artifacts": [
+    "attack_attestation",
+    "detection_attestation",
+    "alert_correlation",
+    "forensic_intervention",
+    "case_manifest_link",
+    "manifest",
+    "chain_of_custody",
+    "forensic_analysis_report",
+    "analysis_visual_summary"
+  ],
+  "expected_analysis_layers": [
+    "network_analysis",
+    "memory_analysis",
+    "disk_analysis",
+    "ot_export_analysis",
+    "alerts_detection_analysis",
+    "pipeline_custody_analysis",
+    "unified_forensic_timeline",
+    "cross_layer_findings"
+  ],
+  "timestamp_resolution_ms": 1000,
+  "acquisition_jitter_ms": 1000,
+  "nodes": {
+    "attack_execution": {
+      "node_type": "attack_event",
+      "layer": "attack",
+      "label": "T0831 attack execution",
+      "timestamp_ref": "attack_started_at",
+      "source_ref": "foc-reconstruction/attestations/attack_attestation.json"
+    },
+    "ot_modbus_write": {
+      "node_type": "ot_operation",
+      "layer": "ot",
+      "label": "Unauthorized Modbus write",
+      "timestamp_ref": "attack_completed_at",
+      "source_ref": "foc-reconstruction/attestations/attack_attestation.json"
+    },
+    "detection_surface": {
+      "node_type": "detection_rule",
+      "layer": "detection",
+      "label": "Modbus detection surface",
+      "source_ref": "foc-reconstruction/attestations/detection_attestation.json"
+    },
+    "alert_observation": {
+      "node_type": "alert_group",
+      "layer": "alerts",
+      "label": "Observed correlated alerts",
+      "source_ref": "foc-reconstruction/attestations/alert_correlation.json"
+    },
+    "forensic_case": {
+      "node_type": "forensic_case",
+      "layer": "forensics",
+      "label": "Triggered forensic intervention",
+      "timestamp_ref": "intervention_started_at",
+      "source_ref": "foc-reconstruction/attestations/forensic_intervention.json"
+    },
+    "preserved_case_evidence": {
+      "node_type": "preserved_evidence",
+      "layer": "custody",
+      "label": "Preserved case evidence set",
+      "timestamp_ref": "intervention_completed_at",
+      "source_ref": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/manifest.json"
+    },
+    "multilayer_analysis": {
+      "node_type": "analysis_output",
+      "layer": "analysis",
+      "label": "Multilayer forensic analysis",
+      "timestamp_ref": "analysis_finished_at",
+      "source_ref": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/analysis/forensic_analysis_report.json"
+    }
+  },
+  "expected_edges": [
+    {
+      "edge_id": "edge_attack_execution_to_ot_write",
+      "source": "attack_execution",
+      "target": "ot_modbus_write",
+      "relation_type": "issues_unauthorized_modbus_write",
+      "weight": 1.0,
+      "required_evidence": [
+        "attack_attestation"
+      ],
+      "selectors": {
+        "attack_attestation": {
+          "attack_id": "atk-6402b8e1",
+          "mitre.technique_id": "T0831",
+          "operation.protocol": "modbus_tcp",
+          "operation.modbus_function": "16",
+          "operation.register_reference": 4,
+          "operation.value": 30
+        }
+      },
+      "source_timestamp_ref": "attack_started_at",
+      "target_timestamp_ref": "attack_completed_at"
+    },
+    {
+      "edge_id": "edge_ot_write_to_detection_surface",
+      "source": "ot_modbus_write",
+      "target": "detection_surface",
+      "relation_type": "is_observable_by_detection_surface",
+      "weight": 1.0,
+      "required_evidence": [
+        "attack_attestation",
+        "detection_attestation"
+      ],
+      "selectors": {
+        "attack_attestation": {
+          "attack_id": "atk-6402b8e1",
+          "mitre.technique_id": "T0831"
+        },
+        "detection_attestation": {
+          "rule_id": "910836102",
+          "rule_file_contains": "nics-modbus-register-manipulation.rules",
+          "mitre_techniques_contains": "T1692.001"
+        }
+      }
+    },
+    {
+      "edge_id": "edge_detection_surface_to_alert_observation",
+      "source": "detection_surface",
+      "target": "alert_observation",
+      "relation_type": "produces_observed_alert_evidence",
+      "weight": 0.9,
+      "required_evidence": [
+        "detection_attestation",
+        "alert_correlation"
+      ],
+      "selectors": {
+        "detection_attestation": {
+          "rule_id": "910836102"
+        },
+        "alert_correlation": {
+          "attack_id": "atk-6402b8e1",
+          "protocol": "TCP"
+        }
+      }
+    },
+    {
+      "edge_id": "edge_alert_observation_to_forensic_case",
+      "source": "alert_observation",
+      "target": "forensic_case",
+      "relation_type": "triggers_forensic_intervention",
+      "weight": 0.85,
+      "required_evidence": [
+        "alert_correlation",
+        "forensic_intervention"
+      ],
+      "selectors": {
+        "alert_correlation": {
+          "attack_id": "atk-6402b8e1",
+          "protocol": "TCP"
+        },
+        "forensic_intervention": {
+          "case_id": "case-63ceb018",
+          "intervention_status": "completed"
+        }
+      }
+    },
+    {
+      "edge_id": "edge_forensic_case_to_preserved_case_evidence",
+      "source": "forensic_case",
+      "target": "preserved_case_evidence",
+      "relation_type": "preserves_case_artifacts",
+      "weight": 1.0,
+      "required_evidence": [
+        "forensic_intervention",
+        "case_manifest_link",
+        "manifest",
+        "chain_of_custody"
+      ],
+      "selectors": {
+        "forensic_intervention": {
+          "case_id": "case-63ceb018"
+        }
+      },
+      "source_timestamp_ref": "intervention_started_at",
+      "target_timestamp_ref": "intervention_completed_at"
+    },
+    {
+      "edge_id": "edge_preserved_case_evidence_to_multilayer_analysis",
+      "source": "preserved_case_evidence",
+      "target": "multilayer_analysis",
+      "relation_type": "supports_multilayer_forensic_analysis",
+      "weight": 0.95,
+      "required_evidence": [
+        "manifest",
+        "chain_of_custody",
+        "forensic_analysis_report",
+        "analysis_visual_summary",
+        "memory_analysis_useful"
+      ],
+      "source_timestamp_ref": "intervention_completed_at",
+      "target_timestamp_ref": "analysis_finished_at"
+    }
+  ]
+}

@@ -2688,7 +2688,15 @@ def cases_with_analysis_state() -> dict:
     enriched = []
     for entry in _list_case_entries():
         status = load_analysis_status(str(entry.get("case_id")))
-        inventory = _artifact_inventory(_case_dir_from_entry(entry))
+        case_dir = _case_dir_from_entry(entry)
+        inventory = _artifact_inventory(case_dir)
+        try:
+            from ..foc_causal_reconstruction.service import summarize_case_causal_state
+
+            causal_state = summarize_case_causal_state(str(entry.get("case_id")), case_dir, analysis_status=status)
+        except Exception:
+            logger.warning("Failed to summarize causal reconstruction state for case %s", entry.get("case_id"), exc_info=True)
+            causal_state = None
         enriched.append(
             {
                 **entry,
@@ -2697,6 +2705,7 @@ def cases_with_analysis_state() -> dict:
                 "available_layers": inventory["layers"],
                 "inventory_summary": inventory["artifact_type_counts"],
                 "analysis_report_path": status.get("forensic_analysis_report_path"),
+                "causal_state": causal_state,
             }
         )
     return {"generated_at": utc_now(), "cases": enriched}

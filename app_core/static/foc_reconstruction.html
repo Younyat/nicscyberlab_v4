@@ -583,6 +583,20 @@
     </div>
   </div>
 
-  <script src="/js/foc_reconstruction.js?v=20260622-multilayer-cockpit-1"></script>
+  <div id="causal-report-modal" class="modal-shell" aria-hidden="true">
+    <div class="modal-card-wide">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Causal Reconstruction Cockpit</div>
+          <h2 id="causal-report-modal-title" class="text-2xl font-black mt-2">Causal Reconstruction</h2>
+          <p id="causal-report-modal-subtitle" class="text-sm text-slate-300 mt-3">This cockpit is derived on demand from preserved FOC context, multilayer forensic analysis outputs and scenario ground truth.</p>
+        </div>
+        <button id="causal-report-modal-close" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Close</button>
+      </div>
+      <div id="causal-report-modal-panel" class="mt-6 text-sm text-slate-300">No causal report loaded.</div>
+    </div>
+  </div>
+
+  <script src="/js/foc_reconstruction.js?v=20260622-causal-reconstruction-1"></script>
 </body>
 </html>

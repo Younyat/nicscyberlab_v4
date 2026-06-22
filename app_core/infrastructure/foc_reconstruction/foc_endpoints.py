@@ -23,6 +23,13 @@ from .foc_manifest_manager import read_generated_json, regenerate_foc
 from .foc_quality import build_gaps, build_status, load_quality_context
 from .foc_paths import project_path
 from .foc_sources import utc_now
+from ..foc_causal_reconstruction.service import (
+    causal_graph_payload,
+    causal_metrics_payload,
+    causal_report_payload,
+    causal_status_payload,
+    run_causal_reconstruction,
+)
 from ..forensics.volatility_symbols import (
     get_job as get_vol3_job,
     start_symbol_generation_job,
@@ -171,6 +178,96 @@ def api_foc_case_analysis_visual_summary(case_id: str):
     if payload is None:
         return jsonify({"error": "analysis_visual_summary_not_found", "case_id": case_id}), 404
     return jsonify(payload), 200
+
+
+def _causal_case_entry_or_404(case_id: str):
+    entry = get_case_entry(case_id)
+    if not entry:
+        return None, (jsonify({"error": "case_not_found", "case_id": case_id}), 404)
+    try:
+        case_dir = _case_dir_from_entry(entry)
+    except Exception as exc:
+        return None, (jsonify({"error": "case_path_unavailable", "case_id": case_id, "reason": str(exc)}), 500)
+    return (entry, case_dir), None
+
+
+@foc_bp.route("/api/foc/causal/status", methods=["GET"])
+def api_foc_causal_status():
+    case_id = str(request.args.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    payload, error = _causal_case_entry_or_404(case_id)
+    if error:
+        return error
+    _, case_dir = payload
+    return jsonify(causal_status_payload(case_id, case_dir)), 200
+
+
+@foc_bp.route("/api/foc/causal/run", methods=["POST"])
+def api_foc_causal_run():
+    body = request.get_json(silent=True) or {}
+    case_id = str(body.get("case_id") or request.args.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    payload, error = _causal_case_entry_or_404(case_id)
+    if error:
+        return error
+    _, case_dir = payload
+    result = run_causal_reconstruction(
+        case_id=case_id,
+        case_path=case_dir,
+        strict=bool(body.get("strict")),
+        degraded_ok=bool(body.get("degraded_ok")),
+        ground_truth_path=body.get("ground_truth_path"),
+        out_dir=body.get("out_dir"),
+    )
+    http_code = 202 if result.get("status") == "running" else 200
+    return jsonify(result), http_code
+
+
+@foc_bp.route("/api/foc/causal/report", methods=["GET"])
+def api_foc_causal_report():
+    case_id = str(request.args.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    payload, error = _causal_case_entry_or_404(case_id)
+    if error:
+        return error
+    _, case_dir = payload
+    report = causal_report_payload(case_id, case_dir)
+    if report is None:
+        return jsonify({"error": "causal_report_not_found", "case_id": case_id}), 404
+    return jsonify(report), 200
+
+
+@foc_bp.route("/api/foc/causal/metrics", methods=["GET"])
+def api_foc_causal_metrics():
+    case_id = str(request.args.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    payload, error = _causal_case_entry_or_404(case_id)
+    if error:
+        return error
+    _, case_dir = payload
+    report = causal_metrics_payload(case_id, case_dir)
+    if report is None:
+        return jsonify({"error": "causal_metrics_not_found", "case_id": case_id}), 404
+    return jsonify(report), 200
+
+
+@foc_bp.route("/api/foc/causal/graph", methods=["GET"])
+def api_foc_causal_graph():
+    case_id = str(request.args.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    payload, error = _causal_case_entry_or_404(case_id)
+    if error:
+        return error
+    _, case_dir = payload
+    report = causal_graph_payload(case_id, case_dir)
+    if report is None:
+        return jsonify({"error": "causal_graph_not_found", "case_id": case_id}), 404
+    return jsonify(report), 200
 
 
 @foc_bp.route("/api/foc/cases/<case_id>/analysis/validate", methods=["POST"])
