@@ -494,8 +494,10 @@
 
       <div class="flex flex-wrap gap-3 mt-5">
         <button id="analysis-run-btn" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Run Multilayer Forensic Analysis</button>
+        <button id="analysis-cancel-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Stop Analysis</button>
         <button id="analysis-validate-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Validate Outputs</button>
         <button id="analysis-view-report-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">View Report</button>
+        <button id="analysis-generate-symbols-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Generate Vol3 Symbols</button>
       </div>
 
       <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 mt-5">
@@ -527,6 +529,36 @@
     </div>
   </div>
 
-  <script src="/js/foc_reconstruction.js?v=20260617-kpi-fallback-1"></script>
+  <div id="symbolgen-modal" class="modal-shell" aria-hidden="true">
+    <div class="modal-card">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Symbol Generation</div>
+          <h2 id="symbolgen-modal-title" class="text-2xl font-black mt-2">Generate Volatility 3 Symbols</h2>
+          <p id="symbolgen-modal-subtitle" class="text-sm text-slate-300 mt-3">The system resolves dump, node, OS, kernel, builder node and SSH key automatically from the selected case and runtime inventory.</p>
+        </div>
+        <button id="symbolgen-close" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Close</button>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 mt-5">
+        <div id="symbolgen-inventory-panel" class="glass rounded-2xl p-4 text-sm text-slate-300 mono whitespace-pre-wrap">Loading case memory artifacts and symbol inventory…</div>
+        <label class="glass rounded-2xl p-3 text-sm text-slate-300">Memory artifact
+          <select id="symbolgen-dump-select" class="w-full bg-transparent mt-2 outline-none text-slate-200 mono">
+            <option value="">Select a memory artifact…</option>
+          </select>
+        </label>
+        <div class="flex gap-5 flex-wrap glass rounded-2xl p-4 text-sm text-slate-300">
+          <label class="flex items-center gap-2"><input id="symbolgen-overwrite" type="checkbox"><span>Overwrite existing symbol</span></label>
+        </div>
+        <div class="flex gap-3">
+          <button id="symbolgen-run-btn" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Generate</button>
+          <div id="symbolgen-status" class="text-sm text-slate-300 mt-3"></div>
+        </div>
+        <div id="symbolgen-report-panel" class="glass rounded-2xl p-4 mt-2 mono text-xs text-slate-300 whitespace-pre-wrap">No report loaded.</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/foc_reconstruction.js?v=20260622-vol3-symbol-jobs-1"></script>
 </body>
 </html>

@@ -1,26 +1,18 @@
 {
   "scenario_id": "scn-b83dbbfb",
-  "generated_at": "2026-06-18T14:16:04.376500+00:00",
+  "generated_at": "2026-06-22T12:50:32.635903+00:00",
   "nodes": [
     {
       "instance_id": "inst-a495cfe7",
       "instance_name": "FUXA_Instance",
       "node_type": "industrial_scada",
       "desired_tools": [
-        "tool-rollback_suricata_modbus_register_detection",
-        "tool-rollback_suricata_ping_detection",
-        "tool-rollback_wazuh_suricata_integration",
         "tool-suricata",
-        "tool-wazuh_agent",
-        "tool-wazuh_fim_realtime"
+        "tool-wazuh_agent"
       ],
       "installed_tools": [
-        "tool-rollback_suricata_modbus_register_detection",
-        "tool-rollback_suricata_ping_detection",
-        "tool-rollback_wazuh_suricata_integration",
         "tool-suricata",
-        "tool-wazuh_agent",
-        "tool-wazuh_fim_realtime"
+        "tool-wazuh_agent"
       ],
       "failed_tools": [],
       "pending_tools": [],
@@ -33,20 +25,16 @@
         "tools-installer/logs/FUXA_Instance_wazuh_fim_realtime.log"
       ],
       "tool_status_map": {
-        "tool-rollback_suricata_ping_detection": "installed",
-        "tool-rollback_wazuh_suricata_integration": "installed",
         "tool-suricata": "installed",
-        "tool-wazuh_agent": "installed",
-        "tool-wazuh_fim_realtime": "installed",
-        "tool-rollback_suricata_modbus_register_detection": "installed"
+        "tool-wazuh_agent": "installed"
       },
       "log_status_map": {
         "tool-rollback_suricata_modbus_register_detection": "completed",
         "tool-rollback_suricata_ping_detection": "completed",
-        "tool-rollback_wazuh_suricata_integration": "completed",
+        "tool-rollback_wazuh_suricata_integration": "failed",
         "tool-suricata": "completed",
         "tool-wazuh_agent": "completed",
-        "tool-wazuh_fim_realtime": "completed"
+        "tool-wazuh_fim_realtime": "failed"
       },
       "log_sources": {
         "tool-rollback_suricata_modbus_register_detection": "tools-installer/logs/FUXA_Instance_rollback_suricata_modbus_register_detection.log",
@@ -57,52 +45,18 @@
         "tool-wazuh_fim_realtime": "tools-installer/logs/FUXA_Instance_wazuh_fim_realtime.log"
       },
       "installed_timestamps": {
-        "tool-wazuh_agent": "2026-06-14 22:56:09",
-        "tool-suricata": "2026-06-14 22:56:09",
-        "tool-rollback_suricata_ping_detection": "2026-06-14 22:56:09",
-        "tool-rollback_wazuh_suricata_integration": "2026-06-14 22:56:09",
-        "tool-wazuh_fim_realtime": "2026-06-14 22:56:09",
-        "tool-rollback_suricata_modbus_register_detection": "2026-06-14 22:56:09"
+        "tool-suricata": "2026-06-21 21:43:11",
+        "tool-wazuh_agent": "2026-06-21 21:43:11"
       },
       "ip": "10.0.2.9",
       "ip_private": "192.168.100.28",
       "ip_floating": "10.0.2.9",
       "tool_states": [
         {
-          "tool_id": "tool-rollback_suricata_modbus_register_detection",
-          "state": "installed",
-          "current_state": "installed",
-          "installed_timestamp": "2026-06-14 22:56:09",
-          "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/a495cfe7-b55b-41d0-95bf-78f9093f7fe2.json",
-          "failed_source": "not_available",
-          "recommended_action": "none"
-        },
-        {
-          "tool_id": "tool-rollback_suricata_ping_detection",
-          "state": "installed",
-          "current_state": "installed",
-          "installed_timestamp": "2026-06-14 22:56:09",
-          "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/a495cfe7-b55b-41d0-95bf-78f9093f7fe2.json",
-          "failed_source": "not_available",
-          "recommended_action": "none"
-        },
-        {
-          "tool_id": "tool-rollback_wazuh_suricata_integration",
-          "state": "installed",
-          "current_state": "installed",
-          "installed_timestamp": "2026-06-14 22:56:09",
-          "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/a495cfe7-b55b-41d0-95bf-78f9093f7fe2.json",
-          "failed_source": "not_available",
-          "recommended_action": "none"
-        },
-        {
           "tool_id": "tool-suricata",
           "state": "installed",
           "current_state": "installed",
-          "installed_timestamp": "2026-06-14 22:56:09",
+          "installed_timestamp": "2026-06-21 21:43:11",
           "desired_source": "tools-installer-tmp",
           "installed_source": "tools-installer/installed/a495cfe7-b55b-41d0-95bf-78f9093f7fe2.json",
           "failed_source": "not_available",
@@ -112,17 +66,7 @@
           "tool_id": "tool-wazuh_agent",
           "state": "installed",
           "current_state": "installed",
-          "installed_timestamp": "2026-06-14 22:56:09",
-          "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/a495cfe7-b55b-41d0-95bf-78f9093f7fe2.json",
-          "failed_source": "not_available",
-          "recommended_action": "none"
-        },
-        {
-          "tool_id": "tool-wazuh_fim_realtime",
-          "state": "installed",
-          "current_state": "installed",
-          "installed_timestamp": "2026-06-14 22:56:09",
+          "installed_timestamp": "2026-06-21 21:43:11",
           "desired_source": "tools-installer-tmp",
           "installed_source": "tools-installer/installed/a495cfe7-b55b-41d0-95bf-78f9093f7fe2.json",
           "failed_source": "not_available",

@@ -1188,6 +1188,20 @@ foc-reconstruction/
 └── hashes/
 ```
 
+## Volatility 3 symbols generation (new)
+
+The analysis pipeline now includes a symbol-management and generation helper for Volatility 3 Linux symbols.
+
+- Symbols are stored under `/opt/nics-vol3-symbols/linux` and a `symbols_manifest.json` is maintained next to it.
+- The analysis preflight will attempt to match captured kernel banners to local symbol files. If no symbol is found, the system will:
+  1. Attempt to generate a JSON symbol using a local `vmlinux` (if present inside the case evidence) via `dwarf2json`.
+  2. If the above fails and SSH credentials are available, run `generate_vol3_symbols_ssh.sh` to fetch debug packages from the captured VM and generate symbols.
+
+Usage (API): `POST /api/foc/cases/<case_id>/symbols/generate` with optional JSON body: `{"dump_id": "<id>", "ssh_user": "ubuntu", "ssh_key": "/path/to/key", "vm_ip": "10.0.2.5"}`.
+
+There is a smoke-test helper at: `app_core/infrastructure/forensics/scripts/test_vol3_symbol_generation.py` which attempts generation for the first available case.
+
+
 This root-level artifact directory can be managed by a backend module implemented under:
 
 ```text

@@ -1192,6 +1192,162 @@ This makes it possible to reconstruct network activity before, during, and after
 
 This design separates operational traffic acquisition from forensic preservation while allowing both to work together. It supports continuous observability, user-driven inspection, and stronger case reconstruction through the integration of traffic, disk, and memory artifacts within a unified investigative context.
 
+### Volatility 3 memory analysis and Linux symbol workflow
+
+Memory analysis in NICS CyberLab is based on **Volatility 3** and is designed as a real case-driven workflow rather than as a static wrapper around a single dump file.
+
+The relevant implementation surface is split into:
+
+- `app_core/infrastructure/forensics/volatility_symbols.py`
+- `app_core/infrastructure/forensics/scripts/analyze_memory_vol3.sh`
+- `app_core/infrastructure/forensics/scripts/generate_vol3_symbols_ssh.sh`
+- the Forensics and FOC backend endpoints that orchestrate inventory, symbol resolution, generation jobs, and plugin execution
+
+The platform now keeps Linux symbols **inside the project itself** so the memory-analysis pipeline does not depend on an external hardcoded directory. The internal symbol store is:
+
+```bash
+app_core/infrastructure/forensics/volatility_symbol_store/
+```
+
+with the subdirectories:
+
+- `app_core/infrastructure/forensics/volatility_symbol_store/linux`
+- `app_core/infrastructure/forensics/volatility_symbol_store/metadata`
+
+This store contains compressed Volatility 3 Linux ISF symbol files such as `.json.xz` plus metadata that records how and when each symbol was generated.
+
+#### Why Linux symbols are required
+
+For Linux memory analysis, Volatility 3 can usually read the memory image and extract the kernel banner first, but higher-value plugins require a compatible symbol table for the captured kernel.
+
+In practice, this means:
+
+- `banners.Banners` may succeed without a full kernel symbol match
+- `linux.pslist.PsList`
+- `linux.lsmod.Lsmod`
+- `linux.sockstat.Sockstat`
+- `linux.check_syscall.Check_syscall`
+- `linux.bash.Bash`
+
+require a compatible Linux ISF symbol file that matches the captured kernel closely enough for Volatility 3 to build the kernel layer and symbol table correctly.
+
+Without that symbol, Volatility 3 typically fails with requirement errors such as:
+
+- `Unsatisfied requirement: kernel.layer_name`
+- `Unsatisfied requirement: kernel.symbol_table_name`
+- `Unable to validate plugin requirements`
+
+#### Supported operating-system families
+
+The current integrated workflow supports Linux symbol handling for the operating-system families used by the platform:
+
+- **Ubuntu**
+  - the system detects the OS family, codename, kernel release, and architecture dynamically
+  - a matching Ubuntu debug-symbol workflow is used to obtain the data needed to build the Volatility 3 ISF
+- **Debian**
+  - the system detects the OS family, codename, kernel release, architecture, and kernel package version dynamically
+  - a matching Debian debug-package workflow is used to obtain the data needed to build the Volatility 3 ISF
+
+These decisions are made from preserved case context, runtime inventory, and live node inspection when needed. The user is not expected to type the kernel version, distribution family, SSH user, or target parameters manually.
+
+#### Symbol inventory, resolution, and generation
+
+The symbol-management layer follows four steps:
+
+1. **Inventory**
+   - scan the internal project symbol store
+   - read symbol metadata
+   - expose available symbols by OS, codename, kernel, architecture, hash, and generation mode
+
+2. **Resolution**
+   - inspect the selected memory dump
+   - run `banners.Banners` when necessary
+   - infer the required kernel banner and kernel release
+   - match the dump against existing local symbols
+
+3. **Generation**
+   - if no compatible symbol exists, launch a controlled symbol-generation workflow
+   - use the builder logic from the integrated backend, not a hardcoded shell script per node
+   - generate the Linux ISF, compress it to `.json.xz`, and write it into the in-project symbol store
+
+4. **Reuse**
+   - if a compatible symbol already exists, reuse it directly
+   - do not overwrite an existing symbol silently
+
+The metadata sidecar for each symbol is preserved under:
+
+```bash
+app_core/infrastructure/forensics/volatility_symbol_store/metadata/
+```
+
+and records technical context such as:
+
+- target operating-system family
+- codename
+- kernel release
+- architecture
+- source package or source package version when known
+- generation timestamp
+- generation mode
+- SHA-256
+
+#### Builder safety model
+
+The integrated symbol-generation workflow is designed to be operationally safe for the rest of the platform:
+
+- the memory source node is **not** modified with debug packages
+- the symbol builder operates separately from the target workload
+- generated symbols are copied back into the host-side project store
+- Wazuh configuration is not modified by symbol generation
+- the workflow is designed to avoid persistent repository drift on the builder environment
+- temporary build material such as extracted `vmlinux` files or large debug packages is cleaned after generation
+
+If a `System.map` file exists but is clearly invalid or too small, it is ignored and the symbol is built from valid kernel debug material instead of trusting an incomplete map.
+
+#### UI workflow in Forensics and FOC
+
+The symbol workflow is available from both:
+
+- **Forensics view**
+- **FOC Reconstruction view**
+
+In both views, the workflow is dynamic:
+
+- the selected case or memory artifact determines the relevant dump
+- the system derives the likely node, operating-system family, and kernel context automatically
+- the system checks whether compatible symbols already exist in the internal project store
+- if symbols exist, analysis proceeds directly
+- if symbols do not exist, the UI can offer symbol generation or trigger it automatically depending on the selected mode
+
+The user is not required to provide:
+
+- IP addresses
+- node names
+- kernel strings
+- SSH users
+- symbol paths
+
+#### Memory-analysis outputs
+
+When memory analysis is executed successfully or partially, the workflow writes structured outputs into the case tree. At the Forensics side, Volatility outputs are preserved under case-local memory result directories such as:
+
+```bash
+app_core/infrastructure/forensics/evidence_store/<CASE_ID>/memory/volatility_results_<node_ref>/
+```
+
+The output set may include:
+
+- `banners.txt`
+- `pslist.txt`
+- `lsmod.txt`
+- `sockstat.txt`
+- `check_syscall.txt`
+- `bash.txt`
+- `memory_preflight.json`
+- `memory_findings.json`
+
+The memory-analysis phase is intentionally explicit about partial success. A dump may be readable while some plugins fail because symbols are missing or only partially compatible. In that case the platform records the real reason rather than fabricating a successful result.
+
 ---
 
 ## Digital Forensics Report and Analysis Dashboard
@@ -1416,6 +1572,100 @@ The workflow reuses the real local analysis surface already present in the repos
 - `app_core/infrastructure/forensics/scripts/analyze_disk_tsk.sh`
 - `app_core/infrastructure/forensics/scripts/build_case_timeline.py`
 - `e2_max_clock_offset.sh` as an available temporal helper when applicable
+
+### Memory-analysis integration inside FOC Reconstruction
+
+The FOC multilayer workflow treats memory as a first-class analytical layer, but it does not pretend that memory analysis is always available or always complete.
+
+The memory phase now performs an explicit pre-flight and symbol-resolution workflow before attempting the full Linux plugin suite. The generated case artifacts include:
+
+- `analysis/04_memory/memory_preflight.json`
+- `analysis/04_memory/memory_findings.json`
+- `analysis/04_memory/<dump_id>/vol3_banners.txt`
+- `analysis/04_memory/<dump_id>/vol3_pslist.txt`
+- `analysis/04_memory/<dump_id>/vol3_sockstat.txt`
+- `analysis/04_memory/<dump_id>/vol3_lsmod.txt`
+- `analysis/04_memory/<dump_id>/vol3_check_syscall.txt`
+- `analysis/04_memory/<dump_id>/vol3_bash.txt`
+- `analysis/04_memory/<dump_id>/vol3_execution_report.json`
+
+The pre-flight artifact records whether memory analysis is possible for each dump and why. It includes technical fields such as:
+
+- case identifier
+- dump path
+- dump size
+- dump SHA-256
+- inferred source node
+- linked manifest and custody context
+- detected operating-system family
+- detected kernel
+- symbol search paths
+- symbols found
+- Volatility 3 availability and version
+- compatibility assessment
+- blocking reason
+- warnings
+
+This design matters because a Linux memory dump can be:
+
+- fully analyzable
+- partially analyzable
+- readable but blocked by missing symbols
+- invalid or unsupported
+
+and each state must be represented honestly.
+
+#### Plugin-by-plugin execution model
+
+The FOC memory phase does not reduce memory analysis to a single pass/fail bit. Instead, it executes plugins progressively and assigns each one its own state:
+
+- `completed`
+- `failed`
+- `skipped`
+- `not_available`
+
+This means:
+
+- `banners` can succeed even if process listing fails
+- `pslist`, `sockstat`, `lsmod`, `check_syscall`, and `bash` can be recorded individually
+- partial memory analysis remains visible to the user and to the final case report
+
+If symbols are missing, the workflow records the exact failure instead of hiding it behind a generic `analysis failed` message. The debug record preserves:
+
+- plugin name
+- executed command
+- exit code
+- stdout path
+- stderr path
+- error message
+- missing requirements
+- kernel-layer status
+- symbol-table status
+- suggested fix
+
+#### Multilayer meaning
+
+Within FOC Reconstruction, memory is one layer of a broader analytical workflow that also covers:
+
+- evidence inventory
+- integrity and custody
+- time validation
+- network analysis
+- disk analysis
+- OT exports
+- alerts and detections
+- custody and pipeline analysis
+- unified timeline
+- cross-layer findings
+
+The scientific rule is that missing Linux symbols must not falsely mark the whole case as complete. Instead:
+
+- memory can be `failed_missing_symbols` or `partial_missing_symbols`
+- the rest of the multilayer workflow can still continue where possible
+- the final report must show memory as incomplete
+- FOC readiness must reflect the real state of the analytical evidence
+
+This preserves rigor: the platform can continue building a defensible network, disk, OT, alert, and timeline reconstruction while still exposing that the memory layer remains incomplete until compatible Volatility 3 symbols exist.
 
 The FOC layer remains read-only with respect to:
 

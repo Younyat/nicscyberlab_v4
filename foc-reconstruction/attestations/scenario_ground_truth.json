@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-18T14:16:52.673544+00:00",
+  "generated_at": "2026-06-22T12:51:47.975762+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
   "scenario": {
@@ -1437,6 +1437,512 @@
         "unexpected_modbus_source",
         "unauthorized_modbus_write",
         "wazuh_suricata_ingest"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "10.0.2.22",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "10.0.2.22",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-761a78ab",
+      "display_name": "Multi-Vector Validation",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7",
+      "target_ip": "10.0.2.9",
+      "protocol": "unknown",
+      "target_port": null,
+      "modbus_function": null,
+      "register_reference": null,
+      "value": null,
+      "expected_alerts": [
+        "port_scan",
+        "failed_ssh_login",
+        "fim_integrity_alert",
+        "exfiltration_activity",
+        "modbus_write_register"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "10.0.2.22",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "10.0.2.22",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "10.0.2.22",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-761a78ab",
+      "display_name": "Multi-Vector Validation",
+      "target_node_id": "node-c800d431",
+      "target_instance_id": "inst-16583180",
+      "target_ip": "10.0.2.172",
+      "protocol": "unknown",
+      "target_port": null,
+      "modbus_function": null,
+      "register_reference": null,
+      "value": null,
+      "expected_alerts": [
+        "port_scan",
+        "failed_ssh_login",
+        "fim_integrity_alert",
+        "exfiltration_activity",
+        "modbus_write_register"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "10.0.2.22",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-761a78ab",
+      "display_name": "Multi-Vector Validation",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7",
+      "target_ip": "10.0.2.9",
+      "protocol": "unknown",
+      "target_port": null,
+      "modbus_function": null,
+      "register_reference": null,
+      "value": null,
+      "expected_alerts": [
+        "port_scan",
+        "failed_ssh_login",
+        "fim_integrity_alert",
+        "exfiltration_activity",
+        "modbus_write_register"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "10.0.2.22",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "10.0.2.22",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "10.0.2.22",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "10.0.2.22",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "10.0.2.22",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "10.0.2.22",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "10.0.2.22",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "10.0.2.22",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "192.168.100.252",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "192.168.100.252",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "192.168.100.252",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "192.168.100.252",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-5402854b",
+      "display_name": "ICMP Reconnaissance",
+      "target_node_id": "node-e1ac03b8",
+      "target_instance_id": "inst-a495cfe7",
+      "target_ip": "10.0.2.9",
+      "protocol": "unknown",
+      "target_port": null,
+      "modbus_function": null,
+      "register_reference": null,
+      "value": null,
+      "expected_alerts": [
+        "icmp_sweep",
+        "host_discovery",
+        "active_scanning"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "192.168.100.252",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "192.168.100.252",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "10.0.2.22",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "10.0.2.22",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "10.0.2.22",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
+      ]
+    },
+    {
+      "attack_id": "atk-6402b8e1",
+      "display_name": "Modbus Register Manipulation",
+      "target_node_id": "node-f9ca9bfc",
+      "target_instance_id": "inst-8c0c86c9",
+      "target_ip": "10.0.2.22",
+      "protocol": "modbus_tcp",
+      "target_port": 502,
+      "modbus_function": "16",
+      "register_reference": 4,
+      "value": 30,
+      "expected_alerts": [
+        "modbus_write_register",
+        "unauthorized_control_command",
+        "process_state_change",
+        "control_manipulation"
       ]
     }
   ],
@@ -3646,6 +4152,1266 @@
         "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
         "app_core/infrastructure/attack/outputs/20260618T081732Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE/rollback_log.json"
       ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142003Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142003Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142003Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T142003Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T142003Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142046Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142046Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142046Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T142046Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T142046Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-761a78ab:execution_to_target",
+      "source": "atk-761a78ab",
+      "target": "node-e1ac03b8",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142126Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-761a78ab:rollback",
+      "source": "atk-761a78ab",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        null,
+        "app_core/infrastructure/attack/outputs/20260618T142126Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142144Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142144Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142144Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T142144Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T142144Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142234Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142234Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142234Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T142234Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T142234Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142325Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142325Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142325Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T142325Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T142325Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-761a78ab:execution_to_target",
+      "source": "atk-761a78ab",
+      "target": "node-c800d431",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142945Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-761a78ab:rollback",
+      "source": "atk-761a78ab",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        null,
+        "app_core/infrastructure/attack/outputs/20260618T142945Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143008Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143008Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143008Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T143008Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T143008Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-761a78ab:execution_to_target",
+      "source": "atk-761a78ab",
+      "target": "node-e1ac03b8",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143042Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-761a78ab:rollback",
+      "source": "atk-761a78ab",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        null,
+        "app_core/infrastructure/attack/outputs/20260618T143042Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143137Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143137Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143137Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T143137Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T143137Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143540Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143540Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143540Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T143540Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T143540Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143606Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143606Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143606Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T143606Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T143606Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144131Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144131Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144131Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T144131Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T144131Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144614Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144614Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144614Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T144614Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T144614Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144651Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144651Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144651Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T144651Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T144651Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144724Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144724Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144724Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T144724Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T144724Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144800Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144800Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144800Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T144800Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T144800Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T150539Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T150539Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T150539Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T150539Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 50",
+        "app_core/infrastructure/attack/outputs/20260618T150539Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T150559Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T150559Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T150559Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T150559Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 50",
+        "app_core/infrastructure/attack/outputs/20260618T150559Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T150633Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T150633Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T150633Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T150633Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 50",
+        "app_core/infrastructure/attack/outputs/20260618T150633Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T150656Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T150656Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T150656Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T150656Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 50",
+        "app_core/infrastructure/attack/outputs/20260618T150656Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-5402854b:execution_to_target",
+      "source": "atk-5402854b",
+      "target": "node-e1ac03b8",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T151514Z_T1595_ACTIVE_SCANNING_ICMP_RECON/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T153024Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T153024Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T153024Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T153024Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 50",
+        "app_core/infrastructure/attack/outputs/20260618T153024Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T153059Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T153059Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T153059Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T153059Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 50",
+        "app_core/infrastructure/attack/outputs/20260618T153059Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T154700Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T154700Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T154700Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T154700Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T154700Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T154728Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T154728Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T154728Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T154728Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T154728Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T160559Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T160559Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T160559Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T160559Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T160559Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "source": "atk-6402b8e1",
+      "target": "node-f9ca9bfc",
+      "edge_type": "attack_targets_node",
+      "semantic_rule": "The executed attack must map to a deployed scenario node and instance binding.",
+      "temporal_rule": "Target binding must exist before or at attack start time.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T160635Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "source": "atk-6402b8e1",
+      "target": "expected_detection:modbus_write",
+      "edge_type": "attack_should_emit_detection",
+      "semantic_rule": "A Modbus register or coil write should map to a write-focused detection rule when the detection profile is active on the path.",
+      "temporal_rule": "The detection alert should occur between attack start and rollback completion or shortly after the write.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T160635Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:plc_state_change",
+      "edge_type": "attack_should_change_process_state",
+      "semantic_rule": "The manipulated Modbus value should be observable in OT state before rollback.",
+      "temporal_rule": "State-after evidence must be captured after the write and before or at rollback.",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T160635Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T160635Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "source": "atk-6402b8e1",
+      "target": "expected_effect:state_restoration",
+      "edge_type": "attack_should_restore_state",
+      "semantic_rule": "Rollback-required attacks should preserve a restoration trace and final state evidence.",
+      "temporal_rule": "Rollback evidence must occur after the manipulation and before scenario teardown.",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T160635Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
     }
   ],
   "required_evidence_by_edge": [
@@ -4937,6 +6703,748 @@
       "required_evidence": [
         "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
         "app_core/infrastructure/attack/outputs/20260618T081732Z_T1692_001_UNAUTHORIZED_COMMAND_MESSAGE/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142003Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142003Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142003Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T142003Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T142003Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142046Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142046Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142046Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T142046Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T142046Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-761a78ab:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142126Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-761a78ab:rollback",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142126Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142144Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142144Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142144Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T142144Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T142144Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142234Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142234Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142234Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T142234Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T142234Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142325Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142325Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142325Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T142325Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T142325Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-761a78ab:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142945Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-761a78ab:rollback",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T142945Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143008Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143008Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143008Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T143008Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T143008Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-761a78ab:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143042Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-761a78ab:rollback",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143042Z_CHAIN_MULTI_VECTOR_DETECTION_VALIDATION/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143137Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143137Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143137Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T143137Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T143137Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143540Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143540Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143540Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T143540Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T143540Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143606Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143606Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T143606Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T143606Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T143606Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144131Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144131Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144131Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T144131Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T144131Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144614Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144614Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144614Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T144614Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T144614Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144651Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144651Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144651Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T144651Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T144651Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144724Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144724Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144724Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T144724Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T144724Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144800Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144800Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T144800Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T144800Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T144800Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T150539Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T150539Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T150539Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T150539Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 50",
+        "app_core/infrastructure/attack/outputs/20260618T150539Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T150559Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T150559Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T150559Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T150559Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 50",
+        "app_core/infrastructure/attack/outputs/20260618T150559Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T150633Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T150633Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T150633Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T150633Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 50",
+        "app_core/infrastructure/attack/outputs/20260618T150633Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T150656Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T150656Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T150656Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T150656Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 50",
+        "app_core/infrastructure/attack/outputs/20260618T150656Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-5402854b:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T151514Z_T1595_ACTIVE_SCANNING_ICMP_RECON/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T153024Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T153024Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T153024Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T153024Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 50",
+        "app_core/infrastructure/attack/outputs/20260618T153024Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T153059Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T153059Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T153059Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T153059Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 50",
+        "app_core/infrastructure/attack/outputs/20260618T153059Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T154700Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T154700Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T154700Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T154700Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T154700Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T154728Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T154728Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T154728Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T154728Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T154728Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T160559Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T160559Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T160559Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T160559Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T160559Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:execution_to_target",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T160635Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/scenario_bom.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:modbus_write",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T160635Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "foc-reconstruction/attestations/detection_attestation.json",
+        "foc-reconstruction/attestations/alerts_normalized.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:state_change",
+      "required_evidence": [
+        "app_core/infrastructure/attack/outputs/20260618T160635Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260618T160635Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json"
+      ]
+    },
+    {
+      "edge_id": "atk-6402b8e1:rollback",
+      "required_evidence": [
+        "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 10.0.2.22 50",
+        "app_core/infrastructure/attack/outputs/20260618T160635Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
       ]
     }
   ],

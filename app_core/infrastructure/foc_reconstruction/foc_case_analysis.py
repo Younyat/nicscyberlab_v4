@@ -1,9 +1,11 @@
 import json
 import logging
 import os
+import shlex
 import shutil
 import subprocess
 import threading
+import time
 import uuid
 import hashlib
 import re
@@ -22,7 +24,18 @@ logger = logging.getLogger(__name__)
 CASE_ROOT = project_path("app_core", "infrastructure", "forensics", "evidence_store")
 FORENSICS_SCRIPTS_DIR = project_path("app_core", "infrastructure", "forensics", "scripts")
 PROJECT_SCRIPT_DIR = project_path()
-VOL3_SYMBOLS_DIR = Path("/home/younes/vol3_symbols_cache/symbols/linux")
+VOL3_SYMBOLS_DIR = project_path("app_core", "infrastructure", "forensics", "volatility_symbol_store", "linux")
+MEMORY_PLUGIN_SPECS = [
+    {"key": "banners", "plugin": "banners.Banners", "filename": "vol3_banners.txt", "symbol_dependent": False},
+    {"key": "pslist", "plugin": "linux.pslist.PsList", "filename": "vol3_pslist.txt", "symbol_dependent": True},
+    {"key": "sockstat", "plugin": "linux.sockstat.Sockstat", "filename": "vol3_sockstat.txt", "symbol_dependent": True},
+    {"key": "lsmod", "plugin": "linux.lsmod.Lsmod", "filename": "vol3_lsmod.txt", "symbol_dependent": True},
+    {"key": "check_syscall", "plugin": "linux.check_syscall.Check_syscall", "filename": "vol3_check_syscall.txt", "symbol_dependent": True},
+    {"key": "bash", "plugin": "linux.bash.Bash", "filename": "vol3_bash.txt", "symbol_dependent": True},
+]
+MEMORY_OUTPUT_ROOT = "04_memory"
+MEMORY_LEGACY_OUTPUT_ROOT = "vol3"
+SYMBOL_FILENAME_SUFFIXES = (".json", ".json.xz", ".zip", ".isf")
 
 ANALYSIS_PHASES = [
     ("preflight_validation", "Pre-flight validation", None),
@@ -104,6 +117,440 @@ def _which(*candidates: str) -> str | None:
         if resolved:
             return resolved
     return None
+
+
+def _ensure_symbol_store() -> dict:
+    """Ensure VOL3_SYMBOLS_DIR exists and is writable. Returns dict with status info."""
+    out = {"path": str(VOL3_SYMBOLS_DIR), "exists": False, "writable": False}
+    try:
+        VOL3_SYMBOLS_DIR.mkdir(parents=True, exist_ok=True)
+        out["exists"] = True
+        try:
+            VOL3_SYMBOLS_DIR.chmod(0o755)
+        except Exception:
+            pass
+        out["writable"] = os.access(VOL3_SYMBOLS_DIR, os.W_OK)
+    except Exception:
+        out["exists"] = VOL3_SYMBOLS_DIR.exists()
+        out["writable"] = False
+    return out
+
+
+def _shell_join(command: list[str]) -> str:
+    try:
+        return shlex.join(command)
+    except Exception:
+        return " ".join(command)
+
+
+def _read_text(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8", errors="ignore")
+    except Exception:
+        return ""
+
+
+def _message_list(value) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, (str, int, float, bool)):
+        return [str(value)]
+    if isinstance(value, dict):
+        preferred = value.get("message") or value.get("error_message") or value.get("reason") or value.get("phase")
+        return [str(preferred)] if preferred is not None else [json.dumps(value, ensure_ascii=False, sort_keys=True)]
+    if isinstance(value, (list, tuple, set)):
+        out: list[str] = []
+        for item in value:
+            out.extend(_message_list(item))
+        return [item for item in out if item]
+    return [str(value)]
+
+
+def _volatility_version() -> str:
+    python3 = _which("python3")
+    if python3:
+        candidates = [
+            "import volatility3, sys; print(getattr(volatility3, '__version__', 'unknown'))",
+            "from volatility3.framework import constants; print(getattr(constants, 'PACKAGE_VERSION', 'unknown'))",
+        ]
+        for snippet in candidates:
+            try:
+                proc = subprocess.run([python3, "-c", snippet], capture_output=True, text=True, check=False)
+            except Exception:
+                continue
+            value = (proc.stdout or "").strip() or (proc.stderr or "").strip()
+            if proc.returncode == 0 and value:
+                return value
+    vol_cmd = _which("volatility3", "vol")
+    if vol_cmd:
+        try:
+            proc = subprocess.run([vol_cmd, "-h"], capture_output=True, text=True, check=False)
+        except Exception:
+            proc = None
+        if proc:
+            combined = "\n".join(part for part in [proc.stdout, proc.stderr] if part)
+            match = re.search(r"Volatility 3 Framework\s+([0-9.]+)", combined)
+            if match:
+                return match.group(1)
+    return "unknown"
+
+
+def _memory_output_dir(case_dir: Path, dump_id: str) -> Path:
+    return _analysis_dir(case_dir) / MEMORY_OUTPUT_ROOT / dump_id
+
+
+def _memory_legacy_output_dir(case_dir: Path, dump_id: str) -> Path:
+    return _analysis_dir(case_dir) / MEMORY_LEGACY_OUTPUT_ROOT / dump_id
+
+
+def _symbol_search_roots() -> list[Path]:
+    roots: list[Path] = []
+    env_candidates = []
+    for key in ("VOLATILITY_SYMBOL_PATH", "VOLATILITY3_SYMBOL_PATH", "VOL3_SYMBOLS_DIR", "VOLATILITY_SYMBOL_DIRS"):
+        raw = str(os.environ.get(key) or "").strip()
+        if raw:
+            env_candidates.extend(part for part in re.split(r"[;:]", raw) if part.strip())
+    for raw in env_candidates:
+        roots.append(Path(raw).expanduser())
+    roots.extend(
+        [
+            VOL3_SYMBOLS_DIR,
+            VOL3_SYMBOLS_DIR.parent,
+            project_path("app_core", "infrastructure", "forensics", "volatility_symbol_store"),
+            project_path("app_core", "infrastructure", "forensics", "volatility_symbol_store", "linux"),
+            Path.home() / "vol3_symbols_cache",
+            Path.home() / "vol3_symbols_cache" / "symbols",
+            Path.home() / ".cache" / "volatility3",
+            Path.home() / ".cache" / "volatility3" / "symbols",
+            Path.home() / "volatility3",
+            Path.home() / "volatility3" / "symbols",
+            project_path("symbols"),
+            project_path("foc-reconstruction", "symbols"),
+            project_path("app_core", "infrastructure", "forensics", "symbols"),
+        ]
+    )
+    seen: set[str] = set()
+    out: list[Path] = []
+    for root in roots:
+        normalized = str(root)
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        out.append(root)
+    return out
+
+
+def _discover_symbol_files() -> tuple[list[str], list[Path]]:
+    checked: list[str] = []
+    files: list[Path] = []
+    seen_files: set[str] = set()
+    for root in _symbol_search_roots():
+        checked.append(str(root))
+        if root.is_file():
+            if root.name.endswith(SYMBOL_FILENAME_SUFFIXES):
+                files.append(root)
+            continue
+        if not root.is_dir():
+            continue
+        for suffix in SYMBOL_FILENAME_SUFFIXES:
+            for candidate in root.rglob(f"*{suffix}"):
+                normalized = str(candidate)
+                if normalized in seen_files:
+                    continue
+                seen_files.add(normalized)
+                files.append(candidate)
+    return checked, sorted(files)
+
+
+def _symbol_kernel_name(path: Path) -> str:
+    name = path.name
+    for suffix in (".json.xz", ".json", ".zip", ".isf"):
+        if name.endswith(suffix):
+            return name[: -len(suffix)]
+    return path.stem
+
+
+def _parse_linux_banner(text: str) -> tuple[str | None, str | None]:
+    for line in text.splitlines():
+        if "Linux version " not in line:
+            continue
+        kernel_match = re.search(r"Linux version\s+([^\s]+)", line)
+        kernel = kernel_match.group(1).strip() if kernel_match else None
+        distro = None
+        if "Ubuntu" in line:
+            distro = "Ubuntu"
+        elif "Debian" in line:
+            distro = "Debian"
+        elif "CentOS" in line:
+            distro = "CentOS"
+        elif "Red Hat" in line or "RHEL" in line:
+            distro = "RHEL"
+        elif "SUSE" in line:
+            distro = "SUSE"
+        return distro, kernel
+    return None, None
+
+
+def _matching_symbol_files(kernel: str | None, symbol_files: list[Path]) -> list[Path]:
+    if not kernel:
+        return []
+    exact = [path for path in symbol_files if _symbol_kernel_name(path) == kernel]
+    if exact:
+        return exact
+    partial = [path for path in symbol_files if kernel in path.name or _symbol_kernel_name(path) in kernel]
+    return partial
+
+
+def _symbols_manifest_path() -> Path:
+    # manifest lives next to the linux symbols directory (parent)
+    parent = VOL3_SYMBOLS_DIR.parent
+    return parent / "symbols_manifest.json"
+
+
+def _update_symbols_manifest(kernel_name: str, source: str, path: Path) -> None:
+    manifest_path = _symbols_manifest_path()
+    try:
+        manifest = _json_load(manifest_path) or {}
+    except Exception:
+        manifest = {}
+    if not isinstance(manifest, dict):
+        manifest = {}
+    entries = manifest.get("symbols") or []
+    entry = {"kernel": kernel_name, "source": source, "path": str(path), "generated_at": utc_now()}
+    # avoid duplicates
+    if not any(e.get("kernel") == kernel_name and e.get("path") == str(path) for e in entries):
+        entries.append(entry)
+    manifest["symbols"] = entries
+    try:
+        _write_json(manifest_path, manifest)
+    except Exception:
+        pass
+
+
+def _find_local_vmlinux_candidates(case_dir: Path) -> list[Path]:
+    candidates: list[Path] = []
+    # look in common places inside the case (disk analysis outputs, metadata, extracted files)
+    for p in (
+        case_dir.rglob("vmlinux*"),
+        case_dir.rglob("*vmlinux*.elf"),
+        case_dir.rglob("System.map*"),
+        case_dir.rglob("*vmlinux*.bin"),
+    ):
+        for path in p:
+            if path.is_file():
+                candidates.append(path)
+    # dedupe
+    out = []
+    seen = set()
+    for c in candidates:
+        if str(c) in seen:
+            continue
+        seen.add(str(c))
+        out.append(c)
+    return out
+
+
+def _generate_symbol_from_vmlinux(case_dir: Path, detected_kernel: str | None) -> Path | None:
+    """Attempt to generate a volatility symbol JSON for detected_kernel using local vmlinux and dwarf2json.
+    Returns the generated symbol path or None."""
+    dwarf = _which("dwarf2json")
+    if not dwarf:
+        return None
+    if not detected_kernel:
+        return None
+    # prepare output dir
+    try:
+        VOL3_SYMBOLS_DIR.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        return None
+    try:
+        VOL3_SYMBOLS_DIR.chmod(0o755)
+    except Exception:
+        pass
+    out_path = VOL3_SYMBOLS_DIR / f"{detected_kernel}.json"
+    # if already exists, return
+    if out_path.exists():
+        return out_path
+    # find candidates in case dir
+    for candidate in _find_local_vmlinux_candidates(case_dir):
+        # run dwarf2json linux --elf <candidate> > out_path
+        try:
+            cmd = [dwarf, "linux", "--elf", str(candidate)]
+            tmp_out = out_path.with_suffix(".tmp")
+            with tmp_out.open("w", encoding="utf-8") as fh:
+                proc = subprocess.run(cmd, cwd=str(case_dir), stdout=fh, stderr=subprocess.PIPE, text=True)
+            if proc.returncode == 0:
+                tmp_out.replace(out_path)
+                _update_symbols_manifest(detected_kernel, "generated_from_case_vmlinux", out_path)
+                return out_path
+        except Exception:
+            continue
+    return None
+
+
+def _generate_symbol_via_ssh(case_dir: Path, output_dir: Path, dump_file: Path, detected_kernel: str | None, metadata: dict) -> dict | None:
+    """Run the `generate_vol3_symbols_ssh.sh` helper with credentials from metadata if available.
+    Writes a `symbol_generation_report.json` in `output_dir` and returns the report dict, or None
+    if not attempted.
+    """
+    script = FORENSICS_SCRIPTS_DIR / "generate_vol3_symbols_ssh.sh"
+    if not script.is_file():
+        return None
+
+    # look for explicit creds file
+    creds_path = case_dir / "metadata" / "vm_ssh_credentials.json"
+    ssh_user = None
+    ssh_key = None
+    vm_ip = None
+    vm_id = None
+    if creds_path.is_file():
+        try:
+            creds = _json_load(creds_path) or {}
+            ssh_user = creds.get("ssh_user")
+            ssh_key = creds.get("ssh_key")
+            vm_ip = creds.get("vm_ip")
+            vm_id = creds.get("vm_id")
+        except Exception:
+            pass
+
+    # fallback to dump metadata
+    vm_ip = vm_ip or metadata.get("vm_ip") or metadata.get("ip")
+    vm_id = vm_id or metadata.get("vm_id")
+
+    # environment fallbacks
+    ssh_user = ssh_user or os.environ.get("VOL3_SYMBOLS_SSH_USER")
+    ssh_key = ssh_key or os.environ.get("VOL3_SYMBOLS_SSH_KEY")
+
+    if not vm_ip or not ssh_user or not ssh_key:
+        return None
+
+    stdout_path = output_dir / "symbol_generation.stdout.log"
+    stderr_path = output_dir / "symbol_generation.stderr.log"
+    report_path = output_dir / "symbol_generation_report.json"
+
+    cmd = ["bash", str(script), str(case_dir), str(vm_id or ""), str(vm_ip), str(ssh_user), str(ssh_key)]
+    rc, _ = _run_command(cmd, case_dir, stdout_path, stderr_path)
+
+    # refresh symbol discovery
+    _, symbol_files = _discover_symbol_files()
+    matched = _matching_symbol_files(detected_kernel, symbol_files)
+
+    report = {
+        "command": cmd,
+        "command_text": _shell_join(cmd),
+        "exit_code": rc,
+        "stdout_path": relative_path(stdout_path),
+        "stderr_path": relative_path(stderr_path),
+        "matched": bool(matched),
+        "matched_symbols": [str(p) for p in matched],
+        "generated_at": utc_now(),
+    }
+    try:
+        _write_json(report_path, report)
+    except Exception:
+        pass
+
+    # update manifest for new matches
+    for p in matched:
+        try:
+            _update_symbols_manifest(_symbol_kernel_name(p), "generated_via_ssh", p)
+        except Exception:
+            pass
+
+    return report
+
+
+def _extract_unsatisfied_requirements(text: str) -> list[str]:
+    requirements = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("Unsatisfied requirement"):
+            requirements.append(stripped)
+    return requirements
+
+
+def _symbol_table_status_from_text(text: str) -> str:
+    if "kernel.symbol_table_name" in text:
+        return "missing_symbol_table"
+    if "symbol_table_name" in text:
+        return "symbol_table_requirement_failed"
+    return "resolved_or_not_required"
+
+
+def _kernel_layer_status_from_text(text: str) -> str:
+    if "kernel.layer_name" in text:
+        return "missing_kernel_layer"
+    if "layer_name" in text:
+        return "kernel_layer_requirement_failed"
+    return "resolved_or_not_required"
+
+
+def _suggest_memory_fix(plugin_result: dict, preflight_dump: dict) -> str:
+    if plugin_result.get("missing_requirement"):
+        kernel = preflight_dump.get("detected_kernel") or "unknown_kernel"
+        return (
+            "Provide a Volatility 3 Linux symbol file matching "
+            f"`{kernel}` in one of the checked local symbol directories and rerun memory analysis."
+        )
+    if not plugin_result.get("analysis_possible", True):
+        return "Review the memory pre-flight report and verify Volatility 3, dump readability and local symbol paths."
+    return "Inspect the exact stdout/stderr paths for this plugin and rerun the plugin manually for deeper debugging."
+
+
+def _extract_output_summary(text: str, plugin_key: str) -> dict:
+    lines = [line for line in text.splitlines() if line.strip()]
+    if plugin_key == "pslist":
+        return {"processes_extracted": max(0, len(lines) - 1)}
+    if plugin_key == "sockstat":
+        return {"sockets_extracted": max(0, len(lines) - 1)}
+    if plugin_key == "lsmod":
+        return {"modules_extracted": max(0, len(lines) - 1)}
+    if plugin_key == "bash":
+        return {"bash_history_entries": max(0, len(lines) - 1)}
+    if plugin_key == "banners":
+        return {"banners_detected": sum(1 for line in lines if "Linux version " in line)}
+    return {}
+
+
+def _manifest_artifact_map(case_dir: Path) -> dict[str, dict]:
+    manifest = _json_load(case_dir / "manifest.json") or {}
+    artifacts = manifest.get("artifacts") if isinstance(manifest, dict) else []
+    out: dict[str, dict] = {}
+    for artifact in artifacts if isinstance(artifacts, list) else []:
+        if not isinstance(artifact, dict):
+            continue
+        rel_path = str(artifact.get("rel_path") or "").strip()
+        if rel_path:
+            out[rel_path] = artifact
+    return out
+
+
+def _custody_entries_for_artifact(case_dir: Path, rel_path: str) -> list[dict]:
+    entries = []
+    accepted = {str(rel_path or "").strip()}
+    if accepted == {""}:
+        accepted = set()
+    prefixed = relative_path(case_dir / rel_path) if rel_path else None
+    if prefixed:
+        accepted.add(prefixed)
+    for event in _jsonl_load(case_dir / "chain_of_custody.log"):
+        if str(event.get("artifact_rel") or "").strip() in accepted:
+            entries.append(event)
+    return entries
+
+
+def _dump_metadata(case_dir: Path, dump_file: Path) -> dict:
+    metadata_path = case_dir / "metadata" / f"{dump_file.name}.metadata.json"
+    payload = _json_load(metadata_path)
+    return payload if isinstance(payload, dict) else {}
+
+
+def _dump_identifier(dump_file: Path, metadata: dict) -> str:
+    for candidate in (metadata.get("vm_id"), dump_file.stem):
+        value = str(candidate or "").strip()
+        if value:
+            return _safe_slug(value)
+    return _safe_slug(dump_file.name)
 
 
 def _phase_labels() -> dict[str, str]:
@@ -226,6 +673,7 @@ def _default_analysis_status(case_entry: dict) -> dict:
         "current_phase": None,
         "phases": {},
         "completed_phases": [],
+        "partial_phases": [],
         "failed_phases": [],
         "skipped_phases": [],
         "progress_percent": 0,
@@ -254,6 +702,7 @@ def load_analysis_status(case_id: str) -> dict:
     payload.setdefault("case_id", case_id)
     payload.setdefault("case_path", relative_path(case_dir))
     payload.setdefault("analysis_dir", relative_path(_analysis_dir(case_dir)))
+    payload.setdefault("partial_phases", [])
     report_path = _analysis_dir(case_dir) / "forensic_analysis_report.json"
     manifest_path = _analysis_dir(case_dir) / "forensic_analysis_manifest.json"
     payload["forensic_analysis_report_path"] = relative_path(report_path) if report_path.exists() else None
@@ -268,6 +717,7 @@ def load_analysis_status(case_id: str) -> dict:
 def _write_status(case_dir: Path, status: dict) -> None:
     status["updated_at"] = utc_now()
     status["completed_phases"] = [key for key, phase in (status.get("phases") or {}).items() if str(phase.get("status")) == "completed"]
+    status["partial_phases"] = [key for key, phase in (status.get("phases") or {}).items() if str(phase.get("status")).startswith("partial")]
     status["failed_phases"] = [key for key, phase in (status.get("phases") or {}).items() if str(phase.get("status")).startswith("failed")]
     status["skipped_phases"] = [key for key, phase in (status.get("phases") or {}).items() if str(phase.get("status")).startswith("skipped")]
     _write_json(_analysis_status_path(case_dir), status)
@@ -296,6 +746,7 @@ def _init_status(case_entry: dict, force: bool = False) -> dict:
         "current_phase": "preflight_validation",
         "phases": phases,
         "completed_phases": [],
+        "partial_phases": [],
         "failed_phases": [],
         "skipped_phases": [],
         "progress_percent": 0,
@@ -320,10 +771,11 @@ def _set_phase_status(case_dir: Path, status: dict, phase_key: str, phase_status
     status["phases"][phase_key] = phase
     phase_states = [str(item.get("status") or "") for item in (status.get("phases") or {}).values()]
     completed = len([item for item in phase_states if item == "completed"])
+    partial = len([item for item in phase_states if item.startswith("partial")])
     skipped = len([item for item in phase_states if item.startswith("skipped")])
     failed = len([item for item in phase_states if item.startswith("failed")])
     total = max(1, len(ANALYSIS_PHASES))
-    status["progress_percent"] = round(((completed + skipped + failed) / total) * 100, 2)
+    status["progress_percent"] = round(((completed + partial + skipped + failed) / total) * 100, 2)
     _write_status(case_dir, status)
 
 
@@ -332,12 +784,40 @@ def _record_phase_transition(case_dir: Path, status: dict, phase_key: str, phase
     _set_phase_status(case_dir, status, phase_key, phase_status, extra=extra)
 
 
+def _analysis_cancel_path(case_dir: Path) -> Path:
+    return _analysis_dir(case_dir) / "analysis_cancel.request"
+
+
 def _run_command(command: list[str], cwd: Path, stdout_path: Path, stderr_path: Path) -> tuple[int, str | None]:
     stdout_path.parent.mkdir(parents=True, exist_ok=True)
     stderr_path.parent.mkdir(parents=True, exist_ok=True)
+    # Run with Popen so we can poll and terminate if a cancellation request appears.
     with stdout_path.open("w", encoding="utf-8") as out, stderr_path.open("w", encoding="utf-8") as err:
-        proc = subprocess.run(command, cwd=str(cwd), stdout=out, stderr=err, text=True)
-    return proc.returncode, None
+        try:
+            proc = subprocess.Popen(command, cwd=str(cwd), stdout=out, stderr=err, text=True)
+        except Exception as exc:
+            return 1, f"popen_failed: {exc}"
+        # Poll loop
+        while True:
+            rc = proc.poll()
+            if rc is not None:
+                return rc, None
+            # check for cancellation file
+            try:
+                cancel_file = _analysis_dir(cwd) / "analysis_cancel.request"
+                if cancel_file.exists():
+                    try:
+                        proc.terminate()
+                    except Exception:
+                        try:
+                            proc.kill()
+                        except Exception:
+                            pass
+                    return -1, "killed_by_cancel"
+            except Exception:
+                pass
+            # sleep briefly
+            time.sleep(0.5)
 
 
 def _validate_phase_payload(payload: dict) -> tuple[bool, str | None]:
@@ -636,7 +1116,31 @@ def _phase_network(case_dir: Path) -> dict:
 
 def _phase_memory(case_dir: Path) -> dict:
     dumps = sorted((case_dir / "memory").glob("*.lime"))
+    preflight_path = _analysis_dir(case_dir) / MEMORY_OUTPUT_ROOT / "memory_preflight.json"
+    findings_path = _analysis_dir(case_dir) / MEMORY_OUTPUT_ROOT / "memory_findings.json"
+    phase_stdout_path, phase_stderr_path = _phase_log_paths(case_dir, "memory_analysis")
     if not dumps:
+        preflight_payload = {
+            "case_id": case_dir.name,
+            "memory_dumps_found": 0,
+            "dump_path": None,
+            "dump_size": None,
+            "dump_sha256": None,
+            "source_node": None,
+            "manifest_linked": False,
+            "custody_linked": False,
+            "detected_os": None,
+            "detected_kernel": None,
+            "symbol_search_paths": [str(path) for path in _symbol_search_roots()],
+            "symbols_found": False,
+            "volatility3_available": bool(_which("volatility3", "vol")),
+            "volatility3_version": _volatility_version(),
+            "analysis_possible": False,
+            "blocking_reason": "No LiME memory dump was found for this case.",
+            "warnings": [],
+            "dumps": [],
+        }
+        _write_json(preflight_path, preflight_payload)
         return {
             "phase": "memory_analysis",
             "status": "skipped_no_memory_dump",
@@ -647,52 +1151,440 @@ def _phase_memory(case_dir: Path) -> dict:
             "not_executed_reason": "No LiME memory dump was found for this case.",
         }
     vol_cmd = _which("volatility3", "vol")
-    script_path = FORENSICS_SCRIPTS_DIR / "analyze_memory_vol3.sh"
-    if not vol_cmd or not script_path.is_file() or not VOL3_SYMBOLS_DIR.is_dir():
+    symbol_search_paths, symbol_files = _discover_symbol_files()
+    manifest_map = _manifest_artifact_map(case_dir)
+    volatility_available = bool(vol_cmd)
+    volatility_version = _volatility_version() if volatility_available else "not_available"
+    if not vol_cmd:
+        preflight_payload = {
+            "case_id": case_dir.name,
+            "memory_dumps_found": len(dumps),
+            "dump_path": relative_path(dumps[0]) if len(dumps) == 1 else None,
+            "dump_size": dumps[0].stat().st_size if len(dumps) == 1 else None,
+            "dump_sha256": (_dump_metadata(case_dir, dumps[0]).get("sha256") if len(dumps) == 1 else None),
+            "source_node": (_dump_metadata(case_dir, dumps[0]).get("vm_ip") if len(dumps) == 1 else None),
+            "manifest_linked": False,
+            "custody_linked": False,
+            "detected_os": None,
+            "detected_kernel": None,
+            "symbol_search_paths": symbol_search_paths,
+            "symbols_found": bool(symbol_files),
+            "volatility3_available": False,
+            "volatility3_version": volatility_version,
+            "analysis_possible": False,
+            "blocking_reason": "Volatility 3 executable was not found on the host.",
+            "warnings": [],
+            "dumps": [],
+        }
+        _write_json(preflight_path, preflight_payload)
+        _write_json(
+            findings_path,
+            {
+                "case_id": case_dir.name,
+                "status": "failed",
+                "analysis_completed": False,
+                "reason": "volatility3_not_available",
+                "blocking_errors": ["Volatility 3 executable was not found on the host."],
+                "symbols_required": True,
+                "symbols_found": bool(symbol_files),
+                "recommended_action": "Install or expose the existing Volatility 3 command locally before retrying memory analysis.",
+                "input_artifacts": [relative_path(p) for p in dumps],
+                "output_files": [relative_path(preflight_path)],
+            },
+        )
+        phase_stdout_path.write_text(
+            "\n".join(
+                [
+                    "[memory_analysis] dependency check failed",
+                    f"memory_findings={relative_path(findings_path)}",
+                    f"memory_preflight={relative_path(preflight_path)}",
+                ]
+            ) + "\n",
+            encoding="utf-8",
+        )
+        phase_stderr_path.write_text("Volatility 3 executable was not found on the host.\n", encoding="utf-8")
         return {
             "phase": "memory_analysis",
             "status": "failed_missing_dependency",
             "input_artifacts": [relative_path(p) for p in dumps],
             "findings": {},
             "limitations": [],
-            "errors": [
-                "Tool volatility3 not found" if not vol_cmd else "Volatility symbols directory not found" if not VOL3_SYMBOLS_DIR.is_dir() else "Memory analysis script not found"
-            ],
-            "not_executed_reason": "volatility3, symbols cache, or analyze_memory_vol3.sh is not available.",
+            "errors": ["Volatility 3 executable was not found on the host."],
+            "not_executed_reason": "volatility3 is not available on the host.",
             "tool_used": "not_available",
         }
-    results = []
+
+    preflight_dumps: list[dict] = []
+    dump_results: list[dict] = []
+    all_blocking_errors: list[str] = []
+    completed_plugins_total: set[str] = set()
+    failed_plugins_total: set[str] = set()
+    partial_findings: list[dict] = []
+    warnings: list[str] = []
+
     for dump_file in dumps:
-        vm_id = _safe_slug(dump_file.stem)
-        stdout_path, stderr_path = _phase_log_paths(case_dir, f"memory_analysis_{vm_id}")
-        cmd = ["bash", str(script_path), str(case_dir), str(dump_file), "unused", vol_cmd, vm_id]
-        rc, _ = _run_command(cmd, case_dir, stdout_path, stderr_path)
-        out_dir = _analysis_dir(case_dir) / "vol3" / vm_id
-        produced = sorted(str(p.name) for p in out_dir.glob("*"))
-        results.append(
+        metadata = _dump_metadata(case_dir, dump_file)
+        dump_id = _dump_identifier(dump_file, metadata)
+        rel_dump = relative_path(dump_file)
+        case_rel_dump = dump_file.relative_to(case_dir).as_posix()
+        artifact = manifest_map.get(case_rel_dump) or manifest_map.get(rel_dump) or {}
+        custody_entries = _custody_entries_for_artifact(case_dir, case_rel_dump) or _custody_entries_for_artifact(case_dir, rel_dump)
+        output_dir = _memory_output_dir(case_dir, dump_id)
+        legacy_dir = _memory_legacy_output_dir(case_dir, dump_id)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        legacy_dir.mkdir(parents=True, exist_ok=True)
+
+        plugin_reports: list[dict] = []
+        progress_phases = [
+            {"phase": "preflight_validation", "status": "completed"},
+            {"phase": "evidence_inventory", "status": "completed"},
+            {"phase": "memory_dump_discovery", "status": "completed"},
+            {"phase": "volatility3_availability_check", "status": "completed" if volatility_available else "failed"},
+            {"phase": "symbol_discovery", "status": "running"},
+            {"phase": "memory_analysis_execution", "status": "pending"},
+            {"phase": "output_validation", "status": "pending"},
+            {"phase": "report_generation", "status": "pending"},
+            {"phase": "foc_readiness_update", "status": "pending"},
+        ]
+
+        banners_spec = MEMORY_PLUGIN_SPECS[0]
+        banners_stdout = output_dir / banners_spec["filename"]
+        banners_stderr = output_dir / "vol3_banners.stderr.txt"
+        banner_cmd = [vol_cmd, "--offline", "-f", str(dump_file)]
+        if symbol_search_paths:
+            banner_cmd.extend(["-s", ";".join(symbol_search_paths)])
+        banner_cmd.append(banners_spec["plugin"])
+        banner_rc, _ = _run_command(banner_cmd, case_dir, banners_stdout, banners_stderr)
+        shutil.copy2(banners_stdout, legacy_dir / "01_banners.txt")
+        banner_text = _read_text(banners_stdout)
+        banner_err = _read_text(banners_stderr)
+        detected_os, detected_kernel = _parse_linux_banner(banner_text)
+        matched_symbols = _matching_symbol_files(detected_kernel, symbol_files)
+        # If no local symbol matched, attempt to generate a symbol from any local vmlinux candidate
+        if not matched_symbols:
+            try:
+                gen = _generate_symbol_from_vmlinux(case_dir, detected_kernel)
+                if gen:
+                    # refresh discovered symbols and re-evaluate matches
+                    _, symbol_files = _discover_symbol_files()
+                    matched_symbols = _matching_symbol_files(detected_kernel, symbol_files)
+            except Exception:
+                # best-effort generation; continue if it fails
+                matched_symbols = matched_symbols
+        # If still no matched symbols, attempt SSH-based generation using helper script and available creds
+        symbol_generation_report_path = None
+        if not matched_symbols:
+            try:
+                ssh_report = _generate_symbol_via_ssh(case_dir, output_dir, dump_file, detected_kernel, metadata)
+                if ssh_report:
+                    symbol_generation_report_path = output_dir / "symbol_generation_report.json"
+                    # refresh discovered symbols and re-evaluate matches
+                    _, symbol_files = _discover_symbol_files()
+                    matched_symbols = _matching_symbol_files(detected_kernel, symbol_files)
+            except Exception:
+                pass
+        progress_phases[4]["status"] = "completed" if matched_symbols else "partial"
+
+        dump_preflight = {
+            "dump_id": dump_id,
+            "dump_path": rel_dump,
+            "dump_size": int(dump_file.stat().st_size),
+            "dump_sha256": metadata.get("sha256") or artifact.get("sha256"),
+            "source_node": metadata.get("vm_ip") or metadata.get("vm_id"),
+            "manifest_linked": bool(artifact),
+            "manifest_artifact_rel": case_rel_dump if artifact else None,
+            "custody_linked": bool(custody_entries),
+            "custody_link": relative_path(case_dir / "chain_of_custody.log") if custody_entries else None,
+            "detected_os": detected_os,
+            "detected_kernel": detected_kernel,
+            "symbol_search_paths": symbol_search_paths,
+            "symbols_found": bool(matched_symbols),
+            "candidate_symbols": [str(path) for path in matched_symbols],
+                "symbol_generation_report": relative_path(symbol_generation_report_path) if symbol_generation_report_path else None,
+            "volatility3_available": volatility_available,
+            "volatility3_version": volatility_version,
+            "analysis_possible": bool(matched_symbols),
+            "blocking_reason": None if matched_symbols else "No compatible local Linux symbol file was matched to the captured kernel.",
+            "warnings": [],
+            "metadata_path": relative_path(case_dir / "metadata" / f"{dump_file.name}.metadata.json") if (case_dir / "metadata" / f"{dump_file.name}.metadata.json").is_file() else None,
+            "banner_command": _shell_join(banner_cmd),
+            "banner_stdout_path": relative_path(banners_stdout),
+            "banner_stderr_path": relative_path(banners_stderr),
+            "symbol_selection_decision": (
+                f"Selected exact local symbol candidate `{matched_symbols[0].name}` for kernel `{detected_kernel}`."
+                if matched_symbols else
+                f"No compatible local symbol candidate matched kernel `{detected_kernel or 'unknown'}`."
+            ),
+            "symbol_table_status": _symbol_table_status_from_text(banner_text + "\n" + banner_err),
+            "kernel_layer_status": _kernel_layer_status_from_text(banner_text + "\n" + banner_err),
+        }
+        if banner_rc != 0:
+            dump_preflight["warnings"].append("Volatility banners plugin exited non-zero; kernel detection may be incomplete.")
+        if not detected_kernel:
+            dump_preflight["warnings"].append("Kernel banner could not be extracted from the dump.")
+        preflight_dumps.append(dump_preflight)
+        interim_analysis_possible = any(bool(item.get("analysis_possible")) for item in preflight_dumps)
+        _write_json(
+            preflight_path,
             {
-                "dump": relative_path(dump_file),
-                "vm_id": vm_id,
+                "case_id": case_dir.name,
+                "memory_dumps_found": len(preflight_dumps),
+                "dump_path": preflight_dumps[0]["dump_path"] if len(preflight_dumps) == 1 else None,
+                "dump_size": preflight_dumps[0]["dump_size"] if len(preflight_dumps) == 1 else None,
+                "dump_sha256": preflight_dumps[0]["dump_sha256"] if len(preflight_dumps) == 1 else None,
+                "source_node": preflight_dumps[0]["source_node"] if len(preflight_dumps) == 1 else None,
+                "manifest_linked": all(bool(item.get("manifest_linked")) for item in preflight_dumps),
+                "custody_linked": all(bool(item.get("custody_linked")) for item in preflight_dumps),
+                "detected_os": preflight_dumps[0]["detected_os"] if len(preflight_dumps) == 1 else None,
+                "detected_kernel": preflight_dumps[0]["detected_kernel"] if len(preflight_dumps) == 1 else None,
+                "symbol_search_paths": symbol_search_paths,
+                "symbols_found": any(bool(item.get("symbols_found")) for item in preflight_dumps),
+                "volatility3_available": volatility_available,
+                "volatility3_version": volatility_version,
+                "analysis_possible": interim_analysis_possible,
+                "blocking_reason": None if interim_analysis_possible else "No compatible local Linux symbol file was matched to the discovered kernel(s) so far.",
+                "warnings": warnings + [warning for item in preflight_dumps for warning in (item.get("warnings") or [])],
+                "dumps": preflight_dumps,
+            },
+        )
+
+        banners_report = {
+            "plugin_key": "banners",
+            "plugin": banners_spec["plugin"],
+            "status": "completed" if banner_rc == 0 and banner_text.strip() else "failed",
+            "command": banner_cmd,
+            "command_text": _shell_join(banner_cmd),
+            "exit_code": banner_rc,
+            "stdout_path": relative_path(banners_stdout),
+            "stderr_path": relative_path(banners_stderr),
+            "stdout": banner_text,
+            "stderr": banner_err,
+            "error_message": None if banner_rc == 0 else (banner_err.strip() or banner_text.strip() or "Volatility banners execution failed."),
+            "missing_requirement": None,
+            "symbol_table_status": dump_preflight["symbol_table_status"],
+            "kernel_layer_status": dump_preflight["kernel_layer_status"],
+            "suggested_fix": "Inspect the raw banner output and verify that the memory dump is readable by Volatility 3." if banner_rc != 0 else None,
+            "summary": _extract_output_summary(banner_text, "banners"),
+            "analysis_possible": bool(matched_symbols),
+        }
+        plugin_reports.append(banners_report)
+        if banners_report["status"] == "completed":
+            completed_plugins_total.add("banners")
+        else:
+            failed_plugins_total.add("banners")
+            all_blocking_errors.append(f"{dump_id}: banners failed")
+
+        progress_phases[5]["status"] = "running"
+        plugin_name_map = {
+            "pslist": "02_pslist.txt",
+            "sockstat": "04_sockstat.txt",
+            "lsmod": "05_lsmod.txt",
+            "bash": "06_bash.txt",
+            "check_syscall": "07_syscalls.txt",
+        }
+        for spec in MEMORY_PLUGIN_SPECS[1:]:
+            stdout_path = output_dir / spec["filename"]
+            stderr_path = output_dir / f"{spec['key']}.stderr.txt"
+            cmd = [vol_cmd, "--offline", "-f", str(dump_file)]
+            if symbol_search_paths:
+                cmd.extend(["-s", ";".join(symbol_search_paths)])
+            cmd.append(spec["plugin"])
+            rc, _ = _run_command(cmd, case_dir, stdout_path, stderr_path)
+            stdout_text = _read_text(stdout_path)
+            stderr_text = _read_text(stderr_path)
+            combined = f"{stdout_text}\n{stderr_text}"
+            missing_requirements = _extract_unsatisfied_requirements(combined)
+            failed = rc != 0 or bool(missing_requirements)
+            status_value = "failed" if failed else "completed"
+            report = {
+                "plugin_key": spec["key"],
+                "plugin": spec["plugin"],
+                "status": status_value,
                 "command": cmd,
+                "command_text": _shell_join(cmd),
                 "exit_code": rc,
                 "stdout_path": relative_path(stdout_path),
                 "stderr_path": relative_path(stderr_path),
-                "output_dir": relative_path(out_dir),
-                "produced_files": produced,
+                "stdout": stdout_text,
+                "stderr": stderr_text,
+                "error_message": (
+                    missing_requirements[0]
+                    if missing_requirements else
+                    (stderr_text.strip() or stdout_text.strip() or None) if failed else None
+                ),
+                "missing_requirement": missing_requirements[0] if missing_requirements else None,
+                "symbol_table_status": _symbol_table_status_from_text(combined),
+                "kernel_layer_status": _kernel_layer_status_from_text(combined),
+                "summary": _extract_output_summary(stdout_text, spec["key"]),
+                "analysis_possible": bool(matched_symbols),
+            }
+            report["suggested_fix"] = _suggest_memory_fix(report, dump_preflight) if failed else None
+            plugin_reports.append(report)
+            legacy_name = plugin_name_map.get(spec["key"])
+            if legacy_name:
+                shutil.copy2(stdout_path, legacy_dir / legacy_name)
+            if status_value == "completed":
+                completed_plugins_total.add(spec["key"])
+            else:
+                failed_plugins_total.add(spec["key"])
+                if report["error_message"]:
+                    all_blocking_errors.append(f"{dump_id}: {spec['key']} -> {report['error_message']}")
+
+        progress_phases[5]["status"] = "completed" if all(item["status"] == "completed" for item in plugin_reports) else "partial"
+        progress_phases[6]["status"] = "completed"
+        progress_phases[7]["status"] = "completed"
+        progress_phases[8]["status"] = "pending"
+
+        execution_report = {
+            "case_id": case_dir.name,
+            "dump_id": dump_id,
+            "dump_path": rel_dump,
+            "detected_os": detected_os,
+            "detected_kernel": detected_kernel,
+            "symbol_search_paths": symbol_search_paths,
+            "candidate_symbols": [str(path) for path in matched_symbols],
+            "selected_symbol": str(matched_symbols[0]) if matched_symbols else None,
+            "symbol_generation_report_path": relative_path(symbol_generation_report_path) if symbol_generation_report_path else None,
+            "volatility3_available": volatility_available,
+            "volatility3_version": volatility_version,
+            "analysis_possible": bool(matched_symbols),
+            "plugin_results": plugin_reports,
+            "progress_phases": progress_phases,
+            "generated_at": utc_now(),
+        }
+        execution_report_path = output_dir / "vol3_execution_report.json"
+        _write_json(execution_report_path, execution_report)
+
+        completed_plugins = [item["plugin_key"] for item in plugin_reports if item["status"] == "completed"]
+        failed_plugins = [item["plugin_key"] for item in plugin_reports if item["status"] == "failed"]
+        dump_status = "completed" if failed_plugins == [] else "partial" if completed_plugins else "failed"
+        dump_results.append(
+            {
+                "dump_id": dump_id,
+                "dump": rel_dump,
+                "status": dump_status,
+                "detected_os": detected_os,
+                "detected_kernel": detected_kernel,
+                "completed_plugins": completed_plugins,
+                "failed_plugins": failed_plugins,
+                "output_dir": relative_path(output_dir),
+                "legacy_output_dir": relative_path(legacy_dir),
+                "execution_report_path": relative_path(execution_report_path),
+                "output_files": sorted(relative_path(path) for path in output_dir.glob("*") if path.is_file()),
             }
         )
-    failed = [item for item in results if item["exit_code"] != 0]
+        partial_findings.append(
+            {
+                "dump_id": dump_id,
+                "detected_kernel": detected_kernel,
+                "completed_plugins": completed_plugins,
+                "failed_plugins": failed_plugins,
+            }
+        )
+
+    any_symbols_found = any(bool(item.get("symbols_found")) for item in preflight_dumps)
+    analysis_possible = any(bool(item.get("analysis_possible")) for item in preflight_dumps)
+    blocking_reason = None if analysis_possible else "Memory analysis could not complete because no compatible local Volatility 3 Linux symbol file was matched."
+    preflight_payload = {
+        "case_id": case_dir.name,
+        "memory_dumps_found": len(preflight_dumps),
+        "dump_path": preflight_dumps[0]["dump_path"] if len(preflight_dumps) == 1 else None,
+        "dump_size": preflight_dumps[0]["dump_size"] if len(preflight_dumps) == 1 else None,
+        "dump_sha256": preflight_dumps[0]["dump_sha256"] if len(preflight_dumps) == 1 else None,
+        "source_node": preflight_dumps[0]["source_node"] if len(preflight_dumps) == 1 else None,
+        "manifest_linked": all(bool(item.get("manifest_linked")) for item in preflight_dumps),
+        "custody_linked": all(bool(item.get("custody_linked")) for item in preflight_dumps),
+        "detected_os": preflight_dumps[0]["detected_os"] if len(preflight_dumps) == 1 else None,
+        "detected_kernel": preflight_dumps[0]["detected_kernel"] if len(preflight_dumps) == 1 else None,
+        "symbol_search_paths": symbol_search_paths,
+        "symbols_found": any_symbols_found,
+        "volatility3_available": volatility_available,
+        "volatility3_version": volatility_version,
+        "analysis_possible": analysis_possible,
+        "blocking_reason": blocking_reason,
+        "warnings": warnings + [warning for item in preflight_dumps for warning in (item.get("warnings") or [])],
+        "dumps": preflight_dumps,
+    }
+    _write_json(preflight_path, preflight_payload)
+
+    all_completed = all(item["status"] == "completed" for item in dump_results)
+    any_completed = any(item["status"] != "failed" for item in dump_results)
+    if all_completed:
+        findings_status = "completed"
+        phase_status = "completed"
+    elif any_completed:
+        findings_status = "partial"
+        phase_status = "partial_missing_symbols" if not analysis_possible else "partial"
+    else:
+        findings_status = "failed"
+        phase_status = "failed_missing_symbols" if not analysis_possible else "failed"
+
+    memory_findings = {
+        "case_id": case_dir.name,
+        "status": findings_status,
+        "analysis_completed": all_completed,
+        "reason": None if all_completed else ("missing_symbols" if not analysis_possible else "plugin_execution_failures"),
+        "blocking_errors": sorted(set(all_blocking_errors)),
+        "symbols_required": True,
+        "symbols_found": any_symbols_found,
+        "recommended_action": (
+            "Memory analysis could not be completed because Volatility 3 symbols for the captured kernel were not available or could not be matched."
+            if not analysis_possible else
+            "Review the per-plugin Volatility execution reports and rerun the failed plugins with the reported commands for deeper debugging."
+        ),
+        "completed_plugins": sorted(completed_plugins_total),
+        "failed_plugins": sorted(failed_plugins_total),
+        "partial_findings": partial_findings if findings_status != "completed" else [],
+        "limitations": (
+            ["Memory analysis is incomplete; use outputs from completed plugins only and do not infer unsupported conclusions."]
+            if findings_status != "completed" else
+            []
+        ),
+        "findings": partial_findings if findings_status == "completed" else [],
+        "tools_used": ["volatility3"],
+        "tool_versions": {"volatility3": volatility_version},
+        "input_artifacts": [relative_path(p) for p in dumps],
+        "output_files": [relative_path(preflight_path)] + [item["execution_report_path"] for item in dump_results],
+        "dumps_analyzed": dump_results,
+    }
+    _write_json(findings_path, memory_findings)
+    phase_stdout_lines = [
+        "[memory_analysis] phase summary",
+        f"memory_preflight={relative_path(preflight_path)}",
+        f"memory_findings={relative_path(findings_path)}",
+        f"status={phase_status}",
+        f"dumps={len(dump_results)}",
+    ]
+    for item in dump_results:
+        phase_stdout_lines.append(
+            " | ".join(
+                [
+                    f"dump_id={item['dump_id']}",
+                    f"status={item['status']}",
+                    f"kernel={item.get('detected_kernel') or 'unknown'}",
+                    f"completed_plugins={','.join(item.get('completed_plugins') or []) or 'none'}",
+                    f"failed_plugins={','.join(item.get('failed_plugins') or []) or 'none'}",
+                    f"execution_report={item['execution_report_path']}",
+                ]
+            )
+        )
+    phase_stdout_path.write_text("\n".join(phase_stdout_lines) + "\n", encoding="utf-8")
+    phase_stderr_lines = memory_findings["blocking_errors"] or ["No blocking memory errors recorded."]
+    phase_stderr_path.write_text("\n".join(phase_stderr_lines) + "\n", encoding="utf-8")
+
     return {
         "phase": "memory_analysis",
-        "status": "completed" if not failed else "partial",
+        "status": phase_status,
         "input_artifacts": [relative_path(p) for p in dumps],
         "tool_used": "volatility3",
         "findings": {
-            "dumps_analyzed": len(results),
-            "results": results,
+            "memory_preflight_path": relative_path(preflight_path),
+            "memory_findings_path": relative_path(findings_path),
+            "dumps_analyzed": len(dump_results),
+            "results": dump_results,
         },
-        "limitations": [] if not failed else ["One or more memory-analysis helper executions exited non-zero; inspect stdout/stderr logs for details."],
-        "errors": [] if not failed else [f"{len(failed)} memory-analysis executions exited non-zero"],
+        "limitations": memory_findings["limitations"],
+        "errors": memory_findings["blocking_errors"],
     }
 
 
@@ -1000,21 +1892,33 @@ def _phase_final_report(case_entry: dict, case_dir: Path, status: dict) -> dict:
     summary_path = _analysis_dir(case_dir) / "forensic_analysis_summary.md"
     phase_statuses = {key: (status.get("phases") or {}).get(key, {}).get("status") for key, _, _ in ANALYSIS_PHASES}
     failed = [key for key, value in phase_statuses.items() if str(value).startswith("failed")]
+    partial = [key for key, value in phase_statuses.items() if str(value).startswith("partial")]
     skipped = [key for key, value in phase_statuses.items() if str(value).startswith("skipped")]
+    memory_findings = _json_load(_analysis_dir(case_dir) / MEMORY_OUTPUT_ROOT / "memory_findings.json") or {}
+    memory_preflight = _json_load(_analysis_dir(case_dir) / MEMORY_OUTPUT_ROOT / "memory_preflight.json") or {}
     report = {
+        "phase": "forensic_analysis_report_generation",
+        "status": "completed" if not failed and not partial else "partial",
+        "tool_used": "python3",
         "case_id": case_entry.get("case_id"),
         "source_case_name": case_entry.get("source_case_name"),
         "generated_at": utc_now(),
         "analysis_id": status.get("analysis_id"),
-        "analysis_status": "completed" if not failed else "partial",
-        "status_note": "Forensic analysis completed with some skipped or failed layers." if failed or skipped else "Forensic analysis completed successfully.",
+        "analysis_status": "completed" if not failed and not partial else "partial",
+        "status_note": (
+            "Forensic analysis completed with some skipped, partial or failed layers."
+            if failed or partial or skipped else
+            "Forensic analysis completed successfully."
+        ),
         "input_artifacts": [
             relative_path(case_dir / "manifest.json"),
             relative_path(case_dir / "chain_of_custody.log"),
             relative_path(case_dir / "metadata" / "pipeline_events.jsonl") if (case_dir / "metadata" / "pipeline_events.jsonl").exists() else "missing",
         ],
+        "errors": status.get("errors") or [],
         "findings": {
             "completed_phases": status.get("completed_phases") or [],
+            "partial_phases": status.get("partial_phases") or [],
             "failed_phases": status.get("failed_phases") or [],
             "skipped_phases": status.get("skipped_phases") or [],
         },
@@ -1022,9 +1926,35 @@ def _phase_final_report(case_entry: dict, case_dir: Path, status: dict) -> dict:
             "Semantic and causal reconstruction remain blocked until explicitly generated in later phases.",
             "Skipped layers indicate missing evidence or missing dependencies, not fabricated success.",
         ],
-        "errors": status.get("errors") or [],
-        "tool_used": "python3",
         "related_outputs": [path for path in status.get("output_files") if path.endswith(".json")],
+        "layer_status": {
+            key: {
+                "label": label,
+                "status": phase_statuses.get(key, "unknown"),
+                "output_path": relative_path(_phase_output_path(case_dir, key)) if _phase_output_path(case_dir, key) else None,
+            }
+            for key, label, _ in ANALYSIS_PHASES
+        },
+        "memory_analysis": {
+            "status": memory_findings.get("status") or phase_statuses.get("memory_analysis"),
+            "analysis_completed": bool(memory_findings.get("analysis_completed")),
+            "reason": memory_findings.get("reason"),
+            "blocking_errors": memory_findings.get("blocking_errors") or [],
+            "recommended_action": memory_findings.get("recommended_action"),
+            "dumps_analysed": len(memory_findings.get("dumps_analyzed") or []),
+            "plugins_completed": sorted(memory_findings.get("completed_plugins") or []),
+            "plugins_failed": sorted(memory_findings.get("failed_plugins") or []),
+            "limitations": memory_findings.get("limitations") or [],
+            "preflight": {
+                "memory_dumps_found": memory_preflight.get("memory_dumps_found"),
+                "symbols_found": memory_preflight.get("symbols_found"),
+                "analysis_possible": memory_preflight.get("analysis_possible"),
+                "blocking_reason": memory_preflight.get("blocking_reason"),
+                "symbol_search_paths": memory_preflight.get("symbol_search_paths") or [],
+            },
+            "dumps": memory_findings.get("dumps_analyzed") or [],
+        },
+        "summary_preview": None,
     }
     _write_json(report_path, report)
     _write_json(
@@ -1055,6 +1985,22 @@ def _phase_final_report(case_entry: dict, case_dir: Path, status: dict) -> dict:
     summary_lines.extend(
         [
             "",
+            "## Memory Analysis",
+            "",
+            f"- Status: `{report['memory_analysis']['status']}`",
+            f"- Dumps analysed: `{report['memory_analysis']['dumps_analysed']}`",
+            f"- Completed plugins: `{', '.join(report['memory_analysis']['plugins_completed']) or 'none'}`",
+            f"- Failed plugins: `{', '.join(report['memory_analysis']['plugins_failed']) or 'none'}`",
+        ]
+    )
+    if report["memory_analysis"]["preflight"].get("blocking_reason"):
+        summary_lines.append(f"- Blocking reason: {report['memory_analysis']['preflight']['blocking_reason']}")
+    if report["memory_analysis"].get("blocking_errors"):
+        summary_lines.extend(["", "### Memory blocking errors", ""])
+        summary_lines.extend(f"- {item}" for item in report["memory_analysis"]["blocking_errors"])
+    summary_lines.extend(
+        [
+            "",
             "## Limitations",
             "",
             *[f"- {item}" for item in report["limitations"]],
@@ -1062,22 +2008,14 @@ def _phase_final_report(case_entry: dict, case_dir: Path, status: dict) -> dict:
         ]
     )
     summary_path.write_text("\n".join(summary_lines), encoding="utf-8")
+    report["summary_preview"] = "\n".join(summary_lines)
+    report["findings"]["report_path"] = relative_path(report_path)
+    report["findings"]["manifest_path"] = relative_path(manifest_path)
+    report["findings"]["summary_path"] = relative_path(summary_path)
+    _write_json(report_path, report)
     status["output_files"].append(relative_path(manifest_path))
     status["output_files"].append(relative_path(summary_path))
-    return {
-        "phase": "forensic_analysis_report_generation",
-        "status": "completed" if not failed else "partial",
-        "input_artifacts": report["input_artifacts"],
-        "tool_used": "python3",
-        "findings": {
-            "report_path": relative_path(report_path),
-            "manifest_path": relative_path(manifest_path),
-            "summary_path": relative_path(summary_path),
-            "analysis_status": report["analysis_status"],
-        },
-        "limitations": report["limitations"],
-        "errors": report["errors"],
-    }
+    return report
 
 
 def _phase_foc_refresh(case_dir: Path) -> dict:
@@ -1135,6 +2073,22 @@ def _worker(case_entry: dict, force: bool) -> None:
     status = _init_status(case_entry, force=force)
     try:
         for phase_key, label, _ in ANALYSIS_PHASES:
+            # check for user cancellation before starting each phase
+            try:
+                if _analysis_cancel_path(case_dir).exists():
+                    status["status"] = "cancelled"
+                    status["finished_at"] = utc_now()
+                    status["current_phase"] = None
+                    status["errors"].append({"phase": phase_key, "message": "cancelled_by_user"})
+                    _write_status(case_dir, status)
+                    # remove cancel request file
+                    try:
+                        _analysis_cancel_path(case_dir).unlink()
+                    except Exception:
+                        pass
+                    return
+            except Exception:
+                pass
             _record_phase_transition(case_dir, status, phase_key, "running", {"started_at": utc_now()})
             try:
                 payload = _run_phase(case_entry, case_dir, status, phase_key)
@@ -1146,8 +2100,16 @@ def _worker(case_entry: dict, force: bool) -> None:
                     "errors": payload.get("errors") or [],
                     "limitations": payload.get("limitations") or [],
                 }
+                if phase_key == "memory_analysis" and isinstance(payload.get("findings"), dict):
+                    extra["memory_preflight_path"] = payload["findings"].get("memory_preflight_path")
+                    extra["memory_findings_path"] = payload["findings"].get("memory_findings_path")
+                    extra["memory_results"] = payload["findings"].get("results") or []
                 if phase_status.startswith("failed"):
-                    status["errors"].append({"phase": phase_key, "message": "; ".join(payload.get("errors") or [phase_status])})
+                    phase_messages = _message_list(payload.get("errors")) or [phase_status]
+                    status["errors"].append({"phase": phase_key, "message": "; ".join(phase_messages)})
+                elif phase_status.startswith("partial"):
+                    phase_messages = _message_list(payload.get("errors")) or _message_list(payload.get("limitations")) or [phase_status]
+                    status["warnings"].append({"phase": phase_key, "message": "; ".join(phase_messages)})
                 elif phase_status.startswith("skipped"):
                     status["warnings"].append({"phase": phase_key, "message": payload.get("not_executed_reason") or phase_status})
                 _set_phase_status(case_dir, status, phase_key, phase_status, extra=extra)
@@ -1189,7 +2151,7 @@ def _worker(case_entry: dict, force: bool) -> None:
                         "stderr_path": relative_path(stderr_path),
                     },
                 )
-        if status.get("failed_phases"):
+        if status.get("failed_phases") or status.get("partial_phases"):
             status["status"] = "partial" if (case_dir / "analysis" / "forensic_analysis_report.json").is_file() else "failed"
         else:
             status["status"] = "completed"
@@ -1277,6 +2239,90 @@ def analysis_report(case_id: str) -> dict | None:
     report["summary_path"] = relative_path(summary_path) if summary_path.exists() else None
     report["summary_preview"] = summary_path.read_text(encoding="utf-8", errors="ignore")[:4000] if summary_path.exists() else None
     return report
+
+
+def generate_symbols_for_case(case_id: str, dump_id: str | None = None, ssh_user: str | None = None, ssh_key: str | None = None, vm_ip: str | None = None, vm_id: str | None = None) -> dict:
+    """Public helper to attempt generating volatility symbols for a case/dump.
+    It will try local vmlinux-based generation first, then SSH-based helper if credentials provided.
+    Returns a report dict with attempted actions and found symbols.
+    """
+    entry = get_case_entry(case_id)
+    if not entry:
+        return {"error": "case_not_found", "case_id": case_id}
+    case_dir = _case_dir_from_entry(entry)
+    dumps = sorted((case_dir / "memory").glob("*.lime"))
+    if not dumps:
+        return {"error": "no_memory_dumps", "case_id": case_id}
+    # find dump by id or use first
+    target_dump = None
+    if dump_id:
+        for d in dumps:
+            if _dump_identifier(d, _dump_metadata(case_dir, d)) == dump_id:
+                target_dump = d
+                break
+    if not target_dump:
+        target_dump = dumps[0]
+    metadata = _dump_metadata(case_dir, target_dump)
+    detected_kernel = None
+    # attempt to read existing banners output if present
+    output_dir = _memory_output_dir(case_dir, _dump_identifier(target_dump, metadata))
+    banners_path = output_dir / "vol3_banners.txt"
+    if banners_path.exists():
+        try:
+            text = _read_text(banners_path)
+            _, detected_kernel = _parse_linux_banner(text)
+        except Exception:
+            detected_kernel = None
+
+    result = {
+        "case_id": case_id,
+        "dump": relative_path(target_dump),
+        "detected_kernel": detected_kernel,
+        "attempts": [],
+        "symbols_found": [],
+    }
+
+    # Refresh symbol list
+    search_roots, symbol_files = _discover_symbol_files()
+    matched = _matching_symbol_files(detected_kernel, symbol_files)
+    if matched:
+        result["symbols_found"] = [str(p) for p in matched]
+        result["status"] = "already_present"
+        return result
+
+    # try local generation from vmlinux in case dir
+    gen = _generate_symbol_from_vmlinux(case_dir, detected_kernel)
+    if gen:
+        result["attempts"].append({"method": "local_dwarf2json", "path": str(gen)})
+        search_roots, symbol_files = _discover_symbol_files()
+        matched = _matching_symbol_files(detected_kernel, symbol_files)
+        if matched:
+            result["symbols_found"] = [str(p) for p in matched]
+            result["status"] = "generated_local"
+            return result
+
+    # try SSH-based generation if SSH params present
+    # allow passing via args or metadata
+    creds = {"ssh_user": ssh_user, "ssh_key": ssh_key, "vm_ip": vm_ip, "vm_id": vm_id}
+    # merge with metadata if any field missing
+    if not creds.get("vm_ip"):
+        creds["vm_ip"] = metadata.get("vm_ip") or metadata.get("ip")
+    if not creds.get("vm_id"):
+        creds["vm_id"] = metadata.get("vm_id")
+    # write a minimal creds file into metadata if ssh_key provided as content path
+    if creds.get("ssh_key"):
+        # no-op here; _generate_symbol_via_ssh reads creds file or env
+        pass
+    ssh_report = _generate_symbol_via_ssh(case_dir, output_dir, target_dump, detected_kernel, metadata)
+    if ssh_report:
+        result["attempts"].append({"method": "ssh_helper", "report": ssh_report})
+        if ssh_report.get("matched"):
+            result["symbols_found"] = ssh_report.get("matched_symbols") or []
+            result["status"] = "generated_via_ssh"
+            return result
+
+    result["status"] = "failed_to_generate"
+    return result
 
 
 def cases_with_analysis_state() -> dict:

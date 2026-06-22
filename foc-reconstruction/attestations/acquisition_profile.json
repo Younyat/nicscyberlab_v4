@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-18T14:16:52.673544+00:00",
+  "generated_at": "2026-06-22T12:51:47.975762+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
   "case_count": 1,
@@ -57,6 +57,7 @@
         "memory_findings.json",
         "memory_lime",
         "memory_metadata",
+        "memory_preflight.json",
         "memory_sha256_file",
         "network_findings.json",
         "ot_findings.json",
@@ -66,9 +67,10 @@
         "preflight_validation.json",
         "time_sync",
         "unified_forensic_timeline.json",
+        "vol3_execution_report.json",
         "vol3_output_dir"
       ],
-      "artifact_count": 124,
+      "artifact_count": 128,
       "start_time": "2026-06-10T14:07:42Z",
       "end_time": "2026-06-16T21:04:48Z",
       "latency_alert_to_start_seconds": 198.167,
@@ -284,9 +286,9 @@
   "preserved_evidence_summary": {
     "network": 14,
     "disk": 10,
-    "memory": 10,
-    "logs": 136,
-    "ot_state": 206
+    "memory": 11,
+    "logs": 184,
+    "ot_state": 326
   },
   "trigger_quality_summary": {
     "strong": 1

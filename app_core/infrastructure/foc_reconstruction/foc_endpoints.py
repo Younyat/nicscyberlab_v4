@@ -12,12 +12,21 @@ from .foc_case_analysis import (
     load_analysis_status,
     run_analysis,
     validate_analysis,
+    generate_symbols_for_case,
 )
+from .foc_case_analysis import _analysis_cancel_path, get_case_entry, _case_dir_from_entry
 from .foc_config import GENERATED_FILES
 from .foc_bootstrap import bootstrap_existing_context, read_id_mapping
 from .foc_events import iter_events_since, safe_notify_foc, snapshot_watch_state
 from .foc_manifest_manager import read_generated_json, regenerate_foc
 from .foc_quality import build_gaps, build_status, load_quality_context
+from .foc_paths import project_path
+from .foc_sources import utc_now
+from ..forensics.volatility_symbols import (
+    get_job as get_vol3_job,
+    start_symbol_generation_job,
+    symbols_inventory_payload,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -161,6 +170,62 @@ def api_foc_case_analysis_validate(case_id: str):
     if payload.get("error") == "case_not_found":
         return jsonify(payload), 404
     return jsonify(payload), 200
+
+
+@foc_bp.route("/api/foc/cases/<case_id>/analysis/cancel", methods=["POST"])
+def api_foc_case_analysis_cancel(case_id: str):
+    # create a cancellation request file that the running analysis will observe
+    entry = get_case_entry(case_id)
+    if not entry:
+        return jsonify({"error": "case_not_found", "case_id": case_id}), 404
+    try:
+        case_dir = _case_dir_from_entry(entry)
+    except Exception:
+        case_dir = None
+    if not case_dir:
+        return jsonify({"error": "case_path_unavailable", "case_id": case_id}), 500
+    cancel_path = _analysis_cancel_path(case_dir)
+    try:
+        cancel_path.parent.mkdir(parents=True, exist_ok=True)
+        cancel_path.write_text(utc_now(), encoding="utf-8")
+    except Exception as exc:
+        logger.warning("Failed to request analysis cancel: %s", exc, exc_info=True)
+        return jsonify({"error": "cancel_request_failed", "reason": str(exc)}), 500
+    return jsonify({"result": "cancellation_requested", "case_id": case_id, "cancel_path": str(cancel_path)}), 200
+
+
+@foc_bp.route("/api/foc/cases/<case_id>/symbols/generate", methods=["POST"])
+def api_foc_generate_symbols(case_id: str):
+    body = request.get_json(silent=True) or {}
+    memory_artifact_id = body.get("memory_artifact_id") or body.get("dump_id")
+    overwrite = bool(body.get("overwrite"))
+    mode = (body.get("mode") or "manual").strip() or "manual"
+    try:
+        job = start_symbol_generation_job(
+            case_id=case_id,
+            memory_artifact_id=memory_artifact_id,
+            overwrite=overwrite,
+            mode=mode,
+        )
+    except FileNotFoundError as exc:
+        return jsonify({"error": str(exc), "case_id": case_id}), 404
+    except Exception as exc:
+        logger.warning("Failed to start FOC symbol generation: %s", exc, exc_info=True)
+        return jsonify({"error": str(exc), "case_id": case_id}), 500
+    return jsonify(job), 202
+
+
+@foc_bp.route("/api/foc/cases/<case_id>/symbols/status", methods=["GET"])
+def api_foc_symbols_status(case_id: str):
+    return jsonify(symbols_inventory_payload(case_id=case_id)), 200
+
+
+@foc_bp.route("/api/foc/cases/<case_id>/symbols/jobs/<job_id>", methods=["GET"])
+def api_foc_symbols_job(case_id: str, job_id: str):
+    job = get_vol3_job(job_id)
+    if not job:
+        return jsonify({"error": "job_not_found", "job_id": job_id, "case_id": case_id}), 404
+    return jsonify(job), 200
 
 
 @foc_bp.route("/api/foc/id-mapping", methods=["GET"])

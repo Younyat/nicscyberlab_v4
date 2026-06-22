@@ -15,6 +15,13 @@ import openstack
 
 
 from pathlib import Path
+from .volatility_symbols import (
+    get_job as get_vol3_job,
+    start_memory_analysis_job,
+    start_symbol_generation_job,
+    symbols_inventory_payload,
+    SYMBOL_ROOT as VOL3_DYNAMIC_SYMBOL_ROOT,
+)
 
 # plotting (fig_forensic_cost_stacked.pdf)
 import matplotlib
@@ -2169,6 +2176,27 @@ def api_forensics_acquire_disk_stream():
 def api_forensics_analyze_memory():
     data = request.get_json(force=True, silent=True) or {}
 
+    if data.get("memory_artifact_id") or data.get("auto_generate_symbols") is not None or not data.get("symbols_dir"):
+        case_id = _case_id_from_client_payload(data)
+        if not case_id:
+            return jsonify({"error": "case_id requerido"}), 400
+        memory_artifact_id = (data.get("memory_artifact_id") or os.path.basename((data.get("dump_file") or "").strip() or "")).strip() or None
+        auto_generate_symbols = bool(data.get("auto_generate_symbols"))
+        overwrite_symbols = bool(data.get("overwrite_symbols"))
+        try:
+            job = start_memory_analysis_job(
+                case_id=case_id,
+                memory_artifact_id=memory_artifact_id,
+                auto_generate_symbols=auto_generate_symbols,
+                overwrite_symbols=overwrite_symbols,
+            )
+        except FileNotFoundError as exc:
+            return jsonify({"error": str(exc)}), 404
+        except Exception as exc:
+            logger.error("Error starting dynamic memory analysis job: %s", exc, exc_info=True)
+            return jsonify({"error": str(exc)}), 500
+        return jsonify(job), 202
+
     case_dir = data.get("case_dir")
     vm_id = data.get("vm_id")
     dump_file = data.get("dump_file") or data.get("dump")  # rel o abs
@@ -2287,6 +2315,96 @@ def api_forensics_case_list():
     except Exception as e:
         logger.error(f"Error /api/forensics/case/list: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
+
+
+def _case_id_from_client_payload(data: dict | None = None) -> str:
+    payload = data or {}
+    case_id = (payload.get("case_id") or request.args.get("case_id") or "").strip()
+    if case_id:
+        return case_id
+    case_dir = (payload.get("case_dir") or request.args.get("case_dir") or "").strip()
+    if case_dir:
+        return os.path.basename(os.path.abspath(case_dir))
+    return ""
+
+
+@forensics_bp.route("/api/forensics/symbols", methods=["GET"])
+def api_forensics_symbols_inventory():
+    case_id = _case_id_from_client_payload()
+    return jsonify(symbols_inventory_payload(case_id=case_id or None)), 200
+
+
+@forensics_bp.route("/api/forensics/symbols/status", methods=["GET"])
+def api_forensics_symbols_status():
+    case_id = _case_id_from_client_payload()
+    memory_artifact_id = (request.args.get("memory_artifact_id") or "").strip() or None
+    if not case_id:
+        return jsonify({"error": "case_id requerido"}), 400
+    return jsonify(symbols_inventory_payload(case_id=case_id)), 200
+
+
+@forensics_bp.route("/api/forensics/symbols/generate", methods=["POST"])
+def api_forensics_symbols_generate():
+    data = request.get_json(force=True, silent=True) or {}
+    case_id = _case_id_from_client_payload(data)
+    if not case_id:
+        return jsonify({"error": "case_id requerido"}), 400
+    memory_artifact_id = (data.get("memory_artifact_id") or "").strip() or None
+    overwrite = bool(data.get("overwrite"))
+    mode = (data.get("mode") or "manual").strip() or "manual"
+    try:
+        job = start_symbol_generation_job(
+            case_id=case_id,
+            memory_artifact_id=memory_artifact_id,
+            overwrite=overwrite,
+            mode=mode,
+        )
+    except FileNotFoundError as exc:
+        return jsonify({"error": str(exc)}), 404
+    except Exception as exc:
+        logger.error("Error starting symbol generation job: %s", exc, exc_info=True)
+        return jsonify({"error": str(exc)}), 500
+    return jsonify(job), 202
+
+
+@forensics_bp.route("/api/forensics/symbols/jobs/<job_id>", methods=["GET"])
+def api_forensics_symbols_job(job_id: str):
+    job = get_vol3_job(job_id)
+    if not job:
+        return jsonify({"error": "job_not_found", "job_id": job_id}), 404
+    return jsonify(job), 200
+
+
+@forensics_bp.route("/api/forensics/memory/analyze", methods=["POST"])
+def api_forensics_memory_analyze_job():
+    data = request.get_json(force=True, silent=True) or {}
+    case_id = _case_id_from_client_payload(data)
+    if not case_id:
+        return jsonify({"error": "case_id requerido"}), 400
+    memory_artifact_id = (data.get("memory_artifact_id") or "").strip() or None
+    auto_generate_symbols = bool(data.get("auto_generate_symbols"))
+    overwrite_symbols = bool(data.get("overwrite_symbols"))
+    try:
+        job = start_memory_analysis_job(
+            case_id=case_id,
+            memory_artifact_id=memory_artifact_id,
+            auto_generate_symbols=auto_generate_symbols,
+            overwrite_symbols=overwrite_symbols,
+        )
+    except FileNotFoundError as exc:
+        return jsonify({"error": str(exc)}), 404
+    except Exception as exc:
+        logger.error("Error starting memory analysis job: %s", exc, exc_info=True)
+        return jsonify({"error": str(exc)}), 500
+    return jsonify(job), 202
+
+
+@forensics_bp.route("/api/forensics/memory/analysis/<job_id>", methods=["GET"])
+def api_forensics_memory_analysis_job(job_id: str):
+    job = get_vol3_job(job_id)
+    if not job:
+        return jsonify({"error": "job_not_found", "job_id": job_id}), 404
+    return jsonify(job), 200
 
 
 
@@ -4075,8 +4193,5 @@ def api_dfir_orchestrator_auto_stream():
         mimetype="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "keep-alive"},
     )
-
-
-
 
 

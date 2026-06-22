@@ -37,7 +37,10 @@ const UI = {
   // vol
   volDump: document.getElementById("vol_dump_file"),
   volSymbols: document.getElementById("vol_symbols_dir"),
+  volSymbolsStatus: document.getElementById("vol_symbols_status"),
   volCmd: document.getElementById("vol_cmd"),
+  volAutoGenerateSymbols: document.getElementById("vol_auto_generate_symbols"),
+  volOverwriteSymbols: document.getElementById("vol_overwrite_symbols"),
   btnAnalyzeMemory: document.getElementById("btn_analyze_memory"),
   volResult: document.getElementById("vol_result"),
 
@@ -187,6 +190,84 @@ function requireSelected() {
 function requireCase() {
   if (!STATE.case_dir) throw new Error("No Case. Pulsa 'Create Case' primero.");
   return STATE.case_dir;
+}
+
+function caseIdFromDir(caseDir) {
+  const raw = String(caseDir || "").trim();
+  if (!raw) return "";
+  const parts = raw.replace(/\\/g, "/").split("/").filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : "";
+}
+
+function selectedMemoryArtifactId() {
+  const selectedDump = (UI.memorySelector?.value || UI.volDump?.value || "").trim();
+  if (!selectedDump) return "";
+  const parts = selectedDump.replace(/\\/g, "/").split("/");
+  return parts[parts.length - 1] || "";
+}
+
+function renderSymbolStatus(payload) {
+  const artifactId = selectedMemoryArtifactId();
+  const dumpEntry = (payload?.dumps || []).find(item => item.memory_artifact_id === artifactId) || (payload?.dumps || [])[0] || null;
+  const symbol = dumpEntry?.symbol_candidates?.[0] || null;
+  if (UI.volSymbols) {
+    UI.volSymbols.value = symbol?.path || payload?.linux_dir || "";
+  }
+  if (!UI.volSymbolsStatus) return;
+  const lines = [];
+  lines.push(`Host symbol store: ${payload?.linux_dir || "not_available"}`);
+  lines.push(`Available symbols: ${(payload?.symbols || []).length}`);
+  if (dumpEntry) {
+    lines.push("");
+    lines.push(`Selected dump: ${dumpEntry.memory_artifact_id}`);
+    lines.push(`Target node: ${dumpEntry.target_node_name || "unknown"} (${dumpEntry.target_ip || "unknown"})`);
+    lines.push(`Kernel: ${dumpEntry.required_kernel || "unknown"}`);
+    lines.push(`OS: ${dumpEntry.required_os_id || "unknown"} ${dumpEntry.required_os_codename || ""}`.trim());
+    lines.push(`Status: ${dumpEntry.status}`);
+    if (dumpEntry.reason) lines.push(`Reason: ${dumpEntry.reason}`);
+    if (symbol) {
+      lines.push(`Symbol path: ${symbol.path}`);
+      lines.push(`SHA-256: ${symbol.sha256 || "unknown"}`);
+    } else {
+      lines.push("No compatible symbol currently matched.");
+    }
+  } else {
+    lines.push("");
+    lines.push("No memory dump selected.");
+  }
+  UI.volSymbolsStatus.value = lines.join("\n");
+}
+
+async function refreshVolatilitySymbolStatus() {
+  const caseDir = STATE.case_dir;
+  const caseId = caseIdFromDir(caseDir);
+  if (!caseId) return;
+  try {
+    const payload = await httpJSON(`/api/forensics/symbols/status?case_id=${encodeURIComponent(caseId)}`);
+    STATE.volSymbolStatus = payload;
+    renderSymbolStatus(payload);
+  } catch (e) {
+    if (UI.volSymbolsStatus) UI.volSymbolsStatus.value = `Symbol status failed: ${e.message}`;
+  }
+}
+
+async function pollForensicsJob(jobId, endpointBase, onUpdate, onDone) {
+  const seen = new Set();
+  for (;;) {
+    const payload = await httpJSON(`${endpointBase}/${encodeURIComponent(jobId)}`);
+    for (const line of (payload.logs || [])) {
+      const key = `${line.ts}|${line.message}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      cwrite(line.message);
+    }
+    if (onUpdate) onUpdate(payload);
+    if (["completed", "failed", "blocked"].includes(payload.status)) {
+      if (onDone) onDone(payload);
+      return payload;
+    }
+    await new Promise(resolve => setTimeout(resolve, 1500));
+  }
 }
 
 async function httpJSON(url, opts = {}) {
@@ -653,6 +734,7 @@ async function refreshManifest() {
 
    
   try { await loadAndPopulateMemorySelector(caseDir); } catch {}
+  try { await refreshVolatilitySymbolStatus(); } catch {}
 
   cwrite("Manifest OK.");
 }
@@ -742,65 +824,48 @@ function acquireMemoryLive() {
 
 async function analyzeMemory() {
   try {
-    // 1. Validar que hay una VM y un Caso seleccionados
-    const vm = requireSelected();   // Asume que devuelve {id: "..."}
-    const caseDir = requireCase();  // Asume que devuelve el path del caso
-
-    // 2. Obtener valores de la UI (Sincronizado con tus IDs de HTML)
-    const selectedDump = (UI.memorySelector && UI.memorySelector.value ? UI.memorySelector.value : "").trim();
-const dumpFile = (selectedDump || (document.getElementById('vol_dump_file').value || "")).trim();
-
-    const symbolsDir = (document.getElementById('vol_symbols_dir').value || "").trim();
-    const volCmd = (document.getElementById('vol_cmd').value || "vol").trim();
-
-    // 3. Validaciones preventivas
-    if (!dumpFile) {
-        alert("Error: El campo Dump File está vacío. Refresca el manifest.");
-        return;
-    }
-    if (!symbolsDir) {
-        alert("Error: Especifica el directorio de símbolos (/.../symbols/linux)");
-        return;
+    const caseDir = requireCase();
+    const caseId = caseIdFromDir(caseDir);
+    const memoryArtifactId = selectedMemoryArtifactId();
+    if (!memoryArtifactId) {
+      alert("Error: selecciona un memory dump preservado.");
+      return;
     }
 
-    // 4. Feedback visual en la consola de la UI
-    document.getElementById('vol_result').textContent = "Running Volatility 3...";
-    cwrite(`Lanzando análisis: vm_id=${vm.id} | dump=${dumpFile}`);
+    UI.volResult.textContent = "Queued...";
+    cwrite(`Launching Volatility analysis job: case=${caseId} dump=${memoryArtifactId}`);
 
-    // 5. Llamada a la API (Puerto 5001 explícito para evitar fallos)
-    // Usamos la URL completa para asegurar la conexión
-    const response = await fetch("/api/forensics/analyze/memory_vol3", {
+    const response = await fetch("/api/forensics/memory/analyze", {
       method: "POST",
-      headers: { 
-          "Content-Type": "application/json" 
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        case_dir: caseDir,
-        vm_id: vm.id,
-        dump_file: dumpFile,
-        symbols_dir: symbolsDir,
-        vol_cmd: volCmd
+        case_id: caseId,
+        memory_artifact_id: memoryArtifactId,
+        auto_generate_symbols: !!UI.volAutoGenerateSymbols?.checked,
+        overwrite_symbols: !!UI.volOverwriteSymbols?.checked,
       })
     });
 
+    const payload = await response.json();
     if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Error del servidor: ${response.status}`);
+      throw new Error(payload.error || `Error del servidor: ${response.status}`);
     }
 
-    const data = await response.json();
-
-    // 6. Mostrar resultado final
-    // Si el script de bash devuelve la ruta al final, la mostramos
-    document.getElementById('vol_result').textContent = data.out_dir || data.result || "OK";
-    cwrite(`Vol3 Completado: ${document.getElementById('vol_result').textContent}`);
-
-    // 7. Refrescar la lista de archivos (manifest) para ver los .txt generados
-    if (typeof refreshManifest === "function") {
-        await refreshManifest();
-        cwrite("Manifiesto actualizado con nuevos reportes.");
-    }
-
+    UI.volResult.textContent = payload.status || "running";
+    await pollForensicsJob(
+      payload.job_id,
+      "/api/forensics/memory/analysis",
+      job => {
+        UI.volResult.textContent = `${job.status} | ${job.kernel || "unknown kernel"}`;
+      },
+      async job => {
+        UI.volResult.textContent = job.status;
+        if (job.memory_findings_path) cwrite(`memory_findings: ${job.memory_findings_path}`);
+        if (job.memory_preflight_path) cwrite(`memory_preflight: ${job.memory_preflight_path}`);
+        await refreshVolatilitySymbolStatus().catch(() => {});
+        await refreshManifest().catch(() => {});
+      }
+    );
   } catch (err) {
     console.error("Fallo en analyzeMemory:", err);
     document.getElementById('vol_result').textContent = "Error";
@@ -889,44 +954,45 @@ async function loadCases() {
 }
 
 function generateSymbolsLive() {
-  const vm = requireSelected();
   const caseDir = requireCase();
+  const caseId = caseIdFromDir(caseDir);
+  const memoryArtifactId = selectedMemoryArtifactId();
+  if (!memoryArtifactId) throw new Error("Selecciona primero un memory dump preservado.");
 
-  const vmIp = (UI.memIP.value || "").trim();
-  if (!vmIp) throw new Error("mem_vm_ip vacío. Selecciona VM o rellena manualmente.");
+  cwrite(`Generate symbols: case=${caseId} dump=${memoryArtifactId}`);
 
-  const sshUser = (UI.memUser.value || "ubuntu").trim() || "ubuntu";
-  const sshKey = (UI.memKey.value || "").trim();
-  if (!sshKey) throw new Error("mem_ssh_key vacío.");
-
-  cwrite(`Generate symbols (LIVE): vm_id=${vm.id} ip=${vmIp} user=${sshUser}`);
-
-  const url = buildSSEUrl("/api/forensics/vol3/symbols/generate/stream", {
-    case_dir: caseDir,
-    vm_id: vm.id,
-    vm_ip: vmIp,
-    ssh_user: sshUser,
-    ssh_key: sshKey
-  });
-
-  startLiveSSE({
-    title: "Generate Volatility 3 Symbols - Live",
-    info: `vm_id=${vm.id} ip=${vmIp} user=${sshUser}`,
-    url,
-    onDone: async (payload) => {
-      if (payload.result === "ok") {
-        const symbolsDir = (payload.last || "").trim();
-        if (symbolsDir) {
-          UI.volSymbols.value = symbolsDir;
-          cwrite(`Symbols generated OK: ${symbolsDir}`);
-        } else {
-          cwrite("Symbols done OK, pero no recibí directorio (payload.last vacío).");
+  fetch("/api/forensics/symbols/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      case_id: caseId,
+      memory_artifact_id: memoryArtifactId,
+      overwrite: !!UI.volOverwriteSymbols?.checked,
+      mode: "manual",
+    })
+  })
+    .then(async response => {
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || `Error del servidor: ${response.status}`);
+      UI.volResult.textContent = payload.status || "queued";
+      return pollForensicsJob(
+        payload.job_id,
+        "/api/forensics/symbols/jobs",
+        job => {
+          UI.volResult.textContent = `${job.status} | ${job.kernel || "unknown kernel"}`;
+        },
+        async job => {
+          UI.volResult.textContent = job.status;
+          if (job.symbol_path) cwrite(`Generated symbol: ${job.symbol_path}`);
+          if (job.metadata_path) cwrite(`Metadata: ${job.metadata_path}`);
+          await refreshVolatilitySymbolStatus().catch(() => {});
         }
-      } else {
-        cwrite(`ERROR symbols: exit_code=${payload.exit_code}`);
-      }
-    }
-  });
+      );
+    })
+    .catch(e => {
+      UI.volResult.textContent = "ERROR";
+      cwrite(`ERROR symbols: ${e.message}`);
+    });
 }
 if (UI.runSelector) {
   UI.runSelector.addEventListener("change", () => {
@@ -944,6 +1010,7 @@ if (UI.memorySelector) {
   UI.memorySelector.addEventListener("change", () => {
     const rel = (UI.memorySelector.value || "").trim();
     if (rel) UI.volDump.value = rel;
+    refreshVolatilitySymbolStatus().catch(e => cwrite(`ERROR symbols status: ${e.message}`));
   });
 }
 
@@ -1016,6 +1083,10 @@ async function loadAndPopulateMemorySelector(caseDir) {
     opt.value = "";
     opt.textContent = "No .lime memory dumps found in this case.";
     UI.memorySelector.appendChild(opt);
+    UI.volDump.value = "";
+    if (UI.volSymbolsStatus) {
+      UI.volSymbolsStatus.value = "No preserved memory dumps were found in this case.";
+    }
     return;
   }
 
@@ -1037,6 +1108,7 @@ async function loadAndPopulateMemorySelector(caseDir) {
 
   // Sincroniza el input que usa analyzeMemory()
   UI.volDump.value = dumps[0].rel_path;
+  await refreshVolatilitySymbolStatus().catch(() => {});
 }
 
 
@@ -1047,6 +1119,3 @@ async function loadAndPopulateMemorySelector(caseDir) {
 cwrite("DFIR UI booting...");
 loadInstances().catch(e => cwrite(`ERROR boot instances: ${e.message}`));
 loadCases().catch(e => cwrite(`ERROR boot cases: ${e.message}`));
-
-
-

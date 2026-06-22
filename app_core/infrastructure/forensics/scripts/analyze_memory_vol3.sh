@@ -4,8 +4,9 @@ set -euo pipefail
 # 1. Recibir argumentos de la API
 CASE_DIR="$1"
 DUMP_FILE="$2"
-# Forzamos la ruta que tú confirmaste que funciona
-SYMBOLS_DIR="/home/younes/vol3_symbols_cache/symbols/linux"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../../../.." && pwd)"
+SYMBOLS_DIR="${REPO_ROOT}/app_core/infrastructure/forensics/volatility_symbol_store/linux"
 VOL_CMD="$4"
 VM_ID="${5:-default_vm}"
 

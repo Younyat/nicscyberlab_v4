@@ -2353,6 +2353,123 @@ function closeAnalysisModalShell() {
   stopAnalysisPolling();
 }
 
+function openSymbolGenModal() {
+  const modal = byId("symbolgen-modal");
+  if (!modal) return;
+  byId("symbolgen-status").textContent = "";
+  byId("symbolgen-report-panel").textContent = "No report loaded.";
+  modal.classList.add("is-active");
+  modal.setAttribute("aria-hidden", "false");
+  loadSymbolGenerationStatus().catch(err => {
+    byId("symbolgen-status").textContent = `Status load failed: ${err.message || err}`;
+  });
+}
+
+function closeSymbolGenModal() {
+  const modal = byId("symbolgen-modal");
+  if (!modal) return;
+  modal.classList.remove("is-active");
+  modal.setAttribute("aria-hidden", "true");
+}
+
+async function generateSymbolsForSelectedCase() {
+  const caseId = FOC.selectedCaseId;
+  if (!caseId) return;
+  const runBtn = byId("symbolgen-run-btn");
+  try {
+    const memory_artifact_id = byId("symbolgen-dump-select")?.value || undefined;
+    const overwrite = !!byId("symbolgen-overwrite")?.checked;
+    const payload = { memory_artifact_id, overwrite, mode: "manual" };
+    if (runBtn) {
+      runBtn.disabled = true;
+      runBtn.textContent = "Generating…";
+    }
+    byId("symbolgen-status").textContent = "Requesting symbol generation...";
+    const url = `${API}/cases/${encodeURIComponent(caseId)}/symbols/generate`;
+    const res = await fetchJson(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    byId("symbolgen-status").textContent = res.status ? `status: ${res.status}` : "queued";
+    await pollSymbolGenerationJob(caseId, res.job_id);
+    try { const status = await fetchCaseAnalysisStatus(caseId); renderAnalysisModal(status); } catch (_) {}
+  } catch (err) {
+    byId("symbolgen-status").textContent = `Request failed: ${err.message || err}`;
+  } finally {
+    if (runBtn) {
+      runBtn.disabled = false;
+      runBtn.textContent = "Generate";
+    }
+  }
+}
+
+async function loadSymbolGenerationStatus() {
+  const caseId = FOC.selectedCaseId;
+  if (!caseId) return;
+  const status = await fetchJson(`${API}/cases/${encodeURIComponent(caseId)}/symbols/status`);
+  const dumps = status?.dumps || [];
+  const select = byId("symbolgen-dump-select");
+  if (select) {
+    select.innerHTML = dumps.length
+      ? dumps.map(item => `<option value="${esc(item.memory_artifact_id)}">${esc(item.memory_artifact_id)} | ${esc(item.required_kernel || "unknown kernel")} | ${esc(item.status)}</option>`).join("")
+      : `<option value="">No memory artifacts found</option>`;
+  }
+  const panel = byId("symbolgen-inventory-panel");
+  if (panel) {
+    const lines = [];
+    lines.push(`Host symbol store: ${status.linux_dir || "not_available"}`);
+    lines.push(`Available symbols on host: ${(status.symbols || []).length}`);
+    if (dumps.length) {
+      lines.push("");
+      dumps.forEach(item => {
+        lines.push(`- ${item.memory_artifact_id}`);
+        lines.push(`  node=${item.target_node_name || "unknown"} ip=${item.target_ip || "unknown"} kernel=${item.required_kernel || "unknown"} status=${item.status}`);
+        if (item.symbol_candidates?.length) {
+          lines.push(`  symbol=${item.symbol_candidates[0].path}`);
+        } else if (item.reason) {
+          lines.push(`  reason=${item.reason}`);
+        }
+      });
+    }
+    panel.textContent = lines.join("\n");
+  }
+  byId("symbolgen-report-panel").textContent = JSON.stringify(status, null, 2);
+}
+
+async function pollSymbolGenerationJob(caseId, jobId) {
+  const panel = byId("symbolgen-report-panel");
+  const statusLabel = byId("symbolgen-status");
+  for (;;) {
+    const res = await fetchJson(`${API}/cases/${encodeURIComponent(caseId)}/symbols/jobs/${encodeURIComponent(jobId)}`);
+    if (panel) panel.textContent = JSON.stringify(res, null, 2);
+    if (statusLabel) statusLabel.textContent = res.status ? `status: ${res.status}` : "running";
+    if (["completed", "failed", "blocked"].includes(res.status)) {
+      await loadSymbolGenerationStatus().catch(() => {});
+      return res;
+    }
+    await new Promise(resolve => setTimeout(resolve, 1500));
+  }
+}
+
+  async function cancelCaseAnalysis(caseId) {
+    if (!caseId) return;
+    const btn = byId("analysis-cancel-btn");
+    try {
+      if (btn) { btn.disabled = true; btn.textContent = "Cancelling…"; }
+      const url = `${API}/cases/${encodeURIComponent(caseId)}/analysis/cancel`;
+      const res = await fetch(url, { method: "POST" });
+      let json = null;
+      try { json = await res.json(); } catch (e) { json = { status: res.status }; }
+      const debugPanel = byId("analysis-debug-panel");
+      if (debugPanel) debugPanel.innerHTML += `<div class="mt-4"><strong>cancel_request:</strong><div class="mono text-xs text-slate-400 mt-2 whitespace-pre-wrap">${esc(JSON.stringify(json, null, 2))}</div></div>`;
+      // refresh status
+      try { const status = await fetchCaseAnalysisStatus(caseId); renderAnalysisModal(status); } catch (_) {}
+      return json;
+    } catch (err) {
+      const debugPanel = byId("analysis-debug-panel");
+      if (debugPanel) debugPanel.innerHTML += `<div class="mt-4"><strong>cancel_request_error:</strong><div class="mono text-xs text-slate-400 mt-2 whitespace-pre-wrap">${esc(String(err))}</div></div>`;
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = "Stop Analysis"; }
+    }
+  }
+
 function renderAnalysisModal(status, extras = {}) {
   const caseId = status?.case_id || FOC.selectedCaseId || "unknown";
   const title = byId("analysis-modal-title");
@@ -2365,6 +2482,7 @@ function renderAnalysisModal(status, extras = {}) {
   const runBtn = byId("analysis-run-btn");
   const validateBtn = byId("analysis-validate-btn");
   const viewReportBtn = byId("analysis-view-report-btn");
+  const cancelBtn = byId("analysis-cancel-btn");
   if (!statusPanel || !phasesPanel || !debugPanel || !layersPanel || !reportPanel) return;
 
   const caseEntry = (FOC.cases?.cases || []).find(item => item.case_id === caseId);
@@ -2374,6 +2492,8 @@ function renderAnalysisModal(status, extras = {}) {
       subtitle.textContent = "Analysis cannot start because no preserved evidence is linked to this case.";
     } else if (status.status === "running") {
       subtitle.textContent = "Forensic analysis is running. This may take several minutes depending on disk, memory and PCAP size.";
+    } else if (status.status === "partial") {
+      subtitle.textContent = "Forensic analysis completed partially. Review memory, disk or alert layers to see which evidence was analyzed, which failed and which limitations remain.";
     } else if (status.status === "completed") {
       subtitle.textContent = "Forensic analysis completed. The FOC readiness report has been updated, but semantic and causal reconstruction remain blocked until explicitly generated.";
     } else if (status.status === "failed") {
@@ -2387,8 +2507,15 @@ function renderAnalysisModal(status, extras = {}) {
     runBtn.disabled = status.status === "running" || !status.evidence_available;
     runBtn.textContent = status.status === "running" ? "Analysis already running" : "Run Multilayer Forensic Analysis";
   }
+  if (cancelBtn) {
+    cancelBtn.disabled = status.status !== "running";
+    cancelBtn.textContent = status.status === "running" ? "Stop Analysis" : "Stop Analysis";
+  }
   if (validateBtn) validateBtn.disabled = status.status === "running";
   if (viewReportBtn) viewReportBtn.disabled = !status.forensic_analysis_report_path;
+
+  const report = extras.report || null;
+  const memory = report?.memory_analysis || null;
 
   statusPanel.innerHTML = `
     <div><strong>case_id:</strong> ${esc(caseId)}</div>
@@ -2399,6 +2526,7 @@ function renderAnalysisModal(status, extras = {}) {
     <div><strong>finished_at:</strong> ${esc(status.finished_at || "not_available")}</div>
     <div><strong>current_phase:</strong> ${esc(status.current_phase || "not_available")}</div>
     <div><strong>progress_percent:</strong> ${esc(status.progress_percent ?? 0)}%</div>
+    <div><strong>partial_phases:</strong> ${esc((status.partial_phases || []).join(", ") || "none")}</div>
     <div><strong>report:</strong> ${esc(status.forensic_analysis_report_path || "not_available")}</div>
   `;
 
@@ -2413,6 +2541,16 @@ function renderAnalysisModal(status, extras = {}) {
         <div class="mt-2 text-xs text-slate-300 mono">${esc(phase.output_path || "not_available")}</div>
         <div class="mt-2 text-xs text-slate-400">stdout: ${esc(phase.stdout_path || "not_available")}</div>
         <div class="mt-1 text-xs text-slate-400">stderr: ${esc(phase.stderr_path || "not_available")}</div>
+        ${key === "memory_analysis" && memory ? `
+          <div class="mt-2 text-xs text-slate-400">preflight: ${esc(phase.memory_preflight_path || "not_available")}</div>
+          <div class="mt-1 text-xs text-slate-400">findings: ${esc(phase.memory_findings_path || "not_available")}</div>
+          <div class="mt-3 text-xs text-slate-300"><strong>memory status:</strong> ${esc(memory.status || "unknown")}</div>
+          <div class="mt-1 text-xs text-slate-400">dumps analysed: ${esc(memory.dumps_analysed ?? 0)}</div>
+          <div class="mt-1 text-xs text-slate-400">completed plugins: ${esc((memory.plugins_completed || []).join(", ") || "none")}</div>
+          <div class="mt-1 text-xs text-slate-400">failed plugins: ${esc((memory.plugins_failed || []).join(", ") || "none")}</div>
+          <div class="mt-2 text-xs text-slate-400">execution reports:</div>
+          <div class="mono text-[11px] text-slate-500 mt-1 whitespace-pre-wrap">${esc((phase.memory_results || []).map(item => item.execution_report_path).join("\n") || "not_available")}</div>
+        ` : ""}
       </div>
     `).join("")
     : "No phase progress loaded.";
@@ -2425,6 +2563,19 @@ function renderAnalysisModal(status, extras = {}) {
     <div class="mono text-xs text-slate-400 mt-2 whitespace-pre-wrap">${esc(warnings || "none")}</div>
     <div class="mt-4"><strong>errors:</strong></div>
     <div class="mono text-xs text-slate-400 mt-2 whitespace-pre-wrap">${esc(errors || "none")}</div>
+    ${memory ? `
+      <div class="mt-4"><strong>memory analysis:</strong></div>
+      <div class="mono text-xs text-slate-400 mt-2 whitespace-pre-wrap">${esc(
+        memory.status === "failed" || memory.status === "partial"
+          ? [
+              `status=${memory.status || "unknown"}`,
+              `reason=${memory.reason || "not_available"}`,
+              `recommended_action=${memory.recommended_action || "not_available"}`,
+              ...((memory.blocking_errors || []).slice(0, 12)),
+            ].join("\n")
+          : "no memory blocking errors"
+      )}</div>
+    ` : ""}
     <div class="mt-4"><strong>logs:</strong></div>
     <div class="space-y-3 mt-2">
       ${logs.slice(0, 6).map(log => `
@@ -2443,8 +2594,47 @@ function renderAnalysisModal(status, extras = {}) {
     ? layers.map(([key, value]) => `<div class="mono text-sm ${value ? "status-confirmed" : "status-unknown"}">${esc(key)}: ${esc(value ? "available" : "not_available")}</div>`).join("")
     : "No layer inventory loaded.";
 
-  const report = extras.report || null;
-  reportPanel.textContent = report?.summary_preview || "No report loaded.";
+  reportPanel.innerHTML = report ? `
+    <div class="space-y-4">
+      <div class="glass rounded-2xl p-4">
+        <div class="font-black">Forensic Analysis Report</div>
+        <div class="mt-2 text-xs text-slate-400">status: <span class="${statusClass(report.analysis_status || report.status)}">${esc(report.analysis_status || report.status || "unknown")}</span></div>
+        <div class="mt-1 text-xs text-slate-400">generated_at: ${esc(report.generated_at || "not_available")}</div>
+        <div class="mt-1 text-xs text-slate-400">status_note: ${esc(report.status_note || "not_available")}</div>
+      </div>
+      <div class="glass rounded-2xl p-4">
+        <div class="font-black">Memory Analysis Panel</div>
+        ${memory ? `
+          <div class="mt-2 text-sm"><strong>status:</strong> <span class="${statusClass(memory.status)}">${esc(memory.status || "unknown")}</span></div>
+          <div class="mt-1 text-sm"><strong>dumps analysed:</strong> ${esc(memory.dumps_analysed ?? 0)}</div>
+          <div class="mt-1 text-sm"><strong>completed plugins:</strong> ${esc((memory.plugins_completed || []).join(", ") || "none")}</div>
+          <div class="mt-1 text-sm"><strong>failed plugins:</strong> ${esc((memory.plugins_failed || []).join(", ") || "none")}</div>
+          <div class="mt-1 text-sm"><strong>analysis completed:</strong> ${esc(memory.analysis_completed ? "true" : "false")}</div>
+          <div class="mt-1 text-sm"><strong>preflight analysis_possible:</strong> ${esc(memory.preflight?.analysis_possible ? "true" : "false")}</div>
+          <div class="mt-1 text-sm"><strong>symbols found:</strong> ${esc(memory.preflight?.symbols_found ? "true" : "false")}</div>
+          <div class="mt-1 text-sm"><strong>blocking reason:</strong> ${esc(memory.preflight?.blocking_reason || memory.reason || "none")}</div>
+          <div class="mt-2 text-xs text-slate-400">${esc(memory.recommended_action || "No recommendation available.")}</div>
+          ${memory.status !== "completed" ? `<div class="mt-2 text-xs text-amber-300">Memory analysis could not be completed because Volatility 3 symbols for the captured kernel were not available or could not be matched.</div>` : ""}
+        ` : '<div class="mt-2 text-xs text-slate-500">No memory report loaded.</div>'}
+      </div>
+      <div class="glass rounded-2xl p-4">
+        <div class="font-black">Layer Status</div>
+        <div class="mt-2 space-y-1">
+          ${Object.entries(report.layer_status || {}).map(([key, value]) => `
+            <div class="text-xs text-slate-300">
+              <strong>${esc(value.label || key)}:</strong>
+              <span class="${statusClass(value.status)}">${esc(value.status || "unknown")}</span>
+              <span class="mono text-slate-500">${esc(value.output_path || "not_available")}</span>
+            </div>
+          `).join("") || '<div class="text-xs text-slate-500">No layer status loaded.</div>'}
+        </div>
+      </div>
+      <div class="glass rounded-2xl p-4">
+        <div class="font-black">Summary</div>
+        <div class="mono text-xs text-slate-300 mt-2 whitespace-pre-wrap">${esc(report.summary_preview || "No report summary loaded.")}</div>
+      </div>
+    </div>
+  ` : "No report loaded.";
 }
 
 async function openCaseAnalysis(caseId, autoRun = false) {
@@ -2883,8 +3073,23 @@ document.addEventListener("DOMContentLoaded", async () => {
       closeAnalysisModalShell();
     }
   });
+  byId("analysis-generate-symbols-btn")?.addEventListener("click", () => {
+    if (FOC.selectedCaseId) openSymbolGenModal();
+  });
+  byId("symbolgen-close")?.addEventListener("click", closeSymbolGenModal);
+  byId("symbolgen-modal")?.addEventListener("click", (event) => {
+    if (event.target?.id === "symbolgen-modal") {
+      closeSymbolGenModal();
+    }
+  });
+  byId("symbolgen-run-btn")?.addEventListener("click", () => {
+    if (FOC.selectedCaseId) generateSymbolsForSelectedCase().catch(() => {});
+  });
   byId("analysis-run-btn")?.addEventListener("click", () => {
     if (FOC.selectedCaseId) runCaseAnalysis(FOC.selectedCaseId).catch(() => {});
+  });
+  byId("analysis-cancel-btn")?.addEventListener("click", () => {
+    if (FOC.selectedCaseId) cancelCaseAnalysis(FOC.selectedCaseId).catch(() => {});
   });
   byId("analysis-validate-btn")?.addEventListener("click", () => {
     if (FOC.selectedCaseId) validateCaseAnalysis(FOC.selectedCaseId).catch(() => {});

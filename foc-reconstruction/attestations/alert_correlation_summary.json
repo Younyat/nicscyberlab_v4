@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-06-18T14:16:52.673544+00:00",
+  "generated_at": "2026-06-22T12:51:47.975762+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
-  "total_correlation_records": 40189,
-  "total_alerts": 38730,
-  "relevant_alerts": 21801,
-  "correlated_alerts": 9900,
-  "confirmed_correlations": 9900,
+  "total_correlation_records": 71261,
+  "total_alerts": 56083,
+  "relevant_alerts": 33496,
+  "correlated_alerts": 18468,
+  "confirmed_correlations": 18468,
   "weak_correlations": 0,
-  "unresolved_alerts": 30266,
+  "unresolved_alerts": 52774,
   "noise_alerts": 0,
   "false_positive_candidates": 0,
-  "missing_expected_alerts_total": 35,
+  "missing_expected_alerts_total": 39,
   "bucket_counts": {
-    "correlated": 9900,
-    "uncorrelated": 30266,
-    "noise": 16929,
+    "correlated": 18468,
+    "uncorrelated": 52774,
+    "noise": 22587,
     "false_positive_candidate": 0,
-    "missing_expected_alert": 35,
+    "missing_expected_alert": 39,
     "weak_candidate": 0,
     "inferred_low": 0,
     "inferred_medium": 0
@@ -25,57 +25,57 @@
   "top_signatures": [
     {
       "label": "NICS CyberLab ICS RAW Modbus function 03 read holding registers burst",
-      "count": 8316
-    },
-    {
-      "label": "NICS CyberLab ICS RAW Modbus function 01 read coils burst",
-      "count": 8118
+      "count": 14364
     },
     {
       "label": "NICS CyberLab ICS Modbus write multiple registers",
-      "count": 7524
+      "count": 14364
+    },
+    {
+      "label": "NICS CyberLab ICS RAW Modbus function 01 read coils burst",
+      "count": 14022
     },
     {
       "label": "/etc/suricata/suricata.yaml",
-      "count": 4104
+      "count": 7224
     },
     {
       "label": "NICS CyberLab ICS RAW Modbus function 03 read holding registers",
-      "count": 3168
+      "count": 5472
     },
     {
       "label": "NICS CyberLab ICS Modbus write single register",
-      "count": 2376
+      "count": 4104
     },
     {
       "label": "/etc/suricata/suricata.yaml.nics-modbus-backup-20260614185438",
-      "count": 1056
+      "count": 1824
     },
     {
       "label": "/etc/suricata/suricata.yaml.nics-modbus-backup-20260614190525",
-      "count": 1056
+      "count": 1824
     },
     {
       "label": "/etc/suricata/suricata.yaml.nics-modbus-backup-20260614203742",
-      "count": 1056
+      "count": 1824
     },
     {
       "label": "/etc/suricata/suricata.yaml.nics-modbus-backup-20260614210325",
-      "count": 1056
+      "count": 1824
     }
   ],
   "top_rule_ids": [
     {
       "label": "86601",
-      "count": 29502
+      "count": 52326
     },
     {
       "label": "554",
-      "count": 5472
+      "count": 9632
     },
     {
       "label": "550",
-      "count": 4872
+      "count": 8964
     },
     {
       "label": "5710",
@@ -85,43 +85,43 @@
   "top_nodes": [
     {
       "label": "node-e1ac03b8",
-      "count": 21566
+      "count": 37678
     },
     {
       "label": "node-f9ca9bfc",
-      "count": 17952
+      "count": 32376
     },
     {
       "label": "node-c800d431",
-      "count": 648
+      "count": 1188
     }
   ],
   "severity_distribution": [
     {
       "label": "HIGH",
-      "count": 17275
+      "count": 25299
     },
     {
       "label": "LOW",
-      "count": 17247
+      "count": 22833
     },
     {
       "label": "MEDIUM",
-      "count": 4208
+      "count": 7951
     }
   ],
   "alerts_by_node": [
     {
       "label": "node-e1ac03b8",
-      "count": 15665
-    },
-    {
-      "label": "node-f9ca9bfc",
-      "count": 12028
+      "count": 16117
     },
     {
       "label": "node-c800d431",
-      "count": 11037
+      "count": 15897
+    },
+    {
+      "label": "node-f9ca9bfc",
+      "count": 12774
     }
   ],
   "alerts_by_mitre_technique": [
@@ -135,11 +135,11 @@
     },
     {
       "label": "T1692.001",
-      "count": 300
+      "count": 324
     },
     {
       "label": "T0836",
-      "count": 300
+      "count": 324
     },
     {
       "label": "T0877",
@@ -149,21 +149,21 @@
   "alerts_by_original_sensor": [
     {
       "label": "wazuh",
-      "count": 21183
+      "count": 32926
     },
     {
       "label": "suricata",
-      "count": 17547
+      "count": 23157
     }
   ],
   "alerts_by_collector": [
     {
       "label": "wazuh",
-      "count": 38730
+      "count": 56083
     }
   ],
   "unique_confirmed_attack_pairs": 3,
-  "unique_correlation_candidates": 50,
+  "unique_correlation_candidates": 53,
   "confirmed_attack_ids": 1,
   "weak_attack_ids": 0,
   "observable_attack_ids": 1,

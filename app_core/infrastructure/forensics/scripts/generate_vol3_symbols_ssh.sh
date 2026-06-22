@@ -15,7 +15,8 @@ set -euo pipefail
 # - Descarga dwarf2json (binario oficial del host).
 # - Descarga el paquete linux-image-<KVER>-dbgsym (Ubuntu) o linux-image-<KVER>-dbg (Debian) del pool
 #   y extrae vmlinux-<KVER> para generar <KVER>.json.
-# - Cache root configurable por env: VOL3_SYMBOLS_CACHE_ROOT (por defecto: $HOME/vol3_symbols_cache)
+# - Cache root configurable por env: VOL3_SYMBOLS_CACHE_ROOT
+#   (por defecto: <repo>/app_core/infrastructure/forensics/volatility_symbol_store)
 
 if [[ $# -lt 5 ]]; then
   echo "Uso: $0 <CASE_DIR> <VM_ID> <VM_IP> <SSH_USER> <SSH_KEY>"
@@ -52,9 +53,11 @@ try_ssh() {
   ssh "${SSH_OPTS[@]}" "$user@$VM_IP" "$cmd" 2>/dev/null || true
 }
 
-# Cache global (host) - NO hardcodea /home/<user>
-CACHE_ROOT="${VOL3_SYMBOLS_CACHE_ROOT:-$HOME/vol3_symbols_cache}"
-SYMBOLS_DIR="$CACHE_ROOT/symbols/linux"
+# Cache global (host) dentro del proyecto, salvo override explícito por env
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../../../.." && pwd)"
+CACHE_ROOT="${VOL3_SYMBOLS_CACHE_ROOT:-$REPO_ROOT/app_core/infrastructure/forensics/volatility_symbol_store}"
+SYMBOLS_DIR="$CACHE_ROOT/linux"
 mkdir -p "$SYMBOLS_DIR"
 
 # ------------------------------------------------------------
