@@ -31,6 +31,7 @@ const FOC = {
     currentCaseId: null,
     currentStatus: null,
     currentReport: null,
+    expandedDetails: {},
   },
   graphState: {
     layers: {
@@ -174,9 +175,9 @@ function statusClass(status) {
   if (normalized.startsWith("failed")) return "status-missing";
   if (normalized.startsWith("skipped")) return "status-unknown";
   if (normalized === "running") return "status-inferred";
-  if (["completed_with_degradation", "partial", "limited", "degraded", "ambiguous", "ready_to_run"].includes(normalized)) return "status-inferred";
-  if (["blocked_missing_ground_truth", "blocked_missing_analysis"].includes(normalized)) return "status-missing";
-  if (["confirmed", "complete", "valid", "active", "bound", "present", "available", "completed"].includes(normalized)) return "status-confirmed";
+  if (["completed_with_degradation", "partial", "limited", "degraded", "ambiguous", "ready_to_run", "weak_reconstruction", "weak"].includes(normalized)) return "status-inferred";
+  if (["blocked_missing_ground_truth", "blocked_missing_analysis", "blocked", "invalid"].includes(normalized)) return "status-missing";
+  if (["confirmed", "complete", "valid", "active", "bound", "present", "available", "completed", "strong", "recovered", "supported"].includes(normalized)) return "status-confirmed";
   if (["inferred", "partial", "bootstrap", "updated", "warning", "warnings", "mostly_available", "mostly_noise", "mostly_completed", "constrained", "limited"].includes(normalized)) return "status-inferred";
   if (["missing", "critical", "insufficient", "unresolved", "error", "bootstrap_required", "failed"].includes(normalized)) return "status-missing";
   if (["unknown", "not_available", "degraded", "not_completed", "not_generated", "not_started"].includes(normalized)) return "status-unknown";
@@ -2966,18 +2967,30 @@ function renderCausalReportPlaceholder(status) {
     body = status?.reason || "Review requirements, outputs and the preserved prerequisites.";
   }
   const req = status?.requirements || {};
+  const gts = status?.ground_truth_summary || {};
   return `
     <div class="glass rounded-[24px] p-5">
       <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Causal Reconstruction</div>
       <div class="text-xl font-black mt-3">${esc(title)}</div>
       <div class="text-sm text-slate-300 mt-3">${esc(body)}</div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
         <div class="glass-soft rounded-2xl p-4">
-          <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">State</div>
-          <div class="mt-2 text-sm text-slate-300">status: <span class="${statusClass(status?.status)}">${esc(titleizeStatus(status?.status || "unknown"))}</span></div>
-          <div class="mt-1 text-sm text-slate-300">progress: ${esc(status?.progress_percent ?? 0)}%</div>
-          <div class="mt-1 text-sm text-slate-300">current step: ${esc(status?.current_step || "not_available")}</div>
+          <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Execution status</div>
+          <div class="mt-2 text-sm font-black ${statusClass(status?.execution_status)}">${esc(titleizeStatus(status?.execution_status || "not_started"))}</div>
+          <div class="mt-1 text-xs text-slate-400">Execution progress: ${esc(status?.progress_percent ?? 0)}% — current step: ${esc(status?.current_step || "not_available")}</div>
         </div>
+        <div class="glass-soft rounded-2xl p-4">
+          <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Reconstruction state</div>
+          <div class="mt-2 text-sm font-black ${statusClass(status?.reconstruction_state)}">${esc(titleizeStatus(status?.reconstruction_state || "not_available"))}</div>
+          <div class="mt-1 text-xs text-slate-400">Quality of the causal reconstruction produced, independent of execution.</div>
+        </div>
+        <div class="glass-soft rounded-2xl p-4">
+          <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Scientific confidence</div>
+          <div class="mt-2 text-sm font-black ${statusClass(status?.scientific_confidence)}">${esc(titleizeStatus(status?.scientific_confidence || "unknown"))}</div>
+          <div class="mt-1 text-xs text-slate-400">Interpretive weight this result can carry, never an absolute proof of causality.</div>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
         <div class="glass-soft rounded-2xl p-4">
           <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Requirements</div>
           <div class="mt-2 text-xs text-slate-300">foc_context_available: ${esc(String(req.foc_context_available ?? false))}</div>
@@ -2986,8 +2999,15 @@ function renderCausalReportPlaceholder(status) {
           <div class="mt-1 text-xs text-slate-300">chain_of_custody_present: ${esc(String(req.chain_of_custody_present ?? false))}</div>
           <div class="mt-1 text-xs text-slate-300">analysis_report_present: ${esc(String(req.analysis_report_present ?? false))}</div>
           <div class="mt-1 text-xs text-slate-300">analysis_visual_summary_present: ${esc(String(req.analysis_visual_summary_present ?? false))}</div>
-          <div class="mt-1 text-xs text-slate-300">ground_truth_status: ${esc(req.ground_truth_status || "unknown")}</div>
-          <div class="mt-1 text-xs text-slate-300">ground_truth_path: ${esc(req.ground_truth_path || "not_available")}</div>
+        </div>
+        <div class="glass-soft rounded-2xl p-4">
+          <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Ground truth</div>
+          <div class="mt-2 text-xs text-slate-300">status: ${esc(gts.ground_truth_status || req.ground_truth_status || "unknown")}</div>
+          <div class="mt-1 text-xs text-slate-300">validation: ${esc(gts.ground_truth_validation_status || "unknown")}</div>
+          <div class="mt-1 text-xs text-slate-300">version: ${esc(gts.ground_truth_version || "not_available")}</div>
+          <div class="mt-1 text-xs text-slate-300">scenario_id: ${esc(gts.scenario_id || "unknown")}</div>
+          <div class="mt-1 text-xs text-slate-300">expected_edges: ${esc(gts.expected_edges ?? "na")}</div>
+          <div class="mt-1 text-xs text-slate-300 mono break-all">path: ${esc(gts.ground_truth_path || req.ground_truth_path || "not_available")}</div>
         </div>
       </div>
       <div class="glass-soft rounded-2xl p-4 mt-4">
@@ -3032,139 +3052,192 @@ function renderCausalGraphPreview(graph) {
   `;
 }
 
+function kpiSeverityClass(severity) {
+  if (severity === "ok") return "status-confirmed";
+  if (severity === "warning") return "status-degraded";
+  if (severity === "critical") return "status-missing";
+  return "status-unknown";
+}
+
+function renderCausalKpiCard(kpi) {
+  return `
+    <div class="glass-soft rounded-2xl p-4">
+      <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">${esc(kpi.name)}</div>
+      <div class="mt-2 text-xl font-black ${kpiSeverityClass(kpi.severity)}">${esc(kpi.value ?? "na")}</div>
+      <div class="mt-1 text-xs text-slate-400">${esc(kpi.meaning || "")}</div>
+      <div class="mt-1 text-xs text-slate-300">${esc(kpi.interpretation || "")}</div>
+    </div>
+  `;
+}
+
+function renderCausalEdgeMatrixDetail(graph) {
+  const edges = graph?.edges || [];
+  if (!edges.length) return `<div class="text-sm text-slate-500">No expected edges are available.</div>`;
+  return `
+    <div class="space-y-3">
+      ${edges.map(edge => `
+        <div class="glass-soft rounded-2xl p-4">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="font-black">${esc(edge.edge_id)}</div>
+              <div class="text-xs text-slate-400 mt-1">${esc(edge.relation_type)}</div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              ${tag("support", edge.support_status || "unknown", statusClass(edge.support_status))}
+              ${tag("confidence", edge.confidence || "unknown", statusClass(edge.confidence))}
+              ${tag("temporal", edge.temporal_status || "unknown", statusClass(edge.temporal_status))}
+            </div>
+          </div>
+          <div class="mt-3 text-sm text-slate-300">${esc(edge.meaning || "")}</div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 text-xs text-slate-300">
+            <div>Required evidence: <span class="mono">${esc((edge.required_evidence || []).join(", ") || "none")}</span></div>
+            <div>Evidence found: <span class="mono">${esc((edge.evidence_refs || []).join(", ") || "not_available")}</span></div>
+            <div>Evidence missing: <span class="mono">${esc((edge.missing_evidence || []).join(", ") || "none")}</span></div>
+            <div>Semantic check: <span class="mono">${esc(edge.semantic_status || "unknown")}</span></div>
+            <div>Temporal check: <span class="mono">${esc(edge.temporal_status || "unknown")}</span></div>
+            <div>Integrity check: <span class="mono">${esc(edge.integrity_status || "unknown")}</span></div>
+          </div>
+          <div class="mt-3 text-sm text-slate-300"><strong>Why this status:</strong> ${esc(edge.status_reason || "not_available")}</div>
+          <div class="mt-2 text-sm text-slate-400">${esc((edge.limitations || []).join(" | ") || "no additional limitations")}</div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderCausalUncertaintyDetail(uncertainty) {
+  const t = uncertainty?.temporal || {};
+  const c = uncertainty?.completeness || {};
+  const i = uncertainty?.integrity || {};
+  return `
+    <div class="space-y-3">
+      <div class="glass-soft rounded-2xl p-4 text-sm text-slate-300">
+        <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Temporal uncertainty</div>
+        <div class="mt-2"><strong>Temporal confidence:</strong> ${esc(t.temporal_confidence_state || "unknown")}</div>
+        <div class="mt-1"><strong>Uncertainty window:</strong> ${esc(t.uncertainty_window_seconds ?? "na")}s (${esc(t.uncertainty_window_ms ?? "na")}ms)</div>
+        <div class="mt-1"><strong>Max clock offset:</strong> ${esc(t.max_clock_offset_seconds ?? "na")}s</div>
+        <div class="mt-1"><strong>Synchronized:</strong> ${esc(String(t.synchronized ?? false))}</div>
+        <div class="mt-2 text-slate-400">${esc(t.temporal_limitation || "")}</div>
+      </div>
+      <div class="glass-soft rounded-2xl p-4 text-sm text-slate-300">
+        <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Evidence completeness</div>
+        <div class="mt-2"><strong>Ratio:</strong> ${esc(c.evidence_completeness_ratio ?? "na")} (${esc(c.recovered_expected_artifacts ?? "na")} / ${esc(c.expected_artifacts ?? "na")})</div>
+        <div class="mt-1 text-slate-400">Missing: ${esc((c.missing_expected_artifacts || []).join(", ") || "none")}</div>
+      </div>
+      <div class="glass-soft rounded-2xl p-4 text-sm text-slate-300">
+        <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Integrity and custody</div>
+        <div class="mt-2"><strong>Graph-scope integrity ratio:</strong> ${esc(i.graph_scope_integrity_ratio ?? "na")} (${esc(i.artifacts_present ?? "na")} / ${esc(i.artifacts_used_by_graph ?? "na")} artifacts referenced by the graph)</div>
+        <div class="mt-1"><strong>Case-wide integrity ratio:</strong> ${esc(i.case_wide_integrity_ratio ?? "na")} (${esc(i.case_manifest_hash_validated ?? "na")} / ${esc(i.case_manifest_artifacts_total ?? "na")} manifest artifacts)</div>
+        <div class="mt-1"><strong>Integrity status:</strong> <span class="${statusClass(i.integrity_status)}">${esc(i.integrity_status || "unknown")}</span></div>
+        <div class="mt-2 text-slate-400">${esc(i.integrity_limitation || "")}</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderCausalDetailSection(key, label, caseId, isExpanded, contentHtml) {
+  return `
+    <div class="glass rounded-[24px] p-5">
+      <button type="button" class="w-full flex items-center justify-between gap-3 text-left" data-causal-detail="${esc(key)}" data-case-id="${esc(caseId)}">
+        <span class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">${esc(label)}</span>
+        <span class="text-xs text-slate-400 font-black">${isExpanded ? "Hide ▲" : "Show ▼"}</span>
+      </button>
+      ${isExpanded ? `<div class="mt-4">${contentHtml}</div>` : ""}
+    </div>
+  `;
+}
+
 function renderCausalCockpit(status, report) {
-  const metrics = report?.metrics || {};
-  const uncertainty = report?.uncertainty || {};
+  const caseId = status?.case_id || FOC.causalVisualState.currentCaseId || FOC.selectedCaseId || "unknown";
+  const metricsPreview = status?.metrics_preview || {};
+  const kpis = metricsPreview.kpis || [];
+  const outputs = status?.outputs || {};
+  const gts = status?.ground_truth_summary || {};
+  const expanded = FOC.causalVisualState.expandedDetails || {};
   const graph = report?.graph || {};
-  const artifactPaths = report?.artifact_paths || {};
-  const outputReportPath = artifactPaths.causal_reconstruction_report || "not_available";
-  const outputGraphPath = artifactPaths.causal_graph || "not_available";
-  const outputMetricsPath = artifactPaths.reconstruction_metrics || "not_available";
+  const uncertainty = report?.uncertainty || {};
+
+  const staleBanner = status?.is_stale
+    ? `<div class="glass-soft rounded-2xl p-4 mt-4 text-sm text-amber-300">Causal reconstruction is stale because analysis outputs were modified after causal artifacts were generated. Re-run causal reconstruction to refresh this view.</div>`
+    : "";
+
   return `
     <div class="space-y-5">
       <div class="glass rounded-[24px] p-5">
         <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Executive Status</div>
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-4 text-sm">
           <div class="glass-soft rounded-2xl p-4">
-            <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Execution</div>
-            <div class="mt-2 font-black ${statusClass(status?.status || "unknown")}">${esc(titleizeStatus(status?.status || "unknown"))}</div>
-            <div class="mt-2 text-slate-300">Progress: ${esc(status?.progress_percent ?? 100)}%</div>
+            <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Execution status</div>
+            <div class="mt-2 font-black ${statusClass(status?.execution_status)}">${esc(titleizeStatus(status?.execution_status || "not_started"))}</div>
+            <div class="mt-2 text-slate-300">Execution progress: ${esc(status?.progress_percent ?? 100)}%</div>
             <div class="mt-1 text-slate-300">Current step: ${esc(status?.current_step || "completed")}</div>
           </div>
           <div class="glass-soft rounded-2xl p-4">
-            <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Scientific Posture</div>
-            <div class="mt-2 text-slate-300">Reconstruction state: <span class="${statusClass(status?.status || "unknown")}">${esc(titleizeStatus(status?.status || "unknown"))}</span></div>
-            <div class="mt-1 text-slate-300">Temporal confidence: ${esc(metrics.temporal_confidence_state || "unknown")}</div>
-            <div class="mt-1 text-slate-300">Main limitation: ${esc(metrics.main_limitation || status?.reason || "not_available")}</div>
+            <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Reconstruction state</div>
+            <div class="mt-2 font-black ${statusClass(status?.reconstruction_state)}">${esc(titleizeStatus(status?.reconstruction_state || "not_available"))}</div>
+            <div class="mt-1 text-slate-300">Temporal confidence: ${esc(metricsPreview.temporal_confidence_state || "unknown")}</div>
           </div>
           <div class="glass-soft rounded-2xl p-4">
-            <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Derived Outputs</div>
-            <div class="mt-2 text-xs text-slate-300 mono">report: ${esc(outputReportPath)}</div>
-            <div class="mt-1 text-xs text-slate-300 mono">graph: ${esc(outputGraphPath)}</div>
-            <div class="mt-1 text-xs text-slate-300 mono">metrics: ${esc(outputMetricsPath)}</div>
+            <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Scientific confidence</div>
+            <div class="mt-2 font-black ${statusClass(status?.scientific_confidence)}">${esc(titleizeStatus(status?.scientific_confidence || "unknown"))}</div>
+            <div class="mt-1 text-slate-300">Never an absolute proof of causality.</div>
+          </div>
+        </div>
+        <div class="glass-soft rounded-2xl p-4 mt-4 text-sm text-slate-300">${esc(metricsPreview.interpretation || status?.reason || "not_available")}</div>
+        ${staleBanner}
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div class="glass rounded-[24px] p-5">
+          <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Ground Truth</div>
+          <div class="mt-3 text-sm text-slate-300 space-y-1">
+            <div>status: <span class="${statusClass(gts.ground_truth_status)}">${esc(gts.ground_truth_status || "unknown")}</span></div>
+            <div>validation: ${esc(gts.ground_truth_validation_status || "unknown")}</div>
+            <div>version: ${esc(gts.ground_truth_version || "not_available")}</div>
+            <div>scenario_id: ${esc(gts.scenario_id || "unknown")}</div>
+            <div>expected_edges: ${esc(gts.expected_edges ?? "na")}</div>
+            <div>loaded_at: ${esc(gts.ground_truth_loaded_at || "not_available")}</div>
+            <div class="mono text-xs text-slate-400 break-all">path: ${esc(gts.ground_truth_path || "not_available")}</div>
+          </div>
+        </div>
+        <div class="glass rounded-[24px] p-5">
+          <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Derived Outputs</div>
+          <div class="mt-3 text-xs text-slate-300 mono space-y-1">
+            ${Object.entries(outputs).map(([key, entry]) => `<div>${esc(key)}: <span class="${statusClass(entry.status)}">${esc(entry.status)}</span> (${esc(entry.path || "not_available")})</div>`).join("") || '<div>not_available</div>'}
           </div>
         </div>
       </div>
 
       <div class="glass rounded-[24px] p-5">
         <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Causal Reconstruction KPIs</div>
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3 mt-4">
-          ${simpleValueCard("CPR", metrics.causal_path_recoverability ?? "na", "Recovered edges / expected edges")}
-          ${simpleValueCard("Weighted CPR", metrics.weighted_cpr ?? "na", "Weighted recoverability")}
-          ${simpleValueCard("Recovered", metrics.recovered_edges ?? 0, "Recovered edges")}
-          ${simpleValueCard("Degraded", metrics.degraded_edges ?? 0, "Degraded edges")}
-          ${simpleValueCard("Ambiguous", metrics.ambiguous_edges ?? 0, "Ambiguous edges")}
-          ${simpleValueCard("Missing", metrics.missing_edges ?? 0, "Missing edges")}
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3 mt-3">
-          ${simpleValueCard("Evidence completeness", metrics.evidence_completeness_ratio ?? "na", "Recovered expected artifacts")}
-          ${simpleValueCard("Integrity verification", metrics.integrity_verification_ratio ?? "na", "Verified artifacts used by graph")}
-          ${simpleValueCard("Analysis coverage", metrics.analysis_coverage_ratio ?? "na", "Useful multilayer outputs")}
-          ${simpleValueCard("Temporal confidence", metrics.temporal_confidence_state ?? "unknown", "Derived from preserved clock evidence")}
-          ${simpleValueCard("Reconstruction confidence", metrics.reconstruction_confidence ?? "na", "Composite but non-authoritative")}
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mt-4">
+          ${kpis.map(renderCausalKpiCard).join("") || '<div class="text-sm text-slate-500">KPI metadata is not available; re-run causal reconstruction to populate it.</div>'}
         </div>
       </div>
 
-      <div class="grid grid-cols-1 xl:grid-cols-12 gap-5">
-        <div class="glass rounded-[24px] p-5 xl:col-span-7">
-          <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Edge status matrix</div>
-          <div class="space-y-3 mt-4">
-            ${(graph.edges || []).map(edge => `
-              <div class="glass-soft rounded-2xl p-4">
-                <div class="flex items-center justify-between gap-3">
-                  <div>
-                    <div class="font-black">${esc(edge.edge_id)}</div>
-                    <div class="text-xs text-slate-400 mt-1">${esc(edge.relation_type)}</div>
-                  </div>
-                  <div class="flex flex-wrap gap-2">
-                    ${tag("support", edge.support_status || "unknown", statusClass(edge.support_status))}
-                    ${tag("confidence", edge.confidence || "unknown", statusClass(edge.confidence))}
-                    ${tag("temporal", edge.temporal_status || "unknown", statusClass(edge.temporal_status))}
-                  </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 text-xs text-slate-300">
-                  <div>required_evidence: <span class="mono">${esc((edge.required_evidence || []).join(", ") || "none")}</span></div>
-                  <div>missing_evidence: <span class="mono">${esc((edge.missing_evidence || []).join(", ") || "none")}</span></div>
-                  <div>semantic_status: <span class="mono">${esc(edge.semantic_status || "unknown")}</span></div>
-                  <div>integrity_status: <span class="mono">${esc(edge.integrity_status || "unknown")}</span></div>
-                </div>
-                <div class="mt-3 text-xs text-slate-400 mono">${esc((edge.evidence_refs || []).join("\n") || "not_available")}</div>
-                <div class="mt-2 text-sm text-slate-400">${esc((edge.limitations || []).join(" | ") || "no additional limitations")}</div>
-              </div>
-            `).join("") || '<div class="text-sm text-slate-500">No expected edges are available.</div>'}
-          </div>
-        </div>
-        <div class="glass rounded-[24px] p-5 xl:col-span-5">
-          <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Uncertainty budget</div>
-          <div class="space-y-3 mt-4">
-            <div class="glass-soft rounded-2xl p-4 text-sm text-slate-300">
-              <div><strong>Temporal confidence:</strong> ${esc(uncertainty?.temporal?.temporal_confidence_state || "unknown")}</div>
-              <div class="mt-1"><strong>Uncertainty window ms:</strong> ${esc(uncertainty?.temporal?.uncertainty_window_ms ?? "na")}</div>
-              <div class="mt-1"><strong>Max clock offset ms:</strong> ${esc(uncertainty?.temporal?.max_clock_offset_ms ?? "na")}</div>
-              <div class="mt-1"><strong>Synchronized:</strong> ${esc(String(uncertainty?.temporal?.synchronized ?? false))}</div>
-            </div>
-            <div class="glass-soft rounded-2xl p-4 text-sm text-slate-300">
-              <div><strong>Evidence completeness ratio:</strong> ${esc(uncertainty?.completeness?.evidence_completeness_ratio ?? "na")}</div>
-              <div class="mt-1"><strong>Expected artifacts:</strong> ${esc(uncertainty?.completeness?.expected_artifacts ?? "na")}</div>
-              <div class="mt-1"><strong>Recovered expected artifacts:</strong> ${esc(uncertainty?.completeness?.recovered_expected_artifacts ?? "na")}</div>
-            </div>
-            <div class="glass-soft rounded-2xl p-4 text-sm text-slate-300">
-              <div><strong>Integrity verification ratio:</strong> ${esc(uncertainty?.integrity?.integrity_verification_ratio ?? "na")}</div>
-              <div class="mt-1"><strong>Artifacts used by graph:</strong> ${esc(uncertainty?.integrity?.artifacts_used_by_graph ?? "na")}</div>
-              <div class="mt-1"><strong>Verified artifacts used:</strong> ${esc(uncertainty?.integrity?.verified_artifacts_used_by_graph ?? "na")}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="glass rounded-[24px] p-5">
-        <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Causal graph preview</div>
-        <div class="text-sm text-slate-300 mt-2">This graph is a derived causal-forensic reconstruction from sealed FOC artifacts. It is not a live monitoring graph.</div>
-        <div class="mt-4">${renderCausalGraphPreview(graph)}</div>
-      </div>
-
-      <div class="grid grid-cols-1 xl:grid-cols-12 gap-5">
-        <div class="glass rounded-[24px] p-5 xl:col-span-7">
-          <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Limitations</div>
-          <div class="space-y-2 mt-4">
-            <div class="glass-soft rounded-2xl p-3 text-sm text-slate-300">${esc(metrics.main_limitation || status.reason || "No limitation summary available.")}</div>
-            ${(uncertainty?.limitations || []).map(item => `<div class="glass-soft rounded-2xl p-3 text-sm text-slate-400">${esc(item)}</div>`).join("")}
-            <div class="glass-soft rounded-2xl p-3 text-sm text-slate-400">The preserved evidence supports this reconstruction edge set within a controlled intervention model. It does not establish absolute causality.</div>
-          </div>
-        </div>
-        <div class="glass rounded-[24px] p-5 xl:col-span-5">
-          <div class="text-[11px] tracking-[0.22em] uppercase text-slate-400 font-black">Raw artifacts access</div>
-          <div class="space-y-2 mt-4 text-xs text-slate-400 mono">
-            ${Object.entries(artifactPaths).map(([key, value]) => `<div>${esc(key)}: ${esc(value)}</div>`).join("") || '<div>not_available</div>'}
-          </div>
-          <details class="mt-4">
-            <summary class="cursor-pointer text-[11px] tracking-[0.16em] uppercase text-slate-400 font-black">Raw markdown report</summary>
-            <div class="glass-soft rounded-2xl p-4 mt-3 mono text-xs text-slate-300 whitespace-pre-wrap">${esc(report?.report_markdown || "not_available")}</div>
-          </details>
-        </div>
-      </div>
+      ${renderCausalDetailSection("edges", "Edge status matrix", caseId, !!expanded.edges, report ? renderCausalEdgeMatrixDetail(graph) : '<div class="text-sm text-slate-400">Loading…</div>')}
+      ${renderCausalDetailSection("uncertainty", "Uncertainty budget", caseId, !!expanded.uncertainty, report ? renderCausalUncertaintyDetail(uncertainty) : '<div class="text-sm text-slate-400">Loading…</div>')}
+      ${renderCausalDetailSection("graph", "Causal graph preview", caseId, !!expanded.graph, report ? renderCausalGraphPreview(graph) : '<div class="text-sm text-slate-400">Loading…</div>')}
+      ${renderCausalDetailSection("report", "Raw markdown report", caseId, !!expanded.report, report ? `<div class="glass-soft rounded-2xl p-4 mono text-xs text-slate-300 whitespace-pre-wrap">${esc(report?.report_markdown || "not_available")}</div>` : '<div class="text-sm text-slate-400">Loading…</div>')}
     </div>
   `;
+}
+
+async function ensureCausalReportLoaded(caseId) {
+  if (FOC.causalVisualState.currentReport) return FOC.causalVisualState.currentReport;
+  const report = await fetchJson(causalReportUrl(caseId)).catch(() => null);
+  FOC.causalVisualState.currentReport = report;
+  return report;
+}
+
+async function toggleCausalDetail(caseId, key) {
+  const expanded = FOC.causalVisualState.expandedDetails;
+  expanded[key] = !expanded[key];
+  renderCausalReportModal(FOC.causalVisualState.currentStatus, FOC.causalVisualState.currentReport);
+  if (expanded[key] && !FOC.causalVisualState.currentReport) {
+    await ensureCausalReportLoaded(caseId);
+    renderCausalReportModal(FOC.causalVisualState.currentStatus, FOC.causalVisualState.currentReport);
+  }
 }
 
 function renderCausalReportModal(status, report = null) {
@@ -3180,13 +3253,14 @@ function renderCausalReportModal(status, report = null) {
     if (String(status?.status || "").toLowerCase() === "running") {
       subtitle.textContent = `Causal reconstruction is running at ${status?.progress_percent ?? 0}% in step ${status?.current_step || "unknown"}.`;
     } else {
-      subtitle.textContent = "This wide transparent window renders the on-demand causal reconstruction cockpit derived from preserved FOC and multilayer analysis artifacts.";
+      subtitle.textContent = "This wide transparent window renders the on-demand causal reconstruction cockpit derived from preserved FOC and multilayer analysis artifacts. It is not a live monitoring view.";
     }
   }
   FOC.causalVisualState.currentCaseId = caseId;
   FOC.causalVisualState.currentStatus = status;
-  FOC.causalVisualState.currentReport = report;
-  panel.innerHTML = report ? renderCausalCockpit(status, report) : renderCausalReportPlaceholder(status);
+  if (report) FOC.causalVisualState.currentReport = report;
+  const hasCockpitData = status && (status.outputs || status.ground_truth_summary || status.metrics_preview);
+  panel.innerHTML = hasCockpitData ? renderCausalCockpit(status, FOC.causalVisualState.currentReport) : renderCausalReportPlaceholder(status);
 }
 
 async function fetchCausalStatus(caseId) {
@@ -3198,15 +3272,11 @@ function scheduleCausalPolling(caseId) {
   FOC.causalPollTimer = setTimeout(async () => {
     try {
       const status = await fetchCausalStatus(caseId);
-      renderCausalReportModal(status, FOC.causalVisualState.currentReport || null);
+      renderCausalReportModal(status, null);
       if (status.status === "running") {
         scheduleCausalPolling(caseId);
       } else {
         await loadAll(true);
-        if (["completed", "completed_with_degradation"].includes(String(status.status || ""))) {
-          const report = await fetchJson(causalReportUrl(caseId)).catch(() => null);
-          renderCausalReportModal(status, report);
-        }
       }
     } catch (_) {
       scheduleCausalPolling(caseId);
@@ -3214,15 +3284,16 @@ function scheduleCausalPolling(caseId) {
   }, ANALYSIS_STATUS_POLL_MS);
 }
 
+// Only causal_status.json is fetched on open - it already carries the KPI
+// summary, ground truth block and derived-outputs map. The heavier bundled
+// report (metrics+graph+uncertainty+markdown) is fetched lazily, once, the
+// first time the user expands any detail section (see toggleCausalDetail).
 async function viewCausalReconstruction(caseId) {
   openCausalReportModalShell();
+  FOC.causalVisualState.currentReport = null;
+  FOC.causalVisualState.expandedDetails = {};
   const status = await fetchCausalStatus(caseId);
   FOC.selectedCaseId = caseId;
-  if (["completed", "completed_with_degradation"].includes(String(status.status || ""))) {
-    const report = await fetchJson(causalReportUrl(caseId)).catch(() => null);
-    renderCausalReportModal(status, report);
-    return;
-  }
   renderCausalReportModal(status, null);
   if (status.status === "running") {
     scheduleCausalPolling(caseId);
@@ -3231,6 +3302,8 @@ async function viewCausalReconstruction(caseId) {
 
 async function runCausalReconstruction(caseId) {
   openCausalReportModalShell();
+  FOC.causalVisualState.currentReport = null;
+  FOC.causalVisualState.expandedDetails = {};
   renderCausalReportModal({ case_id: caseId, status: "running", progress_percent: 0, current_step: "queued", reason: "Starting background causal reconstruction…" }, null);
   const result = await fetchJson(causalRunUrl(), {
     method: "POST",
@@ -3242,10 +3315,6 @@ async function runCausalReconstruction(caseId) {
   renderCausalReportModal(result, null);
   if (result.status === "running") {
     scheduleCausalPolling(caseId);
-  } else if (["completed", "completed_with_degradation"].includes(String(result.status || ""))) {
-    const report = await fetchJson(causalReportUrl(caseId)).catch(() => null);
-    renderCausalReportModal(result, report);
-    await loadAll(true);
   } else {
     await loadAll(true);
   }
@@ -3860,6 +3929,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (event.target?.id === "causal-report-modal") {
       closeCausalReportModalShell();
     }
+  });
+  byId("causal-report-modal-panel")?.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target.closest("button[data-causal-detail]") : null;
+    if (!target) return;
+    const key = target.getAttribute("data-causal-detail");
+    const caseId = target.getAttribute("data-case-id") || FOC.causalVisualState.currentCaseId || FOC.selectedCaseId;
+    if (key && caseId) toggleCausalDetail(caseId, key).catch(() => {});
   });
   byId("analysis-generate-symbols-btn")?.addEventListener("click", () => {
     if (FOC.selectedCaseId) openSymbolGenModal();

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 from ..config import SCENARIOS_ROOT
@@ -13,6 +14,23 @@ def _load_json(path: Path):
         return json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return None
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _validate_expected_edges(expected_edges: list) -> tuple[str, str | None]:
+    if not isinstance(expected_edges, list) or not expected_edges:
+        return "invalid", "expected_edges is missing or empty."
+    required_keys = {"edge_id", "source", "target", "required_evidence"}
+    for index, edge in enumerate(expected_edges):
+        if not isinstance(edge, dict):
+            return "invalid", f"expected_edges[{index}] is not an object."
+        missing_keys = required_keys - edge.keys()
+        if missing_keys:
+            return "invalid", f"expected_edges[{index}] is missing required keys: {sorted(missing_keys)}."
+    return "valid", None
 
 
 def resolve_ground_truth(
@@ -40,24 +58,34 @@ def resolve_ground_truth(
         seen.add(key)
         normalized_candidates.append(candidate)
 
+    loaded_at = _now_iso()
     for candidate in normalized_candidates:
         payload = _load_json(candidate)
         if not isinstance(payload, dict):
             continue
         expected_edges = payload.get("expected_edges")
-        if isinstance(expected_edges, list) and expected_edges:
+        validation_status, validation_reason = _validate_expected_edges(expected_edges)
+        if validation_status == "valid":
             return {
                 "status": "ok",
                 "path": candidate,
                 "payload": payload,
                 "checked_paths": [str(path) for path in normalized_candidates],
+                "version": payload.get("ground_truth_version"),
+                "loaded_at": loaded_at,
+                "validation_status": validation_status,
+                "validation_reason": None,
             }
         return {
             "status": "missing_expected_edges",
             "path": candidate,
             "payload": payload,
             "checked_paths": [str(path) for path in normalized_candidates],
-            "reason": "scenario_ground_truth.json exists but does not declare expected_edges.",
+            "reason": "scenario_ground_truth.json exists but does not declare valid expected_edges.",
+            "version": payload.get("ground_truth_version"),
+            "loaded_at": loaded_at,
+            "validation_status": validation_status,
+            "validation_reason": validation_reason,
         }
     return {
         "status": "missing",
@@ -65,4 +93,8 @@ def resolve_ground_truth(
         "payload": None,
         "checked_paths": [str(path) for path in normalized_candidates],
         "reason": "No scenario_ground_truth.json was found in the checked scenario paths.",
+        "version": None,
+        "loaded_at": loaded_at,
+        "validation_status": "invalid",
+        "validation_reason": "No scenario_ground_truth.json was found.",
     }

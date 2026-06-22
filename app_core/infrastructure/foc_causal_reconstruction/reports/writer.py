@@ -34,6 +34,7 @@ def write_causal_outputs(
             fh,
             fieldnames=[
                 "edge_id",
+                "meaning",
                 "source",
                 "target",
                 "relation_type",
@@ -42,6 +43,7 @@ def write_causal_outputs(
                 "temporal_status",
                 "semantic_status",
                 "integrity_status",
+                "status_reason",
                 "required_evidence",
                 "evidence_refs",
                 "missing_evidence",
@@ -53,6 +55,7 @@ def write_causal_outputs(
             writer.writerow(
                 {
                     "edge_id": edge.get("edge_id"),
+                    "meaning": edge.get("meaning"),
                     "source": edge.get("source"),
                     "target": edge.get("target"),
                     "relation_type": edge.get("relation_type"),
@@ -61,6 +64,7 @@ def write_causal_outputs(
                     "temporal_status": edge.get("temporal_status"),
                     "semantic_status": edge.get("semantic_status"),
                     "integrity_status": edge.get("integrity_status"),
+                    "status_reason": edge.get("status_reason"),
                     "required_evidence": ",".join(edge.get("required_evidence") or []),
                     "evidence_refs": ",".join(edge.get("evidence_refs") or []),
                     "missing_evidence": ",".join(edge.get("missing_evidence") or []),

@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import csv
 import json
+import os
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
 from .config import (
     ALLOWED_CAUSAL_UI_STATES,
+    CPR_LABEL_THRESHOLDS,
     DEFAULT_DERIVED_RELATIVE_DIR,
 )
 from .evaluators import evaluate_edges
@@ -15,11 +18,13 @@ from .loaders import (
     load_analysis_summary,
     load_custody_context,
     load_foc_context,
+    load_network_ot_context,
     load_timeline_context,
     resolve_ground_truth,
 )
 from .reports import write_causal_outputs
 from .schemas import CausalGraph
+from .status_model import derive_status_triad
 from .uncertainty import build_uncertainty_report
 from ..foc_reconstruction.foc_paths import project_path, relative_path
 from ..foc_reconstruction.foc_sources import utc_now
@@ -68,6 +73,74 @@ def _paths(case_path: Path) -> dict:
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+# Internal short keys (used for file lookups) -> the canonical long names the
+# UI and causal_status.json contract on, so "Derived Outputs" and "Raw
+# artifacts access" can never disagree on what a file is called again.
+_CANONICAL_OUTPUT_KEYS = {
+    "graph": "causal_graph",
+    "uncertainty": "uncertainty_report",
+    "metrics": "reconstruction_metrics",
+    "csv": "causal_edges_csv",
+    "report": "causal_reconstruction_report",
+}
+
+
+def _derived_outputs_status(paths: dict) -> dict:
+    outputs: dict = {}
+    for short_key, canonical_key in _CANONICAL_OUTPUT_KEYS.items():
+        path = paths.get(short_key)
+        if path is None or not path.is_file():
+            outputs[canonical_key] = {"status": "not_available", "path": relative_path(path) if path else None}
+            continue
+        try:
+            if short_key in {"graph", "uncertainty", "metrics"}:
+                json.loads(path.read_text(encoding="utf-8"))
+            elif short_key == "csv":
+                with path.open("r", encoding="utf-8", newline="") as fh:
+                    next(csv.reader(fh), None)
+            else:
+                if not path.read_text(encoding="utf-8").strip():
+                    raise ValueError("markdown report is empty")
+            outputs[canonical_key] = {"status": "available", "path": relative_path(path)}
+        except Exception:
+            outputs[canonical_key] = {"status": "invalid", "path": relative_path(path)}
+    return outputs
+
+
+def _mtime_iso(path: Path) -> str | None:
+    try:
+        ts = os.path.getmtime(path)
+    except OSError:
+        return None
+    return datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
+
+
+def _source_freshness(case_path: Path, paths: dict) -> dict:
+    memory_updated_at = _mtime_iso(case_path / "analysis" / "04_memory" / "memory_findings.json")
+    report_updated_at = _mtime_iso(case_path / "analysis" / "forensic_analysis_report.json")
+    visual_updated_at = _mtime_iso(case_path / "analysis" / "visual" / "analysis_visual_summary.json")
+    graph_payload = _json_load(paths["graph"])
+    metrics_payload = _json_load(paths["metrics"])
+    causal_graph_generated_at = graph_payload.get("generated_at") if isinstance(graph_payload, dict) else None
+    metrics_generated_at = metrics_payload.get("generated_at") if isinstance(metrics_payload, dict) else None
+    graph_ts = _parse_ts(causal_graph_generated_at)
+    is_stale = False
+    if graph_ts is not None:
+        for source_iso in (memory_updated_at, report_updated_at, visual_updated_at):
+            source_ts = _parse_ts(source_iso)
+            if source_ts is not None and source_ts > graph_ts:
+                is_stale = True
+                break
+    return {
+        "memory_findings_updated_at": memory_updated_at,
+        "forensic_analysis_report_updated_at": report_updated_at,
+        "analysis_visual_summary_updated_at": visual_updated_at,
+        "causal_graph_generated_at": causal_graph_generated_at,
+        "metrics_generated_at": metrics_generated_at,
+        "is_stale": is_stale,
+    }
 
 
 def _safe_slug(value: str) -> str:
@@ -166,6 +239,7 @@ def _build_case_context(case_id: str, case_path: Path, analysis_status: dict | N
     analysis_summary = load_analysis_summary(case_path)
     custody_context = load_custody_context(case_path, foc_context, analysis_summary)
     timeline_context = load_timeline_context(case_path, analysis_summary)
+    network_ot_context = load_network_ot_context(case_path)
     preserved_gt_ref = foc_context.get("artifact_references", {}).get("scenario_ground_truth")
     preserved_gt_path = project_path(*str(preserved_gt_ref).split("/")) if preserved_gt_ref else None
     gt_resolution = resolve_ground_truth(
@@ -187,6 +261,7 @@ def _build_case_context(case_id: str, case_path: Path, analysis_status: dict | N
         "analysis_status": analysis_status or {},
         "custody_context": custody_context,
         "timeline_context": timeline_context,
+        "network_ot_context": network_ot_context,
         "ground_truth_resolution": gt_resolution,
         "ground_truth": ground_truth,
         "scenario_id": str(ground_truth.get("scenario_id") or foc_context.get("scenario_id") or "unknown"),
@@ -300,12 +375,36 @@ def _evaluate_requirement(case_context: dict, req_type: str, selector: dict | No
         return {"type": req_type, "status": "missing", "evidence_refs": evidence_refs, "limitations": limitations}
 
     if req_type == "memory_analysis_useful":
-        findings = analysis_summary.get("memory_findings") or {}
-        dumps_analysed = int(findings.get("dumps_analysed") or 0)
+        findings = (analysis_summary.get("memory_findings") or {}).get("findings") or {}
+        dumps_analyzed = int(findings.get("dumps_analyzed") or 0)
         evidence_refs.append(relative_path(case_context["case_path"] / "analysis" / "04_memory" / "memory_findings.json"))
-        if dumps_analysed > 0:
+        if dumps_analyzed > 0:
             return {"type": req_type, "status": "recovered", "evidence_refs": evidence_refs, "limitations": limitations}
         limitations.append("Memory analysis exists but no effective dump analysis was recorded.")
+        return {"type": req_type, "status": "degraded", "evidence_refs": evidence_refs, "limitations": limitations}
+
+    if req_type == "network_modbus_observation":
+        network_ot_context = case_context.get("network_ot_context") or {}
+        evidence_refs.append(relative_path(network_ot_context.get("network_findings_path")) if network_ot_context.get("network_findings_path") else "not_available")
+        limitations.append(
+            "Modbus register and value precision (declared in ground truth as register=4, expected_value=30) is not "
+            "confirmed by packet-level parsing; only the presence of Modbus traffic is verified here."
+        )
+        if int(network_ot_context.get("total_modbus_frames") or 0) > 0:
+            return {"type": req_type, "status": "recovered", "evidence_refs": evidence_refs, "limitations": limitations}
+        limitations.append("No Modbus traffic was observed in the preserved network capture analysis.")
+        return {"type": req_type, "status": "missing", "evidence_refs": evidence_refs, "limitations": limitations}
+
+    if req_type == "plc_state_observation":
+        network_ot_context = case_context.get("network_ot_context") or {}
+        evidence_refs.append(relative_path(network_ot_context.get("ot_findings_path")) if network_ot_context.get("ot_findings_path") else "not_available")
+        limitations.append(
+            "Register and value precision (declared in ground truth as register=4, expected_value=30) is not "
+            "confirmed by packet-level OT export parsing; only the presence of recorded PLC/SCADA state is verified here."
+        )
+        if int(network_ot_context.get("total_ot_records") or 0) > 0:
+            return {"type": req_type, "status": "recovered", "evidence_refs": evidence_refs, "limitations": limitations}
+        limitations.append("The OT export analysis exists but recorded no PLC/SCADA state entries for this case.")
         return {"type": req_type, "status": "degraded", "evidence_refs": evidence_refs, "limitations": limitations}
 
     limitations.append(f"The evaluator does not recognize requirement type `{req_type}`.")
@@ -316,7 +415,10 @@ def _evaluate_temporal(case_context: dict, edge_spec: dict) -> str:
     source_ref = edge_spec.get("source_timestamp_ref")
     target_ref = edge_spec.get("target_timestamp_ref")
     if not source_ref or not target_ref:
-        return "unknown"
+        # The edge spec does not declare a temporal relation at all - temporal
+        # ordering simply does not apply, which is different from "declared but
+        # could not be resolved" (that case returns "unknown" below).
+        return "not_required"
     source_ts, _ = _resolve_timestamp(case_context, str(source_ref))
     target_ts, _ = _resolve_timestamp(case_context, str(target_ref))
     src_value = _parse_ts(source_ts)
@@ -352,6 +454,34 @@ def _analysis_coverage_ratio(case_context: dict) -> tuple[float | None, int, int
     return useful / len(expected_layers), useful, len(expected_layers)
 
 
+def _recoverability_label(cpr: float | None) -> str:
+    if cpr is None:
+        return "unknown"
+    for threshold, label in CPR_LABEL_THRESHOLDS:
+        if cpr >= threshold:
+            return label
+    return "low_recoverability"
+
+
+def _cpr_interpretation(label: str, recovered_edges: int, expected_edges: int) -> str:
+    if label == "unknown":
+        return "Causal path recoverability could not be computed because no expected edges are defined for this scenario."
+    if label in {"weak_recoverability", "low_recoverability"}:
+        return (
+            f"Only {recovered_edges} of {expected_edges} expected causal edges were fully recovered. The result is "
+            "useful for audit and degradation analysis, but it must not be presented as strong causal reconstruction."
+        )
+    if label == "partially_recoverable":
+        return (
+            f"{recovered_edges} of {expected_edges} expected causal edges were recovered. The reconstruction is "
+            "partially supported and should be presented with explicit caveats on the degraded or ambiguous edges."
+        )
+    return (
+        f"{recovered_edges} of {expected_edges} expected causal edges were recovered. The reconstruction is mostly "
+        "supported by preserved evidence, but it still does not establish absolute causality."
+    )
+
+
 def _metrics_from_edges(case_context: dict, edges: list[dict]) -> dict:
     expected_edges = len(edges)
     recovered_edges = sum(1 for edge in edges if edge.get("support_status") == "recovered")
@@ -374,13 +504,16 @@ def _metrics_from_edges(case_context: dict, edges: list[dict]) -> dict:
             recovered_expected_artifact_types.append(str(item))
     evidence_completeness_ratio = (len(recovered_expected_artifact_types) / len(expected_artifacts)) if expected_artifacts else None
 
-    custody_context = case_context.get("custody_context") or {}
-    manifest_total = int(custody_context.get("manifest_artifacts_total") or 0)
-    validated = int(custody_context.get("hash_validated_artifacts") or 0)
-    integrity_verification_ratio = (validated / manifest_total) if manifest_total else None
     analysis_coverage_ratio, layers_with_useful_output, expected_analysis_layers = _analysis_coverage_ratio(case_context)
 
-    temporal_state = build_uncertainty_report(case_context, {}, edges)["temporal"]["temporal_confidence_state"]
+    # Computed once here (with an empty metrics seed) purely to read the
+    # temporal/integrity verdicts; the full uncertainty report is rebuilt
+    # again in _run_once once these metrics are final, so the two never drift apart.
+    preliminary_uncertainty = build_uncertainty_report(case_context, {}, edges)
+    temporal_state = preliminary_uncertainty["temporal"]["temporal_confidence_state"]
+    integrity_status = preliminary_uncertainty["integrity"]["integrity_status"]
+    integrity_verification_ratio = preliminary_uncertainty["integrity"]["case_wide_integrity_ratio"]
+
     temporal_penalty = {"strong": 0.0, "limited": 0.05, "ambiguous": 0.12, "unknown": 0.15}.get(temporal_state, 0.15)
     base_confidence = (
         ((recovered_weight / total_weight) if total_weight else 0.0) * 0.45
@@ -400,20 +533,27 @@ def _metrics_from_edges(case_context: dict, edges: list[dict]) -> dict:
         main_limitation = "At least one causal edge is temporally ambiguous under the preserved uncertainty window."
     elif degraded_edges:
         main_limitation = "At least one causal edge is degraded because supporting evidence is partial or inferred."
-    elif not case_context.get("custody_context", {}).get("custody_chain_valid"):
+    elif integrity_status == "partial":
         main_limitation = "Integrity or custody validation remains partial for the artifacts used by the reconstruction."
     else:
         main_limitation = "The preserved evidence supports the reconstructed causal path within the controlled intervention model."
 
+    causal_path_recoverability = round((recovered_edges / expected_edges), 4) if expected_edges else None
+    recoverability_label = _recoverability_label(causal_path_recoverability)
+    interpretation = _cpr_interpretation(recoverability_label, recovered_edges, expected_edges)
+
     return {
         "case_id": case_context.get("case_id"),
         "scenario_id": case_context.get("scenario_id"),
+        "generated_at": case_context.get("generated_at"),
         "expected_edges": expected_edges,
         "recovered_edges": recovered_edges,
         "degraded_edges": degraded_edges,
         "ambiguous_edges": ambiguous_edges,
         "missing_edges": missing_edges,
-        "causal_path_recoverability": round((recovered_edges / expected_edges), 4) if expected_edges else None,
+        "causal_path_recoverability": causal_path_recoverability,
+        "recoverability_label": recoverability_label,
+        "interpretation": interpretation,
         "weighted_cpr": round((recovered_weight / total_weight), 4) if total_weight else None,
         "degraded_edge_rate": round((degraded_edges / expected_edges), 4) if expected_edges else None,
         "ambiguous_edge_rate": round((ambiguous_edges / expected_edges), 4) if expected_edges else None,
@@ -422,6 +562,7 @@ def _metrics_from_edges(case_context: dict, edges: list[dict]) -> dict:
         "recovered_expected_artifact_types": recovered_expected_artifact_types,
         "evidence_completeness_ratio": round(evidence_completeness_ratio, 4) if evidence_completeness_ratio is not None else None,
         "integrity_verification_ratio": round(integrity_verification_ratio, 4) if integrity_verification_ratio is not None else None,
+        "integrity_status": integrity_status,
         "analysis_coverage_ratio": round(analysis_coverage_ratio, 4) if analysis_coverage_ratio is not None else None,
         "layers_with_useful_output": layers_with_useful_output,
         "expected_analysis_layers": expected_analysis_layers,
@@ -431,38 +572,190 @@ def _metrics_from_edges(case_context: dict, edges: list[dict]) -> dict:
     }
 
 
-def _markdown_report(case_context: dict, metrics: dict, uncertainty: dict, graph_payload: dict) -> str:
+def _kpi_severity(value: float | None, ok_threshold: float, warn_threshold: float, *, lower_is_better: bool = False) -> str:
+    if value is None:
+        return "unknown"
+    if lower_is_better:
+        if value <= ok_threshold:
+            return "ok"
+        if value <= warn_threshold:
+            return "warning"
+        return "critical"
+    if value >= ok_threshold:
+        return "ok"
+    if value >= warn_threshold:
+        return "warning"
+    return "critical"
+
+
+def _build_kpi_list(metrics: dict) -> list[dict]:
+    temporal_state = metrics.get("temporal_confidence_state")
+    temporal_severity = {"strong": "ok", "limited": "warning", "ambiguous": "critical", "unknown": "critical"}.get(temporal_state, "critical")
+    return [
+        {
+            "name": "CPR",
+            "value": metrics.get("causal_path_recoverability"),
+            "meaning": "Recovered edges divided by expected edges.",
+            "interpretation": metrics.get("interpretation"),
+            "severity": _kpi_severity(metrics.get("causal_path_recoverability"), 0.80, 0.25),
+        },
+        {
+            "name": "Weighted CPR",
+            "value": metrics.get("weighted_cpr"),
+            "meaning": "Sum of weights of recovered edges divided by total expected edge weight.",
+            "interpretation": "Weighted recoverability, favoring causally central edges.",
+            "severity": _kpi_severity(metrics.get("weighted_cpr"), 0.80, 0.25),
+        },
+        {
+            "name": "Recovered edges",
+            "value": metrics.get("recovered_edges"),
+            "meaning": "Count of expected edges classified as recovered.",
+            "interpretation": f"{metrics.get('recovered_edges')} of {metrics.get('expected_edges')} expected edges.",
+            "severity": "ok",
+        },
+        {
+            "name": "Degraded edges",
+            "value": metrics.get("degraded_edges"),
+            "meaning": "Count of expected edges with partial or unresolved support.",
+            "interpretation": "Each degraded edge weakens the overall reconstruction confidence.",
+            "severity": "ok" if not metrics.get("degraded_edges") else "warning",
+        },
+        {
+            "name": "Ambiguous edges",
+            "value": metrics.get("ambiguous_edges"),
+            "meaning": "Count of expected edges whose temporal order is ambiguous under the uncertainty window.",
+            "interpretation": "Each ambiguous edge means causal direction cannot be confirmed from preserved timestamps.",
+            "severity": "ok" if not metrics.get("ambiguous_edges") else "warning",
+        },
+        {
+            "name": "Missing edges",
+            "value": metrics.get("missing_edges"),
+            "meaning": "Count of expected edges with no recoverable evidence.",
+            "interpretation": "Each missing edge is a gap in the causal path that cannot currently be audited.",
+            "severity": "ok" if not metrics.get("missing_edges") else "critical",
+        },
+        {
+            "name": "Evidence completeness",
+            "value": metrics.get("evidence_completeness_ratio"),
+            "meaning": "Recovered expected artifact types divided by expected artifact types.",
+            "interpretation": "How much of the expected preserved evidence set was found at all.",
+            "severity": _kpi_severity(metrics.get("evidence_completeness_ratio"), 0.90, 0.50),
+        },
+        {
+            "name": "Integrity verification",
+            "value": metrics.get("integrity_verification_ratio"),
+            "meaning": "Case-wide manifest hash-validated artifacts divided by total manifest artifacts.",
+            "interpretation": "Reflects case-wide custody integrity, not only the artifacts used by this graph.",
+            "severity": _kpi_severity(metrics.get("integrity_verification_ratio"), 1.0, 0.80),
+        },
+        {
+            "name": "Analysis coverage",
+            "value": metrics.get("analysis_coverage_ratio"),
+            "meaning": "Analysis layers with useful output divided by expected analysis layers.",
+            "interpretation": "How much of the expected multilayer analysis actually produced useful findings.",
+            "severity": _kpi_severity(metrics.get("analysis_coverage_ratio"), 0.90, 0.50),
+        },
+        {
+            "name": "Temporal confidence",
+            "value": temporal_state,
+            "meaning": "Derived from the preserved clock-offset evidence and the declared uncertainty window.",
+            "interpretation": "Strong only when the environment was synchronized and the uncertainty window is small.",
+            "severity": temporal_severity,
+        },
+        {
+            "name": "Reconstruction confidence",
+            "value": metrics.get("reconstruction_confidence"),
+            "meaning": "Composite score over weighted CPR, evidence completeness, integrity and temporal confidence.",
+            "interpretation": "Composite but non-authoritative.",
+            "severity": _kpi_severity(metrics.get("reconstruction_confidence"), 0.80, 0.40),
+        },
+    ]
+
+
+def _next_required_actions(metrics: dict, uncertainty: dict, ground_truth_summary: dict, freshness: dict) -> list[str]:
+    actions: list[str] = []
+    temporal_state = uncertainty.get("temporal", {}).get("temporal_confidence_state")
+    if temporal_state in {"ambiguous", "limited", "unknown"}:
+        actions.append("Reduce temporal ambiguity by improving clock synchronization.")
+    if freshness.get("is_stale"):
+        actions.append("Regenerate causal reconstruction after updating memory analysis outputs.")
+    if int(metrics.get("degraded_edges") or 0) or int(metrics.get("missing_edges") or 0):
+        actions.append("Strengthen Modbus-specific ground truth with register and expected value if available.")
+    if uncertainty.get("integrity", {}).get("integrity_status") == "partial":
+        actions.append("Improve custody validation to move partial integrity edges toward recovered status.")
+    if ground_truth_summary.get("ground_truth_validation_status") != "valid":
+        actions.append("Repair scenario_ground_truth.json so all expected edges declare edge_id, source, target and required_evidence.")
+    if not actions:
+        actions.append("No further corrective action is required for this reconstruction; continue periodic re-validation as analysis layers are updated.")
+    return actions
+
+
+def _markdown_report(
+    case_context: dict,
+    metrics: dict,
+    uncertainty: dict,
+    graph_payload: dict,
+    ground_truth_summary: dict,
+    outputs: dict,
+    freshness: dict,
+) -> str:
     lines = [
         f"# Causal Reconstruction Report for {case_context.get('case_id')}",
         "",
-        "This report is a derived causal-forensic reconstruction from preserved FOC artifacts. It does not replace the primary evidence.",
+        "## 1. Scope",
         "",
+        "This report is a derived causal-forensic reconstruction layer that consumes FOC Reconstruction and multilayer "
+        "analysis outputs. It does not modify, replace, or supersede primary evidence, acquisition, preservation, or "
+        "the underlying analysis layers. It is not a live monitoring view.",
+        "",
+        "## 2. Inputs",
+        "",
+        f"- Case ID: `{case_context.get('case_id')}`",
         f"- Scenario ID: `{case_context.get('scenario_id')}`",
         f"- Scenario name: `{case_context.get('scenario_name')}`",
         f"- Generated at: `{case_context.get('generated_at')}`",
-        f"- Causal path recoverability: `{metrics.get('causal_path_recoverability')}`",
-        f"- Weighted CPR: `{metrics.get('weighted_cpr')}`",
-        f"- Reconstruction confidence: `{metrics.get('reconstruction_confidence')}`",
-        f"- Main limitation: `{metrics.get('main_limitation')}`",
+        f"- Memory findings updated at: `{freshness.get('memory_findings_updated_at')}`",
+        f"- Forensic analysis report updated at: `{freshness.get('forensic_analysis_report_updated_at')}`",
+        f"- Analysis visual summary updated at: `{freshness.get('analysis_visual_summary_updated_at')}`",
+        f"- Is stale: `{freshness.get('is_stale')}`",
         "",
-        "## KPI Summary",
+        "## 3. Ground Truth",
         "",
-        f"- Recovered edges: `{metrics.get('recovered_edges')}` / `{metrics.get('expected_edges')}`",
-        f"- Degraded edges: `{metrics.get('degraded_edges')}`",
-        f"- Ambiguous edges: `{metrics.get('ambiguous_edges')}`",
-        f"- Missing edges: `{metrics.get('missing_edges')}`",
-        f"- Evidence completeness ratio: `{metrics.get('evidence_completeness_ratio')}`",
-        f"- Integrity verification ratio: `{metrics.get('integrity_verification_ratio')}`",
-        f"- Analysis coverage ratio: `{metrics.get('analysis_coverage_ratio')}`",
-        f"- Temporal confidence state: `{metrics.get('temporal_confidence_state')}`",
+        f"- Ground truth status: `{ground_truth_summary.get('ground_truth_status')}`",
+        f"- Ground truth path: `{ground_truth_summary.get('ground_truth_path')}`",
+        f"- Ground truth version: `{ground_truth_summary.get('ground_truth_version')}`",
+        f"- Validation status: `{ground_truth_summary.get('ground_truth_validation_status')}`",
+        f"- Expected edges declared: `{ground_truth_summary.get('expected_edges')}`",
+        f"- Loaded at: `{ground_truth_summary.get('ground_truth_loaded_at')}`",
         "",
-        "## Edge Status Matrix",
+        "## 4. Derived Outputs",
         "",
     ]
+    for key, entry in outputs.items():
+        lines.append(f"- {key}: `{entry.get('status')}` (`{entry.get('path')}`)")
+    lines.extend(
+        [
+            "",
+            "## 5. KPI Summary",
+            "",
+        ]
+    )
+    for kpi in metrics.get("kpis") or []:
+        lines.append(f"- {kpi.get('name')}: `{kpi.get('value')}` — {kpi.get('meaning')} _{kpi.get('interpretation')}_ (severity: `{kpi.get('severity')}`)")
+    lines.extend(
+        [
+            "",
+            f"Interpretation: {metrics.get('interpretation')}",
+            "",
+            "## 6. Edge Status Matrix",
+            "",
+        ]
+    )
     for edge in graph_payload.get("edges", []):
         lines.extend(
             [
                 f"### {edge.get('edge_id')}",
+                f"- Meaning: {edge.get('meaning')}",
                 f"- Relation: `{edge.get('relation_type')}`",
                 f"- Support status: `{edge.get('support_status')}`",
                 f"- Confidence: `{edge.get('confidence')}`",
@@ -470,27 +763,59 @@ def _markdown_report(case_context: dict, metrics: dict, uncertainty: dict, graph
                 f"- Semantic status: `{edge.get('semantic_status')}`",
                 f"- Integrity status: `{edge.get('integrity_status')}`",
                 f"- Required evidence: `{', '.join(edge.get('required_evidence') or []) or 'none'}`",
-                f"- Evidence refs: `{', '.join(edge.get('evidence_refs') or []) or 'not_available'}`",
-                f"- Missing evidence: `{', '.join(edge.get('missing_evidence') or []) or 'none'}`",
+                f"- Evidence found: `{', '.join(edge.get('evidence_refs') or []) or 'not_available'}`",
+                f"- Evidence missing: `{', '.join(edge.get('missing_evidence') or []) or 'none'}`",
+                f"- Why this status: {edge.get('status_reason')}",
                 f"- Limitations: `{'; '.join(edge.get('limitations') or []) or 'none'}`",
                 "",
             ]
         )
     lines.extend(
         [
-            "## Uncertainty Budget",
+            "## 7. Uncertainty Budget",
             "",
             f"- Temporal confidence state: `{uncertainty.get('temporal', {}).get('temporal_confidence_state')}`",
-            f"- Uncertainty window ms: `{uncertainty.get('temporal', {}).get('uncertainty_window_ms')}`",
-            f"- Completeness ratio: `{uncertainty.get('completeness', {}).get('evidence_completeness_ratio')}`",
-            f"- Integrity ratio: `{uncertainty.get('integrity', {}).get('integrity_verification_ratio')}`",
+            f"- Uncertainty window: `{uncertainty.get('temporal', {}).get('uncertainty_window_seconds')}s` "
+            f"(`{uncertainty.get('temporal', {}).get('uncertainty_window_ms')}ms`)",
+            f"- Max clock offset: `{uncertainty.get('temporal', {}).get('max_clock_offset_seconds')}s`",
+            f"- Synchronized: `{uncertainty.get('temporal', {}).get('synchronized')}`",
+            f"- {uncertainty.get('temporal', {}).get('temporal_limitation')}",
+            f"- Evidence completeness ratio: `{uncertainty.get('completeness', {}).get('evidence_completeness_ratio')}`",
             "",
-            "## Scientific Caution",
+            "## 8. Integrity and Custody Considerations",
             "",
-            "The preserved evidence supports this reconstruction under the controlled intervention model. Recovered edges are auditable through the referenced preserved sources, while degraded, ambiguous and missing edges must not be presented as absolute proof of causality.",
+            f"- Artifacts used by graph: `{uncertainty.get('integrity', {}).get('artifacts_used_by_graph')}`",
+            f"- Artifacts present: `{uncertainty.get('integrity', {}).get('artifacts_present')}`",
+            f"- Graph-scope integrity ratio: `{uncertainty.get('integrity', {}).get('graph_scope_integrity_ratio')}`",
+            f"- Case-wide manifest artifacts total: `{uncertainty.get('integrity', {}).get('case_manifest_artifacts_total')}`",
+            f"- Case-wide manifest hash validated: `{uncertainty.get('integrity', {}).get('case_manifest_hash_validated')}`",
+            f"- Case-wide integrity ratio: `{uncertainty.get('integrity', {}).get('case_wide_integrity_ratio')}`",
+            f"- Integrity status: `{uncertainty.get('integrity', {}).get('integrity_status')}`",
+            f"- {uncertainty.get('integrity', {}).get('integrity_limitation')}",
+            "",
+            "## 9. Limitations",
             "",
         ]
     )
+    for item in uncertainty.get("limitations") or []:
+        lines.append(f"- {item}")
+    lines.extend(
+        [
+            "",
+            "## 10. Scientific Caution",
+            "",
+            "The preserved evidence supports this reconstruction under the controlled intervention model. Recovered "
+            "edges are auditable through the referenced preserved sources, while degraded, ambiguous and missing "
+            "edges must not be presented as absolute proof of causality. This report is composite and "
+            "non-authoritative; it does not establish legal or absolute causal certainty.",
+            "",
+            "## 11. Next Required Actions",
+            "",
+        ]
+    )
+    for index, action in enumerate(_next_required_actions(metrics, uncertainty, ground_truth_summary, freshness), start=1):
+        lines.append(f"{index}. {action}")
+    lines.append("")
     return "\n".join(lines)
 
 
@@ -529,10 +854,20 @@ def _prerequisite_status(case_id: str, case_path: Path, analysis_status: dict | 
         reason = "All required preserved FOC and analysis artifacts are available for causal reconstruction."
     if state not in ALLOWED_CAUSAL_UI_STATES:
         state = "not_available"
+    ground_truth_summary = {
+        "ground_truth_status": gt_resolution.get("status"),
+        "ground_truth_path": str(gt_resolution.get("path")) if gt_resolution.get("path") else None,
+        "ground_truth_version": gt_resolution.get("version"),
+        "scenario_id": case_context.get("scenario_id"),
+        "expected_edges": len((case_context.get("ground_truth") or {}).get("expected_edges") or []),
+        "ground_truth_loaded_at": gt_resolution.get("loaded_at"),
+        "ground_truth_validation_status": gt_resolution.get("validation_status"),
+    }
     return {
         "case_context": case_context,
         "status": state,
         "reason": reason,
+        "ground_truth_summary": ground_truth_summary,
         "requirements": {
             "foc_context_available": foc_context_available,
             "manifest_present": manifest_present,
@@ -547,10 +882,39 @@ def _prerequisite_status(case_id: str, case_path: Path, analysis_status: dict | 
     }
 
 
+def _execution_phase_from_legacy_status(legacy_status: str, has_metrics: bool) -> str:
+    if legacy_status == "running":
+        return "running"
+    if legacy_status in {"not_available", "blocked_missing_ground_truth", "blocked_missing_analysis"}:
+        return "blocked"
+    if legacy_status == "failed":
+        return "ran" if has_metrics else "exception"
+    if legacy_status in {"completed", "completed_with_degradation"}:
+        return "ran"
+    return "not_started"
+
+
+def _compute_triad(legacy_status: str, metrics: dict | None, ground_truth_status: str | None, reason: str | None) -> dict:
+    has_metrics = isinstance(metrics, dict) and bool(metrics)
+    phase = _execution_phase_from_legacy_status(legacy_status, has_metrics)
+    integrity_status = metrics.get("integrity_status") if has_metrics else None
+    return derive_status_triad(
+        execution_phase=phase,
+        ground_truth_status=ground_truth_status,
+        metrics=metrics if has_metrics else None,
+        integrity_status=integrity_status,
+        strict_failed=(legacy_status == "failed" and has_metrics),
+        failure_reason=reason,
+    )
+
+
 def summarize_case_causal_state(case_id: str, case_path: str | Path, analysis_status: dict | None = None) -> dict:
     case_path = Path(case_path)
     paths = _paths(case_path)
     prereq = _prerequisite_status(case_id, case_path, analysis_status=analysis_status)
+    ground_truth_summary = prereq["ground_truth_summary"]
+    outputs = _derived_outputs_status(paths)
+    freshness = _source_freshness(case_path, paths)
     status_payload = _json_load(paths["status"])
     if isinstance(status_payload, dict):
         status_payload.setdefault("case_id", case_id)
@@ -561,8 +925,19 @@ def summarize_case_causal_state(case_id: str, case_path: str | Path, analysis_st
         status_payload.setdefault("output_paths", {key: relative_path(path) for key, path in paths.items() if key != "root" and path.exists()})
         if not status_payload.get("metrics_preview") and paths["metrics"].is_file():
             status_payload["metrics_preview"] = _json_load(paths["metrics"])
+        status_payload["ground_truth_summary"] = ground_truth_summary
+        status_payload["outputs"] = outputs
+        status_payload.update(freshness)
+        status_payload.update(
+            _compute_triad(
+                str(status_payload.get("status") or "not_available"),
+                status_payload.get("metrics_preview"),
+                ground_truth_summary.get("ground_truth_status"),
+                status_payload.get("reason"),
+            )
+        )
         return status_payload
-    return {
+    payload = {
         "case_id": case_id,
         "scenario_id": prereq["case_context"].get("scenario_id"),
         "status": prereq["status"],
@@ -573,9 +948,14 @@ def summarize_case_causal_state(case_id: str, case_path: str | Path, analysis_st
         "finished_at": None,
         "progress_percent": 0,
         "requirements": prereq["requirements"],
+        "ground_truth_summary": ground_truth_summary,
+        "outputs": outputs,
         "output_paths": {key: relative_path(path) for key, path in paths.items() if key != "root" and path.exists()},
         "metrics_preview": _json_load(paths["metrics"]) if paths["metrics"].is_file() else None,
     }
+    payload.update(freshness)
+    payload.update(_compute_triad(prereq["status"], None, ground_truth_summary.get("ground_truth_status"), prereq["reason"]))
+    return payload
 
 
 def _write_status(case_path: Path, payload: dict) -> None:
@@ -586,7 +966,9 @@ def _write_status(case_path: Path, payload: dict) -> None:
 def _run_once(case_id: str, case_path: Path, strict: bool = False, degraded_ok: bool = False, ground_truth_path: str | None = None, out_dir: str | None = None) -> dict:
     prereq = _prerequisite_status(case_id, case_path, ground_truth_path=ground_truth_path)
     case_context = prereq["case_context"]
+    ground_truth_summary = prereq["ground_truth_summary"]
     output_dir = _derived_dir(case_path, out_dir)
+    paths = _paths(case_path)
     status = {
         "case_id": case_id,
         "scenario_id": case_context.get("scenario_id"),
@@ -599,6 +981,7 @@ def _run_once(case_id: str, case_path: Path, strict: bool = False, degraded_ok: 
         "progress_percent": 5,
         "current_step": "verifying_prerequisites",
         "requirements": prereq["requirements"],
+        "ground_truth_summary": ground_truth_summary,
         "errors": [],
         "warnings": [],
         "output_paths": {},
@@ -609,6 +992,9 @@ def _run_once(case_id: str, case_path: Path, strict: bool = False, degraded_ok: 
     if prereq["status"] != "ready_to_run":
         status["finished_at"] = utc_now()
         status["progress_percent"] = 100
+        status["outputs"] = _derived_outputs_status(paths)
+        status.update(_source_freshness(case_path, paths))
+        status.update(_compute_triad(prereq["status"], None, ground_truth_summary.get("ground_truth_status"), prereq["reason"]))
         _write_status(case_path, status)
         return status
 
@@ -625,6 +1011,7 @@ def _run_once(case_id: str, case_path: Path, strict: bool = False, degraded_ok: 
 
     edges = [edge.to_dict() for edge in evaluate_edges(case_context, lambda req, selector=None: _evaluate_requirement(case_context, req, selector), lambda spec: _evaluate_temporal(case_context, spec))]
     metrics = _metrics_from_edges(case_context, edges)
+    metrics["kpis"] = _build_kpi_list(metrics)
     uncertainty = build_uncertainty_report(case_context, metrics, edges)
     graph = CausalGraph(
         case_id=case_id,
@@ -641,7 +1028,8 @@ def _run_once(case_id: str, case_path: Path, strict: bool = False, degraded_ok: 
     status["progress_percent"] = 75
     _write_status(case_path, status)
 
-    report_text = _markdown_report(case_context, metrics, uncertainty, graph_payload)
+    freshness_before_write = _source_freshness(case_path, paths)
+    report_text = _markdown_report(case_context, metrics, uncertainty, graph_payload, ground_truth_summary, _derived_outputs_status(paths), freshness_before_write)
     output_paths = write_causal_outputs(output_dir, graph_payload, uncertainty, metrics, report_text)
 
     if strict and int(metrics.get("missing_edges") or 0) > 0:
@@ -650,7 +1038,7 @@ def _run_once(case_id: str, case_path: Path, strict: bool = False, degraded_ok: 
         status["reason"] = "Strict mode failed because one or more expected edges are missing."
         status["errors"].append(status["reason"])
     elif int(metrics.get("missing_edges") or 0) > 0 or int(metrics.get("degraded_edges") or 0) > 0 or int(metrics.get("ambiguous_edges") or 0) > 0:
-        status["status"] = "completed_with_degradation" if degraded_ok or int(metrics.get("missing_edges") or 0) == 0 else "completed_with_degradation"
+        status["status"] = "completed_with_degradation"
         status["state"] = "completed_with_degradation"
         status["reason"] = metrics.get("main_limitation")
     else:
@@ -663,6 +1051,16 @@ def _run_once(case_id: str, case_path: Path, strict: bool = False, degraded_ok: 
     status["progress_percent"] = 100
     status["metrics_preview"] = metrics
     status["output_paths"] = {key: relative_path(Path(value)) for key, value in output_paths.items()}
+    status["outputs"] = _derived_outputs_status(paths)
+    status.update(_source_freshness(case_path, paths))
+    status.update(
+        _compute_triad(
+            status["status"],
+            metrics,
+            ground_truth_summary.get("ground_truth_status"),
+            status["reason"],
+        )
+    )
     _write_status(case_path, status)
     return status
 
@@ -763,5 +1161,12 @@ def causal_report_payload(case_id: str, case_path: str | Path) -> dict | None:
         "graph": graph,
         "uncertainty": uncertainty,
         "report_markdown": report_text,
-        "artifact_paths": {key: relative_path(path) for key, path in paths.items() if key != "root" and path.exists()},
+        # Canonical long names - kept identical to causal_status.json's
+        # "outputs" map so the cockpit's header and detail panels never disagree.
+        "artifact_paths": {
+            _CANONICAL_OUTPUT_KEYS[key]: relative_path(path)
+            for key, path in paths.items()
+            if key in _CANONICAL_OUTPUT_KEYS and path.exists()
+        },
+        "outputs": _derived_outputs_status(paths),
     }

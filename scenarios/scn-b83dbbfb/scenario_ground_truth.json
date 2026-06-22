@@ -1,6 +1,7 @@
 {
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
+  "ground_truth_version": "1.0",
   "description": "Ground truth for the controlled industrial Modbus reconstruction path. This file describes expected causal edges for post-preservation forensic reconstruction.",
   "attack_expected": {
     "technique_id": "T0831",
@@ -12,6 +13,7 @@
     "ot_function": "write_multiple_registers",
     "register": 4,
     "expected_value": 30,
+    "register_value_basis": "declared_in_ground_truth_not_packet_verified",
     "selector": {
       "attack_id": "atk-6402b8e1",
       "mitre.technique_id": "T0831",
@@ -59,6 +61,18 @@
       "timestamp_ref": "attack_completed_at",
       "source_ref": "foc-reconstruction/attestations/attack_attestation.json"
     },
+    "network_modbus_write": {
+      "node_type": "network_observation",
+      "layer": "network",
+      "label": "Observed Modbus write traffic",
+      "source_ref": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/analysis/03_network/network_findings.json"
+    },
+    "plc_or_scada_state_observation": {
+      "node_type": "ot_state_observation",
+      "layer": "ot",
+      "label": "PLC/SCADA state observation",
+      "source_ref": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/analysis/06_ot/ot_findings.json"
+    },
     "detection_surface": {
       "node_type": "detection_rule",
       "layer": "detection",
@@ -96,6 +110,7 @@
   "expected_edges": [
     {
       "edge_id": "edge_attack_execution_to_ot_write",
+      "meaning": "The attack execution should produce an unauthorized Modbus write operation against the target PLC.",
       "source": "attack_execution",
       "target": "ot_modbus_write",
       "relation_type": "issues_unauthorized_modbus_write",
@@ -117,8 +132,23 @@
       "target_timestamp_ref": "attack_completed_at"
     },
     {
-      "edge_id": "edge_ot_write_to_detection_surface",
+      "edge_id": "edge_ot_write_to_network_modbus_write",
+      "meaning": "The attack execution should produce observable Modbus write traffic on the network.",
       "source": "ot_modbus_write",
+      "target": "network_modbus_write",
+      "relation_type": "produces_observable_modbus_traffic",
+      "weight": 0.9,
+      "required_evidence": [
+        "network_modbus_observation"
+      ],
+      "target_register": 4,
+      "expected_value": 30,
+      "register_value_basis": "declared_in_ground_truth_not_packet_verified"
+    },
+    {
+      "edge_id": "edge_network_modbus_write_to_detection_surface",
+      "meaning": "The observed Modbus write traffic should be observable by the detection surface.",
+      "source": "network_modbus_write",
       "target": "detection_surface",
       "relation_type": "is_observable_by_detection_surface",
       "weight": 1.0,
@@ -139,7 +169,22 @@
       }
     },
     {
+      "edge_id": "edge_ot_write_to_plc_state_observation",
+      "meaning": "The unauthorized Modbus write should produce an observable PLC or SCADA state change in the preserved OT export.",
+      "source": "ot_modbus_write",
+      "target": "plc_or_scada_state_observation",
+      "relation_type": "produces_observable_plc_state_change",
+      "weight": 0.7,
+      "required_evidence": [
+        "plc_state_observation"
+      ],
+      "target_register": 4,
+      "expected_value": 30,
+      "register_value_basis": "declared_in_ground_truth_not_packet_verified"
+    },
+    {
       "edge_id": "edge_detection_surface_to_alert_observation",
+      "meaning": "The detection surface should produce correlated, observed alert evidence.",
       "source": "detection_surface",
       "target": "alert_observation",
       "relation_type": "produces_observed_alert_evidence",
@@ -160,6 +205,7 @@
     },
     {
       "edge_id": "edge_alert_observation_to_forensic_case",
+      "meaning": "The observed alert evidence should trigger a forensic intervention.",
       "source": "alert_observation",
       "target": "forensic_case",
       "relation_type": "triggers_forensic_intervention",
@@ -181,6 +227,7 @@
     },
     {
       "edge_id": "edge_forensic_case_to_preserved_case_evidence",
+      "meaning": "The forensic intervention should preserve the case evidence set under a valid manifest and chain of custody.",
       "source": "forensic_case",
       "target": "preserved_case_evidence",
       "relation_type": "preserves_case_artifacts",
@@ -201,6 +248,7 @@
     },
     {
       "edge_id": "edge_preserved_case_evidence_to_multilayer_analysis",
+      "meaning": "The preserved case evidence should support a complete multilayer forensic analysis, including a useful memory analysis pass.",
       "source": "preserved_case_evidence",
       "target": "multilayer_analysis",
       "relation_type": "supports_multilayer_forensic_analysis",
