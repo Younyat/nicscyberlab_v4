@@ -5,8 +5,8 @@ const DashboardState = {
   dashboard: null,
   trackedJobId: null,
   pollTimer: null,
-  extractDetail: null,
-  extractDetailVisible: false,
+  evidenceSupportDetail: null,
+  evidenceSupportDetailVisible: false,
 };
 
 function byId(id) {
@@ -180,105 +180,191 @@ function renderDashboard() {
   renderLifecycleRail(summary, payload);
   renderJobPanel(payload);
   renderMultilayer(summary, payload);
+  renderMemoryAnalysis(summary);
+  renderAlertTriage(summary);
   renderCausalAndUncertainty(summary, payload);
   renderTriggerAndModbus(summary, payload);
-  renderExtractSummary(summary, payload);
+  renderEvidenceStory(summary);
+  renderEvidenceSupportSummary(summary, payload);
   renderConclusion(summary, payload);
   renderReports(summary, payload);
   renderLists(summary, payload);
-}
-
-function renderExtractSummary(summary, payload) {
-  const container = byId("extract-summary");
-  const note = byId("extract-summary-note");
-  if (!container || !note) return;
-  const extract = summary?.evidence_support_extract;
-  if (!extract || extract.status === "not_available") {
-    note.innerHTML = "";
-    container.innerHTML = valueCard("Evidence Support Extract", "Not generated", "Generate it after causal reconstruction to obtain a normalized, hypothesis-level forensic support assessment.", "status-warning");
-    return;
-  }
-  const tone = extract.status === "stale" ? "status-warning" : statusTone(extract.global_support_level);
-  note.innerHTML = extract.status === "stale"
-    ? `<div class="glass-soft rounded-[24px] p-4 text-sm text-amber-200"><div class="font-black uppercase tracking-[0.16em] text-xs mb-2">This support extract is stale</div><div>${esc(extract.stale_reason || "The displayed support metrics may not reflect the latest causal reconstruction artifacts.")}</div><div class="mt-2 flex items-center justify-between gap-3 flex-wrap"><span><span class="font-black">Required action:</span> ${esc(extract.required_action || "regenerate evidence support extract")}.</span><button type="button" class="run-action-btn btn-secondary rounded-2xl px-4 py-2 text-xs font-extrabold tracking-[0.16em] uppercase" data-run-action="generate-extract">Regenerate Evidence Support Extract</button></div></div>`
-    : "";
-  container.innerHTML = [
-    valueCard("Status", titleize(extract.status), `${extract.path || "not_available"}${extract.status === "stale" ? " · stale snapshot" : ""}`, tone),
-    valueCard("Global support", titleize(extract.global_support_level || "not_evaluable"), extract.status === "stale" ? "Stale snapshot; not authoritative until regenerated." : "Aggregated across independent layers.", statusTone(extract.global_support_level)),
-    valueCard("Hypotheses", extract.hypothesis_count ?? 0, extract.status === "stale" ? "Stale value." : "Forensic hypotheses evaluated."),
-    valueCard("Supporting findings", extract.supporting_findings ?? 0, extract.status === "stale" ? "Stale value." : "Moderate or strong support.", "status-ok"),
-    valueCard("Degraded / ambiguous", extract.degraded_or_ambiguous_findings ?? 0, extract.status === "stale" ? "Stale value." : "Weak or indirect support only.", "status-warning"),
-    valueCard("Missing / not evaluable", extract.missing_or_not_evaluable_findings ?? 0, `${extract.status === "stale" ? "Stale value. " : ""}Contradictions: ${extract.contradictions ?? 0}`, (extract.contradictions ?? 0) > 0 ? "status-error" : "status-muted"),
-  ].join("");
 }
 
 function supportLevelLabel(level) {
   return titleize(level || "not_evaluable");
 }
 
-async function loadExtractDetail() {
+function renderEvidenceSupportSummary(summary, payload) {
+  const container = byId("evidence-support-summary");
+  const note = byId("evidence-support-note");
+  if (!container || !note) return;
+  const extract = summary?.evidence_support_extract;
+  if (!extract || extract.status === "not_available") {
+    note.innerHTML = "";
+    container.innerHTML = valueCard(
+      "Evidence support status",
+      "Not generated",
+      "Reason: evidence-based hypothesis support has not been generated for this case yet. Required action: generate evidence-based hypothesis support.",
+      "status-warning"
+    );
+    return;
+  }
+  const tone = extract.status === "stale" ? "status-warning" : statusTone(extract.global_support_level);
+  note.innerHTML = extract.status === "stale"
+    ? `<div class="glass-soft rounded-[24px] p-4 text-sm text-amber-200"><div class="font-black uppercase tracking-[0.16em] text-xs mb-2">Evidence support status: stale</div><div><span class="font-black">Reason:</span> one or more source artifacts changed after the evidence support extract was generated.</div><div class="mt-2">This support extract is stale. The displayed support metrics may not reflect the latest causal reconstruction artifacts.</div><div class="mt-2 flex items-center justify-between gap-3 flex-wrap"><span><span class="font-black">Required action:</span> regenerate evidence support extract.</span><button type="button" class="run-action-btn btn-secondary rounded-2xl px-4 py-2 text-xs font-extrabold tracking-[0.16em] uppercase" data-run-action="generate-evidence-support">Regenerate Evidence-Based Hypothesis Support</button></div></div>`
+    : "";
+  container.innerHTML = [
+    valueCard("Status", titleize(extract.status), `${extract.path || "not_available"}${extract.status === "stale" ? " · stale snapshot" : ""}`, tone),
+    valueCard("Hypothesis ID", extract.hypothesis_id || "not_available", extract.claim_evaluated || "not_available", "status-info"),
+    valueCard("Global support", titleize(extract.global_support_level || "not_evaluable"), extract.status === "stale" ? "Stale snapshot; not authoritative until regenerated." : "Aggregated across independent evidentiary layers; never strong unless cross-layer, temporally resolvable, and not contradicted.", statusTone(extract.global_support_level)),
+    valueCard("Supporting evidence", extract.supporting_findings ?? 0, extract.status === "stale" ? "Stale value." : "Atoms that support the hypothesis.", "status-ok"),
+    valueCard("Partially supporting", extract.degraded_or_ambiguous_findings ?? 0, extract.status === "stale" ? "Stale value." : "Atoms with weak or indirect support only.", "status-warning"),
+    valueCard("Contradicting evidence", extract.contradictions ?? 0, extract.status === "stale" ? "Stale value." : "Atoms that contradict a specific causal claim.", (extract.contradictions ?? 0) > 0 ? "status-error" : "status-muted"),
+    valueCard("Missing / not evaluable", extract.missing_or_not_evaluable_findings ?? 0, extract.status === "stale" ? "Stale value." : "Required evidence layers with no atom coverage."),
+  ].join("");
+}
+
+async function loadEvidenceSupportDetail() {
   const caseId = DashboardState.selectedCaseId;
   if (!caseId) return;
-  const container = byId("extract-details");
+  const container = byId("evidence-support-details");
   if (!container) return;
   container.classList.remove("hidden");
-  container.innerHTML = `<div class="text-slate-500 text-sm">Loading evidence support detail…</div>`;
+  container.innerHTML = `<div class="text-slate-500 text-sm">Loading evidence-based hypothesis support…</div>`;
   try {
-    const payload = await fetchJson(`${API}/evidence-support-extract?case_id=${encodeURIComponent(caseId)}`);
-    DashboardState.extractDetail = payload;
-    renderExtractDetail(payload);
+    const [report, storyline, claimability, counterEvidence] = await Promise.all([
+      fetchJson(`${API}/evidence-support/report?case_id=${encodeURIComponent(caseId)}`).catch(() => null),
+      fetchJson(`${API}/evidence-support/storyline?case_id=${encodeURIComponent(caseId)}`).catch(() => null),
+      fetchJson(`${API}/evidence-support/claimability?case_id=${encodeURIComponent(caseId)}`).catch(() => null),
+      fetchJson(`${API}/evidence-support/counter-evidence?case_id=${encodeURIComponent(caseId)}`).catch(() => null),
+    ]);
+    DashboardState.evidenceSupportDetail = { report, storyline, claimability, counterEvidence };
+    renderEvidenceSupportDetailContainer();
   } catch (err) {
-    container.innerHTML = `<div class="status-error text-sm">Could not load evidence support extract: ${esc(err.message)}</div>`;
+    container.innerHTML = `<div class="status-error text-sm">Could not load evidence-based hypothesis support: ${esc(err.message)}</div>`;
   }
 }
 
-function renderExtractDetail(payload) {
-  const container = byId("extract-details");
+function renderEvidenceSupportDetailContainer() {
+  const container = byId("evidence-support-details");
   if (!container) return;
-  const extract = payload?.extract;
-  if (!payload?.available || !extract) {
-    container.innerHTML = `<div class="text-slate-500 text-sm">No Evidence Support Extract has been generated yet for this case.</div>`;
+  container.classList.remove("hidden");
+  const detail = DashboardState.evidenceSupportDetail;
+  if (!detail?.report) {
+    container.innerHTML = `<div class="text-slate-500 text-sm">No Evidence-Based Hypothesis Support has been generated yet for this case.</div>`;
     return;
   }
-  const hypotheses = extract.hypotheses || [];
-  const layerSupport = extract.layer_support || {};
-  const findings = extract.findings || [];
+  if (!byId("evidence-support-hypothesis")) {
+    // The 5-card skeleton lives in the HTML; if it is missing, fall back to a minimal render.
+    container.innerHTML = `<div class="text-slate-500 text-sm">Report available, markup not generated. Markup unavailable because the normalized evidence-support detail containers are missing from the current view template.</div>`;
+    return;
+  }
+  renderEvidenceSupportHypothesis(detail.report);
+  renderEvidenceSupportMatrix(detail.report);
+  renderEvidenceSupportStoryline(detail.storyline);
+  renderEvidenceSupportClaimability(detail.claimability);
+  renderEvidenceSupportGaps(detail.counterEvidence);
+}
+
+function renderEvidenceSupportHypothesis(report) {
+  const container = byId("evidence-support-hypothesis");
+  if (!container) return;
   container.innerHTML = `
-    ${extract.is_stale ? `<div class="glass-soft rounded-2xl p-4 text-sm text-amber-200 mb-4">This Evidence Support Extract is stale because causal reconstruction artifacts changed after it was generated. Regenerate it above.</div>` : ""}
-    <div class="space-y-4 mb-5">
-      ${hypotheses.map(h => `
-        <div class="glass-soft rounded-[24px] p-4">
-          <div class="flex items-center justify-between gap-3 flex-wrap">
-            <div class="font-black">${esc(h.hypothesis_id)}: ${esc(h.attack_family)}</div>
-            <div class="text-xs uppercase tracking-[0.14em] font-black ${statusTone(h.global_support_level)}">${esc(supportLevelLabel(h.global_support_level))}</div>
-          </div>
-          <div class="mt-3 text-sm text-slate-300">${esc(h.hypothesis_text)}</div>
-          <div class="mt-2 text-xs text-slate-400">MITRE: <span class="mono">${esc(h.mitre_technique)}</span> · Target: <span class="mono">${esc(h.target_asset)}</span></div>
-          <div class="mt-3 text-xs text-slate-300"><strong>Main supporting evidence:</strong> ${listItems(h.main_supporting_evidence, "none")}</div>
-          <div class="mt-3 text-xs text-slate-300"><strong>Main limitations:</strong> ${listItems(h.main_limitations, "none")}</div>
-        </div>
-      `).join("")}
+    ${report.is_stale ? `<div class="glass-soft rounded-2xl p-4 text-sm text-amber-200 mb-4">This report is stale because source artifacts changed after it was generated. Regenerate it above.</div>` : ""}
+    <div class="flex items-center justify-between gap-3 flex-wrap mb-3">
+      <div class="font-black">${esc(report.hypothesis_id)}</div>
+      <div class="text-xs uppercase tracking-[0.14em] font-black ${statusTone(report.global_support_level)}">${esc(supportLevelLabel(report.global_support_level))} · confidence: ${esc(report.global_confidence || "unknown")}</div>
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
-      ${Object.entries(layerSupport).map(([layer, item]) => valueCard(titleize(layer), supportLevelLabel(item.support_level), `${item.finding_count || 0} finding(s) · ${maybeTruncate(item.summary, 90)}`, statusTone(item.support_level))).join("")}
-    </div>
-    <div class="overflow-x-auto">
-      <table class="w-full text-xs text-slate-300">
-        <thead><tr class="text-left text-slate-400 uppercase tracking-[0.12em]"><th class="pr-3 py-2">Layer</th><th class="pr-3 py-2">Finding</th><th class="pr-3 py-2">Support</th><th class="pr-3 py-2">Causal edges</th><th class="pr-3 py-2">Limitations</th></tr></thead>
-        <tbody>
-          ${findings.map(f => `
-            <tr class="border-t border-slate-800/70 align-top">
-              <td class="py-3 pr-3 font-semibold">${esc(titleize(f.layer))}</td>
-              <td class="py-3 pr-3">${esc(maybeTruncate(f.summary, 160))}</td>
-              <td class="py-3 pr-3 ${statusTone(f.supports_hypothesis)}">${esc(supportLevelLabel(f.supports_hypothesis))}</td>
-              <td class="py-3 pr-3 mono">${esc((f.related_causal_edges || []).join(", ") || "none")}</td>
-              <td class="py-3 pr-3">${esc(maybeTruncate((f.limitations || []).join(" | ") || "none", 160))}</td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
+    <div class="text-sm text-slate-300">${esc(report.hypothesis_text)}</div>
+    <div class="mt-3 text-sm font-semibold ${statusTone(report.global_support_level)}">${esc(report.final_claimability_status || "")}</div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+      <div class="text-xs text-slate-300"><strong>Temporal limitations:</strong> ${listItems(report.temporal_limitations, "none")}</div>
+      <div class="text-xs text-slate-300"><strong>Integrity limitations:</strong> ${listItems(report.integrity_limitations, "none")}</div>
+      <div class="text-xs text-slate-300"><strong>Causal limitations:</strong> ${listItems(report.causal_limitations, "none")}</div>
     </div>
   `;
+}
+
+function renderEvidenceSupportMatrix(report) {
+  const container = byId("evidence-support-matrix");
+  if (!container) return;
+  const layerMatrix = report.layer_contribution_matrix;
+  if (!layerMatrix) {
+    container.innerHTML = `<div class="text-slate-500 text-sm">Layer contribution matrix is not available in this report.</div>`;
+    return;
+  }
+  container.innerHTML = `
+    <table class="w-full text-xs text-slate-300">
+      <thead><tr class="text-left text-slate-400 uppercase tracking-[0.12em]"><th class="pr-3 py-2">Layer</th><th class="pr-3 py-2">Supports</th><th class="pr-3 py-2">Partially supports</th><th class="pr-3 py-2">Contradicts</th><th class="pr-3 py-2">Not evaluable</th><th class="pr-3 py-2">Timestamp quality</th><th class="pr-3 py-2">Limitation</th></tr></thead>
+      <tbody>
+        ${Object.entries(layerMatrix).map(([layer, row]) => `
+          <tr class="border-t border-slate-800/70 align-top">
+            <td class="py-3 pr-3 font-semibold">${esc(row.label || titleize(layer))}</td>
+            <td class="py-3 pr-3 status-ok">${esc(row.supports ?? 0)}</td>
+            <td class="py-3 pr-3 status-warning">${esc(row.partially_supports ?? 0)}</td>
+            <td class="py-3 pr-3 status-error">${esc(row.contradicts ?? 0)}</td>
+            <td class="py-3 pr-3">${esc(row.not_evaluable ?? 0)}</td>
+            <td class="py-3 pr-3">${esc(titleize(row.timestamp_quality || "not_applicable"))}</td>
+            <td class="py-3 pr-3">${esc(maybeTruncate(row.limitation || "none", 140))}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function renderEvidenceSupportStoryline(storyline) {
+  const container = byId("evidence-support-storyline");
+  if (!container) return;
+  const steps = storyline?.steps || [];
+  if (!steps.length) {
+    container.innerHTML = `<div class="text-slate-500 text-sm">No forensic storyline is available yet.</div>`;
+    return;
+  }
+  container.innerHTML = steps.map((step, index) => `
+    <div class="glass-soft rounded-2xl p-4">
+      <div class="flex items-center justify-between gap-3 flex-wrap">
+        <div class="font-black">${esc(index + 1)}. ${esc(step.event_description)}</div>
+        <div class="text-xs uppercase tracking-[0.14em] font-black ${statusTone(step.confidence)}">${esc(titleize(step.confidence || "unknown"))}</div>
+      </div>
+      <div class="text-xs text-slate-400 mt-2">Layers: ${esc((step.evidence_layers || []).map(titleize).join(", ") || "none")} · Timestamp: ${esc(step.timestamp || "not_available")} (${esc(titleize(step.timestamp_status || "unavailable"))})</div>
+      ${step.limitation ? `<div class="text-xs text-amber-300 mt-2">${esc(step.limitation)}</div>` : ""}
+      <button type="button" class="run-action-btn btn-secondary rounded-xl px-3 py-1.5 text-[11px] font-extrabold tracking-[0.14em] uppercase mt-3" data-run-action="view-storyline-step" data-step-id="${esc(step.step_id)}">View supporting evidence (${esc((step.supporting_atoms || []).length)})</button>
+      <div class="evidence-step-atoms mt-2 hidden text-xs mono text-slate-400" data-step-id="${esc(step.step_id)}">${esc((step.supporting_atoms || []).join(", ") || "none")}</div>
+    </div>
+  `).join("");
+}
+
+function renderEvidenceSupportClaimability(claimability) {
+  const supported = byId("evidence-support-claim-supported");
+  const partial = byId("evidence-support-claim-partial");
+  const unsupported = byId("evidence-support-claim-unsupported");
+  if (!supported || !partial || !unsupported) return;
+  supported.innerHTML = listItems(claimability?.supported_claims, "none");
+  partial.innerHTML = listItems(claimability?.partially_supported_claims, "none");
+  unsupported.innerHTML = listItems(claimability?.unsupported_or_not_claimable_claims, "none");
+}
+
+function renderEvidenceSupportGaps(counterEvidence) {
+  const container = byId("evidence-support-gaps");
+  if (!container) return;
+  if (!counterEvidence) {
+    container.innerHTML = `<div class="text-slate-500 text-sm">No counter-evidence report is available yet.</div>`;
+    return;
+  }
+  const groups = [
+    ["Contradicting evidence", counterEvidence.contradicting_evidence, item => `${item.evidence_layer}: ${item.observed_value}`],
+    ["Missing or not evaluable", counterEvidence.missing_or_not_evaluable_evidence, item => `${item.evidence_layer}: ${item.limitation}`],
+    ["Indirect-only evidence", counterEvidence.indirect_only_evidence, item => `${item.evidence_layer}: ${item.observed_value}`],
+    ["Temporally unresolvable", counterEvidence.temporally_unresolvable_evidence, item => `${item.evidence_layer}: ${item.atom_id}`],
+  ];
+  container.innerHTML = groups.map(([title, items, fmt]) => `
+    <div class="mb-3">
+      <div class="text-[11px] uppercase tracking-[0.18em] text-slate-400 font-black mb-2">${esc(title)} (${(items || []).length})</div>
+      ${listItems((items || []).map(fmt), "none")}
+    </div>
+  `).join("");
 }
 
 function renderExecutiveGrid(summary, payload) {
@@ -311,7 +397,7 @@ function renderExecutiveGrid(summary, payload) {
     valueCard("Evidence lifecycle", exec.evidence_lifecycle_status || "unknown", "Preservation, integrity, and analysis lifecycle state.", statusTone(exec.evidence_lifecycle_status)),
     valueCard("Last multilayer analysis", exec.multilayer_analysis_status || "unknown", "Snapshot baked into the executive summary at generation time, not live pipeline state.", statusTone(exec.multilayer_analysis_status)),
     valueCard("Last causal reconstruction", exec.causal_reconstruction_status || "unknown", "Snapshot baked into the executive summary at generation time, not live pipeline state.", statusTone(exec.causal_reconstruction_status)),
-    valueCard("Evidence confidence", exec.evidence_analysis_confidence || "unknown", "Confidence in evidence analysis coverage and usefulness.", statusTone(exec.evidence_analysis_confidence)),
+    valueCard("Evidence processing coverage", exec.evidence_processing_coverage || exec.evidence_analysis_confidence || "unknown", exec.evidence_processing_interpretation || "Coverage of the multilayer evidence processing stage, not of the global conclusion.", statusTone(exec.evidence_processing_coverage || exec.evidence_analysis_confidence)),
     valueCard("Forensic reconstruction confidence", exec.forensic_reconstruction_confidence || "unknown", "Reconstruction-level confidence from the multilayer view.", statusTone(exec.forensic_reconstruction_confidence)),
     valueCard("Causal interpretation confidence", exec.causal_interpretation_confidence || "unknown", "Confidence in the derived causal interpretation.", statusTone(exec.causal_interpretation_confidence)),
   ].join("");
@@ -465,6 +551,60 @@ function renderMultilayer(summary, payload) {
   `).join("");
 }
 
+function renderMemoryAnalysis(summary) {
+  const overview = byId("memory-analysis-overview");
+  const matrix = byId("memory-plugin-matrix");
+  if (!overview || !matrix) return;
+  const detail = summary?.memory_analysis_detail;
+  if (!detail) {
+    overview.innerHTML = valueCard("Memory analysis", "Not available", "No memory analysis detail is available in the executive summary.", "status-warning");
+    matrix.innerHTML = `<tr><td colspan="5" class="py-6 text-slate-500">No memory plugin coverage summary is available yet.</td></tr>`;
+    return;
+  }
+  overview.innerHTML = [
+    valueCard("Memory layer usefulness", titleize(detail.memory_layer_usefulness || "unknown"), detail.reason || "No reason recorded.", statusTone(detail.memory_layer_usefulness)),
+    valueCard("Dumps analyzed", detail.dumps_analyzed || 0, `Dumps total: ${detail.dumps_total || 0}`, statusTone(detail.status)),
+    valueCard("Memory dump opened successfully", detail.memory_dump_opened_successfully || "unknown", "Whether the dump could be opened and processed at all.", statusTone(detail.memory_dump_opened_successfully)),
+    valueCard("Kernel banner extracted", detail.kernel_banner_extracted || "unknown", "Whether the memory layer successfully extracted kernel banners from the dumps.", statusTone(detail.kernel_banner_extracted)),
+    valueCard("Compatible symbols available", detail.compatible_symbols_available || "unknown", "Volatility 3 Linux symbol availability across the analyzed dumps.", statusTone(detail.compatible_symbols_available)),
+    valueCard("Useful memory atoms extracted", detail.useful_memory_atoms_extracted || 0, "Completed plugin passes that produced usable memory-layer outputs.", "status-ok"),
+  ].join("");
+  matrix.innerHTML = (detail.plugins || []).map(plugin => `
+    <tr class="border-t border-slate-800/70 align-top">
+      <td class="py-4 pr-4 font-semibold">${esc(plugin.label || plugin.plugin_key)}</td>
+      <td class="py-4 pr-4 ${statusTone(plugin.status)}">${esc(titleize(plugin.status || "unknown"))}</td>
+      <td class="py-4 pr-4">${esc(plugin.completed_dumps ?? 0)}</td>
+      <td class="py-4 pr-4">${esc(plugin.partial_dumps ?? 0)}</td>
+      <td class="py-4 pr-4">${esc((plugin.failed_dumps ?? 0) + (plugin.blocked_dumps ?? 0))}</td>
+    </tr>
+  `).join("");
+}
+
+function renderAlertTriage(summary) {
+  const grid = byId("alert-triage-grid");
+  const note = byId("alert-triage-note");
+  if (!grid || !note) return;
+  const triage = summary?.alert_triage_summary;
+  if (!triage) {
+    grid.innerHTML = valueCard("Alert triage", "Not available", "No alert triage summary is available in the executive snapshot.", "status-warning");
+    note.textContent = "Alert triage and trigger-selection details will appear here once the executive summary is regenerated.";
+    return;
+  }
+  grid.innerHTML = [
+    valueCard("Total alerts indexed", triage.total_alerts_indexed ?? "not_available", "Alerts preserved and summarized for this case.", "status-info"),
+    valueCard("Alerts inside case window", triage.alerts_inside_selected_case_window ?? "not_available", `Outside selected case window: ${triage.alerts_outside_selected_case_window ?? "not_available"}`, "status-info"),
+    valueCard("Correlated alerts", triage.correlated_alerts ?? "not_available", `Uncorrelated alerts: ${triage.uncorrelated_alerts ?? "not_available"}`, "status-ok"),
+    valueCard("Trigger candidates evaluated", triage.trigger_candidates_evaluated ?? "not_available", "Candidates evaluated during acquisition-trigger selection.", "status-info"),
+    valueCard("Selected trigger", triage.selected_trigger || "not_available", `Rule: ${triage.selected_trigger_rule || "not_available"} · source: ${triage.selected_trigger_source || "not_available"}`, "status-warning"),
+    valueCard("Trigger selection score", triage.selected_trigger_score ?? "not_available", `Stronger trigger available: ${triage.stronger_trigger_available ? "yes" : "no"}`, triage.stronger_trigger_available ? "status-warning" : "status-ok"),
+  ].join("");
+  note.innerHTML = `
+    <div><span class="font-black">Reason for selection:</span> ${esc(triage.reason_for_selection || "not_available")}</div>
+    <div class="mt-2"><span class="font-black">Rejected candidates summary:</span> ${esc((triage.rejected_candidates_summary || []).join(" | ") || "not_available")}</div>
+    <div class="mt-2"><span class="font-black">Noise ratio:</span> ${esc(formatMaybeNumber(triage.noise_ratio, 4))}</div>
+  `;
+}
+
 function renderCausalAndUncertainty(summary, payload) {
   const causalGrid = byId("causal-summary-grid");
   const causalText = byId("causal-summary-text");
@@ -473,6 +613,7 @@ function renderCausalAndUncertainty(summary, payload) {
   if (!causalGrid || !causalText || !uncertaintyGrid || !uncertaintyWarning) return;
   const causal = summary?.causal_summary;
   const uncertainty = summary?.uncertainty_summary;
+  const integrity = summary?.integrity_summary || {};
   if (!causal) {
     causalGrid.innerHTML = valueCard("Causal state", payload.live_status?.causal?.status || "not_available", payload.live_status?.causal?.reason || "Causal reconstruction has not been summarized in this executive view yet.", statusTone(payload.live_status?.causal?.status));
     causalText.textContent = payload.live_status?.causal?.reason || "Causal reconstruction is not yet available for this case.";
@@ -541,10 +682,13 @@ function renderCausalAndUncertainty(summary, payload) {
     uncertaintyGrid.innerHTML = [
       valueCard("Clock synchronization", uncertainty.synchronized_status || "unknown", `Source: ${uncertainty.time_sync_source || "not_available"}`, statusTone(uncertainty.synchronized_status)),
       valueCard("Evidence timestamp availability", uncertainty.evidence_timestamp_availability || "unknown", "Whether required artifact timestamps exist at all.", statusTone(uncertainty.evidence_timestamp_availability)),
-      valueCard("Evidence timestamp resolvability", uncertainty.evidence_timestamp_resolvability || "unknown", "Whether available timestamps can be resolved well enough for ordering.", statusTone(uncertainty.evidence_timestamp_resolvability)),
+      valueCard("Available timestamp resolvability", uncertainty.available_timestamp_resolvability || uncertainty.evidence_timestamp_resolvability || "unknown", "Whether the timestamps that do exist can be resolved well enough for ordering.", statusTone(uncertainty.available_timestamp_resolvability || uncertainty.evidence_timestamp_resolvability)),
+      valueCard("Causal edge timestamp coverage", uncertainty.causal_edge_timestamp_coverage || "unknown", "Whether the expected causal edges have the timestamps required for causal ordering.", statusTone(uncertainty.causal_edge_timestamp_coverage)),
       valueCard("Causal temporal ordering confidence", uncertainty.causal_temporal_ordering_confidence || "unknown", "Confidence in temporal ordering of the expected causal edges.", statusTone(uncertainty.causal_temporal_ordering_confidence)),
       valueCard("Max clock offset", `${formatMaybeNumber(uncertainty.max_clock_offset_seconds)}s`, uncertainty.time_sync_source || "not_available", statusTone(uncertainty.synchronized_status)),
       valueCard("Uncertainty window", `${formatMaybeNumber(uncertainty.uncertainty_window_seconds)}s`, "Temporal ordering window used by the uncertainty budget.", statusTone(uncertainty.temporal_confidence)),
+      valueCard("Integrity validation execution", integrity.validation_execution_status || "unknown", `Validation output: ${integrity.validation_output_status || "unknown"}`, statusTone(integrity.validation_execution_status)),
+      valueCard("Case-wide integrity completeness", integrity.case_wide_integrity_completeness || "unknown", `Case-wide integrity ratio: ${formatMaybeNumber(integrity.case_wide_integrity_ratio, 4)}`, statusTone(integrity.case_wide_integrity_completeness)),
       valueCard("Correction applied", uncertainty.correction_applied ? "yes" : "no", `Before: ${uncertainty.before_path || "not_available"} | After: ${uncertainty.after_path || "not_available"}`, uncertainty.correction_applied ? "status-warning" : "status-muted"),
       valueCard("Worst node", uncertainty.worst_node?.name || uncertainty.worst_node?.vm_id || "not_available", uncertainty.worst_node?.ip || "not_available", statusTone(uncertainty.synchronized_status)),
       valueCard("Nodes measured", `${uncertainty.nodes_measured ?? "not_available"} / failed ${uncertainty.nodes_failed ?? "not_available"}`, "Current measurement status.", statusTone(uncertainty.current_measurement_status)),
@@ -552,6 +696,7 @@ function renderCausalAndUncertainty(summary, payload) {
     uncertaintyWarning.innerHTML = `
       <div class="font-black text-slate-200">Reason</div>
       <div class="mt-2">${esc(uncertainty.causal_temporal_ordering_reason || uncertainty.main_limitation || "No additional uncertainty warning recorded.")}</div>
+      <div class="mt-3 text-slate-300">The integrity and custody validation step can complete successfully while the case-wide integrity assessment still remains partial. These are different scientific questions.</div>
       <div class="mt-3 text-slate-400">${esc(uncertainty.temporal_model_note || "A synchronized infrastructure does not automatically guarantee that every forensic artifact contains usable timestamps for causal ordering.")}</div>
     `;
   }
@@ -608,6 +753,21 @@ function renderTriggerAndModbus(summary) {
       </div>
     `;
   }
+}
+
+function renderEvidenceStory(summary) {
+  const panel = byId("evidence-story-panel");
+  if (!panel) return;
+  const story = summary?.evidence_based_reconstruction_story;
+  if (!story || story.status === "not_available") {
+    panel.textContent = "No evidence-based reconstruction story is available yet.";
+    return;
+  }
+  panel.innerHTML = `
+    <div class="font-black text-slate-200 mb-3">Evidence-based reconstruction story</div>
+    <div>${esc(story.summary_text || "No narrative summary is available.")}</div>
+    <div class="mt-4 text-xs text-slate-400">Supported claims: ${esc(story.supported_claim_count ?? 0)} · partially supported: ${esc(story.partially_supported_claim_count ?? 0)} · unsupported: ${esc(story.unsupported_claim_count ?? 0)}</div>
+  `;
 }
 
 function renderConclusion(summary, payload) {
@@ -692,11 +852,13 @@ async function runAction(kind) {
       payload = await postJson(`${API}/lifecycle/generate-summary`, { case_id: caseId });
       DashboardState.trackedJobId = payload.job_id || null;
       await refreshTrackedJob();
-    } else if (kind === "generate-extract") {
-      await postJson(`${API}/lifecycle/generate-evidence-support-extract`, { case_id: caseId });
-      DashboardState.extractDetail = null;
-      if (DashboardState.extractDetailVisible) {
-        await loadExtractDetail();
+    } else if (kind === "generate-evidence-support") {
+      payload = await postJson(`${API}/evidence-support/regenerate`, { case_id: caseId });
+      DashboardState.evidenceSupportDetail = null;
+      DashboardState.trackedJobId = payload.job_id || null;
+      await refreshTrackedJob();
+      if (DashboardState.evidenceSupportDetailVisible) {
+        await loadEvidenceSupportDetail();
       }
     }
     await loadDashboard(caseId);
@@ -761,20 +923,19 @@ function bindEvents() {
   byId("rerun-causal-btn")?.addEventListener("click", () => runAction("rerun-causal"));
   byId("run-full-btn")?.addEventListener("click", () => runAction("run-full"));
   byId("generate-summary-btn")?.addEventListener("click", () => runAction("generate-summary"));
-  byId("generate-extract-btn")?.addEventListener("click", () => runAction("generate-extract"));
-  byId("view-extract-btn")?.addEventListener("click", () => {
-    DashboardState.extractDetailVisible = !DashboardState.extractDetailVisible;
-    const container = byId("extract-details");
+  byId("generate-evidence-support-btn")?.addEventListener("click", () => runAction("generate-evidence-support"));
+  byId("view-evidence-support-btn")?.addEventListener("click", () => {
+    DashboardState.evidenceSupportDetailVisible = !DashboardState.evidenceSupportDetailVisible;
+    const container = byId("evidence-support-details");
     if (!container) return;
-    if (!DashboardState.extractDetailVisible) {
+    if (!DashboardState.evidenceSupportDetailVisible) {
       container.classList.add("hidden");
       return;
     }
-    if (DashboardState.extractDetail) {
-      container.classList.remove("hidden");
-      renderExtractDetail(DashboardState.extractDetail);
+    if (DashboardState.evidenceSupportDetail) {
+      renderEvidenceSupportDetailContainer();
     } else {
-      loadExtractDetail().catch(() => {});
+      loadEvidenceSupportDetail().catch(() => {});
     }
   });
   byId("report-modal-close")?.addEventListener("click", () => byId("report-modal")?.classList.remove("is-active"));
@@ -794,6 +955,11 @@ function bindEvents() {
       openReport(reportBtn.dataset.reportType).catch(err => {
         setJobPanel(`<div class="status-error">Could not open report: ${esc(err.message)}</div>`);
       });
+      return;
+    }
+    const storylineBtn = event.target.closest('[data-run-action="view-storyline-step"]');
+    if (storylineBtn?.dataset.stepId) {
+      document.querySelector(`.evidence-step-atoms[data-step-id="${storylineBtn.dataset.stepId}"]`)?.classList.toggle("hidden");
       return;
     }
     const runActionBtn = event.target.closest(".run-action-btn");

@@ -34,9 +34,14 @@ from .evidence_lifecycle_dashboard import (
     start_full_lifecycle_job,
     start_summary_job,
 )
-from .evidence_support_extract import (
-    generate_evidence_support_extract,
-    load_evidence_support_extract,
+from .evidence_support.service import (
+    load_claimability_report,
+    load_counter_evidence_report,
+    load_evidence_atoms,
+    load_evidence_support_status,
+    load_forensic_storyline,
+    load_hypothesis_support_report,
+    start_evidence_support_job,
 )
 from ..foc_causal_reconstruction.service import (
     causal_graph_payload,
@@ -424,28 +429,100 @@ def api_foc_reports_file():
     return jsonify(payload), 200
 
 
-@foc_bp.route("/api/foc/lifecycle/generate-evidence-support-extract", methods=["POST"])
-def api_foc_lifecycle_generate_evidence_support_extract():
+@foc_bp.route("/api/foc/evidence-support/run", methods=["POST"])
+def api_foc_evidence_support_run():
     body = request.get_json(silent=True) or {}
     case_id = str(body.get("case_id") or request.args.get("case_id") or "").strip()
     if not case_id:
         return jsonify({"error": "missing_case_id"}), 400
-    try:
-        payload = generate_evidence_support_extract(case_id)
-    except FileNotFoundError:
-        return jsonify({"error": "case_not_found", "case_id": case_id}), 404
+    payload = start_evidence_support_job(case_id, force=False)
+    if payload.get("error") == "case_not_found":
+        return jsonify(payload), 404
+    if payload.get("error") == "evidence_support_already_running":
+        return jsonify(payload), 409
+    if payload.get("status") == "already_current":
+        return jsonify(payload), 200
+    return jsonify(payload), 202
+
+
+@foc_bp.route("/api/foc/evidence-support/regenerate", methods=["POST"])
+def api_foc_evidence_support_regenerate():
+    body = request.get_json(silent=True) or {}
+    case_id = str(body.get("case_id") or request.args.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    payload = start_evidence_support_job(case_id, force=True)
+    if payload.get("error") == "case_not_found":
+        return jsonify(payload), 404
+    if payload.get("error") == "evidence_support_already_running":
+        return jsonify(payload), 409
+    return jsonify(payload), 202
+
+
+@foc_bp.route("/api/foc/evidence-support/status", methods=["GET"])
+def api_foc_evidence_support_status():
+    case_id = str(request.args.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    payload = load_evidence_support_status(case_id)
     if payload.get("error") == "case_not_found":
         return jsonify(payload), 404
     return jsonify(payload), 200
 
 
-@foc_bp.route("/api/foc/evidence-support-extract", methods=["GET"])
-def api_foc_evidence_support_extract():
+@foc_bp.route("/api/foc/evidence-support/report", methods=["GET"])
+def api_foc_evidence_support_report():
     case_id = str(request.args.get("case_id") or "").strip()
     if not case_id:
         return jsonify({"error": "missing_case_id"}), 400
-    payload = load_evidence_support_extract(case_id)
-    if payload.get("error") == "case_not_found":
+    payload = load_hypothesis_support_report(case_id)
+    if payload.get("error") in {"case_not_found", "not_generated"}:
+        return jsonify(payload), 404
+    return jsonify(payload), 200
+
+
+@foc_bp.route("/api/foc/evidence-support/storyline", methods=["GET"])
+def api_foc_evidence_support_storyline():
+    case_id = str(request.args.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    payload = load_forensic_storyline(case_id)
+    if payload.get("error") in {"case_not_found", "not_generated"}:
+        return jsonify(payload), 404
+    return jsonify(payload), 200
+
+
+@foc_bp.route("/api/foc/evidence-support/claimability", methods=["GET"])
+def api_foc_evidence_support_claimability():
+    case_id = str(request.args.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    payload = load_claimability_report(case_id)
+    if payload.get("error") in {"case_not_found", "not_generated"}:
+        return jsonify(payload), 404
+    return jsonify(payload), 200
+
+
+@foc_bp.route("/api/foc/evidence-support/counter-evidence", methods=["GET"])
+def api_foc_evidence_support_counter_evidence():
+    case_id = str(request.args.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    payload = load_counter_evidence_report(case_id)
+    if payload.get("error") in {"case_not_found", "not_generated"}:
+        return jsonify(payload), 404
+    return jsonify(payload), 200
+
+
+@foc_bp.route("/api/foc/evidence-support/atoms", methods=["GET"])
+def api_foc_evidence_support_atoms():
+    case_id = str(request.args.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    limit_raw = request.args.get("limit")
+    limit = int(limit_raw) if limit_raw and limit_raw.isdigit() else 200
+    payload = load_evidence_atoms(case_id, limit=limit)
+    if payload.get("error") in {"case_not_found", "not_generated"}:
         return jsonify(payload), 404
     return jsonify(payload), 200
 

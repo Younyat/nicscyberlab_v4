@@ -232,6 +232,191 @@ def _count_custody_events(case_dir: Path) -> int:
         return 0
 
 
+def _build_memory_analysis_detail(case_dir: Path) -> dict:
+    memory_findings = _json_load(case_dir / "analysis" / "04_memory" / "memory_findings.json") or {}
+    findings = memory_findings.get("findings") or {}
+    results = findings.get("results") or []
+    standard_plugins = {
+        "banners": "Kernel banner extraction",
+        "pslist": "Process listing",
+        "sockstat": "Socket listing",
+        "lsmod": "Loaded modules",
+        "check_syscall": "Syscall checks",
+        "bash": "Shell history",
+    }
+    plugin_counts = {key: {"completed": 0, "failed": 0, "partial": 0, "blocked": 0} for key in standard_plugins}
+    kernel_symbols_available = 0
+    dumps_opened = 0
+    useful_memory_atoms = 0
+    blocked_plugins: list[str] = []
+    partial_plugins: list[str] = []
+    dump_details: list[dict] = []
+
+    for result in results:
+        status = str(result.get("status") or "unknown")
+        if status in {"completed", "partial"}:
+            dumps_opened += 1
+        execution_report_path = result.get("execution_report_path")
+        execution_report = _json_load(Path(execution_report_path)) if execution_report_path else None
+        plugin_results = (execution_report or {}).get("plugin_results") or []
+        selected_symbol = (execution_report or {}).get("selected_symbol")
+        if selected_symbol:
+            kernel_symbols_available += 1
+        completed_plugins = set(result.get("completed_plugins") or [])
+        failed_plugins = set(result.get("failed_plugins") or [])
+        dump_plugin_status = {}
+        for plugin_key, plugin_label in standard_plugins.items():
+            plugin_result = next((item for item in plugin_results if str(item.get("plugin_key")) == plugin_key), None)
+            plugin_status = str((plugin_result or {}).get("status") or ("completed" if plugin_key in completed_plugins else "failed" if plugin_key in failed_plugins else "not_evaluable"))
+            if plugin_status == "completed":
+                plugin_counts[plugin_key]["completed"] += 1
+                useful_memory_atoms += 1
+            elif plugin_status in {"partial", "partial_missing_symbols", "partial_memory_plugin_coverage"}:
+                plugin_counts[plugin_key]["partial"] += 1
+                partial_plugins.append(plugin_key)
+            elif plugin_status in {"blocked", "skipped", "not_available"}:
+                plugin_counts[plugin_key]["blocked"] += 1
+                blocked_plugins.append(plugin_key)
+            else:
+                plugin_counts[plugin_key]["failed"] += 1
+                blocked_plugins.append(plugin_key)
+            dump_plugin_status[plugin_key] = {
+                "label": plugin_label,
+                "status": plugin_status,
+                "summary": (plugin_result or {}).get("summary") or {},
+                "symbol_table_status": (plugin_result or {}).get("symbol_table_status"),
+                "missing_requirement": (plugin_result or {}).get("missing_requirement"),
+            }
+        dump_details.append(
+            {
+                "dump_id": result.get("dump_id"),
+                "status": status,
+                "detected_os": result.get("detected_os"),
+                "detected_kernel": result.get("detected_kernel"),
+                "symbols_available": bool(selected_symbol),
+                "selected_symbol": selected_symbol,
+                "plugin_statuses": dump_plugin_status,
+            }
+        )
+
+    dumps_total = len(results)
+    kernel_symbols_state = "yes" if dumps_total and kernel_symbols_available == dumps_total else "partial" if kernel_symbols_available else "no"
+    overall_status = str(memory_findings.get("status") or "not_available")
+    usefulness = "blocked"
+    reason = "Memory analysis did not produce effective plugin output."
+    if dumps_opened and useful_memory_atoms:
+        usefulness = "useful"
+        reason = "Memory dumps opened successfully and produced usable plugin output."
+    elif dumps_opened:
+        usefulness = "partial"
+        reason = "Memory dumps opened successfully, but plugin coverage is partial or non-useful for some categories."
+    elif dumps_total:
+        usefulness = "blocked"
+        reason = "Memory dumps were discovered, but no dump produced an effective analysis pass."
+    if memory_findings.get("limitations"):
+        reason = str((memory_findings.get("limitations") or [reason])[0])
+    return {
+        "status": overall_status,
+        "dumps_total": dumps_total,
+        "dumps_analyzed": findings.get("dumps_analyzed") or dumps_opened,
+        "memory_dump_opened_successfully": "yes" if dumps_opened else "no",
+        "kernel_banner_extracted": "yes" if plugin_counts["banners"]["completed"] else "no",
+        "compatible_symbols_available": kernel_symbols_state,
+        "memory_layer_usefulness": usefulness,
+        "reason": reason,
+        "blocked_plugins": sorted(set(blocked_plugins)),
+        "partial_plugins": sorted(set(partial_plugins)),
+        "useful_memory_atoms_extracted": useful_memory_atoms,
+        "plugins": [
+            {
+                "plugin_key": plugin_key,
+                "label": plugin_label,
+                "completed_dumps": counts["completed"],
+                "partial_dumps": counts["partial"],
+                "failed_dumps": counts["failed"],
+                "blocked_dumps": counts["blocked"],
+                "status": "yes" if counts["completed"] == dumps_total and dumps_total else "partial" if (counts["completed"] or counts["partial"]) else "no",
+            }
+            for plugin_key, plugin_label in standard_plugins.items()
+            for counts in [plugin_counts[plugin_key]]
+        ],
+        "dumps": dump_details,
+    }
+
+
+def _build_alert_triage_summary(bundle: dict, intervention: dict, alert_findings: dict) -> dict:
+    alert_correlation = bundle.get("alert_correlation_summary") or {}
+    findings = (alert_findings or {}).get("findings") or {}
+    total_alerts = findings.get("alerts_total") or alert_correlation.get("total_alerts") or 0
+    correlated = alert_correlation.get("correlated_alerts")
+    unresolved = alert_correlation.get("unresolved_alerts")
+    relevant = alert_correlation.get("relevant_alerts")
+    noise_alerts = alert_correlation.get("noise_alerts")
+    inside_window = relevant if relevant is not None else "not_available"
+    outside_window = max(int(total_alerts) - int(relevant), 0) if relevant is not None and total_alerts is not None else "not_available"
+    correlated_int = int(correlated or 0)
+    uncorrelated_int = int(unresolved or 0)
+    total_int = int(total_alerts or 0)
+    noise_ratio = round((float(noise_alerts or 0) / float(total_int)), 4) if total_int else None
+    selected_trigger = intervention.get("trigger") or intervention.get("triggering_alert_name") or "not_available"
+    selected_source = intervention.get("triggering_alert_original_sensor") or intervention.get("triggering_alert_collector") or "not_available"
+    top_rules = findings.get("top_rules") or {}
+    rejected_candidates = []
+    for rule_id, count in list(top_rules.items())[:5]:
+        if str(rule_id) == str(intervention.get("triggering_alert_rule_id")):
+            continue
+        rejected_candidates.append(f"rule {rule_id} observed {count} times")
+    return {
+        "total_alerts_indexed": total_alerts,
+        "alerts_inside_selected_case_window": inside_window,
+        "alerts_outside_selected_case_window": outside_window,
+        "correlated_alerts": correlated_int,
+        "uncorrelated_alerts": uncorrelated_int,
+        "trigger_candidates_evaluated": intervention.get("candidate_triggers_evaluated") or 0,
+        "selected_trigger": selected_trigger,
+        "selected_trigger_rule": intervention.get("triggering_alert_rule_id") or "not_available",
+        "selected_trigger_source": selected_source,
+        "selected_trigger_score": intervention.get("trigger_selection_score"),
+        "reason_for_selection": intervention.get("trigger_selection_reason") or intervention.get("trigger_selection_method") or "not_available",
+        "stronger_trigger_available": intervention.get("stronger_trigger_available"),
+        "rejected_candidates_summary": rejected_candidates,
+        "noise_ratio": noise_ratio,
+        "source_label": "executive summary snapshot",
+    }
+
+
+def _build_evidence_story(case_dir: Path) -> dict:
+    storyline = _json_load(case_dir / "derived" / "evidence_support" / "forensic_storyline.json") or {}
+    claimability = _json_load(case_dir / "derived" / "evidence_support" / "claimability_report.json") or {}
+    hypothesis = _json_load(case_dir / "derived" / "evidence_support" / "hypothesis_support_report.json") or {}
+    steps = list(storyline.get("steps") or [])
+    has_modbus = any("modbus" in str(step.get("event_description") or "").lower() for step in steps)
+    has_trigger_mismatch = any("trigger" in str(step.get("event_description") or "").lower() for step in steps)
+    sentences = [
+        "The preserved evidence indicates Modbus/TCP activity targeting the PLC during the evaluated incident window."
+        if has_modbus
+        else "The preserved evidence indicates OT-network activity during the evaluated incident window.",
+        "Network evidence confirms the presence of Modbus/TCP traffic, while OT state evidence provides partial support for a process-level effect.",
+        "The forensic acquisition was triggered by a host or FIM-oriented alert, not by a directly confirmed OT alert."
+        if has_trigger_mismatch
+        else "The preserved case includes a trigger path that can be compared against the reconstructed attack path.",
+        "The preserved case evidence was processed through the multilayer forensic pipeline and produced useful outputs across the expected analysis layers.",
+        "The resulting reconstruction supports a partial causal explanation, but not full packet-level register and value causality."
+        if hypothesis
+        else "The resulting reconstruction remains bounded by explicit temporal, integrity, and protocol-specific limitations.",
+    ]
+    summary_text = " ".join(sentences)
+    return {
+        "status": "available" if steps else "not_available",
+        "source_label": "evidence support extract",
+        "summary_text": summary_text,
+        "step_count": len(steps),
+        "supported_claim_count": len(claimability.get("supported_claims") or []),
+        "partially_supported_claim_count": len(claimability.get("partially_supported_claims") or []),
+        "unsupported_claim_count": len(claimability.get("unsupported_or_not_claimable_claims") or []),
+    }
+
+
 def _build_multilayer_summary(case_dir: Path, analysis_status: dict, visual_summary: dict, summary_path: Path) -> dict:
     phases = analysis_status.get("phases") or {}
     visual_layers = visual_summary.get("layer_statuses") or {}
@@ -356,6 +541,8 @@ def _build_integrity_summary(case_dir: Path) -> dict:
         "custody_events": _count_custody_events(case_dir),
         "artifacts_declared": artifact_count,
         "overall_status": integrity.get("status") or ("completed" if manifest_present and custody_present else "partial"),
+        "validation_execution_status": integrity.get("status") or ("completed" if manifest_present and custody_present else "partial"),
+        "validation_output_status": "useful" if integrity else "not_available",
         "verified_artifacts": verification.get("verified_artifacts") or integrity.get("verified_artifacts"),
         "failed_artifacts": verification.get("failed_artifacts") or integrity.get("failed_artifacts"),
         "main_limitation": (integrity.get("limitations") or [None])[0],
@@ -407,6 +594,14 @@ def _build_uncertainty_summary(case_dir: Path, time_sync_status: dict, causal_un
     source = temporal.get("time_sync_source") or ("preserved_case_metadata" if (case_dir / "metadata" / "time_sync.json").exists() else "current_measurement_unavailable")
     node_clock_sync_status = temporal.get("node_clock_synchronization_status") or _derive_temporal_sync_status(time_sync_status)
     causal_temporal_ordering_confidence = temporal.get("causal_temporal_ordering_confidence") or temporal.get("temporal_confidence_state") or "unknown"
+    available_timestamp_resolvability = temporal.get("evidence_timestamp_resolvability") or "not_applicable"
+    evidence_timestamp_availability = temporal.get("evidence_timestamp_availability") or "not_applicable"
+    if evidence_timestamp_availability in {"partial", "unknown", "not_available"} or causal_temporal_ordering_confidence in {"limited", "ambiguous", "unknown"}:
+        causal_edge_timestamp_coverage = "partial"
+    elif evidence_timestamp_availability in {"full", "confirmed"}:
+        causal_edge_timestamp_coverage = "full"
+    else:
+        causal_edge_timestamp_coverage = evidence_timestamp_availability
     before_after_available = bool(
         temporal.get("before_after_clock_correction_data_available")
         or (case_dir / "metadata" / "time_sync_before.json").exists()
@@ -420,8 +615,10 @@ def _build_uncertainty_summary(case_dir: Path, time_sync_status: dict, causal_un
         "temporal_confidence": causal_temporal_ordering_confidence,
         "source_label": "causal reconstruction artifacts",
         "node_clock_synchronization_status": node_clock_sync_status,
-        "evidence_timestamp_availability": temporal.get("evidence_timestamp_availability") or "not_applicable",
-        "evidence_timestamp_resolvability": temporal.get("evidence_timestamp_resolvability") or "not_applicable",
+        "evidence_timestamp_availability": evidence_timestamp_availability,
+        "evidence_timestamp_resolvability": available_timestamp_resolvability,
+        "available_timestamp_resolvability": available_timestamp_resolvability,
+        "causal_edge_timestamp_coverage": causal_edge_timestamp_coverage,
         "causal_temporal_ordering_confidence": causal_temporal_ordering_confidence,
         "causal_temporal_ordering_reason": temporal.get("causal_temporal_ordering_reason"),
         "causal_temporal_ordering_limiting_factor": temporal.get("causal_temporal_ordering_limiting_factor"),
@@ -941,7 +1138,7 @@ def _build_final_conclusion(summary: dict) -> dict:
     if extract.get("status") == "available" and global_support_level:
         extract_clause = f" The normalized Evidence Support Extract assesses the controlling hypothesis as {str(global_support_level).replace('_', ' ')}."
         if global_support_level in {"moderate_support", "strong_support"}:
-            supported.append(f"The Evidence Support Extract assesses hypothesis H1 as {global_support_level.replace('_', ' ')} across independently-sourced layers.")
+            supported.append(f"Moderate hypothesis support: the Evidence-Based Hypothesis Support layer assesses hypothesis H1 as {global_support_level.replace('_', ' ')} across independently-sourced layers.")
         elif global_support_level == "contradicted":
             degraded.append("The Evidence Support Extract found at least one contradiction against the controlling hypothesis.")
         else:
@@ -949,7 +1146,7 @@ def _build_final_conclusion(summary: dict) -> dict:
 
     summary_text = (
         "The preserved evidence supports a partial causal-forensic reconstruction of a controlled OT incident. "
-        f"The multilayer analysis {multilayer.get('execution_status') or 'remains unavailable'} and produced "
+        f"The evidence processing coverage is {multilayer.get('analysis_confidence') or 'unknown'} because the multilayer analysis {multilayer.get('execution_status') or 'remains unavailable'} and produced "
         f"useful outputs across {multilayer.get('layers_with_useful_output') or 0} layers. "
         f"The causal reconstruction recovered {causal.get('recovered_edges') or 0} of {causal.get('expected_edges') or 0} "
         f"expected causal relations and degraded {causal.get('degraded_edges') or 0} relations due to partial or inferred evidence. "
@@ -986,6 +1183,12 @@ def build_evidence_lifecycle_summary(case_id: str) -> dict:
     integrity = _build_integrity_summary(case_dir)
     uncertainty = _build_uncertainty_summary(case_dir, time_sync_status, causal_uncertainty)
     causal = _build_causal_summary(case_id, case_dir, bundle, causal_status, causal_metrics, causal_uncertainty, intervention)
+    memory_detail = _build_memory_analysis_detail(case_dir)
+    alert_triage = _build_alert_triage_summary(bundle, intervention, _json_load(case_dir / "analysis" / "07_alerts" / "alert_findings.json") or {})
+    evidence_story = _build_evidence_story(case_dir)
+
+    integrity["case_wide_integrity_completeness"] = ((uncertainty.get("integrity") or {}).get("case_wide_integrity_status")) or integrity.get("overall_status")
+    integrity["case_wide_integrity_ratio"] = ((uncertainty.get("integrity") or {}).get("case_wide_integrity_ratio"))
 
     evidence_lifecycle = {
         "status": "preserved_and_analyzed" if integrity.get("manifest_present") and multilayer.get("execution_status") == "completed" else "partial",
@@ -1017,12 +1220,14 @@ def build_evidence_lifecycle_summary(case_id: str) -> dict:
         "evidence_lifecycle_status": evidence_lifecycle.get("status"),
         "multilayer_analysis_status": multilayer.get("execution_status"),
         "causal_reconstruction_status": causal.get("status"),
+        "evidence_processing_coverage": multilayer.get("analysis_confidence") or "unknown",
         "evidence_analysis_confidence": multilayer.get("analysis_confidence") or "unknown",
         "forensic_reconstruction_confidence": visual_summary.get("forensic_reconstruction_status") or "unknown",
         "causal_interpretation_confidence": causal.get("causal_interpretation_confidence") or "unknown",
         "main_limitation": causal.get("main_limitation") or multilayer.get("main_limitation") or uncertainty.get("main_limitation"),
         "generated_report_path": analysis_status.get("forensic_analysis_report_path"),
         "source_label": "executive summary snapshot",
+        "evidence_processing_interpretation": "The evidence processing coverage is strong, while the forensic reconstruction remains partial and the causal interpretation remains limited.",
     }
 
     trigger_summary = {
@@ -1039,9 +1244,9 @@ def build_evidence_lifecycle_summary(case_id: str) -> dict:
         "target_nodes": intervention.get("target_nodes") or [],
     }
 
-    # Local import to avoid a module-level circular import: evidence_support_extract
+    # Local import to avoid a module-level circular import: evidence_support.service
     # itself imports several helpers from this module.
-    from .evidence_support_extract import evidence_support_extract_stub
+    from .evidence_support.service import evidence_support_extract_stub
 
     summary = {
         "case_id": case_id,
@@ -1060,12 +1265,15 @@ def build_evidence_lifecycle_summary(case_id: str) -> dict:
         "uncertainty_summary": uncertainty,
         "integrity_summary": integrity,
         "evidence_support_extract": evidence_support_extract_stub(case_id, case_dir),
+        "memory_analysis_detail": memory_detail,
+        "alert_triage_summary": alert_triage,
+        "evidence_based_reconstruction_story": evidence_story,
         "reports_and_artifacts": report_index,
         "panel_sources": {
             "executive_summary": {"source_label": "executive summary snapshot", "artifact_path": relative_path(summary_path)},
             "live_pipeline": {"source_label": "live pipeline status"},
             "causal_reconstruction": {"source_label": "causal reconstruction artifacts", "artifact_path": relative_path(case_dir / "derived" / "reconstruction" / "causal_status.json")},
-            "evidence_support_extract": {"source_label": "evidence support extract", "artifact_path": relative_path(case_dir / "derived" / "executive" / "evidence_support_extract.json")},
+            "evidence_support_extract": {"source_label": "evidence-based hypothesis support", "artifact_path": relative_path(case_dir / "derived" / "evidence_support" / "hypothesis_support_report.json")},
         },
         "final_forensic_conclusion": {},
         "limitations": [],

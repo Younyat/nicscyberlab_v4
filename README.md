@@ -2528,16 +2528,22 @@ The `FOC Scientific Evidence Lifecycle Dashboard` shows:
   - run/regenerate multilayer analysis, measure/fix time synchronization, run/regenerate causal reconstruction, run full evidence lifecycle, generate executive summary
 - **Multilayer Forensic Analysis**
   - compact layer matrix with `status`, `usefulness_status`, artifact path, logs, summary, and limitations
+- **Memory Analysis Coverage**
+  - per-plugin memory coverage derived from preserved Volatility 3 execution reports: banner extraction, process listing, socket listing, loaded modules, syscall checks, shell history, symbol availability, and explicit blocked/partial plugin states
+- **Alert Triage and Trigger Selection**
+  - total indexed alerts, case-window relevance, correlated vs uncorrelated alerts, evaluated trigger candidates, selected trigger score/source/rule, stronger-trigger availability, rejected-candidate summary, and noise ratio
 - **Causal Reconstruction Summary**
   - CPR, weighted CPR, recovered/degraded/ambiguous/missing edges, reconstruction confidence, and main limitation
 - **Uncertainty Summary**
-  - temporal confidence, max clock offset, uncertainty window, synchronization state, correction state, and worst node
+  - clock synchronization, evidence timestamp availability, available timestamp resolvability, causal-edge timestamp coverage, causal temporal ordering confidence, max clock offset, uncertainty window, correction state, integrity-validation execution vs case-wide integrity completeness, and worst node
 - **Trigger Path vs Causal Attack Path**
   - explicit comparison between the acquisition trigger and the causal scenario under evaluation, with a third "cannot be confirmed" state distinct from "aligned" and "misaligned"
 - **Modbus Specificity**
   - protocol, function-code, register, value, target PLC, and PLC/SCADA state precision with `confirmed` / `partial` / `not_available` semantics
-- **Evidence Support Extract**
-  - normalized, hypothesis-level forensic support assessment derived from the causal graph and existing multilayer findings (see dedicated section below)
+- **Evidence-Based Reconstruction Story**
+  - short narrative built only from preserved evidence and already-derived support artifacts; it does not invent causal precision or hide unsupported claims
+- **Evidence-Based Hypothesis Support**
+  - atom-level forensic reasoning layer: per-layer evidence atoms, cross-layer support matrix, hypothesis support report, forensic storyline, claimability boundary, and counter-evidence/gaps (see dedicated section below)
 - **Final Forensic Conclusion**
   - supported conclusions, degraded or ambiguous conclusions, and unsupported or not-yet-claimable conclusions
 - **Reports and Artifacts**
@@ -2552,7 +2558,7 @@ The dashboard now labels the provenance of each major panel explicitly instead o
 - `Source: executive summary snapshot`
 - `Source: live pipeline status`
 - `Source: causal reconstruction artifacts`
-- `Source: evidence support extract`
+- `Source: evidence-based hypothesis support`
 
 If the executive summary is stale, that state is surfaced near the top of the executive panel, not buried as a minor tag. The banner reports:
 
@@ -2560,7 +2566,7 @@ If the executive summary is stale, that state is surfaced near the top of the ex
 - the stale reason, for example `Causal reconstruction artifacts were modified after the executive summary was generated.`
 - the required action, for example `regenerate executive summary`
 
-The same rule applies to the `Evidence Support Extract`: if its causal inputs changed after generation, the dashboard marks the extract as stale and warns that its metrics are not authoritative until regenerated.
+The same rule applies to `Evidence-Based Hypothesis Support`: if any of its eleven tracked source artifacts changed after generation, the dashboard marks it `stale` and warns that its metrics are not authoritative until regenerated; if it has never been generated, it shows `not_generated` rather than silently omitting the section.
 
 #### Multilayer analysis vs causal reconstruction
 
@@ -2604,11 +2610,18 @@ The uncertainty panel now separates infrastructure clock state from artifact tim
 
 - `Clock synchronization`
 - `Evidence timestamp availability`
-- `Evidence timestamp resolvability`
+- `Available timestamp resolvability`
+- `Causal edge timestamp coverage`
 - `Causal temporal ordering confidence`
 - `Reason`
 
 This is deliberate. A synchronized infrastructure does **not** guarantee that every forensic artifact contains usable timestamps for causal ordering.
+
+The intended reading is:
+
+- available timestamps may resolve cleanly
+- some causal edges may still lack the timestamps required to order them
+- therefore `Clock synchronization: synchronized` can coexist with `Causal temporal ordering confidence: limited`
 
 #### Trigger path vs reconstructed attack path
 
@@ -2622,6 +2635,25 @@ When the preserved forensic case was acquired because of a host/FIM-oriented tri
 - `Scientific interpretation: valid case with acquisition-trigger limitation`
 
 This is not presented as an error. It is presented as a controlled scientific limitation of the preserved case.
+
+#### Executive wording refinements
+
+The executive surface intentionally distinguishes three different scientific claims instead of collapsing them into a single confidence label:
+
+- `Evidence processing coverage`
+  - how completely the preserved evidence was processed across the expected multilayer pipeline
+- `Forensic reconstruction confidence`
+  - how strong the reconstruction remains at the multilayer forensic level
+- `Causal interpretation confidence`
+  - how strong the derived causal interpretation remains once temporal, integrity, trigger-path, and Modbus-specific limitations are applied
+
+This is why the dashboard may report:
+
+- `Evidence processing coverage: strong`
+- `Forensic reconstruction confidence: partial`
+- `Causal interpretation confidence: limited`
+
+without contradiction.
 
 #### Modbus specificity
 
@@ -2664,8 +2696,14 @@ The dashboard uses these lightweight API surfaces:
 - `GET /api/foc/reports/file?case_id=...&type=...`
 - `POST /api/foc/time-sync/measure`
 - `POST /api/foc/time-sync/fix`
-- `POST /api/foc/lifecycle/generate-evidence-support-extract`
-- `GET /api/foc/evidence-support-extract?case_id=...`
+- `POST /api/foc/evidence-support/run`
+- `POST /api/foc/evidence-support/regenerate`
+- `GET /api/foc/evidence-support/status?case_id=...`
+- `GET /api/foc/evidence-support/report?case_id=...`
+- `GET /api/foc/evidence-support/storyline?case_id=...`
+- `GET /api/foc/evidence-support/claimability?case_id=...`
+- `GET /api/foc/evidence-support/counter-evidence?case_id=...`
+- `GET /api/foc/evidence-support/atoms?case_id=...&limit=...`
 
 These routes are **adapters over existing services**, not a second forensic pipeline:
 
@@ -2726,6 +2764,34 @@ The dashboard is designed to stay lightweight:
 When an analyst opens a report from `Reports and Artifacts`, the content is fetched on demand from `GET /api/foc/reports/file`.
 
 This keeps the page usable as an executive decision surface while preserving drill-down access to the real derived or preserved artifacts.
+
+#### Evidence-Based Hypothesis Support and Forensic Storyline module (2026-06-23)
+
+This round refines the temporal model, makes the multi-vector acquisition mismatch explicit, and replaces the lightweight `Evidence Support Extract` with a much more rigorous, atom-level forensic reasoning layer. None of it runs automatically: every heavy step stays strictly on-demand, exactly like the rest of this dashboard.
+
+**Temporal confidence is now four distinct fields, not one.** The previous model derived a single `temporal_confidence_state` purely from the clock-offset window, which produced an apparent contradiction: `max clock offset: 0s`, `synchronized: true`, yet `temporal_confidence: limited`. `uncertainty/budget.py` now exposes `node_clock_synchronization_status`, `evidence_timestamp_availability`, `evidence_timestamp_resolvability`, and `causal_temporal_ordering_confidence` (with an explicit `causal_temporal_ordering_reason` and a static `temporal_model_note`: *"A synchronized infrastructure does not automatically mean that all forensic artifacts contain usable timestamps for causal ordering."*). The combined confidence takes the **worst** of the clock-based state and the timestamp-availability/resolvability state, computed from the causal graph's own edges (3 of 8 edges in this case have a declared-but-unresolved temporal check) — it is no longer capped by clock offset alone. `temporal_confidence_state` is kept as a backward-compatible alias of the new combined field.
+
+**Multi-vector acquisition-trigger mismatch is now explicit.** When the acquisition trigger is host/FIM-oriented and the causal path is OT/Modbus-oriented, `trigger_vs_causal_path` now carries `mismatch_label: "multi-vector_acquisition_trigger_mismatch"` and the verbatim message: *"The preserved case was triggered by a host or FIM-oriented alert, while the causal reconstruction evaluates an OT Modbus path... This is not an error. It is a scientific limitation and should be reported as such."*
+
+**New module: Evidence-Based Hypothesis Support** (`app_core/infrastructure/foc_reconstruction/evidence_support/`), replacing `evidence_support_extract.py`'s orchestration (its two generic helpers, `_build_hypotheses`/`_LAYER_LABELS`, are still reused). It performs real per-layer triage — never reanalysis, never re-execution of forensic tools — over already-preserved/derived artifacts:
+
+- **Memory**: parses already-written Volatility3 plugin text output (`vol3_pslist.txt`, `vol3_sockstat.txt`, `vol3_bash.txt`) per dump.
+- **Network**: re-checks Modbus packet fields via a read-only `tshark` subprocess (`mbtcp.trans_id`, `modbus.func_code`, `modbus.write_reference_num`, etc.) over the preserved pcaps — for this case, this produces a direct, packet-level negative result: **zero write-function packets across all 10 preserved pcaps**, surfaced as explicit counter-evidence rather than hidden.
+- **Disk**: bounded reads of already-recovered `passwd`/`auth.log`/`bash_history` files.
+- **OT**: function-code aggregates from `ot_findings.json` — this case shows only read-function codes (1, 3), no write code, a second independent confirmation of the network-layer finding.
+- **Alerts**: IDS signature hits (including the `"...Modbus write multiple registers"` signature, explicitly flagged as a signature-name claim, not a packet-level confirmation) plus the reused trigger/causal-path mismatch.
+- **Timeline**: causal-graph-anchored event matching (not a raw dump of the case's 350 timeline events), plus a third independent confirmation that `ot:non_write_function` dominates with zero `ot:write_function` events.
+- **Custody / Causal graph**: reuse the dashboard's existing integrity summary and the causal graph's own edges directly.
+
+Each extracted observation becomes an **evidence atom** (`atom_id`, `evidence_layer`, `support_direction` ∈ `{supports, partially_supports, contradicts, neutral, not_evaluable}`, `support_strength`, `timestamp_status`, `limitation`, `raw_reference`, …) — 51 atoms for this case, all traceable to a real source file, none fabricated. Atoms are routed to the specific causal edge(s) they are topical evidence for (not merely bucketed by shared layer), then classified per edge into `confirmed_by_multiple_layers / supported_by_single_layer / partially_supported / inferred / contradicted / not_evaluable / temporally_unresolved`. The global support level is computed with a hard rule: it can never reach `strong_support` unless at least two relations are cross-layer-confirmed, zero are contradicted, and zero are temporally unresolved — for this case it resolves to **`moderate_support`**, matching the required scientific conclusion exactly (network write-absence + OT read-only codes + the trigger/causal mismatch all register as real contradictions on specific edges, while protocol-presence relations remain multi-layer confirmed).
+
+Produces 7 derived outputs under `derived/evidence_support/`: `evidence_atoms.jsonl`, `evidence_triage_report.json`, `cross_layer_support_matrix.json`, `hypothesis_support_report.json`, `forensic_storyline.json` (7 atom-backed steps, each with `supporting_atoms`/`timestamp_status`/`limitation`), `claimability_report.json` (supported / partially supported / unsupported-or-not-yet-claimable, including `"Direct OT alert to forensic acquisition link."`), and `counter_evidence_report.json`. `derived/executive/evidence_support_extract.json` is no longer written separately — the executive summary's stub reads `hypothesis_support_report.json` directly.
+
+Runs as a background job reusing the dashboard's existing job primitives (`_new_job`/`_set_job`/`_RUNNING_JOB_THREADS`) behind `POST /api/foc/evidence-support/run` (skip-if-current) and `/regenerate` (force), polled via the existing `/api/foc/lifecycle/job-status` endpoint — no new polling mechanism. Five new GET endpoints serve the generated reports read-only, never triggering generation. Staleness is checked against eleven source artifacts (not just the causal graph alone, as the prior module did), with explicit `not_generated` / `stale` / `current` states surfaced in the UI exactly like every other lifecycle artifact.
+
+The dashboard's `Evidence Support Extract` section is replaced by `Evidence-Based Hypothesis Support`, with five cards: hypothesis support summary, an 8-layer × 6-column contribution matrix, the atom-backed storyline (each step has a "View supporting evidence" toggle), the claimability boundary, and evidence gaps/counter-evidence — all lazy-loaded only on `View Details`, reusing the existing stale-banner and `.run-action-btn` delegation patterns.
+
+Nothing in this round touches acquisition, preservation, the original `manifest.json`/`chain_of_custody.log`, attack execution, detection, trigger selection, or the underlying memory/network/disk/OT analysis engines — `tshark` and the Volatility3/Sleuthkit text parsers are invoked read-only against already-acquired pcaps and already-written plugin output, never against raw dumps or disk images, and only on explicit user demand.
 
 #### Endurecimiento científico de la Scientific Evidence Lifecycle Dashboard (2026-06-23)
 

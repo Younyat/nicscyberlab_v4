@@ -179,6 +179,36 @@
 
         <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <div class="glass rounded-[28px] p-6">
+            <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Memory Analysis Coverage</div>
+            <div class="text-xs text-cyan-300 mt-2">Source: executive summary snapshot derived from Volatility 3 execution reports</div>
+            <h2 class="text-2xl font-black mt-2">Memory Layer Usefulness</h2>
+            <div id="memory-analysis-overview" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5"></div>
+            <div class="overflow-x-auto mt-5">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="text-left text-slate-400 uppercase tracking-[0.16em] text-[11px]">
+                    <th class="pb-3 pr-4">Plugin / category</th>
+                    <th class="pb-3 pr-4">Status</th>
+                    <th class="pb-3 pr-4">Completed dumps</th>
+                    <th class="pb-3 pr-4">Partial dumps</th>
+                    <th class="pb-3 pr-4">Failed / blocked</th>
+                  </tr>
+                </thead>
+                <tbody id="memory-plugin-matrix"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="glass rounded-[28px] p-6">
+            <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Alert Triage and Trigger Selection</div>
+            <div class="text-xs text-cyan-300 mt-2">Source: executive summary snapshot derived from alerts analysis and preserved intervention attestations</div>
+            <h2 class="text-2xl font-black mt-2">Alert Noise, Correlation, and Trigger Choice</h2>
+            <div id="alert-triage-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5"></div>
+            <div id="alert-triage-note" class="glass-soft rounded-[24px] p-4 mt-5 text-sm text-slate-300"></div>
+          </div>
+        </section>
+
+        <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div class="glass rounded-[28px] p-6">
             <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Causal Reconstruction Summary</div>
             <div class="text-xs text-cyan-300 mt-2">Source: causal reconstruction artifacts</div>
             <h2 class="text-2xl font-black mt-2">Recovered Path and CPR</h2>
@@ -208,20 +238,58 @@
         </section>
 
         <section class="glass rounded-[28px] p-6">
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Evidence-Based Reconstruction Story</div>
+          <div class="text-xs text-cyan-300 mt-2">Source: evidence support extract</div>
+          <h2 class="text-2xl font-black mt-2">Narrative Built From Preserved Evidence</h2>
+          <div id="evidence-story-panel" class="glass-soft rounded-[24px] p-5 mt-5 text-sm text-slate-300"></div>
+        </section>
+
+        <section class="glass rounded-[28px] p-6">
           <div class="flex items-center justify-between gap-3 flex-wrap">
             <div>
-              <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Evidence Support Extract</div>
-              <div class="text-xs text-cyan-300 mt-2">Source: evidence support extract</div>
-              <h2 class="text-2xl font-black mt-2">What The Evidence Actually Supports</h2>
+              <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Evidence-Based Hypothesis Support</div>
+              <div class="text-xs text-cyan-300 mt-2">Source: evidence-based hypothesis support (atom-level, on-demand)</div>
+              <h2 class="text-2xl font-black mt-2">What The Preserved Evidence Actually Supports</h2>
             </div>
             <div class="flex gap-3">
-              <button id="generate-extract-btn" class="btn-secondary rounded-2xl px-4 py-2 text-xs font-extrabold tracking-[0.16em] uppercase">Generate / Regenerate</button>
-              <button id="view-extract-btn" class="btn-secondary rounded-2xl px-4 py-2 text-xs font-extrabold tracking-[0.16em] uppercase">View Details</button>
+              <button id="generate-evidence-support-btn" class="btn-secondary rounded-2xl px-4 py-2 text-xs font-extrabold tracking-[0.16em] uppercase">Generate Evidence-Based Hypothesis Support</button>
+              <button id="view-evidence-support-btn" class="btn-secondary rounded-2xl px-4 py-2 text-xs font-extrabold tracking-[0.16em] uppercase">View Details</button>
             </div>
           </div>
-          <div id="extract-summary-note" class="mt-5"></div>
-          <div id="extract-summary" class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4 mt-5"></div>
-          <div id="extract-details" class="mt-5 hidden"></div>
+          <div id="evidence-support-note" class="mt-5"></div>
+          <div id="evidence-support-summary" class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4 mt-5"></div>
+          <div id="evidence-support-details" class="mt-5 hidden">
+            <div class="glass-soft rounded-[24px] p-5">
+              <div class="text-xs uppercase tracking-[0.22em] text-slate-300 font-black">A. Hypothesis Support Summary</div>
+              <div id="evidence-support-hypothesis" class="mt-4 text-sm text-slate-300"></div>
+            </div>
+            <div class="glass-soft rounded-[24px] p-5 mt-5">
+              <div class="text-xs uppercase tracking-[0.22em] text-slate-300 font-black">B. Layer Contribution Matrix</div>
+              <div id="evidence-support-matrix" class="mt-4 overflow-x-auto"></div>
+            </div>
+            <div class="glass-soft rounded-[24px] p-5 mt-5">
+              <div class="text-xs uppercase tracking-[0.22em] text-slate-300 font-black">C. Evidence Storyline</div>
+              <div id="evidence-support-storyline" class="mt-4 space-y-3 text-sm text-slate-300"></div>
+            </div>
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-5 mt-5">
+              <div class="glass-soft rounded-[24px] p-5">
+                <div class="text-xs uppercase tracking-[0.22em] text-emerald-300 font-black">D. Claimability — Supported</div>
+                <div id="evidence-support-claim-supported" class="space-y-2 mt-4 text-sm text-slate-300"></div>
+              </div>
+              <div class="glass-soft rounded-[24px] p-5">
+                <div class="text-xs uppercase tracking-[0.22em] text-amber-300 font-black">D. Claimability — Partially Supported</div>
+                <div id="evidence-support-claim-partial" class="space-y-2 mt-4 text-sm text-slate-300"></div>
+              </div>
+              <div class="glass-soft rounded-[24px] p-5">
+                <div class="text-xs uppercase tracking-[0.22em] text-rose-300 font-black">D. Claimability — Unsupported / Not Yet Claimable</div>
+                <div id="evidence-support-claim-unsupported" class="space-y-2 mt-4 text-sm text-slate-300"></div>
+              </div>
+            </div>
+            <div class="glass-soft rounded-[24px] p-5 mt-5">
+              <div class="text-xs uppercase tracking-[0.22em] text-slate-300 font-black">E. Evidence Gaps</div>
+              <div id="evidence-support-gaps" class="space-y-2 mt-4 text-sm text-slate-300"></div>
+            </div>
+          </div>
         </section>
 
         <section class="glass rounded-[28px] p-6">
@@ -281,6 +349,6 @@
     </div>
   </div>
 
-  <script src="js/foc_scientific_evidence_lifecycle.js?v=20260623-foc-evidence-lifecycle-1"></script>
+  <script src="js/foc_scientific_evidence_lifecycle.js?v=20260623-foc-evidence-lifecycle-2"></script>
 </body>
 </html>
