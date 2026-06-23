@@ -2456,6 +2456,169 @@ and can improve:
 
 without changing the preserved primary evidence itself. The change is only in the quality of the temporal calibration used to interpret already preserved events.
 
+### FOC Scientific Evidence Lifecycle Dashboard
+
+The platform now also exposes a second, separate scientific view:
+
+```bash
+app_core/static/foc_scientific_evidence_lifecycle.html
+```
+
+with controller:
+
+```bash
+app_core/static/js/foc_scientific_evidence_lifecycle.js
+```
+
+This view does **not** replace `FOC Reconstruction`. The technical `FOC Reconstruction` dashboard remains the deep operational and scientific workspace. The new page is an **executive scientific evidence dashboard** that answers a narrower question:
+
+```text
+What can we scientifically conclude from this execution, based on preserved evidence, multilayer analysis, causal reconstruction, and uncertainty?
+```
+
+It is intentionally lighter than the full FOC dashboard:
+
+- it does not re-run forensic tools on page load
+- it does not parse PCAPs, memory dumps, disk images, OT exports, or alerts in the browser
+- it does not fetch large raw reports by default
+- it only loads a lightweight case summary first
+- technical artifacts remain accessible on demand
+
+#### Canonical executive summary artifact
+
+The new dashboard reads a derived summary stored per case at:
+
+```bash
+app_core/infrastructure/forensics/evidence_store/<CASE_ID>/derived/executive/evidence_lifecycle_summary.json
+```
+
+This file is generated from already-preserved and already-generated artifacts. It does not modify primary evidence and does not replace the original analysis or causal outputs.
+
+Its schema centers on:
+
+- `execution_summary`
+- `trigger_summary`
+- `evidence_lifecycle`
+- `multilayer_analysis_summary`
+- `causal_summary`
+- `uncertainty_summary`
+- `integrity_summary`
+- `final_forensic_conclusion`
+- `limitations`
+- `next_required_actions`
+
+The file is intentionally a **decision surface**, not a raw dump. It consolidates:
+
+- the acquisition trigger that led to the preserved case
+- the current preservation and custody state
+- the multilayer forensic analysis usefulness matrix
+- the derived causal reconstruction state and CPR family of metrics
+- the preserved uncertainty budget
+- the distinction between supported, degraded, and unsupported claims
+
+#### View structure
+
+The `FOC Scientific Evidence Lifecycle Dashboard` shows:
+
+- **Executive Summary**
+  - case ID, scenario ID, evidence lifecycle status, multilayer status, causal status, evidence-analysis confidence, forensic-reconstruction confidence, causal-interpretation confidence, and main limitation
+- **Evidence Lifecycle Rail**
+  - scenario deployed, attack executed, detection observed, trigger selected, acquisition executed, evidence preserved, integrity/custody checked, time synchronization validated, multilayer analysis completed, timeline generated, cross-layer findings generated, causal reconstruction generated, and executive conclusion produced
+- **Lifecycle Actions**
+  - run/regenerate multilayer analysis, measure/fix time synchronization, run/regenerate causal reconstruction, run full evidence lifecycle, generate executive summary
+- **Multilayer Forensic Analysis**
+  - compact layer matrix with `status`, `usefulness_status`, artifact path, logs, summary, and limitations
+- **Causal Reconstruction Summary**
+  - CPR, weighted CPR, recovered/degraded/ambiguous/missing edges, reconstruction confidence, and main limitation
+- **Uncertainty Summary**
+  - temporal confidence, max clock offset, uncertainty window, synchronization state, correction state, and worst node
+- **Trigger Path vs Causal Attack Path**
+  - explicit comparison between the acquisition trigger and the causal scenario under evaluation
+- **Modbus Specificity**
+  - protocol, function-code, register, value, target PLC, and PLC/SCADA state precision with `confirmed` / `partial` / `not_available` semantics
+- **Final Forensic Conclusion**
+  - supported conclusions, degraded or ambiguous conclusions, and unsupported or not-yet-claimable conclusions
+- **Reports and Artifacts**
+  - on-demand access to preserved and derived reports without loading their content automatically
+- **Limitations and Next Required Actions**
+  - explicit scientific caveats and concrete follow-up actions
+
+#### Backend contract
+
+The dashboard uses these lightweight API surfaces:
+
+- `GET /api/foc/evidence-lifecycle-dashboard?case_id=...`
+- `POST /api/foc/evidence-lifecycle-dashboard/generate`
+- `POST /api/foc/lifecycle/run-multilayer-analysis`
+- `POST /api/foc/lifecycle/run-causal`
+- `POST /api/foc/lifecycle/run-full`
+- `POST /api/foc/lifecycle/generate-summary`
+- `GET /api/foc/lifecycle/job-status?job_id=...`
+- `GET /api/foc/reports/index?case_id=...`
+- `GET /api/foc/reports/file?case_id=...&type=...`
+- `POST /api/foc/time-sync/measure`
+- `POST /api/foc/time-sync/fix`
+
+These routes are **adapters over existing services**, not a second forensic pipeline:
+
+- multilayer execution reuses `run_analysis(...)`
+- time synchronization reuses `run_time_sync(...)`
+- causal reconstruction reuses `run_causal_reconstruction(...)`
+- the executive dashboard only consolidates the outputs they already generate
+
+#### Background job model
+
+Heavy operations remain button-driven and run in the background.
+
+The executive view never launches them automatically.
+
+The new dashboard tracks:
+
+- the native live subsystem states for:
+  - multilayer analysis
+  - time synchronization
+  - causal reconstruction
+- executive jobs for:
+  - summary generation
+  - full evidence lifecycle orchestration
+
+The `Run Full Evidence Lifecycle` action is intentionally an orchestrator, not a new analytic engine. It executes, in order:
+
+1. `Measure Clock Offset`
+2. `Run Multilayer Forensic Analysis`
+3. `Run Causal Reconstruction`
+4. `Generate Executive Summary`
+
+It reuses the existing runners and waits for their terminal states. It does not reimplement PCAP, memory, disk, OT, alert, or causal evaluators.
+
+#### Scientific interpretation rules enforced by the executive summary
+
+The executive summary does not collapse everything into a single "confidence" label.
+
+It keeps separate:
+
+- `evidence_analysis_confidence`
+- `forensic_reconstruction_confidence`
+- `causal_interpretation_confidence`
+
+It also keeps the trigger path and the causal path distinct. When the trigger that selected the forensic case is host/FIM-oriented but the causal scenario under evaluation is OT/Modbus-oriented, the dashboard states that mismatch explicitly rather than hiding it.
+
+Likewise, a completed phase is not treated as a useful phase only because a file exists. The dashboard inherits the multilayer usefulness semantics already normalized by `analysis/visual/analysis_visual_summary.json`.
+
+#### Technical access without initial payload explosion
+
+The dashboard is designed to stay lightweight:
+
+- the initial load consumes the executive summary and live status only
+- no giant alert array is loaded initially
+- no full markdown report is loaded initially
+- no full causal graph is loaded initially
+- no raw case file is parsed in the browser initially
+
+When an analyst opens a report from `Reports and Artifacts`, the content is fetched on demand from `GET /api/foc/reports/file`.
+
+This keeps the page usable as an executive decision surface while preserving drill-down access to the real derived or preserved artifacts.
+
 #### Profesionalización del Causal Reconstruction Cockpit (2026-06-22)
 
 Esta iteración corrige inconsistencias detectadas en la primera versión del cockpit y lo alinea con el plan técnico FOC causal and uncertainty:

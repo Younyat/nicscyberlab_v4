@@ -25,6 +25,15 @@ from .foc_manifest_manager import read_generated_json, regenerate_foc
 from .foc_quality import build_gaps, build_status, load_quality_context
 from .foc_paths import project_path
 from .foc_sources import utc_now
+from .evidence_lifecycle_dashboard import (
+    generate_evidence_lifecycle_summary,
+    get_lifecycle_job,
+    load_evidence_lifecycle_dashboard,
+    report_file_payload,
+    report_index_payload,
+    start_full_lifecycle_job,
+    start_summary_job,
+)
 from ..foc_causal_reconstruction.service import (
     causal_graph_payload,
     causal_graph_summary_payload,
@@ -208,6 +217,37 @@ def api_foc_case_time_sync_run(case_id: str):
     return jsonify(payload), 202 if payload.get("status") == "running" else 200
 
 
+@foc_bp.route("/api/foc/time-sync/measure", methods=["POST"])
+def api_foc_time_sync_measure():
+    body = request.get_json(silent=True) or {}
+    case_id = str(body.get("case_id") or request.args.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    payload = run_time_sync(case_id, fix_time=False, maintenance_override=False)
+    if payload.get("error") == "case_not_found":
+        return jsonify(payload), 404
+    return jsonify(payload), 202 if payload.get("status") == "running" else 200
+
+
+@foc_bp.route("/api/foc/time-sync/fix", methods=["POST"])
+def api_foc_time_sync_fix():
+    body = request.get_json(silent=True) or {}
+    case_id = str(body.get("case_id") or request.args.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    payload = run_time_sync(
+        case_id,
+        fix_time=True,
+        threshold_ms=int(body["threshold_ms"]) if body.get("threshold_ms") is not None else None,
+        maintenance_override=bool(body.get("maintenance_override")),
+    )
+    if payload.get("error") == "case_not_found":
+        return jsonify(payload), 404
+    if payload.get("status") == "blocked_policy":
+        return jsonify(payload), 409
+    return jsonify(payload), 202 if payload.get("status") == "running" else 200
+
+
 def _causal_case_entry_or_404(case_id: str):
     entry = get_case_entry(case_id)
     if not entry:
@@ -251,6 +291,133 @@ def api_foc_causal_run():
     )
     http_code = 202 if result.get("status") == "running" else 200
     return jsonify(result), http_code
+
+
+@foc_bp.route("/api/foc/evidence-lifecycle-dashboard", methods=["GET"])
+def api_foc_evidence_lifecycle_dashboard():
+    case_id = str(request.args.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    payload = load_evidence_lifecycle_dashboard(case_id)
+    if payload.get("error") == "case_not_found":
+        return jsonify(payload), 404
+    return jsonify(payload), 200
+
+
+@foc_bp.route("/api/foc/evidence-lifecycle-dashboard/generate", methods=["POST"])
+def api_foc_evidence_lifecycle_dashboard_generate():
+    body = request.get_json(silent=True) or {}
+    case_id = str(body.get("case_id") or request.args.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    payload = start_summary_job(case_id)
+    if payload.get("error") == "case_not_found":
+        return jsonify(payload), 404
+    return jsonify(payload), 202
+
+
+@foc_bp.route("/api/foc/lifecycle/run-multilayer-analysis", methods=["POST"])
+def api_foc_lifecycle_run_multilayer_analysis():
+    body = request.get_json(silent=True) or {}
+    case_id = str(body.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    force = bool(body.get("force"))
+    payload = run_analysis(case_id, force=force)
+    if payload.get("error") == "case_not_found":
+        return jsonify(payload), 404
+    if payload.get("error") == "analysis_already_running":
+        return jsonify(payload), 409
+    return jsonify(payload), 202
+
+
+@foc_bp.route("/api/foc/lifecycle/run-causal", methods=["POST"])
+def api_foc_lifecycle_run_causal():
+    body = request.get_json(silent=True) or {}
+    case_id = str(body.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    payload, error = _causal_case_entry_or_404(case_id)
+    if error:
+        return error
+    _, case_dir = payload
+    result = run_causal_reconstruction(
+        case_id=case_id,
+        case_path=case_dir,
+        strict=bool(body.get("strict")),
+        degraded_ok=bool(body.get("degraded_ok", True)),
+        ground_truth_path=body.get("ground_truth_path"),
+        out_dir=body.get("out_dir"),
+    )
+    http_code = 202 if result.get("status") == "running" else 200
+    return jsonify(result), http_code
+
+
+@foc_bp.route("/api/foc/lifecycle/run-full", methods=["POST"])
+def api_foc_lifecycle_run_full():
+    body = request.get_json(silent=True) or {}
+    case_id = str(body.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    payload = start_full_lifecycle_job(
+        case_id,
+        force_analysis=bool(body.get("force_analysis")),
+        strict=bool(body.get("strict")),
+        degraded_ok=bool(body.get("degraded_ok", True)),
+    )
+    if payload.get("error") == "case_not_found":
+        return jsonify(payload), 404
+    return jsonify(payload), 202
+
+
+@foc_bp.route("/api/foc/lifecycle/generate-summary", methods=["POST"])
+def api_foc_lifecycle_generate_summary():
+    body = request.get_json(silent=True) or {}
+    case_id = str(body.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    payload = start_summary_job(case_id)
+    if payload.get("error") == "case_not_found":
+        return jsonify(payload), 404
+    return jsonify(payload), 202
+
+
+@foc_bp.route("/api/foc/lifecycle/job-status", methods=["GET"])
+def api_foc_lifecycle_job_status():
+    job_id = str(request.args.get("job_id") or "").strip()
+    if not job_id:
+        return jsonify({"error": "missing_job_id"}), 400
+    payload = get_lifecycle_job(job_id)
+    if not payload:
+        return jsonify({"error": "job_not_found", "job_id": job_id}), 404
+    return jsonify(payload), 200
+
+
+@foc_bp.route("/api/foc/reports/index", methods=["GET"])
+def api_foc_reports_index():
+    case_id = str(request.args.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    payload = report_index_payload(case_id)
+    if payload.get("error") == "case_not_found":
+        return jsonify(payload), 404
+    return jsonify(payload), 200
+
+
+@foc_bp.route("/api/foc/reports/file", methods=["GET"])
+def api_foc_reports_file():
+    case_id = str(request.args.get("case_id") or "").strip()
+    report_type = str(request.args.get("type") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    if not report_type:
+        return jsonify({"error": "missing_report_type"}), 400
+    payload = report_file_payload(case_id, report_type)
+    if payload.get("error") == "case_not_found":
+        return jsonify(payload), 404
+    if payload.get("error") in {"report_type_not_supported", "report_not_found"}:
+        return jsonify(payload), 404
+    return jsonify(payload), 200
 
 
 @foc_bp.route("/api/foc/causal/report", methods=["GET"])

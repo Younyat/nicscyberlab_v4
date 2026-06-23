@@ -1624,16 +1624,23 @@
           </div>
           <span id="wf-foc-reconstruction" class="side-state status-unknown">Unknown</span>
         </div>
-        <div class="side-item" data-view="nicscyberlab_dashboard" tabindex="0" role="button">
+        <div class="side-item" data-view="foc_scientific_evidence_lifecycle" tabindex="0" role="button">
           <div class="side-item-main">
             <span class="side-glyph">10</span>
+            <div class="side-text"><span>FOC Scientific Lifecycle</span><span class="side-sub">Executive evidence dashboard</span></div>
+          </div>
+          <span id="wf-foc-scientific-lifecycle" class="side-state status-unknown">Unknown</span>
+        </div>
+        <div class="side-item" data-view="nicscyberlab_dashboard" tabindex="0" role="button">
+          <div class="side-item-main">
+            <span class="side-glyph">11</span>
             <div class="side-text"><span>Comparisons</span><span class="side-sub">Scenario comparison</span></div>
           </div>
           <span id="wf-comparisons" class="side-state status-unknown">Unknown</span>
         </div>
         <div class="side-item" data-view="node_health" tabindex="0" role="button">
           <div class="side-item-main">
-            <span class="side-glyph">11</span>
+            <span class="side-glyph">12</span>
             <div class="side-text"><span>Node Health</span><span class="side-sub">Resource and cleanup</span></div>
           </div>
           <span id="wf-node-health" class="side-state status-unknown">Unknown</span>
@@ -1779,8 +1786,17 @@
               <div class="stage-dot"></div>
             </div>
 
-            <div onclick="openView('nicscyberlab_dashboard')" class="card-option flex flex-col items-center justify-center p-5">
+            <div onclick="openView('foc_scientific_evidence_lifecycle')" class="card-option flex flex-col items-center justify-center p-5">
               <div class="stage-number">10</div>
+              <div class="stage-icon">EL</div>
+              <div class="stage-kicker text-content" data-es="EVIDENCIA" data-en="EVIDENCE">EVIDENCIA</div>
+              <div class="stage-title text-content" data-es="FOC Scientific Lifecycle" data-en="FOC Scientific Lifecycle">FOC Scientific Lifecycle</div>
+              <div class="stage-desc text-content" data-es="Dashboard ejecutivo-científico del ciclo completo de la evidencia." data-en="Executive-scientific dashboard for the complete evidence lifecycle.">Dashboard ejecutivo-científico del ciclo completo de la evidencia.</div>
+              <div class="stage-dot"></div>
+            </div>
+
+            <div onclick="openView('nicscyberlab_dashboard')" class="card-option flex flex-col items-center justify-center p-5">
+              <div class="stage-number">11</div>
               <div class="stage-icon">CP</div>
               <div class="stage-kicker text-content" data-es="COMPARACIÓN" data-en="COMPARISON">COMPARACIÓN</div>
               <div class="stage-title text-content" data-es="Comparaciones" data-en="Comparisons">Comparaciones</div>
@@ -1789,7 +1805,7 @@
             </div>
 
             <div onclick="openView('modbus_traffic')" class="card-option flex flex-col items-center justify-center p-5">
-              <div class="stage-number">11</div>
+              <div class="stage-number">12</div>
               <div class="stage-icon">NW</div>
               <div class="stage-kicker text-content" data-es="TRÁFICO" data-en="TRAFFIC">TRÁFICO</div>
               <div class="stage-title text-content" data-es="Monitor IT/OT" data-en="IT/OT Monitor">Monitor IT/OT</div>
@@ -1798,7 +1814,7 @@
             </div>
 
             <div onclick="openView('node_health')" class="card-option flex flex-col items-center justify-center p-5">
-              <div class="stage-number">12</div>
+              <div class="stage-number">13</div>
               <div class="stage-icon">NH</div>
               <div class="stage-kicker text-content" data-es="SALUD" data-en="HEALTH">SALUD</div>
               <div class="stage-title text-content" data-es="Node Health" data-en="Node Health">Node Health</div>
@@ -1807,7 +1823,7 @@
             </div>
 
             <div onclick="openView('honeyv')" class="card-option flex flex-col items-center justify-center p-5">
-              <div class="stage-number">13</div>
+              <div class="stage-number">14</div>
               <div class="stage-icon">HX</div>
               <div class="stage-kicker text-content" data-es="EXCHANGE" data-en="EXCHANGE">EXCHANGE</div>
               <div class="stage-title text-content" data-es="Lab Exchange" data-en="Lab Exchange">Lab Exchange</div>

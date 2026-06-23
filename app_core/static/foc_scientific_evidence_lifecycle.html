@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FOC Scientific Evidence Lifecycle Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg: #08111d;
+      --panel: rgba(9, 18, 33, 0.88);
+      --panel-2: rgba(11, 21, 38, 0.95);
+      --line: rgba(148, 163, 184, 0.16);
+      --ink: #e2e8f0;
+      --muted: #94a3b8;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --bad: #ef4444;
+      --info: #38bdf8;
+    }
+    body {
+      margin: 0;
+      font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(14, 165, 233, 0.14), transparent 26%),
+        radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 24%),
+        linear-gradient(180deg, #060c15, #091321 56%, #08101b);
+      color: var(--ink);
+    }
+    .glass { background: var(--panel); backdrop-filter: blur(14px); border: 1px solid var(--line); }
+    .glass-soft { background: var(--panel-2); border: 1px solid var(--line); }
+    .status-ok { color: var(--ok); }
+    .status-warning { color: var(--warn); }
+    .status-error { color: var(--bad); }
+    .status-info { color: var(--info); }
+    .status-muted { color: var(--muted); }
+    .tag { border: 1px solid rgba(148, 163, 184, 0.18); background: rgba(15, 23, 42, 0.7); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .btn-primary { background: linear-gradient(135deg, #0891b2, #18336f); }
+    .btn-secondary { background: rgba(15, 23, 42, 0.84); border: 1px solid rgba(148, 163, 184, 0.16); }
+    .btn-danger { background: linear-gradient(135deg, #6f3f4b, #6f0404); }
+    .rail-step::before {
+      content: "";
+      position: absolute;
+      left: calc(100% + 8px);
+      top: 22px;
+      width: 24px;
+      height: 2px;
+      background: rgba(148, 163, 184, 0.18);
+    }
+    .rail-step:last-child::before { display: none; }
+    .modal-shell {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(2, 8, 23, 0.72);
+      backdrop-filter: blur(10px);
+      z-index: 80;
+      padding: 24px;
+    }
+    .modal-shell.is-active { display: flex; }
+    .modal-card {
+      width: min(96vw, 1320px);
+      max-height: 92vh;
+      overflow: auto;
+      border-radius: 28px;
+      background: rgba(8, 15, 28, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      box-shadow: 0 26px 80px rgba(2, 8, 23, 0.56);
+      padding: 24px;
+    }
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+  <div class="px-6 py-6 md:px-10 md:py-8">
+    <header class="glass rounded-[30px] p-6 md:p-8 mb-6">
+      <div class="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+        <div>
+          <div class="text-[11px] tracking-[0.35em] uppercase text-cyan-300 font-extrabold">FOC Scientific Evidence Lifecycle Dashboard</div>
+          <h1 class="text-3xl md:text-4xl font-black mt-3">Executive Scientific Reconstruction Surface</h1>
+          <p class="text-sm text-slate-300 mt-3 max-w-4xl">Decision-oriented summary of the complete evidence lifecycle: controlled attack path, detections, acquisition trigger, preservation, multilayer forensic analysis, causal reconstruction, uncertainty budget, and auditable conclusions.</p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <button id="lifecycle-refresh-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Refresh Dashboard</button>
+          <button id="lifecycle-open-foc-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Open Technical FOC</button>
+        </div>
+      </div>
+    </header>
+
+    <section class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+      <aside class="xl:col-span-3">
+        <div class="glass rounded-[28px] p-5">
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Cases</div>
+          <h2 class="text-2xl font-black mt-2">Evidence Runs</h2>
+          <div id="lifecycle-case-list" class="space-y-3 mt-5 text-sm text-slate-300">Loading cases…</div>
+        </div>
+      </aside>
+
+      <main class="xl:col-span-9 space-y-6">
+        <section class="glass rounded-[28px] p-6">
+          <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Executive Summary</div>
+              <h2 id="lifecycle-title" class="text-2xl font-black mt-2">Select a forensic case</h2>
+              <p id="lifecycle-subtitle" class="text-sm text-slate-300 mt-3">The dashboard loads only the lightweight executive summary by default. Technical details, raw reports, and large artifacts stay on-demand.</p>
+            </div>
+            <div id="lifecycle-header-tags" class="flex flex-wrap gap-2"></div>
+          </div>
+          <div id="lifecycle-exec-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-5"></div>
+        </section>
+
+        <section class="glass rounded-[28px] p-6">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Evidence Lifecycle Rail</div>
+              <h2 class="text-2xl font-black mt-2">Attack to Conclusion Path</h2>
+            </div>
+            <div id="lifecycle-stale-note" class="text-sm text-amber-300"></div>
+          </div>
+          <div id="lifecycle-rail" class="flex flex-wrap gap-4 mt-6"></div>
+        </section>
+
+        <section class="glass rounded-[28px] p-6">
+          <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div>
+              <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Lifecycle Actions</div>
+              <h2 class="text-2xl font-black mt-2">Run and Regenerate</h2>
+              <p class="text-sm text-slate-300 mt-3 max-w-4xl">Nothing heavy runs when the page opens. Each action uses background execution and the panel below tracks the active job or live subsystem status.</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 mt-5">
+            <button id="run-multilayer-btn" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Run Multilayer Analysis</button>
+            <button id="rerun-multilayer-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Regenerate Multilayer Analysis</button>
+            <button id="measure-clock-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Measure Clock Offset</button>
+            <button id="fix-time-btn" class="btn-danger rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Fix Time Synchronization</button>
+            <button id="run-causal-btn" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Run Causal Reconstruction</button>
+            <button id="rerun-causal-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Regenerate Causal Reconstruction</button>
+            <button id="run-full-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Run Full Evidence Lifecycle</button>
+            <button id="generate-summary-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Generate Executive Summary</button>
+          </div>
+          <div id="lifecycle-job-panel" class="glass-soft rounded-[24px] p-5 mt-5 text-sm text-slate-300">No job is currently tracked for this case.</div>
+        </section>
+
+        <section class="glass rounded-[28px] p-6">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Multilayer Forensic Analysis</div>
+              <h2 class="text-2xl font-black mt-2">Layer Usefulness Matrix</h2>
+            </div>
+            <div id="multilayer-summary-tags" class="flex flex-wrap gap-2"></div>
+          </div>
+          <div id="multilayer-overview" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4 mt-5"></div>
+          <div class="overflow-x-auto mt-5">
+            <table class="w-full min-w-[980px] text-sm">
+              <thead>
+                <tr class="text-left text-slate-400 uppercase tracking-[0.16em] text-[11px]">
+                  <th class="pb-3 pr-4">Layer</th>
+                  <th class="pb-3 pr-4">Status</th>
+                  <th class="pb-3 pr-4">Useful output</th>
+                  <th class="pb-3 pr-4">Summary</th>
+                  <th class="pb-3 pr-4">Limitation</th>
+                  <th class="pb-3 pr-4">Details</th>
+                </tr>
+              </thead>
+              <tbody id="multilayer-matrix"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div class="glass rounded-[28px] p-6">
+            <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Causal Reconstruction Summary</div>
+            <h2 class="text-2xl font-black mt-2">Recovered Path and CPR</h2>
+            <div id="causal-summary-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5"></div>
+            <div id="causal-summary-text" class="glass-soft rounded-[24px] p-4 mt-5 text-sm text-slate-300"></div>
+          </div>
+          <div class="glass rounded-[28px] p-6">
+            <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Uncertainty Summary</div>
+            <h2 class="text-2xl font-black mt-2">Temporal and Integrity Constraints</h2>
+            <div id="uncertainty-summary-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5"></div>
+            <div id="uncertainty-warning" class="glass-soft rounded-[24px] p-4 mt-5 text-sm text-slate-300"></div>
+          </div>
+        </section>
+
+        <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div class="glass rounded-[28px] p-6">
+            <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Trigger Path vs Causal Attack Path</div>
+            <h2 class="text-2xl font-black mt-2">Acquisition Trigger Alignment</h2>
+            <div id="trigger-vs-causal" class="glass-soft rounded-[24px] p-5 mt-5 text-sm text-slate-300">No case selected.</div>
+          </div>
+          <div class="glass rounded-[28px] p-6">
+            <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Modbus Specificity</div>
+            <h2 class="text-2xl font-black mt-2">Protocol-Level Precision</h2>
+            <div id="modbus-specificity" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5"></div>
+          </div>
+        </section>
+
+        <section class="glass rounded-[28px] p-6">
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Final Forensic Conclusion</div>
+          <h2 class="text-2xl font-black mt-2">Supported, Degraded, and Unsupported Claims</h2>
+          <div id="final-conclusion-summary" class="glass-soft rounded-[24px] p-5 mt-5 text-sm text-slate-300"></div>
+          <div class="grid grid-cols-1 xl:grid-cols-3 gap-5 mt-5">
+            <div class="glass-soft rounded-[24px] p-5">
+              <div class="text-xs uppercase tracking-[0.22em] text-emerald-300 font-black">Supported Conclusions</div>
+              <div id="final-supported" class="space-y-2 mt-4 text-sm text-slate-300"></div>
+            </div>
+            <div class="glass-soft rounded-[24px] p-5">
+              <div class="text-xs uppercase tracking-[0.22em] text-amber-300 font-black">Degraded or Ambiguous</div>
+              <div id="final-degraded" class="space-y-2 mt-4 text-sm text-slate-300"></div>
+            </div>
+            <div class="glass-soft rounded-[24px] p-5">
+              <div class="text-xs uppercase tracking-[0.22em] text-rose-300 font-black">Unsupported or Not Yet Claimable</div>
+              <div id="final-unsupported" class="space-y-2 mt-4 text-sm text-slate-300"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="glass rounded-[28px] p-6">
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Reports and Artifacts</div>
+          <h2 class="text-2xl font-black mt-2">Technical Access Under Demand</h2>
+          <div id="reports-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-5"></div>
+        </section>
+
+        <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div class="glass rounded-[28px] p-6">
+            <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Limitations</div>
+            <h2 class="text-2xl font-black mt-2">Current Scientific Boundaries</h2>
+            <div id="limitations-list" class="space-y-3 mt-5 text-sm text-slate-300"></div>
+          </div>
+          <div class="glass rounded-[28px] p-6">
+            <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Next Required Actions</div>
+            <h2 class="text-2xl font-black mt-2">How to Strengthen the Case</h2>
+            <div id="next-actions-list" class="space-y-3 mt-5 text-sm text-slate-300"></div>
+          </div>
+        </section>
+      </main>
+    </section>
+  </div>
+
+  <div id="report-modal" class="modal-shell" aria-hidden="true">
+    <div class="modal-card">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <div class="text-[11px] tracking-[0.28em] uppercase text-cyan-300 font-extrabold">Technical Artifact View</div>
+          <h2 id="report-modal-title" class="text-2xl font-black mt-2">Report Preview</h2>
+          <div id="report-modal-path" class="mono text-xs text-slate-400 mt-2"></div>
+        </div>
+        <button id="report-modal-close" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Close</button>
+      </div>
+      <div id="report-modal-meta" class="text-sm text-slate-300 mt-4"></div>
+      <pre id="report-modal-body" class="glass-soft rounded-[24px] p-5 mt-5 text-sm text-slate-200"></pre>
+    </div>
+  </div>
+
+  <script src="js/foc_scientific_evidence_lifecycle.js?v=20260623-foc-evidence-lifecycle-1"></script>
+</body>
+</html>
