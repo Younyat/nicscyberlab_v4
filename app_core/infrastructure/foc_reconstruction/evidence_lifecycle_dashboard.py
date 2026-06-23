@@ -22,6 +22,7 @@ from .foc_manifest_manager import read_generated_json
 from .foc_paths import relative_path
 from .foc_sources import utc_now
 from ..foc_causal_reconstruction.service import (
+    causal_graph_payload,
     causal_metrics_payload,
     causal_status_payload,
     causal_uncertainty_payload,
@@ -36,6 +37,21 @@ _POLL_SECONDS = 2.5
 _JOB_LOCK = threading.Lock()
 _JOBS: dict[str, dict] = {}
 _RUNNING_JOB_THREADS: dict[str, threading.Thread] = {}
+
+_EDGE_REQ_LABELS = {
+    "attack_attestation": "attack attestation",
+    "network_modbus_observation": "network Modbus observation",
+    "plc_state_observation": "OT or PLC state observation",
+    "detection_attestation": "detection attestation",
+    "alert_correlation": "alert correlation",
+    "memory_analysis_useful": "useful memory analysis output",
+    "forensic_intervention": "forensic intervention record",
+    "case_manifest_link": "case-manifest link",
+    "manifest": "manifest",
+    "chain_of_custody": "chain of custody",
+    "forensic_analysis_report": "forensic analysis report",
+    "analysis_visual_summary": "analysis visual summary",
+}
 
 
 def _json_load(path: Path) -> dict | list | None:
@@ -301,6 +317,7 @@ def _build_multilayer_summary(case_dir: Path, analysis_status: dict, visual_summ
         "evidence_analysis_status": evidence_status,
         "forensic_reconstruction_status": forensic_status,
         "analysis_confidence": visual_summary.get("confidence_state") or "unknown",
+        "source_label": "executive summary snapshot",
         "is_stale": False,
         "layers_expected": len(layers),
         "layers_completed": counter.get("completed", 0),
@@ -343,6 +360,7 @@ def _build_integrity_summary(case_dir: Path) -> dict:
         "failed_artifacts": verification.get("failed_artifacts") or integrity.get("failed_artifacts"),
         "main_limitation": (integrity.get("limitations") or [None])[0],
         "artifact_path": relative_path(case_dir / "analysis" / "01_integrity_custody" / "integrity_custody_report.json") if (case_dir / "analysis" / "01_integrity_custody" / "integrity_custody_report.json").exists() else None,
+        "source_label": "executive summary snapshot",
     }
 
 
@@ -387,11 +405,30 @@ def _build_uncertainty_summary(case_dir: Path, time_sync_status: dict, causal_un
         except Exception:
             max_offset_seconds = None
     source = temporal.get("time_sync_source") or ("preserved_case_metadata" if (case_dir / "metadata" / "time_sync.json").exists() else "current_measurement_unavailable")
+    node_clock_sync_status = temporal.get("node_clock_synchronization_status") or _derive_temporal_sync_status(time_sync_status)
+    causal_temporal_ordering_confidence = temporal.get("causal_temporal_ordering_confidence") or temporal.get("temporal_confidence_state") or "unknown"
+    before_after_available = bool(
+        temporal.get("before_after_clock_correction_data_available")
+        or (case_dir / "metadata" / "time_sync_before.json").exists()
+        or (case_dir / "metadata" / "time_sync_after.json").exists()
+    )
     return {
-        "temporal_confidence": temporal.get("temporal_confidence_state") or temporal.get("temporal_status") or "unknown",
+        # Kept for backward compatibility: this used to be the single
+        # "temporal confidence" number. It is now an alias of
+        # causal_temporal_ordering_confidence below - the four separated
+        # fields are the ones new UI/reporting code should read.
+        "temporal_confidence": causal_temporal_ordering_confidence,
+        "source_label": "causal reconstruction artifacts",
+        "node_clock_synchronization_status": node_clock_sync_status,
+        "evidence_timestamp_availability": temporal.get("evidence_timestamp_availability") or "not_applicable",
+        "evidence_timestamp_resolvability": temporal.get("evidence_timestamp_resolvability") or "not_applicable",
+        "causal_temporal_ordering_confidence": causal_temporal_ordering_confidence,
+        "causal_temporal_ordering_reason": temporal.get("causal_temporal_ordering_reason"),
+        "causal_temporal_ordering_limiting_factor": temporal.get("causal_temporal_ordering_limiting_factor"),
+        "temporal_model_note": temporal.get("temporal_model_note"),
         "max_clock_offset_seconds": max_offset_seconds,
         "uncertainty_window_seconds": temporal.get("uncertainty_window_seconds"),
-        "synchronized_status": _derive_temporal_sync_status(time_sync_status),
+        "synchronized_status": node_clock_sync_status,
         "correction_applied": bool(summary.get("correction_applied") or time_sync_status.get("fix_time_requested")),
         "nodes_measured": summary.get("nodes_ok") if summary.get("nodes_ok") is not None else time_sync_status.get("nodes_ok"),
         "nodes_failed": summary.get("nodes_failed") if summary.get("nodes_failed") is not None else time_sync_status.get("nodes_failed"),
@@ -400,8 +437,9 @@ def _build_uncertainty_summary(case_dir: Path, time_sync_status: dict, causal_un
         "current_measurement_status": time_sync_status.get("status") or "not_executed",
         "before_path": relative_path(case_dir / "metadata" / "time_sync_before.json") if (case_dir / "metadata" / "time_sync_before.json").exists() else None,
         "after_path": relative_path(case_dir / "metadata" / "time_sync_after.json") if (case_dir / "metadata" / "time_sync_after.json").exists() else None,
+        "before_after_clock_correction_data_available": before_after_available,
         "latest_path": relative_path(case_dir / "metadata" / "time_sync.json") if (case_dir / "metadata" / "time_sync.json").exists() else None,
-        "main_limitation": temporal.get("temporal_warning") or temporal.get("temporal_caution"),
+        "main_limitation": temporal.get("causal_temporal_ordering_reason") or temporal.get("temporal_warning") or temporal.get("temporal_caution"),
         "completeness": (causal_uncertainty or {}).get("completeness") or {},
         "integrity": (causal_uncertainty or {}).get("integrity") or {},
         "acquisition": (causal_uncertainty or {}).get("acquisition") or {},
@@ -428,6 +466,16 @@ def _build_modbus_specificity(ground_truth: dict, attack: dict, network_findings
     register_state = "partial" if expected.get("register") not in {None, "not_available"} and modbus_seen else "not_available"
     value_state = "partial" if expected.get("expected_value") not in {None, "not_available"} and modbus_seen else "not_available"
     plc_state = "partial" if any(int(item.get("records") or 0) > 0 for item in (((ot_findings.get("findings") or {}).get("files")) or [])) else "not_available"
+    interpretation = {
+        "confirmed": "Modbus/TCP traffic targeting the PLC was observed." if modbus_seen else "Modbus/TCP activity targeting the PLC was not confirmed.",
+        "partially_supported": "function code, register, value, and OT state relation." if modbus_seen else "not_available",
+        "not_fully_claimable": "complete packet-level register and value causality." if modbus_seen else "packet-level Modbus specificity.",
+        "summary": (
+            "The evidence supports the presence of Modbus/TCP activity toward the PLC. However, register-level and value-level causal precision remain partial because packet-level parsing does not fully confirm all Modbus parameters."
+            if modbus_seen
+            else "The evidence does not currently confirm Modbus/TCP activity toward the PLC."
+        ),
+    }
     return {
         "protocol": {"status": protocol_state, "value": expected.get("protocol") or ((attack.get("operation") or {}).get("protocol")) or "not_available"},
         "function_code": {"status": function_state, "value": expected.get("modbus_function") or expected.get("ot_function") or "not_available"},
@@ -436,6 +484,187 @@ def _build_modbus_specificity(ground_truth: dict, attack: dict, network_findings
         "target_plc": {"status": "confirmed" if expected.get("target") else "not_available", "value": expected.get("target") or ((attack.get("target") or {}).get("instance_name")) or "not_available"},
         "plc_or_scada_state": {"status": plc_state, "value": "OT exports parsed" if plc_state != "not_available" else "not_available"},
         "message": "Modbus traffic is observed, but register and value precision are not confirmed by packet-level parsing." if modbus_seen and (register_state != "confirmed" or value_state != "confirmed") else None,
+        "interpretation": interpretation,
+    }
+
+
+def _gt_node_label(ground_truth: dict, node_id: str) -> str:
+    node = ((ground_truth or {}).get("nodes") or {}).get(node_id) or {}
+    return str(node.get("label") or node_id or "not_available")
+
+
+def _req_label(requirement: str) -> str:
+    return _EDGE_REQ_LABELS.get(str(requirement or ""), str(requirement or "not_available").replace("_", " "))
+
+
+def _temporal_resolvability_label(temporal_status: str) -> str:
+    normalized = str(temporal_status or "unknown")
+    mapping = {
+        "supported": "resolved",
+        "not_required": "not required",
+        "unknown": "not resolved",
+        "ambiguous": "ambiguous",
+        "contradicted": "contradicted",
+        "missing": "missing",
+    }
+    return mapping.get(normalized, normalized.replace("_", " "))
+
+
+def _build_expected_causal_relations(ground_truth: dict, graph_payload: dict) -> list[dict]:
+    expected_edges = list((ground_truth or {}).get("expected_edges") or [])
+    graph_edges = list((graph_payload or {}).get("edges") or [])
+    graph_by_id = {
+        str(edge.get("expected_edge_id") or edge.get("edge_id") or ""): edge
+        for edge in graph_edges
+        if edge.get("expected_edge_id") or edge.get("edge_id")
+    }
+    relations: list[dict] = []
+    for expected in expected_edges:
+        edge_id = str(expected.get("edge_id") or "not_available")
+        observed = graph_by_id.get(edge_id) or {}
+        relation = {
+            "edge_id": edge_id,
+            "source_event": _gt_node_label(ground_truth, expected.get("source")),
+            "target_event": _gt_node_label(ground_truth, expected.get("target")),
+            "expected_evidence_source": ", ".join(_req_label(item) for item in (expected.get("required_evidence") or [])) or "not_available",
+            "recovered_status": observed.get("support_status") or "not_evaluated",
+            "support_level": observed.get("confidence") or "unknown",
+            "degradation_reason": observed.get("status_reason")
+            or "Fully recovered."
+            if observed.get("support_status") == "recovered"
+            else (observed.get("limitations") or [None])[0]
+            or "No degradation reason was recorded.",
+            "temporal_resolvability": _temporal_resolvability_label(observed.get("temporal_status")),
+            "weight": expected.get("weight"),
+            "evidence_refs": observed.get("evidence_refs") or [],
+            "limitations": observed.get("limitations") or [],
+        }
+        relations.append(relation)
+    return relations
+
+
+def _build_weighted_cpr_details(ground_truth: dict, graph_payload: dict, metrics: dict, uncertainty: dict) -> dict:
+    expected_edges = list((ground_truth or {}).get("expected_edges") or [])
+    graph_edges = list((graph_payload or {}).get("edges") or [])
+    graph_by_id = {
+        str(edge.get("expected_edge_id") or edge.get("edge_id") or ""): edge
+        for edge in graph_edges
+        if edge.get("expected_edge_id") or edge.get("edge_id")
+    }
+    total_weight = 0.0
+    recovered_weight = 0.0
+    degraded_weight = 0.0
+    ambiguous_weight = 0.0
+    missing_weight = 0.0
+    per_edge: list[dict] = []
+    for expected in expected_edges:
+        edge_id = str(expected.get("edge_id") or "")
+        weight = float(expected.get("weight") or 1.0)
+        total_weight += weight
+        observed = graph_by_id.get(edge_id) or {}
+        status = str(observed.get("support_status") or "missing")
+        if status == "recovered":
+            recovered_weight += weight
+        elif status == "degraded":
+            degraded_weight += weight
+        elif status == "ambiguous":
+            ambiguous_weight += weight
+        else:
+            missing_weight += weight
+        per_edge.append(
+            {
+                "edge_id": edge_id,
+                "weight": round(weight, 4),
+                "support_status": status,
+                "contribution_to_weighted_cpr": round(weight, 4) if status == "recovered" else 0.0,
+            }
+        )
+
+    degraded_rate = float(metrics.get("degraded_edge_rate") or 0.0)
+    ambiguous_rate = float(metrics.get("ambiguous_edge_rate") or 0.0)
+    temporal_state = str(metrics.get("temporal_confidence_state") or ((uncertainty.get("temporal") or {}).get("temporal_confidence_state")) or "unknown")
+    temporal_penalty = {"strong": 0.0, "limited": 0.05, "ambiguous": 0.12, "unknown": 0.15}.get(temporal_state, 0.15)
+    degradation_penalty = round(degraded_rate * 0.08, 4)
+    ambiguity_penalty = round(ambiguous_rate * 0.12, 4)
+
+    return {
+        "cpr_formula": "fully recovered expected causal edges / total expected causal edges",
+        "weighted_cpr_formula": "recovered edge weight / total expected edge weight",
+        "weighted_cpr_explanation": "Weighted CPR uses the scenario-defined edge weights only. Temporal and degradation penalties apply to reconstruction confidence, not to Weighted CPR itself.",
+        "total_edge_weight": round(total_weight, 4),
+        "recovered_edge_weight": round(recovered_weight, 4),
+        "degraded_edge_weight": round(degraded_weight, 4),
+        "ambiguous_edge_weight": round(ambiguous_weight, 4),
+        "missing_edge_weight": round(missing_weight, 4),
+        "penalty_applied": {
+            "degradation_penalty": degradation_penalty,
+            "ambiguity_penalty": ambiguity_penalty,
+            "temporal_penalty": temporal_penalty,
+            "total_penalty": round(degradation_penalty + ambiguity_penalty + temporal_penalty, 4),
+            "note": "These penalties affect reconstruction confidence, not the raw Weighted CPR ratio.",
+        },
+        "final_weighted_score": metrics.get("weighted_cpr"),
+        "per_edge": per_edge,
+    }
+
+
+def _summary_staleness(case_dir: Path, summary_path: Path) -> dict:
+    summary_mtime = _mtime(summary_path)
+    if not summary_mtime:
+        return {
+            "status": "not_generated",
+            "reason": "Executive evidence lifecycle summary has not been generated yet.",
+            "required_action": "generate executive summary",
+            "source_label": "executive summary snapshot",
+            "is_stale": False,
+        }
+    source_groups = {
+        "causal reconstruction artifacts": [
+            case_dir / "derived" / "reconstruction" / "causal_status.json",
+            case_dir / "derived" / "reconstruction" / "causal_graph.json",
+            case_dir / "derived" / "reconstruction" / "reconstruction_metrics.json",
+            case_dir / "derived" / "reconstruction" / "uncertainty_report.json",
+        ],
+        "multilayer analysis artifacts": [
+            case_dir / "analysis" / "forensic_analysis_report.json",
+            case_dir / "analysis" / "visual" / "analysis_visual_summary.json",
+        ],
+        "time synchronization artifacts": [
+            case_dir / "metadata" / "time_sync.json",
+            case_dir / "metadata" / "time_sync_before.json",
+            case_dir / "metadata" / "time_sync_after.json",
+        ],
+    }
+    newest_group = None
+    newest_group_mtime = 0.0
+    for label, paths in source_groups.items():
+        group_mtime = max((_mtime(path) for path in paths if path.exists()), default=0.0)
+        if group_mtime > newest_group_mtime:
+            newest_group_mtime = group_mtime
+            newest_group = label
+    is_stale = bool(newest_group_mtime and newest_group_mtime > summary_mtime)
+    if not is_stale:
+        return {
+            "status": "current",
+            "reason": None,
+            "required_action": None,
+            "source_label": "executive summary snapshot",
+            "is_stale": False,
+        }
+    if newest_group == "causal reconstruction artifacts":
+        reason = "Causal reconstruction artifacts were modified after the executive summary was generated."
+    elif newest_group == "multilayer analysis artifacts":
+        reason = "Multilayer analysis artifacts were modified after the executive summary was generated."
+    elif newest_group == "time synchronization artifacts":
+        reason = "Time synchronization artifacts were modified after the executive summary was generated."
+    else:
+        reason = "Executive summary artifacts are older than one or more derived inputs."
+    return {
+        "status": "stale",
+        "reason": reason,
+        "required_action": "regenerate executive summary",
+        "source_label": "executive summary snapshot",
+        "is_stale": True,
     }
 
 
@@ -455,9 +684,10 @@ def _resolve_real_ground_truth(causal_status: dict, fallback: dict) -> dict:
     return fallback
 
 
-def _build_causal_summary(case_dir: Path, bundle: dict, causal_status: dict, metrics: dict, uncertainty: dict, trigger_summary: dict) -> dict:
+def _build_causal_summary(case_id: str, case_dir: Path, bundle: dict, causal_status: dict, metrics: dict, uncertainty: dict, trigger_summary: dict) -> dict:
     ground_truth = _resolve_real_ground_truth(causal_status, bundle.get("scenario_ground_truth") or {})
     attack = _pick_attack(bundle, ground_truth)
+    graph_payload = causal_graph_payload(case_id, case_dir) or {}
     network_findings = _json_load(case_dir / "analysis" / "03_network" / "network_findings.json") or {}
     ot_findings = _json_load(case_dir / "analysis" / "06_ot" / "ot_findings.json") or {}
     alert_findings = _json_load(case_dir / "analysis" / "07_alerts" / "alert_findings.json") or {}
@@ -469,18 +699,46 @@ def _build_causal_summary(case_dir: Path, bundle: dict, causal_status: dict, met
     causal_attack_path_resolved = bool(causal_technique and causal_protocol and causal_target)
     same_event_family = None
     mismatch = None
+    mismatch_label = None
+    path_status = "aligned_or_not_demonstrably_misaligned"
+    scientific_interpretation = "No explicit trigger-path mismatch was established from the preserved artifacts."
     if not causal_attack_path_resolved:
         # Do not claim alignment - or misalignment - when the causal attack
         # path itself could not be resolved; that is a distinct, weaker claim.
         mismatch = "Trigger and causal attack path alignment cannot be confirmed from the current summary."
+        path_status = "causal_path_not_resolved"
+        scientific_interpretation = "The preserved case remains valid, but the reconstructed attack path itself is not fully resolvable from the current summary."
     elif trigger_label and "/" in trigger_label and causal_protocol.lower().startswith("modbus"):
         same_event_family = False
+        mismatch_label = "multi-vector_acquisition_trigger_mismatch"
+        path_status = "trigger_attack_mismatch"
         mismatch = (
-            "The acquisition trigger is host/FIM-oriented, while the causal reconstruction evaluates an OT "
-            "Modbus path. These paths must be interpreted separately unless an explicit cross-layer link is available."
+            "The preserved case was triggered by a host or FIM-oriented alert, while the causal reconstruction "
+            "evaluates an OT Modbus path. These paths are related only if an explicit cross-layer link is "
+            "available. Otherwise, they must be interpreted separately. This is not an error. It is a "
+            "scientific limitation and should be reported as such."
         )
+        scientific_interpretation = "Valid case with acquisition-trigger limitation."
     else:
         same_event_family = True
+    expected_relations = _build_expected_causal_relations(ground_truth, graph_payload)
+    weighted_cpr_details = _build_weighted_cpr_details(ground_truth, graph_payload, metrics, uncertainty)
+    degraded_edges = int(metrics.get("degraded_edges") or 0)
+    expected_edges = int(metrics.get("expected_edges") or 0)
+    interpretation_banner = "This case does not yet expose a usable expected causal model."
+    if expected_edges:
+        reasons = [
+            f"{degraded_edges} of {expected_edges} expected causal relations are only partially supported",
+        ]
+        if same_event_family is False:
+            reasons.append("the acquisition trigger is host or FIM-oriented while the reconstructed attack path is OT Modbus-oriented")
+        if str(((uncertainty.get('temporal') or {}).get('causal_temporal_ordering_confidence') or 'unknown')) in {"limited", "ambiguous", "unknown"}:
+            reasons.append("some causal timestamps are unavailable or not resolvable")
+        interpretation_banner = (
+            "This case is forensically analyzable and partially causally reconstructable. "
+            "The evidence lifecycle completed successfully across the multilayer analysis. "
+            f"However, the causal reconstruction is degraded because {'; '.join(reasons)}."
+        )
     return {
         "status": causal_status.get("status") or "not_available",
         "ground_truth_status": ((causal_status.get("ground_truth_summary") or {}).get("ground_truth_validation_status")) or ((causal_status.get("ground_truth_summary") or {}).get("ground_truth_status")) or "not_available",
@@ -496,7 +754,19 @@ def _build_causal_summary(case_dir: Path, bundle: dict, causal_status: dict, met
         "causal_interpretation_confidence": causal_status.get("scientific_confidence") or "unknown",
         "main_limitation": metrics.get("main_limitation") or causal_status.get("reason"),
         "is_stale": bool(causal_status.get("is_stale")),
+        "source_label": "causal reconstruction artifacts",
         "ground_truth_path": ((causal_status.get("ground_truth_summary") or {}).get("ground_truth_path")),
+        "why_expected_relations": {
+            "title": "Why 8 expected causal relations?",
+            "summary": (
+                f"This case defines {len(expected_relations)} expected causal relations for the selected scenario. "
+                "CPR measures how many of these relations were fully reconstructed from preserved and verifiable evidence. "
+                f"In this case, {metrics.get('recovered_edges') or 0} relations were fully recovered and {metrics.get('degraded_edges') or 0} remain degraded due to partial, inferred, or temporally unresolved support."
+            ),
+            "relations": expected_relations,
+        },
+        "weighted_cpr_details": weighted_cpr_details,
+        "interpretation_banner": interpretation_banner,
         "attack_expected": attack_expected,
         "selected_attack": {
             "attack_id": attack.get("attack_id"),
@@ -516,6 +786,9 @@ def _build_causal_summary(case_dir: Path, bundle: dict, causal_status: dict, met
             "trigger_rule_id": trigger_summary.get("triggering_alert_rule_id") or "not_available",
             "causal_attack_path": f"{attack_expected.get('technique_id', 'not_available')} {attack_expected.get('protocol', 'not_available')} -> {attack_expected.get('target', 'not_available')}",
             "same_event_family": same_event_family,
+            "status": path_status,
+            "mismatch_label": mismatch_label,
+            "scientific_interpretation": scientific_interpretation,
             "message": mismatch,
         },
         "modbus_specificity": _build_modbus_specificity(ground_truth, attack, network_findings, ot_findings, alert_findings),
@@ -608,29 +881,33 @@ def _build_final_conclusion(summary: dict) -> dict:
     causal = summary.get("causal_summary") or {}
     uncertainty = summary.get("uncertainty_summary") or {}
     integrity = summary.get("integrity_summary") or {}
+    uncertainty_integrity = (uncertainty.get("integrity") or {})
     supported: list[str] = []
     degraded: list[str] = []
     unsupported: list[str] = []
 
     if integrity.get("manifest_present") and integrity.get("chain_of_custody_present"):
-        supported.append("Evidence was preserved under a manifest and chain of custody.")
+        supported.append("Evidence preservation: manifest and chain of custody are available.")
     if multilayer.get("execution_status") == "completed":
-        supported.append("Multilayer forensic analysis was executed over the preserved case artifacts.")
-    for layer in multilayer.get("layers") or []:
-        if layer.get("phase") == "executive_summary_update":
-            continue
-        if layer.get("usefulness_status") == "completed_with_useful_output":
-            supported.append(f"{layer.get('layer_name')} produced useful output.")
+        supported.append(
+            f"Forensic processing: {multilayer.get('layers_with_useful_output') or 0} of {multilayer.get('layers_expected') or 0} expected layers completed with useful output."
+        )
+    if (multilayer.get("timeline_entries") or 0) > 0 or (multilayer.get("cross_layer_findings") or 0) > 0:
+        supported.append(
+            f"Cross-layer analysis: timeline and cross-layer findings were generated ({multilayer.get('timeline_entries') or 0} timeline entries, {multilayer.get('cross_layer_findings') or 0} cross-layer findings)."
+        )
     if str(causal.get("status")).startswith("completed"):
-        supported.append("A derived causal reconstruction was generated from preserved FOC artifacts and ground truth.")
+        supported.append(
+            f"Causal reconstruction: {causal.get('recovered_edges') or 0} of {causal.get('expected_edges') or 0} expected causal relations were fully recovered and {causal.get('degraded_edges') or 0} remain degraded."
+        )
     if int(causal.get("recovered_edges") or 0) > 0:
-        supported.append(f"{causal.get('recovered_edges')} expected causal edges were recovered with sufficient support.")
+        supported.append("The causal reconstruction consumed preserved FOC and multilayer outputs instead of re-running forensic tools.")
 
-    offset_seconds = uncertainty.get("max_clock_offset_seconds")
-    if uncertainty.get("temporal_confidence") in {"ambiguous", "limited", "unknown"}:
+    if uncertainty.get("causal_temporal_ordering_confidence") in {"ambiguous", "limited", "unknown"}:
         degraded.append(
-            f"Temporal ordering is weak because the preserved clock offset is approximately "
-            f"{'unknown' if offset_seconds is None else offset_seconds} seconds."
+            str(uncertainty.get("causal_temporal_ordering_reason"))
+            if uncertainty.get("causal_temporal_ordering_reason")
+            else "Causal temporal ordering confidence is reduced."
         )
     if int(causal.get("degraded_edges") or 0) > 0:
         degraded.append(f"{causal.get('degraded_edges')} causal edges remain degraded due to partial support.")
@@ -640,7 +917,7 @@ def _build_final_conclusion(summary: dict) -> dict:
         degraded.append((causal.get("trigger_vs_causal_path") or {}).get("message"))
     if (causal.get("modbus_specificity") or {}).get("message"):
         degraded.append((causal.get("modbus_specificity") or {}).get("message"))
-    if integrity.get("overall_status") not in {"completed", "verified", "ok"}:
+    if uncertainty_integrity.get("case_wide_integrity_status") not in {"completed", "verified", "ok"}:
         degraded.append("Case-wide integrity remains partial.")
 
     unsupported.extend(
@@ -651,8 +928,11 @@ def _build_final_conclusion(summary: dict) -> dict:
             "Full production OT generalization.",
         ]
     )
-    if (causal.get("modbus_specificity") or {}).get("register", {}).get("status") != "confirmed":
-        unsupported.append("Complete Modbus register/value causality at packet-level precision.")
+    modbus_specificity = causal.get("modbus_specificity") or {}
+    if (modbus_specificity.get("register") or {}).get("status") != "confirmed" or (modbus_specificity.get("value") or {}).get("status") != "confirmed":
+        unsupported.append("Complete Modbus register and value causality at packet-level precision.")
+    if (causal.get("trigger_vs_causal_path") or {}).get("same_event_family") is not True:
+        unsupported.append("A direct OT alert to forensic acquisition link.")
     unsupported.append("Full semantic reconstruction if semantic artifacts have not been generated.")
 
     extract = summary.get("evidence_support_extract") or {}
@@ -668,12 +948,14 @@ def _build_final_conclusion(summary: dict) -> dict:
             degraded.append(f"The Evidence Support Extract assesses hypothesis H1 as only {str(global_support_level).replace('_', ' ')}.")
 
     summary_text = (
-        "The preserved evidence supports a partial causal-forensic reconstruction of the controlled incident. "
-        f"The multilayer forensic analysis {multilayer.get('execution_status') or 'remains unavailable'} and "
-        f"produced {multilayer.get('layers_with_useful_output') or 0} useful layers. "
-        f"The causal reconstruction recovered {causal.get('recovered_edges') or 0} of {causal.get('expected_edges') or 0} expected edges. "
-        f"However, the interpretation remains limited by temporal confidence={uncertainty.get('temporal_confidence') or 'unknown'}, "
-        f"integrity status={integrity.get('overall_status') or 'unknown'}, and the stated Modbus/trigger limitations."
+        "The preserved evidence supports a partial causal-forensic reconstruction of a controlled OT incident. "
+        f"The multilayer analysis {multilayer.get('execution_status') or 'remains unavailable'} and produced "
+        f"useful outputs across {multilayer.get('layers_with_useful_output') or 0} layers. "
+        f"The causal reconstruction recovered {causal.get('recovered_edges') or 0} of {causal.get('expected_edges') or 0} "
+        f"expected causal relations and degraded {causal.get('degraded_edges') or 0} relations due to partial or inferred evidence. "
+        f"The hypothesis receives {(extract.get('global_support_level') or 'unverified').replace('_', ' ')}, not strong support. "
+        f"Causal temporal ordering confidence is {uncertainty.get('causal_temporal_ordering_confidence') or 'unknown'}, "
+        f"case-wide integrity status is {uncertainty_integrity.get('case_wide_integrity_status') or uncertainty_integrity.get('integrity_status') or 'unknown'}, and the stated Modbus/trigger limitations remain."
         f"{extract_clause}"
     )
     return {
@@ -703,7 +985,7 @@ def build_evidence_lifecycle_summary(case_id: str) -> dict:
     multilayer = _build_multilayer_summary(case_dir, analysis_status, visual_summary, summary_path)
     integrity = _build_integrity_summary(case_dir)
     uncertainty = _build_uncertainty_summary(case_dir, time_sync_status, causal_uncertainty)
-    causal = _build_causal_summary(case_dir, bundle, causal_status, causal_metrics, causal_uncertainty, intervention)
+    causal = _build_causal_summary(case_id, case_dir, bundle, causal_status, causal_metrics, causal_uncertainty, intervention)
 
     evidence_lifecycle = {
         "status": "preserved_and_analyzed" if integrity.get("manifest_present") and multilayer.get("execution_status") == "completed" else "partial",
@@ -728,6 +1010,8 @@ def build_evidence_lifecycle_summary(case_id: str) -> dict:
         ],
     }
 
+    summary_status = _summary_staleness(case_dir, summary_path)
+
     execution_summary = {
         "overall_status": causal.get("status") or multilayer.get("execution_status") or "not_available",
         "evidence_lifecycle_status": evidence_lifecycle.get("status"),
@@ -738,6 +1022,7 @@ def build_evidence_lifecycle_summary(case_id: str) -> dict:
         "causal_interpretation_confidence": causal.get("causal_interpretation_confidence") or "unknown",
         "main_limitation": causal.get("main_limitation") or multilayer.get("main_limitation") or uncertainty.get("main_limitation"),
         "generated_report_path": analysis_status.get("forensic_analysis_report_path"),
+        "source_label": "executive summary snapshot",
     }
 
     trigger_summary = {
@@ -764,7 +1049,8 @@ def build_evidence_lifecycle_summary(case_id: str) -> dict:
         "scenario_id": (bundle.get("foc_context_summary") or {}).get("scenario_id") or ((bundle.get("scenario_ground_truth") or {}).get("scenario_id")) or "unknown",
         "scenario_name": (bundle.get("foc_context_summary") or {}).get("scenario_name") or ((bundle.get("scenario_ground_truth") or {}).get("scenario_name")) or "unknown",
         "generated_at": utc_now(),
-        "is_stale": False,
+        "is_stale": bool(summary_status.get("is_stale")),
+        "summary_status": summary_status,
         "case_path": relative_path(case_dir),
         "execution_summary": execution_summary,
         "trigger_summary": trigger_summary,
@@ -775,6 +1061,12 @@ def build_evidence_lifecycle_summary(case_id: str) -> dict:
         "integrity_summary": integrity,
         "evidence_support_extract": evidence_support_extract_stub(case_id, case_dir),
         "reports_and_artifacts": report_index,
+        "panel_sources": {
+            "executive_summary": {"source_label": "executive summary snapshot", "artifact_path": relative_path(summary_path)},
+            "live_pipeline": {"source_label": "live pipeline status"},
+            "causal_reconstruction": {"source_label": "causal reconstruction artifacts", "artifact_path": relative_path(case_dir / "derived" / "reconstruction" / "causal_status.json")},
+            "evidence_support_extract": {"source_label": "evidence support extract", "artifact_path": relative_path(case_dir / "derived" / "executive" / "evidence_support_extract.json")},
+        },
         "final_forensic_conclusion": {},
         "limitations": [],
         "next_required_actions": [],
@@ -784,21 +1076,8 @@ def build_evidence_lifecycle_summary(case_id: str) -> dict:
     summary["next_required_actions"] = actions
     summary["final_forensic_conclusion"] = _build_final_conclusion(summary)
 
-    source_paths = [
-        _artifact_paths(case_dir)["forensic_analysis_report"],
-        _artifact_paths(case_dir)["analysis_visual_summary"],
-        _artifact_paths(case_dir)["reconstruction_metrics"],
-        _artifact_paths(case_dir)["uncertainty_report"],
-        _artifact_paths(case_dir)["causal_status"],
-        _artifact_paths(case_dir)["time_sync"],
-        GENERATED_FILES["forensic_intervention"],
-        GENERATED_FILES["attack_attestation"],
-        GENERATED_FILES["detection_attestation"],
-        GENERATED_FILES["foc_context_summary"],
-    ]
-    latest_source_mtime = max((_mtime(path) for path in source_paths if path.exists()), default=0.0)
-    summary["is_stale"] = bool(summary_mtime and latest_source_mtime > summary_mtime)
-    summary["stale_reason"] = "Executive summary is stale and should be regenerated." if summary["is_stale"] else None
+    summary["stale_reason"] = summary_status.get("reason")
+    summary["required_action"] = summary_status.get("required_action")
     return summary
 
 

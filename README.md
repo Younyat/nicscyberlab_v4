@@ -2545,6 +2545,110 @@ The `FOC Scientific Evidence Lifecycle Dashboard` shows:
 - **Limitations and Next Required Actions**
   - explicit scientific caveats and concrete follow-up actions
 
+#### Snapshot vs live-state semantics
+
+The dashboard now labels the provenance of each major panel explicitly instead of mixing stored and live state:
+
+- `Source: executive summary snapshot`
+- `Source: live pipeline status`
+- `Source: causal reconstruction artifacts`
+- `Source: evidence support extract`
+
+If the executive summary is stale, that state is surfaced near the top of the executive panel, not buried as a minor tag. The banner reports:
+
+- executive summary status
+- the stale reason, for example `Causal reconstruction artifacts were modified after the executive summary was generated.`
+- the required action, for example `regenerate executive summary`
+
+The same rule applies to the `Evidence Support Extract`: if its causal inputs changed after generation, the dashboard marks the extract as stale and warns that its metrics are not authoritative until regenerated.
+
+#### Multilayer analysis vs causal reconstruction
+
+The dashboard keeps two different counting models separate:
+
+- **multilayer analysis**
+  - evaluates whether preserved evidence was processed across the expected forensic layers
+  - example: `15 completed layers with useful output`
+- **causal reconstruction**
+  - evaluates whether the scenario's expected attack relations were reconstructed from preserved evidence
+  - example: `5 recovered causal edges out of 8 expected relations`
+
+The UI therefore includes an explicit bridge note:
+
+`15 completed layers does not mean 8 causal edges must be fully recovered.`
+
+#### CPR and Weighted CPR
+
+The executive view no longer shows `CPR` and `Weighted CPR` as opaque scores.
+
+It now exposes:
+
+- the CPR formula
+  - `fully recovered expected causal edges / total expected causal edges`
+- the Weighted CPR formula
+  - `recovered edge weight / total expected edge weight`
+- the total expected edge weight
+- the recovered edge weight
+- the degraded edge weight
+- the penalty terms that affect `reconstruction_confidence`
+  - degradation penalty
+  - ambiguity penalty
+  - temporal penalty
+- the final weighted score
+
+Important: the weighted CPR value itself is only the scenario-weighted recoverability ratio. Temporal and degradation penalties affect `reconstruction_confidence`, not the raw `Weighted CPR` ratio.
+
+#### Temporal synchronization vs causal timestamp confidence
+
+The uncertainty panel now separates infrastructure clock state from artifact timestamp usability:
+
+- `Clock synchronization`
+- `Evidence timestamp availability`
+- `Evidence timestamp resolvability`
+- `Causal temporal ordering confidence`
+- `Reason`
+
+This is deliberate. A synchronized infrastructure does **not** guarantee that every forensic artifact contains usable timestamps for causal ordering.
+
+#### Trigger path vs reconstructed attack path
+
+The panel is now named:
+
+- `Acquisition Trigger Path vs Reconstructed Attack Path`
+
+When the preserved forensic case was acquired because of a host/FIM-oriented trigger but the causal model evaluates an OT Modbus path, the dashboard reports:
+
+- `Status: trigger attack mismatch`
+- `Scientific interpretation: valid case with acquisition-trigger limitation`
+
+This is not presented as an error. It is presented as a controlled scientific limitation of the preserved case.
+
+#### Modbus specificity
+
+The executive dashboard now ends the Modbus section with an explicit interpretation block:
+
+- `Confirmed`
+  - Modbus/TCP traffic targeting the PLC was observed.
+- `Partially supported`
+  - function code, register, value, and OT state relation.
+- `Not fully claimable`
+  - complete packet-level register and value causality.
+
+This makes the limitation explicit: current preserved evidence confirms Modbus/TCP activity toward the PLC, but not complete packet-level register/value precision.
+
+#### Executive conclusion compression
+
+The executive conclusion no longer repeats every completed layer as a separate sentence.
+
+Instead it groups supported claims into higher-level categories such as:
+
+- Evidence preservation
+- Forensic processing
+- Cross-layer analysis
+- Causal reconstruction
+
+The detailed per-layer inventory remains available under the multilayer matrix and `View technical details`.
+
 #### Backend contract
 
 The dashboard uses these lightweight API surfaces:

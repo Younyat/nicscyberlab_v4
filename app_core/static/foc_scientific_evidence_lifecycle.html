@@ -107,11 +107,13 @@
           <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Executive Summary</div>
+              <div class="text-xs text-cyan-300 mt-2">Source: executive summary snapshot</div>
               <h2 id="lifecycle-title" class="text-2xl font-black mt-2">Select a forensic case</h2>
               <p id="lifecycle-subtitle" class="text-sm text-slate-300 mt-3">The dashboard loads only the lightweight executive summary by default. Technical details, raw reports, and large artifacts stay on-demand.</p>
             </div>
             <div id="lifecycle-header-tags" class="flex flex-wrap gap-2"></div>
           </div>
+          <div id="lifecycle-exec-note" class="mt-5"></div>
           <div id="lifecycle-exec-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-5"></div>
         </section>
 
@@ -151,11 +153,13 @@
           <div class="flex items-start justify-between gap-4">
             <div>
               <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Multilayer Forensic Analysis</div>
+              <div class="text-xs text-cyan-300 mt-2">Source: executive summary snapshot derived from the multilayer analysis artifacts</div>
               <h2 class="text-2xl font-black mt-2">Layer Usefulness Matrix</h2>
             </div>
             <div id="multilayer-summary-tags" class="flex flex-wrap gap-2"></div>
           </div>
           <div id="multilayer-overview" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4 mt-5"></div>
+          <div id="multilayer-causal-bridge-note" class="glass-soft rounded-[24px] p-4 mt-5 text-sm text-slate-300"></div>
           <div class="overflow-x-auto mt-5">
             <table class="w-full min-w-[980px] text-sm">
               <thead>
@@ -176,12 +180,14 @@
         <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <div class="glass rounded-[28px] p-6">
             <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Causal Reconstruction Summary</div>
+            <div class="text-xs text-cyan-300 mt-2">Source: causal reconstruction artifacts</div>
             <h2 class="text-2xl font-black mt-2">Recovered Path and CPR</h2>
             <div id="causal-summary-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5"></div>
             <div id="causal-summary-text" class="glass-soft rounded-[24px] p-4 mt-5 text-sm text-slate-300"></div>
           </div>
           <div class="glass rounded-[28px] p-6">
             <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Uncertainty Summary</div>
+            <div class="text-xs text-cyan-300 mt-2">Source: causal reconstruction artifacts and preserved time synchronization metadata</div>
             <h2 class="text-2xl font-black mt-2">Temporal and Integrity Constraints</h2>
             <div id="uncertainty-summary-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5"></div>
             <div id="uncertainty-warning" class="glass-soft rounded-[24px] p-4 mt-5 text-sm text-slate-300"></div>
@@ -190,7 +196,7 @@
 
         <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <div class="glass rounded-[28px] p-6">
-            <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Trigger Path vs Causal Attack Path</div>
+            <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Acquisition Trigger Path vs Reconstructed Attack Path</div>
             <h2 class="text-2xl font-black mt-2">Acquisition Trigger Alignment</h2>
             <div id="trigger-vs-causal" class="glass-soft rounded-[24px] p-5 mt-5 text-sm text-slate-300">No case selected.</div>
           </div>
@@ -205,6 +211,7 @@
           <div class="flex items-center justify-between gap-3 flex-wrap">
             <div>
               <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Evidence Support Extract</div>
+              <div class="text-xs text-cyan-300 mt-2">Source: evidence support extract</div>
               <h2 class="text-2xl font-black mt-2">What The Evidence Actually Supports</h2>
             </div>
             <div class="flex gap-3">
@@ -212,6 +219,7 @@
               <button id="view-extract-btn" class="btn-secondary rounded-2xl px-4 py-2 text-xs font-extrabold tracking-[0.16em] uppercase">View Details</button>
             </div>
           </div>
+          <div id="extract-summary-note" class="mt-5"></div>
           <div id="extract-summary" class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4 mt-5"></div>
           <div id="extract-details" class="mt-5 hidden"></div>
         </section>

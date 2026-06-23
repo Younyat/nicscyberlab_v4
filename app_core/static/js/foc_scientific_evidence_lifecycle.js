@@ -190,20 +190,25 @@ function renderDashboard() {
 
 function renderExtractSummary(summary, payload) {
   const container = byId("extract-summary");
-  if (!container) return;
+  const note = byId("extract-summary-note");
+  if (!container || !note) return;
   const extract = summary?.evidence_support_extract;
   if (!extract || extract.status === "not_available") {
+    note.innerHTML = "";
     container.innerHTML = valueCard("Evidence Support Extract", "Not generated", "Generate it after causal reconstruction to obtain a normalized, hypothesis-level forensic support assessment.", "status-warning");
     return;
   }
   const tone = extract.status === "stale" ? "status-warning" : statusTone(extract.global_support_level);
+  note.innerHTML = extract.status === "stale"
+    ? `<div class="glass-soft rounded-[24px] p-4 text-sm text-amber-200"><div class="font-black uppercase tracking-[0.16em] text-xs mb-2">This support extract is stale</div><div>${esc(extract.stale_reason || "The displayed support metrics may not reflect the latest causal reconstruction artifacts.")}</div><div class="mt-2 flex items-center justify-between gap-3 flex-wrap"><span><span class="font-black">Required action:</span> ${esc(extract.required_action || "regenerate evidence support extract")}.</span><button type="button" class="run-action-btn btn-secondary rounded-2xl px-4 py-2 text-xs font-extrabold tracking-[0.16em] uppercase" data-run-action="generate-extract">Regenerate Evidence Support Extract</button></div></div>`
+    : "";
   container.innerHTML = [
-    valueCard("Status", titleize(extract.status), extract.path || "not_available", tone),
-    valueCard("Global support", titleize(extract.global_support_level || "not_evaluable"), "Aggregated across independent layers.", statusTone(extract.global_support_level)),
-    valueCard("Hypotheses", extract.hypothesis_count ?? 0, "Forensic hypotheses evaluated."),
-    valueCard("Supporting findings", extract.supporting_findings ?? 0, "Moderate or strong support.", "status-ok"),
-    valueCard("Degraded / ambiguous", extract.degraded_or_ambiguous_findings ?? 0, "Weak or indirect support only.", "status-warning"),
-    valueCard("Missing / not evaluable", extract.missing_or_not_evaluable_findings ?? 0, `Contradictions: ${extract.contradictions ?? 0}`, (extract.contradictions ?? 0) > 0 ? "status-error" : "status-muted"),
+    valueCard("Status", titleize(extract.status), `${extract.path || "not_available"}${extract.status === "stale" ? " · stale snapshot" : ""}`, tone),
+    valueCard("Global support", titleize(extract.global_support_level || "not_evaluable"), extract.status === "stale" ? "Stale snapshot; not authoritative until regenerated." : "Aggregated across independent layers.", statusTone(extract.global_support_level)),
+    valueCard("Hypotheses", extract.hypothesis_count ?? 0, extract.status === "stale" ? "Stale value." : "Forensic hypotheses evaluated."),
+    valueCard("Supporting findings", extract.supporting_findings ?? 0, extract.status === "stale" ? "Stale value." : "Moderate or strong support.", "status-ok"),
+    valueCard("Degraded / ambiguous", extract.degraded_or_ambiguous_findings ?? 0, extract.status === "stale" ? "Stale value." : "Weak or indirect support only.", "status-warning"),
+    valueCard("Missing / not evaluable", extract.missing_or_not_evaluable_findings ?? 0, `${extract.status === "stale" ? "Stale value. " : ""}Contradictions: ${extract.contradictions ?? 0}`, (extract.contradictions ?? 0) > 0 ? "status-error" : "status-muted"),
   ].join("");
 }
 
@@ -278,8 +283,10 @@ function renderExtractDetail(payload) {
 
 function renderExecutiveGrid(summary, payload) {
   const container = byId("lifecycle-exec-grid");
-  if (!container) return;
+  const note = byId("lifecycle-exec-note");
+  if (!container || !note) return;
   if (!summary) {
+    note.innerHTML = `<div class="glass-soft rounded-[24px] p-4 text-sm text-amber-200"><div class="font-black uppercase tracking-[0.16em] text-xs mb-2">Executive summary status: not generated</div><div>Source: executive summary snapshot</div><div class="mt-2">Required action: generate executive summary.</div></div>`;
     container.innerHTML = [
       valueCard("Summary status", "Not generated", "Generate the executive summary to expose the synthesized scientific lifecycle.", "status-warning"),
       valueCard("Analysis", payload.live_status?.analysis?.status || "not_started", "Live multilayer analysis state from the case pipeline.", statusTone(payload.live_status?.analysis?.status)),
@@ -289,6 +296,15 @@ function renderExecutiveGrid(summary, payload) {
     return;
   }
   const exec = summary.execution_summary || {};
+  const summaryStatus = summary.summary_status || {};
+  note.innerHTML = `
+    <div class="glass-soft rounded-[24px] p-4 text-sm ${summaryStatus.status === "stale" ? "text-amber-200" : "text-slate-300"}">
+      <div class="font-black uppercase tracking-[0.16em] text-xs mb-2">Executive summary status: ${esc(titleize(summaryStatus.status || "current"))}</div>
+      <div>Source: ${esc(summaryStatus.source_label || "executive summary snapshot")}</div>
+      ${summaryStatus.reason ? `<div class="mt-2"><span class="font-black">Reason:</span> ${esc(summaryStatus.reason)}</div>` : ""}
+      ${summaryStatus.required_action ? `<div class="mt-2 flex items-center justify-between gap-3 flex-wrap"><span><span class="font-black">Required action:</span> ${esc(summaryStatus.required_action)}.</span><button type="button" class="run-action-btn btn-secondary rounded-2xl px-4 py-2 text-xs font-extrabold tracking-[0.16em] uppercase" data-run-action="generate-summary">Regenerate Executive Summary</button></div>` : ""}
+    </div>
+  `;
   container.innerHTML = [
     valueCard("Case ID", summary.case_id, summary.case_path, "status-info"),
     valueCard("Scenario", summary.scenario_id || "unknown", summary.scenario_name || "unknown", "status-info"),
@@ -395,11 +411,13 @@ function renderMultilayer(summary, payload) {
   const tags = byId("multilayer-summary-tags");
   const overview = byId("multilayer-overview");
   const matrix = byId("multilayer-matrix");
-  if (!tags || !overview || !matrix) return;
+  const bridge = byId("multilayer-causal-bridge-note");
+  if (!tags || !overview || !matrix || !bridge) return;
   const multi = summary?.multilayer_analysis_summary;
   if (!multi) {
     tags.innerHTML = tag("status", payload.live_status?.analysis?.status || "not_started", statusTone(payload.live_status?.analysis?.status));
     overview.innerHTML = valueCard("Summary", "Not generated", "Run or regenerate multilayer analysis and then generate the executive summary.", "status-warning");
+    bridge.innerHTML = "Multilayer analysis evaluates whether the preserved evidence was processed across the expected forensic layers. Causal reconstruction evaluates whether the expected attack relations can be reconstructed from the preserved evidence.";
     matrix.innerHTML = `<tr><td colspan="6" class="py-6 text-slate-500">No multilayer executive summary is available yet.</td></tr>`;
     return;
   }
@@ -417,6 +435,11 @@ function renderMultilayer(summary, payload) {
     valueCard("Failed", multi.layers_failed || 0, "Layers that failed or remain unavailable.", multi.main_limitation || "", "status-error"),
     valueCard("Report", multi.execution_status || "unknown", multi.report_path || "report_not_available", statusTone(multi.execution_status)),
   ].join("");
+  bridge.innerHTML = `
+    <div class="font-black text-slate-200">Multilayer analysis evaluates whether the preserved evidence was processed across the expected forensic layers.</div>
+    <div class="mt-2">Causal reconstruction evaluates whether the expected attack relations can be reconstructed from the preserved evidence.</div>
+    <div class="mt-2 text-slate-400">Therefore, ${esc(String(multi.layers_completed || 0))} completed layers does not mean ${esc(String(summary?.causal_summary?.expected_edges || 0))} causal edges must be fully recovered.</div>
+  `;
   matrix.innerHTML = (multi.layers || []).map(layer => `
     <tr class="border-t border-slate-800/70 align-top">
       <td class="py-4 pr-4 font-semibold">${esc(layer.layer_name)}</td>
@@ -454,18 +477,60 @@ function renderCausalAndUncertainty(summary, payload) {
     causalGrid.innerHTML = valueCard("Causal state", payload.live_status?.causal?.status || "not_available", payload.live_status?.causal?.reason || "Causal reconstruction has not been summarized in this executive view yet.", statusTone(payload.live_status?.causal?.status));
     causalText.textContent = payload.live_status?.causal?.reason || "Causal reconstruction is not yet available for this case.";
   } else {
+    const weighted = causal.weighted_cpr_details || {};
+    const why = causal.why_expected_relations || {};
     causalGrid.innerHTML = [
       valueCard("CPR", formatMaybeNumber(causal.cpr), "Recovered expected causal relations / expected causal relations.", statusTone(causal.status)),
-      valueCard("Weighted CPR", formatMaybeNumber(causal.weighted_cpr), "Weighted causal recoverability.", statusTone(causal.status)),
+      valueCard("Weighted CPR", formatMaybeNumber(causal.weighted_cpr), "Weighted causal recoverability using scenario-defined edge weights.", statusTone(causal.status)),
       valueCard("Recovered edges", `${causal.recovered_edges || 0} / ${causal.expected_edges || 0}`, "Expected causal relations fully recovered.", "status-ok"),
       valueCard("Degraded edges", causal.degraded_edges || 0, "Edges with partial support.", "status-warning"),
       valueCard("Ambiguous edges", causal.ambiguous_edges || 0, "Edges limited by temporal uncertainty.", "status-warning"),
       valueCard("Missing edges", causal.missing_edges || 0, "Edges unsupported by the preserved artifact set.", causal.main_limitation || "", statusTone(causal.status)),
     ].join("");
     causalText.innerHTML = `
-      <div class="${statusTone(causal.status)} font-black">${esc(titleize(causal.status || "not_available"))}</div>
+      <div class="glass-soft rounded-2xl p-4 mb-4 ${statusTone(causal.status)}">
+        <div class="text-xs uppercase tracking-[0.16em] font-black">Scientific interpretation</div>
+        <div class="mt-2 text-sm">${esc(causal.interpretation_banner || causal.main_limitation || "No causal limitation summary available.")}</div>
+      </div>
+      <div class="${statusTone(causal.status)} font-black">Status: ${esc(titleize(causal.status || "not_available"))}</div>
       <div class="mt-3">${esc(causal.main_limitation || "No causal limitation summary available.")}</div>
-      <div class="mt-3 text-slate-400">CPR measures the proportion of expected causal relations that were fully recovered with sufficient evidence.</div>
+      <div class="mt-4 glass-soft rounded-2xl p-4">
+        <div class="font-black text-slate-200">CPR</div>
+        <div class="mt-2 text-slate-300">Formula: <span class="mono">${esc(weighted.cpr_formula || "fully recovered expected causal edges / total expected causal edges")}</span></div>
+        <div class="mt-3 font-black text-slate-200">Weighted CPR</div>
+        <div class="mt-2 text-slate-300">Formula: <span class="mono">${esc(weighted.weighted_cpr_formula || "recovered edge weight / total expected edge weight")}</span></div>
+        <div class="mt-2 text-slate-400">${esc(weighted.weighted_cpr_explanation || "Weighted CPR uses scenario-defined edge weights.")}</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3 mt-4 text-xs">
+          <div><span class="text-slate-500">total edge weight</span><div class="mono mt-1">${esc(formatMaybeNumber(weighted.total_edge_weight))}</div></div>
+          <div><span class="text-slate-500">recovered edge weight</span><div class="mono mt-1">${esc(formatMaybeNumber(weighted.recovered_edge_weight))}</div></div>
+          <div><span class="text-slate-500">degraded edge weight</span><div class="mono mt-1">${esc(formatMaybeNumber(weighted.degraded_edge_weight))}</div></div>
+          <div><span class="text-slate-500">penalty applied</span><div class="mono mt-1">${esc(formatMaybeNumber(weighted.penalty_applied?.total_penalty))}</div></div>
+          <div><span class="text-slate-500">final weighted score</span><div class="mono mt-1">${esc(formatMaybeNumber(weighted.final_weighted_score))}</div></div>
+        </div>
+      </div>
+      <details class="glass-soft rounded-2xl p-4 mt-4">
+        <summary class="cursor-pointer font-black text-slate-200">${esc(why.title || "Why expected causal relations?")}</summary>
+        <div class="mt-3 text-slate-300">${esc(why.summary || "No explanation available.")}</div>
+        <div class="overflow-x-auto mt-4">
+          <table class="w-full text-xs text-slate-300">
+            <thead><tr class="text-left text-slate-400 uppercase tracking-[0.12em]"><th class="pr-3 py-2">Edge</th><th class="pr-3 py-2">Source event</th><th class="pr-3 py-2">Target event</th><th class="pr-3 py-2">Expected evidence</th><th class="pr-3 py-2">Recovered status</th><th class="pr-3 py-2">Support</th><th class="pr-3 py-2">Degradation reason</th><th class="pr-3 py-2">Temporal resolvability</th></tr></thead>
+            <tbody>
+              ${(why.relations || []).map(item => `
+                <tr class="border-t border-slate-800/70 align-top">
+                  <td class="py-3 pr-3 mono">${esc(item.edge_id || "not_available")}</td>
+                  <td class="py-3 pr-3">${esc(item.source_event || "not_available")}</td>
+                  <td class="py-3 pr-3">${esc(item.target_event || "not_available")}</td>
+                  <td class="py-3 pr-3">${esc(item.expected_evidence_source || "not_available")}</td>
+                  <td class="py-3 pr-3 ${statusTone(item.recovered_status)}">${esc(titleize(item.recovered_status || "not_available"))}</td>
+                  <td class="py-3 pr-3 ${statusTone(item.support_level)}">${esc(titleize(item.support_level || "unknown"))}</td>
+                  <td class="py-3 pr-3">${esc(maybeTruncate(item.degradation_reason || "none", 180))}</td>
+                  <td class="py-3 pr-3">${esc(titleize(item.temporal_resolvability || "unknown"))}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      </details>
       ${causal.is_stale ? `<div class="mt-3 flex items-center justify-between gap-3 flex-wrap status-warning font-black"><span>Causal reconstruction is stale because analysis outputs were modified after causal artifacts were generated.</span><button type="button" class="run-action-btn btn-secondary rounded-2xl px-4 py-2 text-xs font-extrabold tracking-[0.16em] uppercase" data-run-action="rerun-causal">Regenerate Causal Reconstruction</button></div>` : ""}
     `;
   }
@@ -474,14 +539,21 @@ function renderCausalAndUncertainty(summary, payload) {
     uncertaintyWarning.textContent = "Temporal and integrity constraints will appear here when the executive summary is generated.";
   } else {
     uncertaintyGrid.innerHTML = [
-      valueCard("Temporal confidence", uncertainty.temporal_confidence || "unknown", "Preserved temporal confidence for causal ordering.", statusTone(uncertainty.temporal_confidence)),
+      valueCard("Clock synchronization", uncertainty.synchronized_status || "unknown", `Source: ${uncertainty.time_sync_source || "not_available"}`, statusTone(uncertainty.synchronized_status)),
+      valueCard("Evidence timestamp availability", uncertainty.evidence_timestamp_availability || "unknown", "Whether required artifact timestamps exist at all.", statusTone(uncertainty.evidence_timestamp_availability)),
+      valueCard("Evidence timestamp resolvability", uncertainty.evidence_timestamp_resolvability || "unknown", "Whether available timestamps can be resolved well enough for ordering.", statusTone(uncertainty.evidence_timestamp_resolvability)),
+      valueCard("Causal temporal ordering confidence", uncertainty.causal_temporal_ordering_confidence || "unknown", "Confidence in temporal ordering of the expected causal edges.", statusTone(uncertainty.causal_temporal_ordering_confidence)),
       valueCard("Max clock offset", `${formatMaybeNumber(uncertainty.max_clock_offset_seconds)}s`, uncertainty.time_sync_source || "not_available", statusTone(uncertainty.synchronized_status)),
       valueCard("Uncertainty window", `${formatMaybeNumber(uncertainty.uncertainty_window_seconds)}s`, "Temporal ordering window used by the uncertainty budget.", statusTone(uncertainty.temporal_confidence)),
-      valueCard("Sync status", uncertainty.synchronized_status || "unknown", `Nodes measured: ${uncertainty.nodes_measured ?? "not_available"} | failed: ${uncertainty.nodes_failed ?? "not_available"}`, statusTone(uncertainty.synchronized_status)),
       valueCard("Correction applied", uncertainty.correction_applied ? "yes" : "no", `Before: ${uncertainty.before_path || "not_available"} | After: ${uncertainty.after_path || "not_available"}`, uncertainty.correction_applied ? "status-warning" : "status-muted"),
       valueCard("Worst node", uncertainty.worst_node?.name || uncertainty.worst_node?.vm_id || "not_available", uncertainty.worst_node?.ip || "not_available", statusTone(uncertainty.synchronized_status)),
+      valueCard("Nodes measured", `${uncertainty.nodes_measured ?? "not_available"} / failed ${uncertainty.nodes_failed ?? "not_available"}`, "Current measurement status.", statusTone(uncertainty.current_measurement_status)),
     ].join("");
-    uncertaintyWarning.textContent = uncertainty.main_limitation || "No additional uncertainty warning recorded.";
+    uncertaintyWarning.innerHTML = `
+      <div class="font-black text-slate-200">Reason</div>
+      <div class="mt-2">${esc(uncertainty.causal_temporal_ordering_reason || uncertainty.main_limitation || "No additional uncertainty warning recorded.")}</div>
+      <div class="mt-3 text-slate-400">${esc(uncertainty.temporal_model_note || "A synchronized infrastructure does not automatically guarantee that every forensic artifact contains usable timestamps for causal ordering.")}</div>
+    `;
   }
 }
 
@@ -510,16 +582,31 @@ function renderTriggerAndModbus(summary) {
       <div><span class="text-slate-400 uppercase tracking-[0.14em] text-xs font-black">Trigger path</span><div class="mt-2">${esc(align.trigger_path || trigger.trigger || "not_available")}</div></div>
       <div><span class="text-slate-400 uppercase tracking-[0.14em] text-xs font-black">Trigger rule</span><div class="mt-2 mono">${esc(align.trigger_rule_id || trigger.triggering_alert_rule_id || "not_available")}</div></div>
       <div><span class="text-slate-400 uppercase tracking-[0.14em] text-xs font-black">Causal attack path</span><div class="mt-2">${esc(align.causal_attack_path || "not_available")}</div></div>
+      <div><span class="text-slate-400 uppercase tracking-[0.14em] text-xs font-black">Status</span><div class="mt-2 ${alignTone} font-black">${esc(titleize(align.status || "unknown"))}</div></div>
+      <div><span class="text-slate-400 uppercase tracking-[0.14em] text-xs font-black">Scientific interpretation</span><div class="mt-2">${esc(align.scientific_interpretation || "not_available")}</div></div>
       <div class="${alignTone} font-black mt-2">${esc(alignText)}</div>
     </div>
   `;
   const modbus = causal.modbus_specificity || {};
   modbusPanel.innerHTML = Object.entries(modbus)
-    .filter(([key]) => key !== "message")
+    .filter(([key]) => !["message", "interpretation"].includes(key))
     .map(([key, item]) => valueCard(titleize(key), item?.value || "not_available", `Status: ${item?.status || "unknown"}`, statusTone(item?.status)))
     .join("");
   if (modbus.message) {
     modbusPanel.innerHTML += `<div class="md:col-span-2 glass-soft rounded-[24px] p-4 text-sm text-amber-200">${esc(modbus.message)}</div>`;
+  }
+  if (modbus.interpretation) {
+    modbusPanel.innerHTML += `
+      <div class="md:col-span-2 glass-soft rounded-[24px] p-4 text-sm text-slate-300">
+        <div class="font-black text-slate-200">Confirmed</div>
+        <div class="mt-1">${esc(modbus.interpretation.confirmed || "not_available")}</div>
+        <div class="font-black text-slate-200 mt-3">Partially supported</div>
+        <div class="mt-1">${esc(modbus.interpretation.partially_supported || "not_available")}</div>
+        <div class="font-black text-slate-200 mt-3">Not fully claimable</div>
+        <div class="mt-1">${esc(modbus.interpretation.not_fully_claimable || "not_available")}</div>
+        <div class="mt-3 text-amber-200">${esc(modbus.interpretation.summary || "")}</div>
+      </div>
+    `;
   }
 }
 

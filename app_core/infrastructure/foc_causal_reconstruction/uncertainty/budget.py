@@ -72,6 +72,43 @@ def extract_temporal_sync_context(case_context: dict) -> dict:
     }
 
 
+_STATE_SEVERITY = {"strong": 3, "limited": 2, "ambiguous": 1, "unknown": 0}
+
+
+def _coverage_state(ratio_full: bool, ratio_zero: bool) -> str:
+    if ratio_zero:
+        return "none"
+    if ratio_full:
+        return "full"
+    return "partial"
+
+
+def _evidence_timestamp_coverage(edges: list[dict]) -> dict:
+    # A clock can be perfectly synchronized while individual artifacts still
+    # lack a usable timestamp for a given causal edge - these are two
+    # different questions. "Declared" edges are the ones whose ground-truth
+    # spec actually requires a temporal comparison (temporal_status is not
+    # "not_required"); "resolved" is how many of those produced a real
+    # supported/ambiguous/contradicted comparison instead of "unknown".
+    declared = [e for e in edges if str(e.get("temporal_status") or "unknown") != "not_required"]
+    resolved = [e for e in declared if str(e.get("temporal_status")) in {"supported", "ambiguous", "contradicted"}]
+    clearly_ordered = [e for e in resolved if str(e.get("temporal_status")) == "supported"]
+
+    availability = (
+        "not_applicable" if not declared else _coverage_state(len(resolved) == len(declared), len(resolved) == 0)
+    )
+    resolvability = (
+        "not_applicable" if not resolved else _coverage_state(len(clearly_ordered) == len(resolved), len(clearly_ordered) == 0)
+    )
+    return {
+        "edges_with_declared_timestamps": len(declared),
+        "edges_with_resolved_timestamps": len(resolved),
+        "edges_with_clear_temporal_order": len(clearly_ordered),
+        "evidence_timestamp_availability": availability,
+        "evidence_timestamp_resolvability": resolvability,
+    }
+
+
 def build_uncertainty_report(case_context: dict, metrics: dict, edges: list[dict]) -> dict:
     temporal_context = extract_temporal_sync_context(case_context)
     temporal_report = temporal_context.get("temporal_report") or {}
@@ -96,6 +133,49 @@ def build_uncertainty_report(case_context: dict, metrics: dict, edges: list[dict
         temporal_confidence_state = "ambiguous"
     if temporal_confidence_state not in ALLOWED_TEMPORAL_CONFIDENCE_STATES:
         temporal_confidence_state = "unknown"
+    clock_based_temporal_state = temporal_confidence_state
+
+    # Node clock synchronization is a property of the infrastructure;
+    # evidence timestamp availability/resolvability is a property of the
+    # preserved artifacts themselves. A synchronized infrastructure does not
+    # automatically mean that all forensic artifacts contain usable
+    # timestamps for causal ordering, so the final causal_temporal_ordering
+    # confidence must take the worst of both signals, not the clock alone.
+    timestamp_coverage = _evidence_timestamp_coverage(edges)
+    declared_count = timestamp_coverage["edges_with_declared_timestamps"]
+    resolved_count = timestamp_coverage["edges_with_resolved_timestamps"]
+    availability_state = timestamp_coverage["evidence_timestamp_availability"]
+    resolvability_state = timestamp_coverage["evidence_timestamp_resolvability"]
+
+    _IMPLIED_STATE = {"full": "strong", "partial": "limited", "none": "ambiguous"}
+    candidates = [("clock_synchronization", clock_based_temporal_state)]
+    if declared_count and availability_state != "not_applicable":
+        candidates.append(("evidence_timestamp_availability", _IMPLIED_STATE[availability_state]))
+    if resolved_count and resolvability_state != "not_applicable":
+        candidates.append(("evidence_timestamp_resolvability", _IMPLIED_STATE[resolvability_state]))
+
+    # The final confidence is the worst of all signals - a synchronized
+    # clock cannot compensate for artifacts that lack usable timestamps.
+    # Ties prefer naming the evidence-side factor over the clock, since that
+    # is the more actionable explanation for the user.
+    candidates.sort(key=lambda pair: (_STATE_SEVERITY.get(pair[1], 0), pair[0] == "clock_synchronization"))
+    limiting_factor, causal_temporal_ordering_confidence = candidates[0]
+    if causal_temporal_ordering_confidence not in ALLOWED_TEMPORAL_CONFIDENCE_STATES:
+        causal_temporal_ordering_confidence = "unknown"
+
+    if limiting_factor in {"evidence_timestamp_availability", "evidence_timestamp_resolvability"}:
+        causal_temporal_ordering_reason = (
+            "Some causal edges could not be temporally ordered because the required artifact timestamps "
+            "were not available or not resolvable."
+        )
+    elif declared_count == 0:
+        causal_temporal_ordering_reason = (
+            "No causal edge in this case declares a required timestamp comparison, so causal temporal "
+            "ordering confidence reflects clock synchronization quality only."
+        )
+    else:
+        causal_temporal_ordering_reason = None  # filled in below once temporal_limitation is computed
+    temporal_confidence_state = causal_temporal_ordering_confidence  # kept for backward compatibility
 
     max_clock_offset_seconds = round(max_offset_ms / 1000.0, 3)
     uncertainty_window_seconds = round(uncertainty_window_ms / 1000.0, 3)
@@ -118,13 +198,24 @@ def build_uncertainty_report(case_context: dict, metrics: dict, edges: list[dict
             f"{uncertainty_window_seconds:g}s."
         )
 
+    if causal_temporal_ordering_reason is None:
+        causal_temporal_ordering_reason = temporal_limitation
+
+    temporal_model_note = (
+        "A synchronized infrastructure does not automatically mean that all forensic artifacts contain "
+        "usable timestamps for causal ordering."
+    )
+
     temporal_warning = None
     temporal_caution = None
-    if temporal_confidence_state in {"ambiguous", "limited"} and max_clock_offset_seconds > 0:
-        temporal_warning = (
-            f"Temporal ordering is weak because the preserved clock offset is approximately "
-            f"{max_clock_offset_seconds:.0f} seconds."
-        )
+    if causal_temporal_ordering_confidence in {"ambiguous", "limited"}:
+        if limiting_factor in {"evidence_timestamp_availability", "evidence_timestamp_resolvability"}:
+            temporal_warning = causal_temporal_ordering_reason
+        elif max_clock_offset_seconds > 0:
+            temporal_warning = (
+                f"Temporal ordering is weak because the preserved clock offset is approximately "
+                f"{max_clock_offset_seconds:.0f} seconds."
+            )
         temporal_caution = (
             "Causal direction for time-dependent edges must be interpreted with caution because event "
             "ordering falls under a large uncertainty window."
@@ -206,6 +297,26 @@ def build_uncertainty_report(case_context: dict, metrics: dict, edges: list[dict
             "worst_node": temporal_context.get("worst_node"),
             "before": temporal_context.get("before") or {},
             "after": temporal_context.get("after") or {},
+            "before_after_clock_correction_data_available": bool(temporal_context.get("before")) or bool(temporal_context.get("after")),
+            # Four distinct questions that must not be collapsed into one
+            # number: is the infrastructure clock synchronized; do the
+            # preserved artifacts have timestamps at all; can those
+            # timestamps be resolved into a usable comparison; and, given
+            # both, how confident is the causal ordering itself.
+            "node_clock_synchronization_status": sync_state,
+            "evidence_timestamp_availability": availability_state,
+            "evidence_timestamp_resolvability": resolvability_state,
+            "causal_temporal_ordering_confidence": causal_temporal_ordering_confidence,
+            "causal_temporal_ordering_reason": causal_temporal_ordering_reason,
+            "causal_temporal_ordering_limiting_factor": limiting_factor,
+            "temporal_model_note": temporal_model_note,
+            "edges_with_declared_timestamps": declared_count,
+            "edges_with_resolved_timestamps": resolved_count,
+            "edges_with_clear_temporal_order": timestamp_coverage["edges_with_clear_temporal_order"],
+            "clock_based_temporal_state": clock_based_temporal_state,
+            # Kept for backward compatibility with the markdown/CSV/JS that
+            # already read this field name; it is now an alias of the
+            # combined causal_temporal_ordering_confidence, not the clock-only value.
             "temporal_confidence_state": temporal_confidence_state,
             "temporal_limitation": temporal_limitation,
             "temporal_warning": temporal_warning,

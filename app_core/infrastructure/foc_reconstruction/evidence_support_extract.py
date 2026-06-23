@@ -342,6 +342,7 @@ def evidence_support_extract_stub(case_id: str, case_dir: Path) -> dict:
     assessment = payload.get("final_support_assessment") or {}
     return {
         "status": "stale" if is_stale else "available",
+        "is_stale": is_stale,
         "path": relative_path(path),
         "global_support_level": assessment.get("global_support_level"),
         "hypothesis_count": len(payload.get("hypotheses") or []),
@@ -350,4 +351,6 @@ def evidence_support_extract_stub(case_id: str, case_dir: Path) -> dict:
         "missing_or_not_evaluable_findings": len(payload.get("missing_or_not_evaluable_evidence") or []),
         "contradictions": len(payload.get("contradictions") or []),
         "main_limitation": (payload.get("hypotheses") or [{}])[0].get("main_limitations", ["not_available"])[0] if payload.get("hypotheses") else "not_available",
+        "stale_reason": "This support extract is stale. The displayed support metrics may not reflect the latest causal reconstruction artifacts." if is_stale else None,
+        "required_action": "regenerate evidence support extract" if is_stale else None,
     }
