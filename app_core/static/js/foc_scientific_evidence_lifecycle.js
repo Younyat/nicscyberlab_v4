@@ -5,6 +5,8 @@ const DashboardState = {
   dashboard: null,
   trackedJobId: null,
   pollTimer: null,
+  extractDetail: null,
+  extractDetailVisible: false,
 };
 
 function byId(id) {
@@ -50,16 +52,16 @@ function titleize(value) {
 
 function statusTone(status) {
   const normalized = String(status || "").toLowerCase();
-  if (["completed", "completed_with_useful_output", "synchronized", "confirmed", "ok", "strong", "preserved_and_analyzed"].includes(normalized)) {
+  if (["completed", "completed_with_useful_output", "synchronized", "confirmed", "ok", "strong", "preserved_and_analyzed", "strong_support", "moderate_support"].includes(normalized)) {
     return "status-ok";
   }
-  if (normalized.includes("failed") || normalized.includes("missing") || normalized === "blocked" || normalized === "not_synchronized") {
+  if (normalized.includes("failed") || normalized.includes("missing") || normalized === "blocked" || normalized === "not_synchronized" || normalized === "contradicted" || normalized === "no_support") {
     return "status-error";
   }
   if (normalized.includes("running") || normalized.includes("queued")) {
     return "status-info";
   }
-  if (normalized.includes("partial") || normalized.includes("degradation") || normalized.includes("ambiguous") || normalized.includes("limited") || normalized.includes("stale") || normalized.includes("degraded")) {
+  if (normalized.includes("partial") || normalized.includes("degradation") || normalized.includes("ambiguous") || normalized.includes("limited") || normalized.includes("stale") || normalized.includes("degraded") || normalized === "weak_support") {
     return "status-warning";
   }
   return "status-muted";
@@ -180,9 +182,98 @@ function renderDashboard() {
   renderMultilayer(summary, payload);
   renderCausalAndUncertainty(summary, payload);
   renderTriggerAndModbus(summary, payload);
+  renderExtractSummary(summary, payload);
   renderConclusion(summary, payload);
   renderReports(summary, payload);
   renderLists(summary, payload);
+}
+
+function renderExtractSummary(summary, payload) {
+  const container = byId("extract-summary");
+  if (!container) return;
+  const extract = summary?.evidence_support_extract;
+  if (!extract || extract.status === "not_available") {
+    container.innerHTML = valueCard("Evidence Support Extract", "Not generated", "Generate it after causal reconstruction to obtain a normalized, hypothesis-level forensic support assessment.", "status-warning");
+    return;
+  }
+  const tone = extract.status === "stale" ? "status-warning" : statusTone(extract.global_support_level);
+  container.innerHTML = [
+    valueCard("Status", titleize(extract.status), extract.path || "not_available", tone),
+    valueCard("Global support", titleize(extract.global_support_level || "not_evaluable"), "Aggregated across independent layers.", statusTone(extract.global_support_level)),
+    valueCard("Hypotheses", extract.hypothesis_count ?? 0, "Forensic hypotheses evaluated."),
+    valueCard("Supporting findings", extract.supporting_findings ?? 0, "Moderate or strong support.", "status-ok"),
+    valueCard("Degraded / ambiguous", extract.degraded_or_ambiguous_findings ?? 0, "Weak or indirect support only.", "status-warning"),
+    valueCard("Missing / not evaluable", extract.missing_or_not_evaluable_findings ?? 0, `Contradictions: ${extract.contradictions ?? 0}`, (extract.contradictions ?? 0) > 0 ? "status-error" : "status-muted"),
+  ].join("");
+}
+
+function supportLevelLabel(level) {
+  return titleize(level || "not_evaluable");
+}
+
+async function loadExtractDetail() {
+  const caseId = DashboardState.selectedCaseId;
+  if (!caseId) return;
+  const container = byId("extract-details");
+  if (!container) return;
+  container.classList.remove("hidden");
+  container.innerHTML = `<div class="text-slate-500 text-sm">Loading evidence support detail…</div>`;
+  try {
+    const payload = await fetchJson(`${API}/evidence-support-extract?case_id=${encodeURIComponent(caseId)}`);
+    DashboardState.extractDetail = payload;
+    renderExtractDetail(payload);
+  } catch (err) {
+    container.innerHTML = `<div class="status-error text-sm">Could not load evidence support extract: ${esc(err.message)}</div>`;
+  }
+}
+
+function renderExtractDetail(payload) {
+  const container = byId("extract-details");
+  if (!container) return;
+  const extract = payload?.extract;
+  if (!payload?.available || !extract) {
+    container.innerHTML = `<div class="text-slate-500 text-sm">No Evidence Support Extract has been generated yet for this case.</div>`;
+    return;
+  }
+  const hypotheses = extract.hypotheses || [];
+  const layerSupport = extract.layer_support || {};
+  const findings = extract.findings || [];
+  container.innerHTML = `
+    ${extract.is_stale ? `<div class="glass-soft rounded-2xl p-4 text-sm text-amber-200 mb-4">This Evidence Support Extract is stale because causal reconstruction artifacts changed after it was generated. Regenerate it above.</div>` : ""}
+    <div class="space-y-4 mb-5">
+      ${hypotheses.map(h => `
+        <div class="glass-soft rounded-[24px] p-4">
+          <div class="flex items-center justify-between gap-3 flex-wrap">
+            <div class="font-black">${esc(h.hypothesis_id)}: ${esc(h.attack_family)}</div>
+            <div class="text-xs uppercase tracking-[0.14em] font-black ${statusTone(h.global_support_level)}">${esc(supportLevelLabel(h.global_support_level))}</div>
+          </div>
+          <div class="mt-3 text-sm text-slate-300">${esc(h.hypothesis_text)}</div>
+          <div class="mt-2 text-xs text-slate-400">MITRE: <span class="mono">${esc(h.mitre_technique)}</span> · Target: <span class="mono">${esc(h.target_asset)}</span></div>
+          <div class="mt-3 text-xs text-slate-300"><strong>Main supporting evidence:</strong> ${listItems(h.main_supporting_evidence, "none")}</div>
+          <div class="mt-3 text-xs text-slate-300"><strong>Main limitations:</strong> ${listItems(h.main_limitations, "none")}</div>
+        </div>
+      `).join("")}
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
+      ${Object.entries(layerSupport).map(([layer, item]) => valueCard(titleize(layer), supportLevelLabel(item.support_level), `${item.finding_count || 0} finding(s) · ${maybeTruncate(item.summary, 90)}`, statusTone(item.support_level))).join("")}
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-xs text-slate-300">
+        <thead><tr class="text-left text-slate-400 uppercase tracking-[0.12em]"><th class="pr-3 py-2">Layer</th><th class="pr-3 py-2">Finding</th><th class="pr-3 py-2">Support</th><th class="pr-3 py-2">Causal edges</th><th class="pr-3 py-2">Limitations</th></tr></thead>
+        <tbody>
+          ${findings.map(f => `
+            <tr class="border-t border-slate-800/70 align-top">
+              <td class="py-3 pr-3 font-semibold">${esc(titleize(f.layer))}</td>
+              <td class="py-3 pr-3">${esc(maybeTruncate(f.summary, 160))}</td>
+              <td class="py-3 pr-3 ${statusTone(f.supports_hypothesis)}">${esc(supportLevelLabel(f.supports_hypothesis))}</td>
+              <td class="py-3 pr-3 mono">${esc((f.related_causal_edges || []).join(", ") || "none")}</td>
+              <td class="py-3 pr-3">${esc(maybeTruncate((f.limitations || []).join(" | ") || "none", 160))}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
 }
 
 function renderExecutiveGrid(summary, payload) {
@@ -202,8 +293,8 @@ function renderExecutiveGrid(summary, payload) {
     valueCard("Case ID", summary.case_id, summary.case_path, "status-info"),
     valueCard("Scenario", summary.scenario_id || "unknown", summary.scenario_name || "unknown", "status-info"),
     valueCard("Evidence lifecycle", exec.evidence_lifecycle_status || "unknown", "Preservation, integrity, and analysis lifecycle state.", statusTone(exec.evidence_lifecycle_status)),
-    valueCard("Multilayer analysis", exec.multilayer_analysis_status || "unknown", "Pipeline execution state for the multilayer forensic analysis.", statusTone(exec.multilayer_analysis_status)),
-    valueCard("Causal reconstruction", exec.causal_reconstruction_status || "unknown", "Derived post-preservation causal reconstruction state.", statusTone(exec.causal_reconstruction_status)),
+    valueCard("Last multilayer analysis", exec.multilayer_analysis_status || "unknown", "Snapshot baked into the executive summary at generation time, not live pipeline state.", statusTone(exec.multilayer_analysis_status)),
+    valueCard("Last causal reconstruction", exec.causal_reconstruction_status || "unknown", "Snapshot baked into the executive summary at generation time, not live pipeline state.", statusTone(exec.causal_reconstruction_status)),
     valueCard("Evidence confidence", exec.evidence_analysis_confidence || "unknown", "Confidence in evidence analysis coverage and usefulness.", statusTone(exec.evidence_analysis_confidence)),
     valueCard("Forensic reconstruction confidence", exec.forensic_reconstruction_confidence || "unknown", "Reconstruction-level confidence from the multilayer view.", statusTone(exec.forensic_reconstruction_confidence)),
     valueCard("Causal interpretation confidence", exec.causal_interpretation_confidence || "unknown", "Confidence in the derived causal interpretation.", statusTone(exec.causal_interpretation_confidence)),
@@ -214,7 +305,9 @@ function renderLifecycleRail(summary, payload) {
   const container = byId("lifecycle-rail");
   const stale = byId("lifecycle-stale-note");
   if (!container || !stale) return;
-  stale.textContent = summary?.is_stale ? (summary.stale_reason || "Executive summary is stale.") : "";
+  stale.innerHTML = summary?.is_stale
+    ? `<div class="flex items-center justify-between gap-3 flex-wrap"><span>${esc(summary.stale_reason || "Executive summary is stale.")}</span><button type="button" class="run-action-btn btn-secondary rounded-2xl px-4 py-2 text-xs font-extrabold tracking-[0.16em] uppercase" data-run-action="generate-summary">Regenerate Executive Summary</button></div>`
+    : "";
   const rail = summary?.evidence_lifecycle?.rail;
   if (!Array.isArray(rail) || !rail.length) {
     container.innerHTML = `<div class="text-slate-500">Executive lifecycle rail is not available until the summary is generated.</div>`;
@@ -237,7 +330,19 @@ function renderJobPanel(payload) {
   const causal = live.causal || {};
   const trackedJobId = DashboardState.trackedJobId;
   if (!trackedJobId) {
+    const summary = payload.summary;
+    const lastMultilayer = summary?.execution_summary?.multilayer_analysis_status;
+    const lastCausal = summary?.execution_summary?.causal_reconstruction_status;
+    const conflicts = [];
+    if (analysis.status === "running" && lastMultilayer && lastMultilayer !== "running") {
+      conflicts.push(`A new multilayer analysis run is currently in progress (phase: ${analysis.current_phase || "unknown"}); the executive summary above still reflects the previous "${lastMultilayer}" run.`);
+    }
+    if (String(causal.status || "").toLowerCase() === "running" && lastCausal && lastCausal !== "running") {
+      conflicts.push(`A new causal reconstruction run is currently in progress; the executive summary above still reflects the previous "${lastCausal}" run.`);
+    }
     setJobPanel(`
+      <div class="text-xs uppercase tracking-[0.2em] text-slate-400 font-black mb-3">Current job / live pipeline status (not the executive summary snapshot)</div>
+      ${conflicts.length ? `<div class="glass-soft rounded-2xl p-4 text-sm text-amber-200 mb-4 space-y-1">${conflicts.map(item => `<div>${esc(item)}</div>`).join("")}</div>` : ""}
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div><div class="text-xs uppercase tracking-[0.2em] text-slate-400 font-black">Live analysis</div><div class="text-lg font-black mt-2 ${statusTone(analysis.status)}">${esc(titleize(analysis.status || "not_started"))}</div><div class="text-xs text-slate-400 mt-2">${esc(analysis.current_phase || "not_running")}</div></div>
         <div><div class="text-xs uppercase tracking-[0.2em] text-slate-400 font-black">Live time sync</div><div class="text-lg font-black mt-2 ${statusTone(timeSync.status)}">${esc(titleize(timeSync.status || "unknown"))}</div><div class="text-xs text-slate-400 mt-2">${esc(timeSync.current_step || timeSync.reason || "not_running")}</div></div>
@@ -361,6 +466,7 @@ function renderCausalAndUncertainty(summary, payload) {
       <div class="${statusTone(causal.status)} font-black">${esc(titleize(causal.status || "not_available"))}</div>
       <div class="mt-3">${esc(causal.main_limitation || "No causal limitation summary available.")}</div>
       <div class="mt-3 text-slate-400">CPR measures the proportion of expected causal relations that were fully recovered with sufficient evidence.</div>
+      ${causal.is_stale ? `<div class="mt-3 flex items-center justify-between gap-3 flex-wrap status-warning font-black"><span>Causal reconstruction is stale because analysis outputs were modified after causal artifacts were generated.</span><button type="button" class="run-action-btn btn-secondary rounded-2xl px-4 py-2 text-xs font-extrabold tracking-[0.16em] uppercase" data-run-action="rerun-causal">Regenerate Causal Reconstruction</button></div>` : ""}
     `;
   }
   if (!uncertainty) {
@@ -391,12 +497,20 @@ function renderTriggerAndModbus(summary) {
     return;
   }
   const align = causal.trigger_vs_causal_path || {};
+  let alignTone = "status-warning";
+  let alignText = align.message || "Trigger and causal attack path alignment cannot be confirmed from the current summary.";
+  if (align.same_event_family === true) {
+    alignTone = "status-ok";
+    alignText = "No explicit mismatch was detected between the trigger and the causal attack path.";
+  } else if (align.same_event_family === false) {
+    alignTone = "status-warning";
+  }
   triggerPanel.innerHTML = `
     <div class="space-y-3">
       <div><span class="text-slate-400 uppercase tracking-[0.14em] text-xs font-black">Trigger path</span><div class="mt-2">${esc(align.trigger_path || trigger.trigger || "not_available")}</div></div>
       <div><span class="text-slate-400 uppercase tracking-[0.14em] text-xs font-black">Trigger rule</span><div class="mt-2 mono">${esc(align.trigger_rule_id || trigger.triggering_alert_rule_id || "not_available")}</div></div>
       <div><span class="text-slate-400 uppercase tracking-[0.14em] text-xs font-black">Causal attack path</span><div class="mt-2">${esc(align.causal_attack_path || "not_available")}</div></div>
-      <div class="${align.same_event_family ? "status-ok" : "status-warning"} font-black mt-2">${esc(align.same_event_family ? "Trigger and causal scenario remain aligned enough for this executive view." : (align.message || "Trigger and causal scenario are not aligned."))}</div>
+      <div class="${alignTone} font-black mt-2">${esc(alignText)}</div>
     </div>
   `;
   const modbus = causal.modbus_specificity || {};
@@ -437,16 +551,19 @@ function renderReports(summary, payload) {
     grid.innerHTML = `<div class="text-slate-500">No report index is available for this case.</div>`;
     return;
   }
-  grid.innerHTML = reports.map(report => `
+  grid.innerHTML = reports.map(report => {
+    const openable = Boolean(report.exists) && report.size_bytes !== null && report.size_bytes !== undefined;
+    return `
     <div class="glass-soft rounded-[24px] p-4">
       <div class="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-black">${esc(report.type)}</div>
       <div class="mono text-xs text-slate-300 mt-3">${esc(report.path || "not_available")}</div>
-      <div class="text-xs text-slate-500 mt-2">size=${esc(report.size_bytes ?? "n/a")} bytes · mtime=${esc(report.mtime || "n/a")}</div>
+      <div class="text-xs text-slate-500 mt-2">size=${esc(report.size_bytes ?? "not_available")} bytes · mtime=${esc(report.mtime || "not_available")}</div>
       <div class="mt-4">
-        <button class="open-report-btn ${report.exists ? "btn-secondary" : "btn-secondary opacity-50 cursor-not-allowed"} rounded-2xl px-4 py-2 text-xs font-extrabold tracking-[0.16em] uppercase" data-report-type="${esc(report.type)}" ${report.exists ? "" : "disabled"}>Open</button>
+        <button class="open-report-btn ${openable ? "btn-secondary" : "btn-secondary opacity-50 cursor-not-allowed"} rounded-2xl px-4 py-2 text-xs font-extrabold tracking-[0.16em] uppercase" data-report-type="${esc(report.type)}" ${openable ? "" : "disabled"}>Open</button>
       </div>
     </div>
-  `).join("");
+  `;
+  }).join("");
 }
 
 function renderLists(summary, payload) {
@@ -488,6 +605,12 @@ async function runAction(kind) {
       payload = await postJson(`${API}/lifecycle/generate-summary`, { case_id: caseId });
       DashboardState.trackedJobId = payload.job_id || null;
       await refreshTrackedJob();
+    } else if (kind === "generate-extract") {
+      await postJson(`${API}/lifecycle/generate-evidence-support-extract`, { case_id: caseId });
+      DashboardState.extractDetail = null;
+      if (DashboardState.extractDetailVisible) {
+        await loadExtractDetail();
+      }
     }
     await loadDashboard(caseId);
   } catch (err) {
@@ -551,6 +674,22 @@ function bindEvents() {
   byId("rerun-causal-btn")?.addEventListener("click", () => runAction("rerun-causal"));
   byId("run-full-btn")?.addEventListener("click", () => runAction("run-full"));
   byId("generate-summary-btn")?.addEventListener("click", () => runAction("generate-summary"));
+  byId("generate-extract-btn")?.addEventListener("click", () => runAction("generate-extract"));
+  byId("view-extract-btn")?.addEventListener("click", () => {
+    DashboardState.extractDetailVisible = !DashboardState.extractDetailVisible;
+    const container = byId("extract-details");
+    if (!container) return;
+    if (!DashboardState.extractDetailVisible) {
+      container.classList.add("hidden");
+      return;
+    }
+    if (DashboardState.extractDetail) {
+      container.classList.remove("hidden");
+      renderExtractDetail(DashboardState.extractDetail);
+    } else {
+      loadExtractDetail().catch(() => {});
+    }
+  });
   byId("report-modal-close")?.addEventListener("click", () => byId("report-modal")?.classList.remove("is-active"));
   byId("report-modal")?.addEventListener("click", event => {
     if (event.target?.id === "report-modal") {
@@ -568,6 +707,11 @@ function bindEvents() {
       openReport(reportBtn.dataset.reportType).catch(err => {
         setJobPanel(`<div class="status-error">Could not open report: ${esc(err.message)}</div>`);
       });
+      return;
+    }
+    const runActionBtn = event.target.closest(".run-action-btn");
+    if (runActionBtn?.dataset.runAction) {
+      runAction(runActionBtn.dataset.runAction).catch(() => {});
     }
   });
 }

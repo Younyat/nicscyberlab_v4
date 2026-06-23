@@ -34,6 +34,10 @@ from .evidence_lifecycle_dashboard import (
     start_full_lifecycle_job,
     start_summary_job,
 )
+from .evidence_support_extract import (
+    generate_evidence_support_extract,
+    load_evidence_support_extract,
+)
 from ..foc_causal_reconstruction.service import (
     causal_graph_payload,
     causal_graph_summary_payload,
@@ -416,6 +420,32 @@ def api_foc_reports_file():
     if payload.get("error") == "case_not_found":
         return jsonify(payload), 404
     if payload.get("error") in {"report_type_not_supported", "report_not_found"}:
+        return jsonify(payload), 404
+    return jsonify(payload), 200
+
+
+@foc_bp.route("/api/foc/lifecycle/generate-evidence-support-extract", methods=["POST"])
+def api_foc_lifecycle_generate_evidence_support_extract():
+    body = request.get_json(silent=True) or {}
+    case_id = str(body.get("case_id") or request.args.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    try:
+        payload = generate_evidence_support_extract(case_id)
+    except FileNotFoundError:
+        return jsonify({"error": "case_not_found", "case_id": case_id}), 404
+    if payload.get("error") == "case_not_found":
+        return jsonify(payload), 404
+    return jsonify(payload), 200
+
+
+@foc_bp.route("/api/foc/evidence-support-extract", methods=["GET"])
+def api_foc_evidence_support_extract():
+    case_id = str(request.args.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "missing_case_id"}), 400
+    payload = load_evidence_support_extract(case_id)
+    if payload.get("error") == "case_not_found":
         return jsonify(payload), 404
     return jsonify(payload), 200
 

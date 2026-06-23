@@ -38,7 +38,7 @@
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
     .btn-primary { background: linear-gradient(135deg, #0891b2, #18336f); }
     .btn-secondary { background: rgba(15, 23, 42, 0.84); border: 1px solid rgba(148, 163, 184, 0.16); }
-    .btn-danger { background: linear-gradient(135deg, #6f3f4b, #6f0404); }
+    .btn-danger { background: linear-gradient(135deg, #6f3f4b, #ed8c03); }
     .rail-step::before {
       content: "";
       position: absolute;
@@ -199,6 +199,21 @@
             <h2 class="text-2xl font-black mt-2">Protocol-Level Precision</h2>
             <div id="modbus-specificity" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5"></div>
           </div>
+        </section>
+
+        <section class="glass rounded-[28px] p-6">
+          <div class="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Evidence Support Extract</div>
+              <h2 class="text-2xl font-black mt-2">What The Evidence Actually Supports</h2>
+            </div>
+            <div class="flex gap-3">
+              <button id="generate-extract-btn" class="btn-secondary rounded-2xl px-4 py-2 text-xs font-extrabold tracking-[0.16em] uppercase">Generate / Regenerate</button>
+              <button id="view-extract-btn" class="btn-secondary rounded-2xl px-4 py-2 text-xs font-extrabold tracking-[0.16em] uppercase">View Details</button>
+            </div>
+          </div>
+          <div id="extract-summary" class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4 mt-5"></div>
+          <div id="extract-details" class="mt-5 hidden"></div>
         </section>
 
         <section class="glass rounded-[28px] p-6">

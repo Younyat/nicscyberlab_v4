@@ -2533,9 +2533,11 @@ The `FOC Scientific Evidence Lifecycle Dashboard` shows:
 - **Uncertainty Summary**
   - temporal confidence, max clock offset, uncertainty window, synchronization state, correction state, and worst node
 - **Trigger Path vs Causal Attack Path**
-  - explicit comparison between the acquisition trigger and the causal scenario under evaluation
+  - explicit comparison between the acquisition trigger and the causal scenario under evaluation, with a third "cannot be confirmed" state distinct from "aligned" and "misaligned"
 - **Modbus Specificity**
   - protocol, function-code, register, value, target PLC, and PLC/SCADA state precision with `confirmed` / `partial` / `not_available` semantics
+- **Evidence Support Extract**
+  - normalized, hypothesis-level forensic support assessment derived from the causal graph and existing multilayer findings (see dedicated section below)
 - **Final Forensic Conclusion**
   - supported conclusions, degraded or ambiguous conclusions, and unsupported or not-yet-claimable conclusions
 - **Reports and Artifacts**
@@ -2558,6 +2560,8 @@ The dashboard uses these lightweight API surfaces:
 - `GET /api/foc/reports/file?case_id=...&type=...`
 - `POST /api/foc/time-sync/measure`
 - `POST /api/foc/time-sync/fix`
+- `POST /api/foc/lifecycle/generate-evidence-support-extract`
+- `GET /api/foc/evidence-support-extract?case_id=...`
 
 These routes are **adapters over existing services**, not a second forensic pipeline:
 
@@ -2618,6 +2622,29 @@ The dashboard is designed to stay lightweight:
 When an analyst opens a report from `Reports and Artifacts`, the content is fetched on demand from `GET /api/foc/reports/file`.
 
 This keeps the page usable as an executive decision surface while preserving drill-down access to the real derived or preserved artifacts.
+
+#### Endurecimiento científico de la Scientific Evidence Lifecycle Dashboard (2026-06-23)
+
+Esta iteración no rehace la vista; corrige incoherencias detectadas y añade una sola pieza nueva, deliberadamente ligera.
+
+**Corrección de raíz (el cambio de mayor impacto):** `_build_causal_summary` resolvía el ground truth desde `bundle["scenario_ground_truth"]`, que es el snapshot de atestación preservado y usa un esquema distinto (sin clave `attack_expected`). Esto rompía silenciosamente la selección del ataque real y producía en cascada exactamente las incoherencias reportadas: protocolo `unknown` mostrado como `confirmed`, `target_plc` apuntando a `FUXA_Instance` (que es SCADA/HMI, no un PLC), y una afirmación falsa de alineación entre trigger y causal path. La corrección resuelve el ground truth desde la misma ruta que el módulo de reconstrucción causal ya validó (`causal_status.ground_truth_summary.ground_truth_path`), con fallback seguro si no está disponible.
+
+**Incoherencias corregidas:**
+- Se separan explícitamente "last multilayer analysis / last causal reconstruction" (instantánea del resumen ejecutivo) de "current job / live pipeline status" (estado en vivo), con una nota de conflicto cuando un job está corriendo mientras el resumen aún refleja la ejecución anterior.
+- `Trigger Path vs Causal Attack Path` ya no afirma alineación cuando el causal path es `not_available`; ahora distingue tres estados: alineado, desalineado (con el mensaje específico host/FIM vs OT Modbus), y "no puede confirmarse".
+- El botón `Open` de artefactos nunca se habilita si el artefacto no existe o su tamaño no pudo determinarse (verificación reforzada en backend y frontend).
+- Los avisos de obsolescencia (`is_stale`) del resumen ejecutivo y de la reconstrucción causal incluyen ahora un botón explícito de regeneración (`Regenerate Executive Summary` / `Regenerate Causal Reconstruction`); nunca se regenera automáticamente.
+- Corregido un bug de Python donde un offset de reloj genuinamente `0.0` segundos se mostraba como `"unknown"` por el patrón `valor or "unknown"` (0.0 es falsy en Python).
+
+**Nuevo: Evidence Support Extract.** Artefacto derivado y ligero en `derived/executive/evidence_support_extract.json`, generado por `evidence_support_extract.py`. No reanaliza PCAPs, dumps de memoria, discos ni exports OT, y no ejecuta ninguna herramienta forense: normaliza lo que el grafo causal y los hallazgos multicapa ya calcularon. Produce:
+- una hipótesis forense explícita (`H1`), específica de Modbus/OT cuando el ground truth lo indica
+- soporte por capa (`network`, `memory`, `disk`, `ot`, `alerts`, `timeline`, `custody`, `analysis`, `cross_layer`) en la escala `strong_support` / `moderate_support` / `weak_support` / `no_support` / `contradicted` / `not_evaluable`
+- hallazgos normalizados, cada uno trazable 1:1 a un edge causal (mismo `edge_id`) o a un hallazgo cruzado existente
+- una evaluación final de soporte global con narrativa científica generada a partir de datos reales, sin inventar precisión que no existe
+
+El resumen ejecutivo solo carga un *stub* barato del extracto (estado, nivel de soporte global, conteos); el detalle completo (hipótesis, soporte por capa, tabla de hallazgos) se carga bajo demanda mediante `GET /api/foc/evidence-support-extract` al pulsar `View Details`. La generación (`POST /api/foc/lifecycle/generate-evidence-support-extract`) es síncrona porque solo lee artefactos ya derivados (~1.5s medido), nunca se ejecuta automáticamente al abrir la vista.
+
+Ningún cambio de esta iteración toca adquisición, preservación, `manifest.json`/`chain_of_custody.log` originales, ejecución de ataques, detección, selección de trigger, ni los motores de análisis subyacentes; solo se leen sus salidas ya escritas, más el grafo causal y los hallazgos multicapa ya generados.
 
 #### Profesionalización del Causal Reconstruction Cockpit (2026-06-22)
 

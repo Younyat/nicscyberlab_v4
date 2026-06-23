@@ -416,7 +416,7 @@ def _build_modbus_specificity(ground_truth: dict, attack: dict, network_findings
         int(item.get("modbus_frames") or 0) > 0 for item in ((network_findings.get("findings") or {}).get("files") or [])
     )
     function_codes = (((ot_findings.get("findings") or {}).get("function_codes")) or {})
-    expected_fn = str(expected.get("modbus_function") or "")
+    expected_fn = str(expected.get("modbus_function") or expected.get("ot_function") or "")
     protocol_state = "confirmed" if modbus_seen else "not_available"
     function_state = "partial"
     if expected_fn and expected_fn in function_codes:
@@ -439,17 +439,48 @@ def _build_modbus_specificity(ground_truth: dict, attack: dict, network_findings
     }
 
 
+def _resolve_real_ground_truth(causal_status: dict, fallback: dict) -> dict:
+    # `bundle["scenario_ground_truth"]` is the preserved attestation snapshot,
+    # which uses a different (scenario-graph-derived) schema with no
+    # top-level `attack_expected` key. The causal reconstruction module
+    # already resolved the real, attack_expected-bearing ground truth file
+    # for this case; read that same file instead of guessing from the
+    # wrong-schema snapshot, so attack selection and Modbus/target fields
+    # are computed from the same source of truth the causal graph used.
+    gt_path = (causal_status.get("ground_truth_summary") or {}).get("ground_truth_path")
+    if gt_path:
+        payload = _json_load(Path(gt_path))
+        if isinstance(payload, dict) and payload.get("attack_expected"):
+            return payload
+    return fallback
+
+
 def _build_causal_summary(case_dir: Path, bundle: dict, causal_status: dict, metrics: dict, uncertainty: dict, trigger_summary: dict) -> dict:
-    ground_truth = bundle.get("scenario_ground_truth") or {}
+    ground_truth = _resolve_real_ground_truth(causal_status, bundle.get("scenario_ground_truth") or {})
     attack = _pick_attack(bundle, ground_truth)
     network_findings = _json_load(case_dir / "analysis" / "03_network" / "network_findings.json") or {}
     ot_findings = _json_load(case_dir / "analysis" / "06_ot" / "ot_findings.json") or {}
     alert_findings = _json_load(case_dir / "analysis" / "07_alerts" / "alert_findings.json") or {}
     attack_expected = ground_truth.get("attack_expected") or {}
     trigger_label = str(trigger_summary.get("trigger") or "")
+    causal_technique = attack_expected.get("technique_id")
+    causal_protocol = str(attack_expected.get("protocol") or "")
+    causal_target = attack_expected.get("target")
+    causal_attack_path_resolved = bool(causal_technique and causal_protocol and causal_target)
+    same_event_family = None
     mismatch = None
-    if trigger_label and "/" in trigger_label and str(attack_expected.get("protocol") or "").lower().startswith("modbus"):
-        mismatch = "The acquisition trigger and the causal scenario are not the same event family. The trigger selected for acquisition is host/FIM-oriented, while the causal reconstruction evaluates an OT Modbus path."
+    if not causal_attack_path_resolved:
+        # Do not claim alignment - or misalignment - when the causal attack
+        # path itself could not be resolved; that is a distinct, weaker claim.
+        mismatch = "Trigger and causal attack path alignment cannot be confirmed from the current summary."
+    elif trigger_label and "/" in trigger_label and causal_protocol.lower().startswith("modbus"):
+        same_event_family = False
+        mismatch = (
+            "The acquisition trigger is host/FIM-oriented, while the causal reconstruction evaluates an OT "
+            "Modbus path. These paths must be interpreted separately unless an explicit cross-layer link is available."
+        )
+    else:
+        same_event_family = True
     return {
         "status": causal_status.get("status") or "not_available",
         "ground_truth_status": ((causal_status.get("ground_truth_summary") or {}).get("ground_truth_validation_status")) or ((causal_status.get("ground_truth_summary") or {}).get("ground_truth_status")) or "not_available",
@@ -474,6 +505,7 @@ def _build_causal_summary(case_dir: Path, bundle: dict, causal_status: dict, met
             "protocol": ((attack.get("operation") or {}).get("protocol")),
             "tool_used": ((attack.get("operation") or {}).get("tool_used")),
             "target": ((attack.get("target") or {}).get("instance_name")) or ((attack.get("target") or {}).get("node_name")),
+            "execution_status": attack.get("execution_status") or "not_available",
         },
         "uncertainty_dependency": {
             "temporal_confidence": ((uncertainty.get("temporal") or {}).get("temporal_confidence_state")) or "unknown",
@@ -483,7 +515,7 @@ def _build_causal_summary(case_dir: Path, bundle: dict, causal_status: dict, met
             "trigger_path": trigger_label or "not_available",
             "trigger_rule_id": trigger_summary.get("triggering_alert_rule_id") or "not_available",
             "causal_attack_path": f"{attack_expected.get('technique_id', 'not_available')} {attack_expected.get('protocol', 'not_available')} -> {attack_expected.get('target', 'not_available')}",
-            "same_event_family": mismatch is None,
+            "same_event_family": same_event_family,
             "message": mismatch,
         },
         "modbus_specificity": _build_modbus_specificity(ground_truth, attack, network_findings, ot_findings, alert_findings),
@@ -503,13 +535,20 @@ def _phase_status_from_bool(flag: bool, partial: bool = False, blocked: bool = F
 def _build_reports_index(case_dir: Path) -> list[dict]:
     entries = []
     for report_type, path in _artifact_paths(case_dir).items():
+        exists = path.exists()
+        size_bytes = None
+        if exists:
+            try:
+                size_bytes = path.stat().st_size
+            except OSError:
+                exists = False
         entries.append(
             {
                 "type": report_type,
                 "path": relative_path(path),
-                "exists": path.exists(),
-                "size_bytes": path.stat().st_size if path.exists() else None,
-                "mtime": _mtime_iso(path),
+                "exists": exists and size_bytes is not None,
+                "size_bytes": size_bytes,
+                "mtime": _mtime_iso(path) if exists else None,
             }
         )
     return entries
@@ -553,6 +592,14 @@ def _build_limitations_and_actions(summary: dict) -> tuple[list[str], list[str]]
     if integrity.get("overall_status") not in {"completed", "verified", "ok"}:
         actions.append("Review the integrity and custody validation report and restore missing verifications before escalating confidence claims.")
 
+    extract = summary.get("evidence_support_extract") or {}
+    if extract.get("status") == "not_available":
+        actions.append("Generate the Evidence Support Extract to obtain a normalized, hypothesis-level forensic support assessment.")
+    elif extract.get("status") == "stale":
+        actions.append("Regenerate the Evidence Support Extract because causal reconstruction artifacts changed after it was last generated.")
+    elif extract.get("main_limitation") and extract.get("main_limitation") != "not_available":
+        limitations.append(str(extract.get("main_limitation")))
+
     return list(dict.fromkeys(limitations)), list(dict.fromkeys(actions))
 
 
@@ -579,9 +626,11 @@ def _build_final_conclusion(summary: dict) -> dict:
     if int(causal.get("recovered_edges") or 0) > 0:
         supported.append(f"{causal.get('recovered_edges')} expected causal edges were recovered with sufficient support.")
 
+    offset_seconds = uncertainty.get("max_clock_offset_seconds")
     if uncertainty.get("temporal_confidence") in {"ambiguous", "limited", "unknown"}:
         degraded.append(
-            f"Temporal ordering is weak because the preserved clock offset is approximately {uncertainty.get('max_clock_offset_seconds') or 'unknown'} seconds."
+            f"Temporal ordering is weak because the preserved clock offset is approximately "
+            f"{'unknown' if offset_seconds is None else offset_seconds} seconds."
         )
     if int(causal.get("degraded_edges") or 0) > 0:
         degraded.append(f"{causal.get('degraded_edges')} causal edges remain degraded due to partial support.")
@@ -606,6 +655,18 @@ def _build_final_conclusion(summary: dict) -> dict:
         unsupported.append("Complete Modbus register/value causality at packet-level precision.")
     unsupported.append("Full semantic reconstruction if semantic artifacts have not been generated.")
 
+    extract = summary.get("evidence_support_extract") or {}
+    global_support_level = extract.get("global_support_level")
+    extract_clause = ""
+    if extract.get("status") == "available" and global_support_level:
+        extract_clause = f" The normalized Evidence Support Extract assesses the controlling hypothesis as {str(global_support_level).replace('_', ' ')}."
+        if global_support_level in {"moderate_support", "strong_support"}:
+            supported.append(f"The Evidence Support Extract assesses hypothesis H1 as {global_support_level.replace('_', ' ')} across independently-sourced layers.")
+        elif global_support_level == "contradicted":
+            degraded.append("The Evidence Support Extract found at least one contradiction against the controlling hypothesis.")
+        else:
+            degraded.append(f"The Evidence Support Extract assesses hypothesis H1 as only {str(global_support_level).replace('_', ' ')}.")
+
     summary_text = (
         "The preserved evidence supports a partial causal-forensic reconstruction of the controlled incident. "
         f"The multilayer forensic analysis {multilayer.get('execution_status') or 'remains unavailable'} and "
@@ -613,6 +674,7 @@ def _build_final_conclusion(summary: dict) -> dict:
         f"The causal reconstruction recovered {causal.get('recovered_edges') or 0} of {causal.get('expected_edges') or 0} expected edges. "
         f"However, the interpretation remains limited by temporal confidence={uncertainty.get('temporal_confidence') or 'unknown'}, "
         f"integrity status={integrity.get('overall_status') or 'unknown'}, and the stated Modbus/trigger limitations."
+        f"{extract_clause}"
     )
     return {
         "supported": list(dict.fromkeys(supported)),
@@ -635,7 +697,6 @@ def build_evidence_lifecycle_summary(case_id: str) -> dict:
     causal_metrics = causal_metrics_payload(case_id, case_dir) or {}
     causal_uncertainty = causal_uncertainty_payload(case_id, case_dir) or {}
     intervention = _pick_intervention(case_id, bundle)
-    attack = _pick_attack(bundle, bundle.get("scenario_ground_truth") or {})
     summary_path = _summary_path(case_dir)
     summary_mtime = _mtime(summary_path)
     report_index = _build_reports_index(case_dir)
@@ -652,7 +713,7 @@ def build_evidence_lifecycle_summary(case_id: str) -> dict:
         "custody_events": integrity.get("custody_events") or 0,
         "rail": [
             {"phase": "scenario_deployed", "label": "Scenario deployed", "status": _phase_status_from_bool(bool((bundle.get("foc_context_summary") or {}).get("scenario_id")))},
-            {"phase": "attack_executed", "label": "Attack executed", "status": _phase_status_from_bool(bool((bundle.get("attack_attestation") or {}).get("attacks")), partial=bool(attack and (attack.get("execution_status") != "completed")))},
+            {"phase": "attack_executed", "label": "Attack executed", "status": _phase_status_from_bool(bool((bundle.get("attack_attestation") or {}).get("attacks")), partial=bool(causal.get("selected_attack", {}).get("attack_id")) and causal.get("selected_attack", {}).get("execution_status") not in {"completed", "not_available"})},
             {"phase": "detection_observed", "label": "Detection observed", "status": _phase_status_from_bool(bool((bundle.get("detection_attestation") or {}).get("observed_detection_rules")))},
             {"phase": "trigger_selected", "label": "Trigger selected", "status": _phase_status_from_bool(bool(intervention.get("trigger")), partial=bool(causal.get("trigger_vs_causal_path", {}).get("message")))},
             {"phase": "acquisition_executed", "label": "Acquisition executed", "status": _phase_status_from_bool(bool(intervention.get("collected_artifacts")), partial=str(intervention.get("intervention_status")) != "completed")},
@@ -693,6 +754,10 @@ def build_evidence_lifecycle_summary(case_id: str) -> dict:
         "target_nodes": intervention.get("target_nodes") or [],
     }
 
+    # Local import to avoid a module-level circular import: evidence_support_extract
+    # itself imports several helpers from this module.
+    from .evidence_support_extract import evidence_support_extract_stub
+
     summary = {
         "case_id": case_id,
         "source_case_name": entry.get("source_case_name"),
@@ -708,6 +773,7 @@ def build_evidence_lifecycle_summary(case_id: str) -> dict:
         "causal_summary": causal,
         "uncertainty_summary": uncertainty,
         "integrity_summary": integrity,
+        "evidence_support_extract": evidence_support_extract_stub(case_id, case_dir),
         "reports_and_artifacts": report_index,
         "final_forensic_conclusion": {},
         "limitations": [],
