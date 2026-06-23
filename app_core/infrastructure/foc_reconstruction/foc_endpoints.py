@@ -10,8 +10,10 @@ from .foc_case_analysis import (
     analysis_report,
     analysis_visual_summary,
     cases_with_analysis_state,
+    load_time_sync_status,
     load_analysis_status,
     run_analysis,
+    run_time_sync,
     validate_analysis,
     generate_symbols_for_case,
 )
@@ -180,6 +182,30 @@ def api_foc_case_analysis_visual_summary(case_id: str):
     if payload is None:
         return jsonify({"error": "analysis_visual_summary_not_found", "case_id": case_id}), 404
     return jsonify(payload), 200
+
+
+@foc_bp.route("/api/foc/cases/<case_id>/time-sync/status", methods=["GET"])
+def api_foc_case_time_sync_status(case_id: str):
+    payload = load_time_sync_status(case_id)
+    if payload.get("error") == "case_not_found":
+        return jsonify(payload), 404
+    return jsonify(payload), 200
+
+
+@foc_bp.route("/api/foc/cases/<case_id>/time-sync/run", methods=["POST"])
+def api_foc_case_time_sync_run(case_id: str):
+    body = request.get_json(silent=True) or {}
+    payload = run_time_sync(
+        case_id,
+        fix_time=bool(body.get("fix_time")),
+        threshold_ms=int(body["threshold_ms"]) if body.get("threshold_ms") is not None else None,
+        maintenance_override=bool(body.get("maintenance_override")),
+    )
+    if payload.get("error") == "case_not_found":
+        return jsonify(payload), 404
+    if payload.get("status") == "blocked_policy":
+        return jsonify(payload), 409
+    return jsonify(payload), 202 if payload.get("status") == "running" else 200
 
 
 def _causal_case_entry_or_404(case_id: str):

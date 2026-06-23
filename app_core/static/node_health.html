@@ -27,6 +27,8 @@
         <div class="flex flex-wrap gap-3">
           <button id="nh-refresh-nodes" class="rounded-xl bg-sky-600 px-4 py-2 text-sm font-black text-white hover:bg-sky-500">Refresh Nodes</button>
           <button id="nh-refresh-selected" class="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-black text-white hover:border-sky-500/60">Refresh Selected Node</button>
+          <button id="nh-measure-clock" class="rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-2 text-sm font-black text-cyan-200 hover:bg-cyan-500/20">Measure Clock Offset</button>
+          <button id="nh-fix-time-sync" class="rounded-xl border border-fuchsia-500/40 bg-fuchsia-500/10 px-4 py-2 text-sm font-black text-fuchsia-200 hover:bg-fuchsia-500/20">Fix Time Synchronization</button>
           <button id="nh-cleanup-selected" class="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm font-black text-amber-300 hover:bg-amber-500/20">Safe Disk Cleanup</button>
         </div>
       </div>
@@ -79,6 +81,16 @@
           <div class="text-xs uppercase tracking-[0.25em] text-slate-500 font-black">Scenario State</div>
           <div id="nh-services" class="mt-3 grid grid-cols-2 gap-2 text-sm text-slate-300"></div>
         </div>
+
+        <div class="mt-4 rounded-xl border border-slate-800 bg-slate-950/70 p-4">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="text-xs uppercase tracking-[0.25em] text-slate-500 font-black">Time Synchronization</div>
+              <p class="mt-1 text-xs text-slate-500">Measure-only by default. Correction is explicit and recorded.</p>
+            </div>
+          </div>
+          <div id="nh-time-sync-card" class="mt-3 text-sm text-slate-300">Select a node to inspect and adjust clock offset.</div>
+        </div>
       </div>
     </section>
 
@@ -130,6 +142,6 @@
     </section>
   </div>
 
-  <script src="js/node_health.js?v=20260621-node-health-runtime-confirmation-4"></script>
+  <script src="js/node_health.js?v=20260623-node-health-time-sync-1"></script>
 </body>
 </html>

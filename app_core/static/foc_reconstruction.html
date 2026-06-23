@@ -569,6 +569,26 @@
     </div>
   </div>
 
+  <div id="time-sync-modal" class="modal-shell" aria-hidden="true">
+    <div class="modal-card">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Time Synchronization Pre-flight</div>
+          <h2 id="time-sync-modal-title" class="text-2xl font-black mt-2">Time Synchronization</h2>
+          <p id="time-sync-modal-subtitle" class="text-sm text-slate-300 mt-3">Measure-only is the safe default. Correction is explicit and recorded as infrastructure intervention.</p>
+        </div>
+        <button id="time-sync-modal-close" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Close</button>
+      </div>
+
+      <div class="flex flex-wrap gap-3 mt-5">
+        <button id="time-sync-measure-btn" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Measure Clock Offset</button>
+        <button id="time-sync-fix-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Fix Time Synchronization</button>
+      </div>
+
+      <div id="time-sync-modal-panel" class="glass-soft rounded-[24px] p-5 mt-5 text-sm text-slate-300">No time synchronization data loaded.</div>
+    </div>
+  </div>
+
   <div id="analysis-report-modal" class="modal-shell" aria-hidden="true">
     <div class="modal-card-wide">
       <div class="flex items-start justify-between gap-4">

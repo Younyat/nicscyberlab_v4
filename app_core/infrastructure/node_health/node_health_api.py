@@ -5,10 +5,14 @@ import os
 import re
 import shlex
 import subprocess
+import threading
+import time
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 import openstack
-from flask import Blueprint, Response, jsonify, send_from_directory, stream_with_context
+from flask import Blueprint, Response, jsonify, request, send_from_directory, stream_with_context
 
 
 node_health_bp = Blueprint("node_health", __name__)
@@ -19,8 +23,50 @@ SSH_KEY_PATH = os.path.expanduser("~/.ssh/my_key")
 PROBE_SCRIPT_PATH = Path(__file__).resolve().parent / "scripts" / "probe_node_health_inside_node.sh"
 TOOLING_PROBE_SCRIPT_PATH = Path(__file__).resolve().parent / "scripts" / "probe_node_tooling_inside_node.sh"
 CLEANUP_SCRIPT_PATH = REPO_ROOT / "pre_memory_cleanup_inside_node.sh"
+TIME_SYNC_SCRIPT_PATH = REPO_ROOT / "app_core" / "infrastructure" / "forensics" / "scripts" / "time_sync_preflight.sh"
 TOOLS_INSTALLED_DIR = REPO_ROOT / "tools-installer" / "installed"
 TOOLS_TMP_DIR = REPO_ROOT / "tools-installer-tmp"
+NODE_HEALTH_TIME_SYNC_DIR = REPO_ROOT / "runtime" / "time_sync" / "node_health"
+EVIDENCE_ROOT = REPO_ROOT / "app_core" / "infrastructure" / "forensics" / "evidence_store"
+ACTIVE_CASE_PTR = EVIDENCE_ROOT / "_active_case.txt"
+_TIME_SYNC_STATE_LOCK = threading.Lock()
+_RUNNING_TIME_SYNC: dict[str, threading.Thread] = {}
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _read_json(path: Path) -> dict | list | None:
+    try:
+        if not path.is_file():
+            return None
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def _write_json(path: Path, payload: dict | list) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    tmp.replace(path)
+
+
+def _append_jsonl(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(payload, ensure_ascii=False) + "\n")
+
+
+def _read_active_case_dir() -> Path | None:
+    try:
+        if not ACTIVE_CASE_PTR.is_file():
+            return None
+        candidate = Path((ACTIVE_CASE_PTR.read_text(encoding="utf-8").splitlines() or [""])[0]).expanduser().resolve()
+        return candidate if candidate.is_dir() else None
+    except Exception:
+        return None
 
 
 def _connect():
@@ -309,6 +355,41 @@ def _read_json_file(path: Path) -> dict | None:
         return json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return None
+
+
+def _node_time_sync_dir(instance_id: str) -> Path:
+    return NODE_HEALTH_TIME_SYNC_DIR / instance_id
+
+
+def _node_time_sync_paths(instance_id: str) -> dict[str, Path]:
+    base = _node_time_sync_dir(instance_id)
+    return {
+        "dir": base,
+        "json": base / "time_sync.json",
+        "before": base / "time_sync_before.json",
+        "after": base / "time_sync_after.json",
+        "status": base / "job_status.json",
+        "stdout": base / "time_sync.stdout.log",
+        "stderr": base / "time_sync.stderr.log",
+        "interventions": base / "time_sync_interventions.jsonl",
+    }
+
+
+def _relative_repo_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except Exception:
+        return str(path)
+
+
+def _case_relative_path(path: Path) -> str:
+    active_case = _read_active_case_dir()
+    if active_case:
+        try:
+            return str(path.relative_to(active_case))
+        except Exception:
+            pass
+    return str(path)
 
 
 def _tool_category(tool_name: str) -> str:
@@ -716,6 +797,261 @@ def _build_tooling_payload(node: dict) -> dict:
     }
 
 
+def _node_time_sync_summary(instance_id: str, node: dict | None = None) -> dict:
+    paths = _node_time_sync_paths(instance_id)
+    result = _read_json(paths["json"]) or {}
+    selected_measurement = None
+    for entry in (result.get("nodes") or []):
+        if node and entry.get("vm_id") == node.get("id"):
+            selected_measurement = entry
+            break
+    if selected_measurement is None:
+        for entry in (result.get("nodes") or []):
+            if entry.get("vm_id") == instance_id:
+                selected_measurement = entry
+                break
+    return {
+        "temporal_sync_status": result.get("temporal_sync_status", "not_measured"),
+        "max_clock_offset_ms": result.get("max_clock_offset_ms"),
+        "max_clock_offset_seconds": result.get("max_clock_offset_seconds"),
+        "synchronized": result.get("synchronized"),
+        "correction_applied": result.get("correction_applied", False),
+        "nodes_ok": result.get("nodes_ok", 0),
+        "nodes_failed": result.get("nodes_failed", 0),
+        "worst_node": result.get("worst_node"),
+        "selected_node_measurement": selected_measurement,
+    }
+
+
+def _time_sync_policy(node: dict | None, *, fix_time: bool = False, maintenance_override: bool = False) -> dict:
+    active_case = _read_active_case_dir()
+    active_case_id = active_case.name if active_case else None
+    if not fix_time:
+        return {
+            "measure_allowed": True,
+            "fix_allowed": True,
+            "requires_override": False,
+            "active_case_present": bool(active_case),
+            "active_case_id": active_case_id,
+            "policy_state": "measure_safe",
+            "reason": "Clock offset measurement is non-destructive and allowed by default.",
+        }
+    if active_case and not maintenance_override:
+        return {
+            "measure_allowed": True,
+            "fix_allowed": False,
+            "requires_override": True,
+            "active_case_present": True,
+            "active_case_id": active_case_id,
+            "policy_state": "blocked_active_case",
+            "reason": "Corrective time synchronization is blocked by default while a forensic case is active because it can alter timestamps, logs, temporal ordering and volatile evidence.",
+        }
+    if active_case and maintenance_override:
+        return {
+            "measure_allowed": True,
+            "fix_allowed": True,
+            "requires_override": True,
+            "active_case_present": True,
+            "active_case_id": active_case_id,
+            "policy_state": "override_active_case",
+            "reason": "Corrective time synchronization is proceeding under explicit laboratory or maintenance override during an active forensic case and must be treated as an infrastructure intervention.",
+        }
+    return {
+        "measure_allowed": True,
+        "fix_allowed": True,
+        "requires_override": False,
+        "active_case_present": False,
+        "active_case_id": None,
+        "policy_state": "fix_allowed_no_active_case",
+        "reason": "No active forensic case is registered, so corrective time synchronization is allowed.",
+    }
+
+
+def _record_time_sync_intervention(instance_id: str, node: dict, *, fix_time: bool, maintenance_override: bool, policy: dict) -> None:
+    if not fix_time:
+        return
+    paths = _node_time_sync_paths(instance_id)
+    record = {
+        "generated_at_utc": _utc_now(),
+        "type": "time_sync_intervention",
+        "node_id": node.get("id"),
+        "node_name": node.get("name"),
+        "node_role": node.get("role"),
+        "ssh_target_ip": node.get("ssh_target_ip"),
+        "fix_time": True,
+        "maintenance_override": bool(maintenance_override),
+        "policy_state": policy.get("policy_state"),
+        "policy_reason": policy.get("reason"),
+        "active_case_id": policy.get("active_case_id"),
+    }
+    _append_jsonl(paths["interventions"], record)
+    active_case = _read_active_case_dir()
+    if active_case:
+        _append_jsonl(active_case / "metadata" / "time_sync_interventions.jsonl", {**record, "source": "node_health"})
+
+
+def load_node_time_sync_status(instance_id: str) -> dict:
+    node = _find_node(instance_id)
+    paths = _node_time_sync_paths(instance_id)
+    status_payload = _read_json(paths["status"]) if paths["status"].is_file() else None
+    result_payload = _read_json(paths["json"]) if paths["json"].is_file() else None
+    summary = _node_time_sync_summary(instance_id, node)
+    policy = _time_sync_policy(node, fix_time=False, maintenance_override=False)
+    if not status_payload:
+        status_payload = {
+            "instance_id": instance_id,
+            "node": node,
+            "job_id": None,
+            "status": "not_available",
+            "started_at": None,
+            "updated_at": _utc_now(),
+            "finished_at": None,
+            "current_step": None,
+            "progress_percent": 0.0,
+            "fix_time": False,
+            "error": None,
+        }
+    status_payload["instance_id"] = instance_id
+    status_payload["node"] = node
+    status_payload["summary"] = summary
+    status_payload["result"] = result_payload
+    status_payload["policy"] = policy
+    status_payload["artifacts"] = {
+        "json": _relative_repo_path(paths["json"]),
+        "before": _relative_repo_path(paths["before"]),
+        "after": _relative_repo_path(paths["after"]),
+        "status": _relative_repo_path(paths["status"]),
+        "stdout": _relative_repo_path(paths["stdout"]),
+        "stderr": _relative_repo_path(paths["stderr"]),
+        "interventions": _relative_repo_path(paths["interventions"]),
+    }
+    return status_payload
+
+
+def _write_node_time_sync_status(instance_id: str, payload: dict) -> None:
+    _write_json(_node_time_sync_paths(instance_id)["status"], payload)
+
+
+def _node_time_sync_worker(instance_id: str, fix_time: bool, threshold_ms: int | None, maintenance_override: bool) -> None:
+    node = _find_node(instance_id)
+    policy = _time_sync_policy(node, fix_time=fix_time, maintenance_override=maintenance_override)
+    paths = _node_time_sync_paths(instance_id)
+    status = {
+        "instance_id": instance_id,
+        "node": node,
+        "job_id": f"node-time-sync-{uuid.uuid4().hex[:12]}",
+        "status": "running",
+        "started_at": _utc_now(),
+        "updated_at": _utc_now(),
+        "finished_at": None,
+        "current_step": "executing_time_sync_script",
+        "progress_percent": 15.0,
+        "fix_time": bool(fix_time),
+        "maintenance_override": bool(maintenance_override),
+        "policy": policy,
+        "error": None,
+    }
+    _write_node_time_sync_status(instance_id, status)
+
+    env = os.environ.copy()
+    env["SSH_KEY"] = SSH_KEY_PATH
+    env["FILTER_INSTANCE_ID"] = instance_id
+    env["TIME_SYNC_OUT"] = str(paths["json"])
+    env["TIME_SYNC_BEFORE_OUT"] = str(paths["before"])
+    env["TIME_SYNC_AFTER_OUT"] = str(paths["after"])
+    if fix_time:
+        env["DO_FIX_TIME"] = "1"
+    else:
+        env["DO_FIX_TIME"] = "0"
+    if threshold_ms is not None:
+        env["TIME_SYNC_THRESHOLD_MS"] = str(threshold_ms)
+
+    cmd = ["bash", str(TIME_SYNC_SCRIPT_PATH), "--instance-id", instance_id, "--out", str(paths["json"])]
+    if fix_time:
+        cmd.append("--fix-time")
+    if threshold_ms is not None:
+        cmd.extend(["--threshold-ms", str(threshold_ms)])
+
+    try:
+        _record_time_sync_intervention(instance_id, node or {}, fix_time=fix_time, maintenance_override=maintenance_override, policy=policy)
+        paths["dir"].mkdir(parents=True, exist_ok=True)
+        with paths["stdout"].open("w", encoding="utf-8") as stdout_fh, paths["stderr"].open("w", encoding="utf-8") as stderr_fh:
+            proc = subprocess.Popen(cmd, cwd=str(REPO_ROOT), env=env, stdout=stdout_fh, stderr=stderr_fh, text=True)
+            while proc.poll() is None:
+                status["updated_at"] = _utc_now()
+                status["progress_percent"] = 65.0 if not fix_time else 75.0
+                _write_node_time_sync_status(instance_id, status)
+                time.sleep(1.5)
+            rc = proc.wait()
+        if rc != 0:
+            status["status"] = "failed"
+            status["current_step"] = "time_sync_failed"
+            status["progress_percent"] = 100.0
+            status["finished_at"] = _utc_now()
+            status["updated_at"] = status["finished_at"]
+            stderr_text = paths["stderr"].read_text(encoding="utf-8", errors="ignore") if paths["stderr"].is_file() else ""
+            stdout_text = paths["stdout"].read_text(encoding="utf-8", errors="ignore") if paths["stdout"].is_file() else ""
+            status["error"] = stderr_text.strip() or stdout_text.strip() or f"time sync script failed with exit code {rc}"
+            _write_node_time_sync_status(instance_id, status)
+            return
+
+        result = _read_json(paths["json"]) or {}
+        summary = _node_time_sync_summary(instance_id, node)
+        status["status"] = "completed"
+        status["current_step"] = "time_sync_completed"
+        status["progress_percent"] = 100.0
+        status["finished_at"] = _utc_now()
+        status["updated_at"] = status["finished_at"]
+        status["error"] = None
+        status["result_hint"] = {
+            "temporal_sync_status": result.get("temporal_sync_status"),
+            "max_clock_offset_ms": result.get("max_clock_offset_ms"),
+            "correction_applied": result.get("correction_applied", False),
+            "selected_node_abs_offset_ms": (summary.get("selected_node_measurement") or {}).get("abs_offset_ms"),
+        }
+        _write_node_time_sync_status(instance_id, status)
+    except Exception as exc:
+        status["status"] = "failed"
+        status["current_step"] = "internal_error"
+        status["progress_percent"] = 100.0
+        status["finished_at"] = _utc_now()
+        status["updated_at"] = status["finished_at"]
+        status["error"] = str(exc)
+        _write_node_time_sync_status(instance_id, status)
+    finally:
+        with _TIME_SYNC_STATE_LOCK:
+            _RUNNING_TIME_SYNC.pop(instance_id, None)
+
+
+def run_node_time_sync(instance_id: str, fix_time: bool = False, threshold_ms: int | None = None, maintenance_override: bool = False) -> dict:
+    node = _find_node(instance_id)
+    if not node:
+        raise FileNotFoundError(f"Instance not found: {instance_id}")
+    policy = _time_sync_policy(node, fix_time=fix_time, maintenance_override=maintenance_override)
+    if fix_time and not policy.get("fix_allowed"):
+        blocked_payload = load_node_time_sync_status(instance_id)
+        blocked_payload["status"] = "blocked_policy"
+        blocked_payload["error"] = policy.get("reason")
+        blocked_payload["policy"] = policy
+        return blocked_payload
+    with _TIME_SYNC_STATE_LOCK:
+        existing = _RUNNING_TIME_SYNC.get(instance_id)
+        if existing and existing.is_alive():
+            payload = load_node_time_sync_status(instance_id)
+            payload["status"] = "running"
+            payload["current_step"] = payload.get("current_step") or "executing_time_sync_script"
+            return payload
+        worker = threading.Thread(
+            target=_node_time_sync_worker,
+            args=(instance_id, fix_time, threshold_ms, maintenance_override),
+            daemon=True,
+            name=f"node-time-sync-{instance_id}",
+        )
+        _RUNNING_TIME_SYNC[instance_id] = worker
+        worker.start()
+    return load_node_time_sync_status(instance_id)
+
+
 @node_health_bp.route("/node-health")
 def node_health_view():
     return send_from_directory(STATIC_DIR, "node_health.html")
@@ -768,6 +1104,39 @@ def node_health_tooling(instance_id: str):
     if not node:
         return jsonify({"error": f"Instance not found: {instance_id}"}), 404
     return jsonify(_build_tooling_payload(node))
+
+
+@node_health_bp.route("/api/node-health/nodes/<instance_id>/time-sync/status", methods=["GET"])
+def node_health_time_sync_status(instance_id: str):
+    node = _find_node(instance_id)
+    if not node:
+        return jsonify({"error": f"Instance not found: {instance_id}"}), 404
+    return jsonify(load_node_time_sync_status(instance_id))
+
+
+@node_health_bp.route("/api/node-health/nodes/<instance_id>/time-sync/run", methods=["POST"])
+def node_health_time_sync_run(instance_id: str):
+    node = _find_node(instance_id)
+    if not node:
+        return jsonify({"error": f"Instance not found: {instance_id}"}), 404
+    payload = request.get_json(silent=True) or {}
+    threshold_ms = payload.get("threshold_ms")
+    try:
+        threshold_value = int(threshold_ms) if threshold_ms is not None else None
+    except Exception:
+        threshold_value = None
+    try:
+        result = run_node_time_sync(
+            instance_id,
+            fix_time=bool(payload.get("fix_time", False)),
+            threshold_ms=threshold_value,
+            maintenance_override=bool(payload.get("maintenance_override", False)),
+        )
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+    if result.get("status") == "blocked_policy":
+        return jsonify(result), 409
+    return jsonify(result)
 
 
 @node_health_bp.route("/api/node-health/nodes/<instance_id>/cleanup/stream", methods=["GET"])

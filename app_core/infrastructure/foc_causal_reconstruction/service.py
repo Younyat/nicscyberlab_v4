@@ -26,6 +26,7 @@ from .reports import write_causal_outputs
 from .schemas import CausalGraph
 from .status_model import derive_status_triad
 from .uncertainty import build_uncertainty_report
+from .uncertainty import extract_temporal_sync_context
 from ..foc_reconstruction.foc_paths import project_path, relative_path
 from ..foc_reconstruction.foc_sources import utc_now
 
@@ -469,9 +470,10 @@ def _evaluate_temporal(case_context: dict, edge_spec: dict) -> str:
     if src_value is None or dst_value is None:
         return "unknown"
 
-    temporal_report = case_context.get("timeline_context", {}).get("temporal_report") or {}
-    findings = temporal_report.get("findings") if isinstance(temporal_report, dict) else {}
-    max_offset_ms = float(findings.get("max_offset_ms") or 0.0)
+    temporal_context = extract_temporal_sync_context(case_context)
+    if str(temporal_context.get("sync_state") or "unknown") == "unknown":
+        return "unknown"
+    max_offset_ms = float(temporal_context.get("max_clock_offset_ms") or 0.0)
     timestamp_resolution_ms = float(case_context.get("ground_truth", {}).get("timestamp_resolution_ms") or 1000.0)
     acquisition_jitter_ms = float(case_context.get("ground_truth", {}).get("acquisition_jitter_ms") or 1000.0)
     uncertainty_seconds = (max_offset_ms + timestamp_resolution_ms + acquisition_jitter_ms) / 1000.0

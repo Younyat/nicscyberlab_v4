@@ -7,19 +7,87 @@ from ..config import (
 )
 
 
-def build_uncertainty_report(case_context: dict, metrics: dict, edges: list[dict]) -> dict:
-    temporal_report = case_context.get("timeline_context", {}).get("temporal_report") or {}
+def extract_temporal_sync_context(case_context: dict) -> dict:
+    timeline_context = case_context.get("timeline_context", {}) or {}
+    analysis_summary = case_context.get("analysis_summary", {}) or {}
+    time_sync = timeline_context.get("time_sync") or analysis_summary.get("time_sync") or {}
+    time_sync_before = timeline_context.get("time_sync_before") or analysis_summary.get("time_sync_before") or {}
+    time_sync_after = timeline_context.get("time_sync_after") or analysis_summary.get("time_sync_after") or {}
+    temporal_report = timeline_context.get("temporal_report") or analysis_summary.get("temporal_report") or {}
     findings = temporal_report.get("findings") if isinstance(temporal_report, dict) else {}
-    max_offset_ms = float(findings.get("max_offset_ms") or 0.0)
+
+    payload = time_sync if isinstance(time_sync, dict) else {}
+    before = time_sync_before if isinstance(time_sync_before, dict) else {}
+    after = time_sync_after if isinstance(time_sync_after, dict) else {}
+
+    max_offset_ms = (
+        payload.get("max_clock_offset_ms")
+        or payload.get("max_offset_ms")
+        or (after.get("max_clock_offset_ms") if isinstance(after, dict) else None)
+        or findings.get("max_clock_offset_ms")
+        or findings.get("max_offset_ms")
+        or 0.0
+    )
+    try:
+        max_offset_ms = float(max_offset_ms or 0.0)
+    except Exception:
+        max_offset_ms = 0.0
+
+    sync_state = str(
+        payload.get("temporal_sync_status")
+        or payload.get("synchronization_status")
+        or ""
+    ).strip().lower()
+    if sync_state not in {"synchronized", "degraded", "not_synchronized", "unknown"}:
+        if isinstance(payload.get("synchronized"), bool):
+            sync_state = "synchronized" if payload.get("synchronized") else "not_synchronized"
+        elif isinstance(findings.get("synchronized"), bool):
+            sync_state = "synchronized" if findings.get("synchronized") else "not_synchronized"
+        else:
+            sync_state = "unknown" if not payload and not findings else "not_synchronized"
+
+    synchronized = sync_state == "synchronized"
+    threshold_ms = payload.get("synchronization_threshold_ms") or payload.get("threshold_ms") or 1000
+    degraded_threshold_ms = payload.get("degraded_threshold_ms") or 5000
+    correction_applied = bool(payload.get("correction_applied") or payload.get("do_fix_time"))
+    worst_node = payload.get("worst_node") if isinstance(payload.get("worst_node"), dict) else {}
+    nodes_ok = int(payload.get("nodes_ok") or 0)
+    nodes_failed = int(payload.get("nodes_failed") or 0)
+
+    return {
+        "source": "time_sync_json" if payload else ("clock_offset_report" if temporal_report else "none"),
+        "payload": payload,
+        "before": before,
+        "after": after,
+        "temporal_report": temporal_report if isinstance(temporal_report, dict) else {},
+        "max_clock_offset_ms": max_offset_ms,
+        "sync_state": sync_state,
+        "synchronized": synchronized,
+        "threshold_ms": threshold_ms,
+        "degraded_threshold_ms": degraded_threshold_ms,
+        "correction_applied": correction_applied,
+        "worst_node": worst_node if isinstance(worst_node, dict) else {},
+        "nodes_ok": nodes_ok,
+        "nodes_failed": nodes_failed,
+    }
+
+
+def build_uncertainty_report(case_context: dict, metrics: dict, edges: list[dict]) -> dict:
+    temporal_context = extract_temporal_sync_context(case_context)
+    temporal_report = temporal_context.get("temporal_report") or {}
+    max_offset_ms = float(temporal_context.get("max_clock_offset_ms") or 0.0)
     timestamp_resolution_ms = float(case_context.get("ground_truth", {}).get("timestamp_resolution_ms") or DEFAULT_TIMESTAMP_RESOLUTION_MS)
     acquisition_jitter_ms = float(case_context.get("ground_truth", {}).get("acquisition_jitter_ms") or DEFAULT_ACQUISITION_JITTER_MS)
     uncertainty_window_ms = max_offset_ms + timestamp_resolution_ms + acquisition_jitter_ms
-    synchronized = bool(findings.get("synchronized")) if isinstance(findings, dict) else False
+    synchronized = bool(temporal_context.get("synchronized"))
+    sync_state = str(temporal_context.get("sync_state") or "unknown")
 
-    if not temporal_report:
+    if sync_state == "unknown" and not temporal_report and not temporal_context.get("payload"):
         temporal_confidence_state = "unknown"
-    elif not synchronized:
+    elif sync_state == "not_synchronized":
         temporal_confidence_state = "ambiguous" if max_offset_ms > 0 else "limited"
+    elif sync_state == "degraded":
+        temporal_confidence_state = "limited"
     elif uncertainty_window_ms <= 1000:
         temporal_confidence_state = "strong"
     elif uncertainty_window_ms <= 60000:
@@ -31,13 +99,18 @@ def build_uncertainty_report(case_context: dict, metrics: dict, edges: list[dict
 
     max_clock_offset_seconds = round(max_offset_ms / 1000.0, 3)
     uncertainty_window_seconds = round(uncertainty_window_ms / 1000.0, 3)
-    if not temporal_report:
+    if sync_state == "unknown" and not temporal_report and not temporal_context.get("payload"):
         temporal_limitation = "Temporal uncertainty remains unknown because time synchronization evidence is unavailable."
-    elif not synchronized:
+    elif sync_state == "not_synchronized":
         temporal_limitation = (
             f"Temporal synchronization is not reliable. The preserved max clock offset is approximately "
             f"{max_clock_offset_seconds:g}s, which makes event ordering ambiguous for causal edges whose "
             f"timestamps fall within the {uncertainty_window_seconds:g}s uncertainty window."
+        )
+    elif sync_state == "degraded":
+        temporal_limitation = (
+            f"Temporal synchronization is only partially reliable. The preserved max clock offset is approximately "
+            f"{max_clock_offset_seconds:g}s, so near-simultaneous edges still require caution."
         )
     else:
         temporal_limitation = (
@@ -96,10 +169,12 @@ def build_uncertainty_report(case_context: dict, metrics: dict, edges: list[dict
         )
 
     limitations: list[str] = []
-    if not temporal_report:
+    if sync_state == "unknown" and not temporal_report and not temporal_context.get("payload"):
         limitations.append("Temporal uncertainty remains unknown because time synchronization evidence is unavailable.")
-    elif not synchronized:
+    elif sync_state == "not_synchronized":
         limitations.append("Temporal uncertainty is high because preserved time synchronization indicates the environment was not synchronized.")
+    elif sync_state == "degraded":
+        limitations.append("Temporal uncertainty is limited rather than strong because preserved synchronization remained degraded.")
     if missing_expected_artifacts:
         limitations.append("Some expected scenario artifacts are unavailable for the causal reconstruction input set.")
     if int(metrics.get("missing_edges") or 0) > 0:
@@ -121,6 +196,16 @@ def build_uncertainty_report(case_context: dict, metrics: dict, edges: list[dict
             "uncertainty_window_ms": uncertainty_window_ms,
             "uncertainty_window_seconds": uncertainty_window_seconds,
             "synchronized": synchronized,
+            "temporal_sync_status": sync_state,
+            "time_sync_source": temporal_context.get("source"),
+            "synchronization_threshold_ms": temporal_context.get("threshold_ms"),
+            "degraded_threshold_ms": temporal_context.get("degraded_threshold_ms"),
+            "correction_applied": temporal_context.get("correction_applied"),
+            "nodes_ok": temporal_context.get("nodes_ok"),
+            "nodes_failed": temporal_context.get("nodes_failed"),
+            "worst_node": temporal_context.get("worst_node"),
+            "before": temporal_context.get("before") or {},
+            "after": temporal_context.get("after") or {},
             "temporal_confidence_state": temporal_confidence_state,
             "temporal_limitation": temporal_limitation,
             "temporal_warning": temporal_warning,

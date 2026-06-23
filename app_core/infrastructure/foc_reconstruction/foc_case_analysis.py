@@ -22,6 +22,7 @@ from .foc_sources import utc_now
 logger = logging.getLogger(__name__)
 
 CASE_ROOT = project_path("app_core", "infrastructure", "forensics", "evidence_store")
+ACTIVE_CASE_PTR = CASE_ROOT / "_active_case.txt"
 FORENSICS_SCRIPTS_DIR = project_path("app_core", "infrastructure", "forensics", "scripts")
 PROJECT_SCRIPT_DIR = project_path()
 VOL3_SYMBOLS_DIR = project_path("app_core", "infrastructure", "forensics", "volatility_symbol_store", "linux")
@@ -56,6 +57,8 @@ ANALYSIS_PHASES = [
 
 _ANALYSIS_STATE_LOCK = threading.Lock()
 _RUNNING_ANALYSES: dict[str, threading.Thread] = {}
+_TIME_SYNC_STATE_LOCK = threading.Lock()
+_RUNNING_TIME_SYNC: dict[str, threading.Thread] = {}
 
 
 def _json_load(path: Path) -> dict | list | None:
@@ -92,6 +95,25 @@ def _write_json(path: Path, payload: dict | list) -> None:
     with tmp.open("w", encoding="utf-8") as fh:
         json.dump(payload, fh, indent=2, ensure_ascii=False, sort_keys=False)
     tmp.replace(path)
+
+
+def _append_jsonl(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(payload, ensure_ascii=False) + "\n")
+
+
+def _read_active_case_dir() -> Path | None:
+    try:
+        if not ACTIVE_CASE_PTR.is_file():
+            return None
+        raw = (ACTIVE_CASE_PTR.read_text(encoding="utf-8").splitlines() or [""])[0].strip()
+        if not raw:
+            return None
+        candidate = Path(raw).expanduser().resolve()
+        return candidate if candidate.is_dir() else None
+    except Exception:
+        return None
 
 
 def _safe_slug(value: str) -> str:
@@ -1158,6 +1180,21 @@ def _run_command(command: list[str], cwd: Path, stdout_path: Path, stderr_path: 
             time.sleep(0.5)
 
 
+def _run_command_env(command: list[str], cwd: Path, stdout_path: Path, stderr_path: Path, env: dict[str, str] | None = None) -> tuple[int, str | None]:
+    stdout_path.parent.mkdir(parents=True, exist_ok=True)
+    stderr_path.parent.mkdir(parents=True, exist_ok=True)
+    child_env = os.environ.copy()
+    if env:
+        child_env.update({str(k): str(v) for k, v in env.items() if v is not None})
+    with stdout_path.open("w", encoding="utf-8") as out, stderr_path.open("w", encoding="utf-8") as err:
+        try:
+            proc = subprocess.Popen(command, cwd=str(cwd), stdout=out, stderr=err, text=True, env=child_env)
+        except Exception as exc:
+            return 1, f"popen_failed: {exc}"
+        rc = proc.wait()
+        return rc, None
+
+
 def _validate_phase_payload(payload: dict) -> tuple[bool, str | None]:
     if not isinstance(payload, dict):
         return False, "phase output is not a JSON object"
@@ -1202,6 +1239,160 @@ def _case_paths(case_dir: Path) -> dict:
     }
 
 
+def _time_sync_status_path(case_dir: Path) -> Path:
+    return case_dir / "metadata" / "time_sync_job_status.json"
+
+
+def _time_sync_artifact_paths(case_dir: Path) -> dict[str, Path]:
+    meta = case_dir / "metadata"
+    return {
+        "json": meta / "time_sync.json",
+        "before": meta / "time_sync_before.json",
+        "after": meta / "time_sync_after.json",
+        "status": _time_sync_status_path(case_dir),
+        "stdout": _analysis_dir(case_dir) / "logs" / "time_sync.stdout.log",
+        "stderr": _analysis_dir(case_dir) / "logs" / "time_sync.stderr.log",
+    }
+
+
+def _time_sync_effective_payload(case_dir: Path) -> dict:
+    paths = _time_sync_artifact_paths(case_dir)
+    payload = _json_load(paths["json"]) or {}
+    before = _json_load(paths["before"]) or {}
+    after = _json_load(paths["after"]) or {}
+    if not isinstance(payload, dict):
+        payload = {}
+    if isinstance(before, dict) and before and "before" not in payload:
+        payload["before"] = before
+    if isinstance(after, dict) and after and "after" not in payload:
+        payload["after"] = after
+    return payload
+
+
+def _time_sync_summary(case_dir: Path) -> dict:
+    paths = _time_sync_artifact_paths(case_dir)
+    payload = _time_sync_effective_payload(case_dir)
+    if not payload:
+        return {
+            "status": "not_available",
+            "reason": "No preserved time synchronization measurement is available for this case.",
+            "output_paths": {key: relative_path(path) for key, path in paths.items() if path.exists()},
+        }
+    sync_state = str(payload.get("temporal_sync_status") or payload.get("synchronization_status") or "").strip().lower()
+    max_offset_ms = payload.get("max_clock_offset_ms")
+    if max_offset_ms is None:
+        max_offset_ms = payload.get("max_offset_ms")
+    try:
+        max_offset_ms = float(max_offset_ms) if max_offset_ms is not None else None
+    except Exception:
+        max_offset_ms = None
+    if sync_state not in {"synchronized", "degraded", "not_synchronized", "unknown"}:
+        if isinstance(payload.get("synchronized"), bool):
+            sync_state = "synchronized" if payload.get("synchronized") else "not_synchronized"
+        elif max_offset_ms is not None:
+            threshold = float(payload.get("synchronization_threshold_ms") or payload.get("threshold_ms") or 1000)
+            degraded_threshold = float(payload.get("degraded_threshold_ms") or 5000)
+            if max_offset_ms <= threshold:
+                sync_state = "synchronized"
+            elif max_offset_ms <= degraded_threshold:
+                sync_state = "degraded"
+            else:
+                sync_state = "not_synchronized"
+        else:
+            sync_state = "unknown"
+    return {
+        "status": "completed",
+        "reason": payload.get("summary_reason")
+        or (
+            "Temporal synchronization was measured and recorded."
+            if sync_state == "synchronized"
+            else "Temporal synchronization remains limited or degraded."
+        ),
+        "generated_at_utc": payload.get("generated_at_utc"),
+        "mode": payload.get("mode"),
+        "do_fix_time": bool(payload.get("do_fix_time")),
+        "correction_applied": bool(payload.get("correction_applied")),
+        "temporal_sync_status": sync_state or "unknown",
+        "max_clock_offset_ms": max_offset_ms,
+        "max_clock_offset_seconds": payload.get("max_clock_offset_seconds") if payload.get("max_clock_offset_seconds") is not None else (round(max_offset_ms / 1000.0, 6) if max_offset_ms is not None else None),
+        "synchronized": bool(payload.get("synchronized")) if isinstance(payload.get("synchronized"), bool) else (sync_state == "synchronized"),
+        "synchronization_threshold_ms": payload.get("synchronization_threshold_ms") or payload.get("threshold_ms") or 1000,
+        "worst_node": payload.get("worst_node") if isinstance(payload.get("worst_node"), dict) else {},
+        "nodes_ok": int(payload.get("nodes_ok") or 0),
+        "nodes_failed": int(payload.get("nodes_failed") or 0),
+        "before": payload.get("before") if isinstance(payload.get("before"), dict) else {},
+        "after": payload.get("after") if isinstance(payload.get("after"), dict) else {},
+        "output_paths": {key: relative_path(path) for key, path in paths.items() if path.exists()},
+    }
+
+
+def _time_sync_policy(case_dir: Path, *, fix_time: bool = False, maintenance_override: bool = False) -> dict:
+    active_case = _read_active_case_dir()
+    active_case_id = active_case.name if active_case else None
+    affects_active_case = bool(active_case and active_case.resolve() == case_dir.resolve())
+    if not fix_time:
+        return {
+            "measure_allowed": True,
+            "fix_allowed": True,
+            "requires_override": False,
+            "active_case_present": bool(active_case),
+            "active_case_id": active_case_id,
+            "affects_active_case": affects_active_case,
+            "policy_state": "measure_safe",
+            "reason": "Clock offset measurement is non-destructive and allowed by default.",
+        }
+    if active_case and not maintenance_override:
+        return {
+            "measure_allowed": True,
+            "fix_allowed": False,
+            "requires_override": True,
+            "active_case_present": True,
+            "active_case_id": active_case_id,
+            "affects_active_case": affects_active_case,
+            "policy_state": "blocked_active_case",
+            "reason": "Corrective time synchronization is blocked by default while a forensic case is active because it can alter timestamps, logs, temporal ordering and volatile evidence.",
+        }
+    if active_case and maintenance_override:
+        return {
+            "measure_allowed": True,
+            "fix_allowed": True,
+            "requires_override": True,
+            "active_case_present": True,
+            "active_case_id": active_case_id,
+            "affects_active_case": affects_active_case,
+            "policy_state": "override_active_case",
+            "reason": "Corrective time synchronization is proceeding under explicit laboratory or maintenance override during an active forensic case and must be treated as an infrastructure intervention.",
+        }
+    return {
+        "measure_allowed": True,
+        "fix_allowed": True,
+        "requires_override": False,
+        "active_case_present": False,
+        "active_case_id": None,
+        "affects_active_case": False,
+        "policy_state": "fix_allowed_no_active_case",
+        "reason": "No active forensic case is registered, so corrective time synchronization is allowed.",
+    }
+
+
+def _record_time_sync_intervention(case_dir: Path, *, fix_time: bool, maintenance_override: bool, policy: dict) -> None:
+    if not fix_time:
+        return
+    record = {
+        "generated_at_utc": utc_now(),
+        "type": "time_sync_intervention",
+        "case_id": case_dir.name,
+        "fix_time": True,
+        "maintenance_override": bool(maintenance_override),
+        "policy_state": policy.get("policy_state"),
+        "policy_reason": policy.get("reason"),
+        "active_case_id": policy.get("active_case_id"),
+        "affects_active_case": policy.get("affects_active_case"),
+        "source": "foc_reconstruction",
+    }
+    _append_jsonl(case_dir / "metadata" / "time_sync_interventions.jsonl", record)
+
+
 def _build_preflight(case_entry: dict, case_dir: Path) -> dict:
     paths = _case_paths(case_dir)
     analysis_dir = _analysis_dir(case_dir)
@@ -1221,7 +1412,7 @@ def _build_preflight(case_entry: dict, case_dir: Path) -> dict:
         "analyze_memory_vol3.sh": FORENSICS_SCRIPTS_DIR / "analyze_memory_vol3.sh",
         "analyze_disk_tsk.sh": FORENSICS_SCRIPTS_DIR / "analyze_disk_tsk.sh",
         "build_case_timeline.py": FORENSICS_SCRIPTS_DIR / "build_case_timeline.py",
-        "e2_max_clock_offset.sh": PROJECT_SCRIPT_DIR / "e2_max_clock_offset.sh",
+        "time_sync_preflight.sh": project_path("app_core", "infrastructure", "forensics", "scripts", "time_sync_preflight.sh"),
     }
     script_checks = {name: {"path": relative_path(path), "available": path.is_file()} for name, path in scripts.items()}
     required_ok = all(
@@ -1355,8 +1546,15 @@ def _phase_temporal_validation(case_dir: Path) -> dict:
             "not_executed_reason": "No preserved time_sync artifact found for this case.",
         }
     payload = _json_load(time_sync_path) or {}
-    max_offset = payload.get("max_offset_ms")
+    before = payload.get("before") if isinstance(payload.get("before"), dict) else {}
+    after = payload.get("after") if isinstance(payload.get("after"), dict) else {}
+    max_offset = payload.get("max_clock_offset_ms")
+    if max_offset is None:
+        max_offset = payload.get("max_offset_ms")
     generated_at = payload.get("generated_at_utc")
+    sync_state = str(payload.get("temporal_sync_status") or payload.get("synchronization_status") or "").strip().lower()
+    if sync_state not in {"synchronized", "degraded", "not_synchronized", "unknown"}:
+        sync_state = "synchronized" if bool(payload.get("synchronized")) else "unknown"
     return {
         "phase": "temporal_validation",
         "status": "completed",
@@ -1365,10 +1563,19 @@ def _phase_temporal_validation(case_dir: Path) -> dict:
         "findings": {
             "generated_at_utc": generated_at,
             "max_offset_ms": max_offset,
+            "max_clock_offset_ms": max_offset,
+            "max_clock_offset_seconds": payload.get("max_clock_offset_seconds"),
             "time_sync_schema": payload.get("schema"),
-            "synchronized": "System clock synchronized: yes" in str((payload.get("raw") or {}).get("timedatectl") or ""),
+            "synchronized": bool(payload.get("synchronized")) if isinstance(payload.get("synchronized"), bool) else (sync_state == "synchronized"),
+            "temporal_sync_status": sync_state or "unknown",
+            "correction_applied": bool(payload.get("correction_applied")),
+            "nodes_ok": payload.get("nodes_ok"),
+            "nodes_failed": payload.get("nodes_failed"),
+            "worst_node": payload.get("worst_node"),
+            "before_max_clock_offset_ms": before.get("max_clock_offset_ms"),
+            "after_max_clock_offset_ms": after.get("max_clock_offset_ms"),
         },
-        "limitations": [] if max_offset is not None else ["time_sync artifact exists but max_offset_ms is not available"],
+        "limitations": [] if max_offset is not None else ["time_sync artifact exists but max_clock_offset_ms is not available"],
         "errors": [],
     }
 
@@ -2684,12 +2891,178 @@ def generate_symbols_for_case(case_id: str, dump_id: str | None = None, ssh_user
     return result
 
 
+def load_time_sync_status(case_id: str) -> dict:
+    entry = get_case_entry(case_id)
+    if not entry:
+        return {"error": "case_not_found", "case_id": case_id}
+    case_dir = _case_dir_from_entry(entry)
+    status_path = _time_sync_status_path(case_dir)
+    payload = _json_load(status_path) or {}
+    if not isinstance(payload, dict):
+        payload = {}
+    summary = _time_sync_summary(case_dir)
+    policy = _time_sync_policy(case_dir, fix_time=False, maintenance_override=False)
+    if payload:
+        merged = {
+            "case_id": case_id,
+            "source_case_name": entry.get("source_case_name"),
+            **summary,
+            **payload,
+        }
+        merged.setdefault("summary", summary)
+        merged["policy"] = policy
+        return merged
+    return {"case_id": case_id, "source_case_name": entry.get("source_case_name"), "policy": policy, **summary}
+
+
+def _write_time_sync_status(case_dir: Path, payload: dict) -> None:
+    _write_json(_time_sync_status_path(case_dir), payload)
+
+
+def _time_sync_worker(case_id: str, case_dir: Path, fix_time: bool, threshold_ms: int | None, maintenance_override: bool) -> None:
+    paths = _time_sync_artifact_paths(case_dir)
+    policy = _time_sync_policy(case_dir, fix_time=fix_time, maintenance_override=maintenance_override)
+    status = {
+        "case_id": case_id,
+        "status": "running",
+        "started_at": utc_now(),
+        "updated_at": utc_now(),
+        "finished_at": None,
+        "current_step": "executing_time_sync_script",
+        "progress_percent": 15,
+        "fix_time_requested": bool(fix_time),
+        "maintenance_override": bool(maintenance_override),
+        "policy": policy,
+        "threshold_ms": threshold_ms,
+        "stdout_path": relative_path(paths["stdout"]),
+        "stderr_path": relative_path(paths["stderr"]),
+        "output_paths": {key: relative_path(path) for key, path in paths.items() if key not in {"status"} and path.exists()},
+    }
+    _write_time_sync_status(case_dir, status)
+    try:
+        _record_time_sync_intervention(case_dir, fix_time=fix_time, maintenance_override=maintenance_override, policy=policy)
+        script = project_path("app_core", "infrastructure", "forensics", "scripts", "time_sync_preflight.sh")
+        if not script.is_file():
+            status.update(
+                {
+                    "status": "failed",
+                    "current_step": "failed",
+                    "reason": "time_sync_preflight.sh is not available in the forensic scripts directory.",
+                    "finished_at": utc_now(),
+                    "progress_percent": 100,
+                }
+            )
+            _write_time_sync_status(case_dir, status)
+            return
+        env = {
+            "TIME_SYNC_OUT": str(paths["json"]),
+            "TIME_SYNC_BEFORE_OUT": str(paths["before"]),
+            "TIME_SYNC_AFTER_OUT": str(paths["after"]),
+            "DO_FIX_TIME": "1" if fix_time else "0",
+        }
+        if threshold_ms is not None:
+            env["TIME_SYNC_THRESHOLD_MS"] = str(threshold_ms)
+        command = ["bash", str(script), "--case-id", case_dir.name, "--out", str(paths["json"])]
+        if fix_time:
+            command.append("--fix-time")
+        if threshold_ms is not None:
+            command.extend(["--threshold-ms", str(threshold_ms)])
+        rc, err = _run_command_env(command, PROJECT_SCRIPT_DIR, paths["stdout"], paths["stderr"], env=env)
+        status["updated_at"] = utc_now()
+        status["progress_percent"] = 80
+        if err:
+            status.setdefault("errors", []).append(err)
+        if rc != 0:
+            status.update(
+                {
+                    "status": "failed",
+                    "current_step": "failed",
+                    "reason": err or f"time synchronization script exited with code {rc}",
+                    "finished_at": utc_now(),
+                    "progress_percent": 100,
+                    "output_paths": {key: relative_path(path) for key, path in paths.items() if key not in {"status"} and path.exists()},
+                }
+            )
+            _write_time_sync_status(case_dir, status)
+            return
+
+        summary = _time_sync_summary(case_dir)
+        status.update(
+            {
+                "status": "completed",
+                "current_step": "completed",
+                "reason": summary.get("reason"),
+                "finished_at": utc_now(),
+                "progress_percent": 100,
+                "summary": summary,
+                "output_paths": {key: relative_path(path) for key, path in paths.items() if key not in {"status"} and path.exists()},
+            }
+        )
+        _write_time_sync_status(case_dir, status)
+    except Exception as exc:
+        status.update(
+            {
+                "status": "failed",
+                "current_step": "failed",
+                "reason": str(exc),
+                "finished_at": utc_now(),
+                "progress_percent": 100,
+                "output_paths": {key: relative_path(path) for key, path in paths.items() if key not in {"status"} and path.exists()},
+            }
+        )
+        _write_time_sync_status(case_dir, status)
+    finally:
+        with _TIME_SYNC_STATE_LOCK:
+            _RUNNING_TIME_SYNC.pop(case_id, None)
+
+
+def run_time_sync(case_id: str, fix_time: bool = False, threshold_ms: int | None = None, maintenance_override: bool = False) -> dict:
+    entry = get_case_entry(case_id)
+    if not entry:
+        return {"error": "case_not_found", "case_id": case_id}
+    case_dir = _case_dir_from_entry(entry)
+    policy = _time_sync_policy(case_dir, fix_time=fix_time, maintenance_override=maintenance_override)
+    if fix_time and not policy.get("fix_allowed"):
+        payload = load_time_sync_status(case_id)
+        payload["status"] = "blocked_policy"
+        payload["reason"] = policy.get("reason")
+        payload["policy"] = policy
+        return payload
+    with _TIME_SYNC_STATE_LOCK:
+        running = _RUNNING_TIME_SYNC.get(case_id)
+        if running and running.is_alive():
+            payload = load_time_sync_status(case_id)
+            payload["status"] = "running"
+            payload["current_step"] = payload.get("current_step") or "executing_time_sync_script"
+            return payload
+        worker = threading.Thread(
+            target=_time_sync_worker,
+            args=(case_id, case_dir, bool(fix_time), threshold_ms, bool(maintenance_override)),
+            daemon=True,
+            name=f"time-sync-{_safe_slug(case_id)}",
+        )
+        _RUNNING_TIME_SYNC[case_id] = worker
+        worker.start()
+    return {
+        "case_id": case_id,
+        "status": "running",
+        "started_at": utc_now(),
+        "current_step": "queued",
+        "progress_percent": 0,
+        "fix_time_requested": bool(fix_time),
+        "maintenance_override": bool(maintenance_override),
+        "policy": policy,
+        "reason": "Time synchronization measurement started in background.",
+    }
+
+
 def cases_with_analysis_state() -> dict:
     enriched = []
     for entry in _list_case_entries():
         status = load_analysis_status(str(entry.get("case_id")))
         case_dir = _case_dir_from_entry(entry)
         inventory = _artifact_inventory(case_dir)
+        time_sync_state = load_time_sync_status(str(entry.get("case_id")))
         try:
             from ..foc_causal_reconstruction.service import summarize_case_causal_state
 
@@ -2705,6 +3078,7 @@ def cases_with_analysis_state() -> dict:
                 "available_layers": inventory["layers"],
                 "inventory_summary": inventory["artifact_type_counts"],
                 "analysis_report_path": status.get("forensic_analysis_report_path"),
+                "time_sync_state": time_sync_state,
                 "causal_state": causal_state,
             }
         )

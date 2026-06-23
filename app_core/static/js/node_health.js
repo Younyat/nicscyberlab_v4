@@ -7,6 +7,7 @@ const NH = {
   memoryCard: document.getElementById("nh-memory-card"),
   diskCard: document.getElementById("nh-disk-card"),
   services: document.getElementById("nh-services"),
+  timeSyncCard: document.getElementById("nh-time-sync-card"),
   securityMeta: document.getElementById("nh-security-meta"),
   securitySummary: document.getElementById("nh-security-summary"),
   securityDetail: document.getElementById("nh-security-detail"),
@@ -17,6 +18,8 @@ const NH = {
   console: document.getElementById("nh-console"),
   btnRefreshNodes: document.getElementById("nh-refresh-nodes"),
   btnRefreshSelected: document.getElementById("nh-refresh-selected"),
+  btnMeasureClock: document.getElementById("nh-measure-clock"),
+  btnFixTimeSync: document.getElementById("nh-fix-time-sync"),
   btnCleanupSelected: document.getElementById("nh-cleanup-selected"),
   btnClearConsole: document.getElementById("nh-clear-console"),
 };
@@ -29,6 +32,8 @@ const STATE = {
   toolingPayload: null,
   cy: null,
   cleanupSource: null,
+  timeSyncStatus: null,
+  timeSyncPollTimer: null,
 };
 
 function now() {
@@ -70,6 +75,14 @@ function severityBadge(sev) {
     ? "text-emerald-300 border-emerald-500/40 bg-emerald-500/10"
     : "text-slate-300 border-slate-700 bg-slate-800/50";
   return `<span class="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.2em] ${cls}">${esc(sev || "unknown")}</span>`;
+}
+
+function timeSyncTone(syncStatus) {
+  const value = String(syncStatus || "not_measured").toLowerCase();
+  if (value === "synchronized") return "ok";
+  if (value === "degraded" || value === "not_measured" || value === "running") return "warning";
+  if (value === "not_synchronized" || value === "failed") return "critical";
+  return "unknown";
 }
 
 function toolCategoryBadge(category) {
@@ -220,8 +233,8 @@ function renderNodeServices(_probe, toolingPayload = null) {
   }).join("") || '<div class="text-slate-500">No installed tools reported on this node.</div>';
 }
 
-async function fetchJson(url, label) {
-  const res = await fetch(url);
+async function requestJson(url, options, label) {
+  const res = await fetch(url, options);
   const text = await res.text();
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch {}
@@ -229,6 +242,10 @@ async function fetchJson(url, label) {
     throw new Error(data?.error || text || `${label} failed (${res.status})`);
   }
   return data;
+}
+
+async function fetchJson(url, label) {
+  return requestJson(url, undefined, label);
 }
 
 function graphColorForRole(role) {
@@ -303,6 +320,7 @@ function renderScenarioOverview(summary, nodes) {
   NH.securitySummary.innerHTML = `<div class="rounded-xl border border-slate-800 bg-slate-950/70 p-4 text-sm text-slate-300">Select a node first. Tool inventory and rule files are only queried after node selection.</div>`;
   NH.securityDetail.innerHTML = `<div class="rounded-xl border border-slate-800 bg-slate-950/70 p-4">No tool detail is loaded until a node and then a tool are selected.</div>`;
   NH.securityRules.innerHTML = "";
+  NH.timeSyncCard.innerHTML = `<div class="text-slate-500">Select a node to inspect time synchronization state, max clock offset and correction history.</div>`;
 }
 
 function buildGraph(graph) {
@@ -452,6 +470,66 @@ function renderProbe(node, probe) {
 
   NH.topCpu.textContent = (probe.tables.top_cpu || []).join("\n");
   NH.topMem.textContent = (probe.tables.top_mem || []).join("\n");
+}
+
+function renderTimeSyncCard(node, payload) {
+  const jobStatus = payload?.status || "not_available";
+  const summary = payload?.summary || {};
+  const result = payload?.result || null;
+  const policy = payload?.policy || {};
+  const selected = summary?.selected_node_measurement || {};
+  const before = result?.before || null;
+  const after = result?.after || null;
+  const worst = summary?.worst_node || null;
+  const syncStatus = summary?.temporal_sync_status || (jobStatus === "running" ? "running" : "not_measured");
+  const syncTone = jobStatus === "failed" ? "critical" : timeSyncTone(syncStatus);
+  const correctionApplied = summary?.correction_applied ? "yes" : "no";
+  const detailRows = [
+    `<div><strong>Job status:</strong> ${esc(jobStatus)}</div>`,
+    `<div><strong>Temporal sync status:</strong> ${severityBadge(syncTone)} <span class="ml-2">${esc(syncStatus)}</span></div>`,
+    `<div><strong>Max clock offset:</strong> ${esc(summary?.max_clock_offset_ms ?? "not_available")} ms</div>`,
+    `<div><strong>Node offset:</strong> ${esc(selected?.abs_offset_ms ?? "not_available")} ms</div>`,
+    `<div><strong>Correction applied:</strong> ${esc(correctionApplied)}</div>`,
+    `<div><strong>Nodes measured:</strong> ${esc(summary?.nodes_ok ?? 0)}</div>`,
+    `<div><strong>Nodes failed:</strong> ${esc(summary?.nodes_failed ?? 0)}</div>`,
+    `<div><strong>SSH user:</strong> ${esc(selected?.ssh_user || node?.ssh_user || "not_available")}</div>`,
+    `<div><strong>Chrony available:</strong> ${esc(selected?.chrony_available ?? "not_available")}</div>`,
+    `<div><strong>Chrony installed by script:</strong> ${esc(selected?.chrony_installed_by_script ?? false)}</div>`,
+    `<div><strong>Makestep applied:</strong> ${esc(selected?.makestep_applied ?? false)}</div>`,
+  ];
+  if (before || after) {
+    detailRows.push(`<div><strong>Before max offset:</strong> ${esc(before?.max_clock_offset_ms ?? "not_available")} ms</div>`);
+    detailRows.push(`<div><strong>After max offset:</strong> ${esc(after?.max_clock_offset_ms ?? "not_available")} ms</div>`);
+  }
+  if (worst) {
+    detailRows.push(`<div><strong>Worst node:</strong> ${esc(worst.name || "not_available")} (${esc(worst.ip || "not_available")})</div>`);
+  }
+
+  const policyInfo = `
+    <div class="mt-3 rounded-lg border ${policy?.active_case_present ? "border-amber-500/30 bg-amber-500/10 text-amber-200" : "border-slate-800 bg-slate-900/70 text-slate-300"} px-3 py-2 text-xs">
+      <div><strong>Policy:</strong> ${esc(policy?.policy_state || "not_available")}</div>
+      <div class="mt-1">${esc(policy?.reason || "Time correction policy not available.")}</div>
+      ${policy?.active_case_id ? `<div class="mt-1"><strong>Active case:</strong> ${esc(policy.active_case_id)}</div>` : ""}
+    </div>
+  `;
+
+  const jobInfo = jobStatus === "running"
+    ? `<div class="mt-3 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-200">Current step: ${esc(payload?.current_step || "executing_time_sync_script")} | Progress: ${esc(payload?.progress_percent ?? 0)}%</div>`
+    : jobStatus === "blocked_policy"
+    ? `<div class="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">Corrective time synchronization is blocked by policy: ${esc(payload?.error || policy?.reason || "not_available")}</div>`
+    : jobStatus === "failed"
+    ? `<div class="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">Time synchronization failed: ${esc(payload?.error || "not_available")}</div>`
+    : result
+    ? `<div class="mt-3 rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2 text-xs text-slate-300">Artifacts: ${esc(payload?.artifacts?.json || "not_available")}</div>`
+    : `<div class="mt-3 rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2 text-xs text-slate-400">No time synchronization measurement has been run yet for this node.</div>`;
+
+  NH.timeSyncCard.innerHTML = `
+    <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+      ${detailRows.map(row => `<div class="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2">${row}</div>`).join("")}
+    </div>
+    ${policyInfo}
+    ${jobInfo}
+  `;
 }
 
 function renderSelectedToolDetail(tool, payload) {
@@ -737,6 +815,92 @@ function renderTooling(node, payload) {
   });
 }
 
+function stopTimeSyncPolling() {
+  if (STATE.timeSyncPollTimer) {
+    clearTimeout(STATE.timeSyncPollTimer);
+    STATE.timeSyncPollTimer = null;
+  }
+}
+
+async function fetchTimeSyncStatus(nodeId) {
+  const payload = await fetchJson(`/api/node-health/nodes/${encodeURIComponent(nodeId)}/time-sync/status`, "time sync status");
+  STATE.timeSyncStatus = payload;
+  const node = STATE.nodeMap.get(nodeId);
+  if (node) {
+    renderTimeSyncCard(node, payload);
+  }
+  return payload;
+}
+
+function scheduleTimeSyncPolling(nodeId) {
+  stopTimeSyncPolling();
+  STATE.timeSyncPollTimer = window.setTimeout(async () => {
+    try {
+      const payload = await fetchTimeSyncStatus(nodeId);
+      if (payload?.status === "running") {
+        scheduleTimeSyncPolling(nodeId);
+      } else if (payload?.status === "completed") {
+        consoleWrite(`Time synchronization completed. Max clock offset=${payload?.summary?.max_clock_offset_ms ?? "not_available"} ms status=${payload?.summary?.temporal_sync_status ?? "unknown"}`);
+      } else if (payload?.status === "failed") {
+        consoleWrite(`Time synchronization failed: ${payload?.error || "not_available"}`);
+      }
+    } catch (error) {
+      consoleWrite(`Time sync status polling failed: ${error.message}`);
+    }
+  }, 2000);
+}
+
+async function runTimeSync(fixTime) {
+  const node = STATE.nodeMap.get(STATE.selectedId);
+  if (!node) {
+    consoleWrite("Select a node first.");
+    return;
+  }
+  let maintenanceOverride = false;
+  const policy = STATE.timeSyncStatus?.policy || {};
+  if (fixTime) {
+    const confirmed = window.confirm(`Fix time synchronization on ${node.name}? This changes node state and may install/start chrony, apply chronyc makestep and alter timestamps, logs or volatile evidence ordering.`);
+    if (!confirmed) {
+      return;
+    }
+    if (policy?.active_case_present) {
+      const overrideConfirmed = window.confirm(`An active forensic case (${policy.active_case_id || "unknown"}) is present. Corrective time synchronization is normally blocked during an active case. Continue only as explicit laboratory or maintenance override intervention?`);
+      if (!overrideConfirmed) {
+        consoleWrite("Corrective time synchronization cancelled because an active forensic case is present.");
+        return;
+      }
+      maintenanceOverride = true;
+    }
+  }
+  consoleWrite(`${fixTime ? "Starting corrective time synchronization" : "Starting clock offset measurement"} on ${node.name}...`);
+  setStatus(`${fixTime ? "Fixing" : "Measuring"} ${node.name}`, "warn");
+  let payload;
+  try {
+    payload = await requestJson(
+      `/api/node-health/nodes/${encodeURIComponent(node.id)}/time-sync/run`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fix_time: fixTime, maintenance_override: maintenanceOverride }),
+      },
+      "time sync run",
+    );
+  } catch (error) {
+    consoleWrite(`${fixTime ? "Time synchronization correction" : "Clock offset measurement"} failed: ${error.message}`);
+    throw error;
+  }
+  STATE.timeSyncStatus = payload;
+  renderTimeSyncCard(node, payload);
+  if (payload?.status === "blocked_policy") {
+    consoleWrite(`Corrective time synchronization blocked by policy: ${payload?.error || "not_available"}`);
+    setStatus("Policy Blocked", "error");
+    return;
+  }
+  if (payload?.status === "running") {
+    scheduleTimeSyncPolling(node.id);
+  }
+}
+
 async function loadNodes(autoSelect = true) {
   setStatus("Loading", "warn");
   consoleWrite("Loading OpenStack node inventory...");
@@ -749,15 +913,17 @@ async function loadNodes(autoSelect = true) {
 }
 
 async function selectNode(nodeId) {
+  stopTimeSyncPolling();
   STATE.selectedId = nodeId;
   STATE.selectedToolId = null;
   const node = STATE.nodeMap.get(nodeId);
   if (!node) return;
   setStatus(`Probing ${node.name}`, "warn");
   consoleWrite(`Probing node ${node.name} (${node.ssh_user}@${node.ssh_target_ip || node.ip_private || node.ip_floating || "?"})`);
-  const [probeResult, toolingResult] = await Promise.allSettled([
+  const [probeResult, toolingResult, timeSyncResult] = await Promise.allSettled([
     fetchJson(`/api/node-health/nodes/${encodeURIComponent(nodeId)}/probe`, "probe"),
     fetchJson(`/api/node-health/nodes/${encodeURIComponent(nodeId)}/tooling`, "tooling"),
+    fetchJson(`/api/node-health/nodes/${encodeURIComponent(nodeId)}/time-sync/status`, "time sync status"),
   ]);
 
   if (probeResult.status === "fulfilled") {
@@ -781,6 +947,18 @@ async function selectNode(nodeId) {
     NH.securityDetail.innerHTML = "";
     NH.securityRules.innerHTML = "";
     consoleWrite(`Tooling inspection failed: ${toolingResult.reason.message}`);
+  }
+
+  if (timeSyncResult.status === "fulfilled") {
+    STATE.timeSyncStatus = timeSyncResult.value;
+    renderTimeSyncCard(node, timeSyncResult.value);
+    if (timeSyncResult.value?.status === "running") {
+      consoleWrite(`Time synchronization job is running for ${node.name}.`);
+      scheduleTimeSyncPolling(node.id);
+    }
+  } else {
+    NH.timeSyncCard.innerHTML = `<div class="text-red-300">${esc(timeSyncResult.reason.message)}</div>`;
+    consoleWrite(`Time sync inspection failed: ${timeSyncResult.reason.message}`);
   }
 
   if (probeResult.status === "fulfilled" || toolingResult.status === "fulfilled") {
@@ -823,6 +1001,14 @@ function startCleanup() {
 
 NH.btnRefreshNodes.addEventListener("click", () => loadNodes(false));
 NH.btnRefreshSelected.addEventListener("click", () => STATE.selectedId ? selectNode(STATE.selectedId) : consoleWrite("Select a node first."));
+NH.btnMeasureClock.addEventListener("click", () => runTimeSync(false).catch(error => {
+  setStatus("Time Sync Error", "error");
+  consoleWrite(`Clock offset measurement failed: ${error.message}`);
+}));
+NH.btnFixTimeSync.addEventListener("click", () => runTimeSync(true).catch(error => {
+  setStatus("Time Sync Error", "error");
+  consoleWrite(`Time synchronization correction failed: ${error.message}`);
+}));
 NH.btnCleanupSelected.addEventListener("click", startCleanup);
 NH.btnClearConsole.addEventListener("click", () => { NH.console.textContent = ""; });
 

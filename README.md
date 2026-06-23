@@ -661,6 +661,63 @@ This module does not alter the existing FOC, attack, detection or forensic workf
 - startup overview mode that shows only scenario-wide and host-wide state until the user explicitly selects a node
 - an embedded action console
 - one-click safe disk cleanup over SSH using `pre_memory_cleanup_inside_node.sh`
+- node-level time synchronization inspection using the same controlled strategy as the FOC temporal pre-flight
+- explicit `Measure Clock Offset` and `Fix Time Synchronization` controls in the Node Health view
+
+For time synchronization, Node Health does not implement a second temporal engine. It reuses the same repository helper:
+
+- `app_core/infrastructure/forensics/scripts/time_sync_preflight.sh`
+
+The legacy repository-root entrypoint:
+
+- `e2_max_clock_offset.sh`
+
+is preserved as a compatibility wrapper and forwards to the canonical forensic script.
+
+but applies it to the currently selected instance through a node-scoped execution filter. This keeps the semantics consistent between:
+
+- Node Health
+- FOC Reconstruction
+- Causal Reconstruction
+
+while avoiding hardcoded instance IPs or duplicate timing logic.
+
+The Node Health time-sync controls follow the same safety model:
+
+- `Measure Clock Offset` is non-destructive and only measures skew
+- `Fix Time Synchronization` is explicit and may install or start `chrony`, execute `chronyc -a makestep`, restart `chrony`, and then measure again
+- correction is never applied automatically when the view loads
+- if an active forensic case exists, corrective synchronization is blocked by default
+- corrective synchronization during an active case requires an explicit maintenance or laboratory override
+- every corrective synchronization run is recorded as a time-sync intervention artifact
+
+Node-scoped temporal outputs are written under:
+
+```bash
+runtime/time_sync/node_health/<instance_id>/
+```
+
+including:
+
+- `time_sync.json`
+- `time_sync_before.json`
+- `time_sync_after.json`
+- `job_status.json`
+- `time_sync.stdout.log`
+- `time_sync.stderr.log`
+
+The Node Health UI exposes, per selected node:
+
+- temporal synchronization state
+- max clock offset in milliseconds
+- selected node offset
+- whether correction was applied
+- whether `chrony` was already present or installed by the helper
+- whether `makestep` was applied
+- nodes measured and failed inside the scoped run
+- worst-node summary from the resulting measurement set
+
+This is intentionally operational rather than evidentiary. It is meant to support node maintenance and temporal conditioning before forensic acquisition or causal reconstruction, not to replace the preserved time-sync artifacts attached to a forensic case.
 
 The industrial resolver is implemented in:
 
@@ -1579,7 +1636,139 @@ The workflow reuses the real local analysis surface already present in the repos
 - `app_core/infrastructure/forensics/scripts/analyze_memory_vol3.sh`
 - `app_core/infrastructure/forensics/scripts/analyze_disk_tsk.sh`
 - `app_core/infrastructure/forensics/scripts/build_case_timeline.py`
-- `e2_max_clock_offset.sh` as an available temporal helper when applicable
+- `app_core/infrastructure/forensics/scripts/time_sync_preflight.sh` as the formal time synchronization pre-flight helper
+
+### Time Synchronization Pre-flight
+
+The platform now treats clock measurement and optional correction as a distinct, auditable pre-flight activity.
+
+The canonical temporal helper is:
+
+```bash
+app_core/infrastructure/forensics/scripts/time_sync_preflight.sh
+```
+
+The repository-root wrapper:
+
+```bash
+e2_max_clock_offset.sh
+```
+
+is retained for compatibility with older commands and integrations.
+
+and it is intentionally split into two explicit modes:
+
+- **measure only**
+  - default
+  - safe
+  - does not install packages
+  - does not change services
+  - does not change node clocks
+  - prefers `chronyc tracking` when available
+  - falls back to a non-destructive SSH epoch comparison when `chrony` is not installed on the target node
+- **measure and fix**
+  - explicit
+  - only when the operator requests correction
+  - may install and start `chrony`
+  - may run `chronyc -a makestep`
+  - may restart `chrony`
+
+The default safe mode is:
+
+```bash
+bash app_core/infrastructure/forensics/scripts/time_sync_preflight.sh --case-id CASE-YYYYMMDD-HHMMSS
+```
+
+The explicit correction mode is:
+
+```bash
+DO_FIX_TIME=1 SSH_KEY="$HOME/.ssh/my_key" bash app_core/infrastructure/forensics/scripts/time_sync_preflight.sh --case-id CASE-YYYYMMDD-HHMMSS --fix-time
+```
+
+The script also accepts:
+
+- `--out`
+- `--threshold-ms`
+- `--status-filter`
+- `--ip-prefix`
+
+or equivalent environment variables such as:
+
+- `TIME_SYNC_OUT`
+- `TIME_SYNC_BEFORE_OUT`
+- `TIME_SYNC_AFTER_OUT`
+- `TIME_SYNC_THRESHOLD_MS`
+- `TIME_SYNC_DEGRADED_THRESHOLD_MS`
+- `DO_FIX_TIME`
+
+The output is now preserved as JSON instead of only console text. When a case is known, the primary artifact is written to:
+
+```bash
+app_core/infrastructure/forensics/evidence_store/<CASE_ID>/metadata/time_sync.json
+```
+
+and, when correction is requested, the helper also preserves:
+
+```bash
+app_core/infrastructure/forensics/evidence_store/<CASE_ID>/metadata/time_sync_before.json
+app_core/infrastructure/forensics/evidence_store/<CASE_ID>/metadata/time_sync_after.json
+```
+
+The JSON records:
+
+- generated time
+- mode
+- whether correction was requested
+- synchronization thresholds
+- nodes successfully measured
+- failed nodes and failure reasons
+- maximum clock offset in milliseconds and seconds
+- worst node
+- per-node SSH user used
+- whether `chrony` already existed
+- whether `chrony` was installed by the script
+- whether correction was applied
+- before/after summaries when correction mode was used
+
+The synchronization state is normalized as:
+
+- `synchronized`
+- `degraded`
+- `not_synchronized`
+- `unknown`
+
+using these default thresholds:
+
+- `max_clock_offset_ms <= 1000`
+  - `synchronized`
+- `max_clock_offset_ms <= 5000`
+  - `degraded`
+- `max_clock_offset_ms > 5000`
+  - `not_synchronized`
+
+This pre-flight is deliberately **not automatic** during view load. In `FOC Reconstruction` it is exposed as an explicit user action:
+
+- `Time Synchronization`
+- `Measure Clock Offset`
+- `Fix Time Synchronization`
+
+The correction path requires explicit confirmation in the UI so infrastructure changes never happen silently.
+
+Temporal correction policy is deliberately conservative:
+
+- measuring clock offset is considered non-destructive and is allowed by default
+- corrective synchronization changes node state and may alter timestamps, logs, apparent event ordering, and volatile evidence
+- therefore corrective synchronization must not run silently during an active forensic case
+- if an active forensic case exists, corrective synchronization is blocked by default
+- it only proceeds under an explicit laboratory or maintenance override
+- every corrective synchronization run is recorded as an intervention artifact
+
+This distinction matters methodologically:
+
+- `Measure Clock Offset` supports temporal characterization
+- `Fix Time Synchronization` is an infrastructure intervention
+- the intervention may improve the uncertainty budget for later causal reconstruction
+- but it must never be confused with passive observation of the original forensic state
 
 ### Multilayer Forensic Evidence Cockpit
 
@@ -2024,6 +2213,7 @@ The causal layer consumes already normalized artifacts such as:
 - `analysis/01_integrity_custody/integrity_custody_report.json`
 - `analysis/02_time_validation/clock_offset_report.json`
 - `analysis/09_timeline/unified_forensic_timeline.json`
+- `metadata/time_sync.json`
 
 The causal layer therefore answers a different question from the base FOC layer:
 
@@ -2085,7 +2275,7 @@ The causal module computes audit-oriented indicators such as:
 - `evidence_completeness_ratio`
 - `integrity_verification_ratio`, now reported alongside a `graph_scope_integrity_ratio` (artifacts actually referenced by the graph) and a `case_wide_integrity_ratio` (manifest-wide hash validation) so a single ratio is never shown without explaining which scope it covers
 - `analysis_coverage_ratio`
-- `temporal_confidence_state`, reported together with the uncertainty window in seconds (not only milliseconds) and a one-line explanation of what that window means for event ordering
+- `temporal_confidence_state`, reported together with the uncertainty window in seconds (not only milliseconds), the synchronization state, whether correction was applied, the worst node, and a one-line explanation of what that window means for event ordering
 - `reconstruction_confidence` - always labeled **composite but non-authoritative**, never presented as an absolute score
 - a `kpis` list attached to `reconstruction_metrics.json`, where every KPI carries its own `value`, `meaning` (formula), `interpretation`, and `severity`
 
@@ -2216,6 +2406,55 @@ Below that, the cockpit shows:
 A stale-data banner appears when the underlying analysis outputs (memory findings, forensic analysis report, visual summary) were modified after the causal artifacts were last generated, and now carries a `Regenerate Causal Reconstruction` action wired to the same on-demand run call - staleness is never resolved automatically. When the preserved clock offset makes temporal ordering weak, the header also surfaces an explicit warning and caution sentence rather than burying that risk in the uncertainty detail section.
 
 The UI does not render a causal graph when `causal_graph.json` does not exist, and it does not present blocked or missing prerequisites as success.
+
+### Time synchronization in FOC and causal reconstruction
+
+`FOC Reconstruction` now shows a dedicated **Time synchronization** section per case and a modal for manual execution and inspection.
+
+That surface reports:
+
+- synchronization state
+- maximum clock offset
+- worst node
+- nodes measured
+- nodes failed
+- whether correction was applied
+- before/after summaries when available
+- preserved output paths
+
+The multilayer phase `temporal_validation` still writes:
+
+```bash
+analysis/02_time_validation/clock_offset_report.json
+```
+
+but now derives it from the richer preserved `metadata/time_sync.json` schema when available.
+
+The causal reconstruction layer then prefers the preserved time-sync artifact over the older minimal clock-offset report whenever it exists. The uncertainty budget therefore uses:
+
+```text
+U = max_clock_offset + timestamp_resolution + acquisition_jitter
+```
+
+with the best preserved temporal source available:
+
+1. `metadata/time_sync.json`
+2. `metadata/time_sync_after.json` / `metadata/time_sync_before.json`
+3. `analysis/02_time_validation/clock_offset_report.json`
+
+As a result, improving synchronization before acquisition and reconstruction can lower:
+
+- `max_clock_offset`
+- `uncertainty_window`
+- temporal ambiguity on expected edges
+
+and can improve:
+
+- `temporal_confidence_state`
+- `causal_path_recoverability`
+- `reconstruction_confidence`
+
+without changing the preserved primary evidence itself. The change is only in the quality of the temporal calibration used to interpret already preserved events.
 
 #### Profesionalización del Causal Reconstruction Cockpit (2026-06-22)
 

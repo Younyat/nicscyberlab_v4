@@ -20,6 +20,7 @@ const FOC = {
   selectedCaseId: null,
   analysisPollTimer: null,
   causalPollTimer: null,
+  timeSyncPollTimer: null,
   analysisVisualState: {
     selectedNodeId: "case",
     timelineMode: "pipeline",
@@ -34,6 +35,10 @@ const FOC = {
     cachedGraphSummary: null,
     cachedMarkdown: null,
     expandedDetails: {},
+  },
+  timeSyncVisualState: {
+    currentCaseId: null,
+    currentStatus: null,
   },
   graphState: {
     layers: {
@@ -105,6 +110,14 @@ function analysisReportUrl(caseId) {
 
 function analysisVisualUrl(caseId) {
   return `${API}/cases/${encodeURIComponent(caseId)}/analysis/visual-summary`;
+}
+
+function timeSyncStatusUrl(caseId) {
+  return `${API}/cases/${encodeURIComponent(caseId)}/time-sync/status`;
+}
+
+function timeSyncRunUrl(caseId) {
+  return `${API}/cases/${encodeURIComponent(caseId)}/time-sync/run`;
 }
 
 function causalStatusUrl(caseId) {
@@ -187,9 +200,9 @@ function statusClass(status) {
   if (normalized === "running") return "status-inferred";
   if (["completed_with_degradation", "partial", "limited", "degraded", "ambiguous", "ready_to_run", "weak_reconstruction", "weak"].includes(normalized)) return "status-inferred";
   if (["blocked_missing_ground_truth", "blocked_missing_analysis", "blocked", "invalid"].includes(normalized)) return "status-missing";
-  if (["confirmed", "complete", "valid", "active", "bound", "present", "available", "completed", "strong", "recovered", "supported"].includes(normalized)) return "status-confirmed";
+  if (["confirmed", "complete", "valid", "active", "bound", "present", "available", "completed", "strong", "recovered", "supported", "synchronized"].includes(normalized)) return "status-confirmed";
   if (["inferred", "partial", "bootstrap", "updated", "warning", "warnings", "mostly_available", "mostly_noise", "mostly_completed", "constrained", "limited"].includes(normalized)) return "status-inferred";
-  if (["missing", "critical", "insufficient", "unresolved", "error", "bootstrap_required", "failed"].includes(normalized)) return "status-missing";
+  if (["missing", "critical", "insufficient", "unresolved", "error", "bootstrap_required", "failed", "not_synchronized"].includes(normalized)) return "status-missing";
   if (["unknown", "not_available", "degraded", "not_completed", "not_generated", "not_started"].includes(normalized)) return "status-unknown";
   if (["not_generated_yet"].includes(normalized)) return "status-updated";
   return "status-updated";
@@ -2190,6 +2203,7 @@ function renderCases() {
   const casesHtml = cases.map(entry => {
     const analysisStatus = FOC.caseAnalysisStatuses[entry.case_id] || null;
     const causalState = entry.causal_state || null;
+    const timeSyncState = entry.time_sync_state || null;
     const availableLayers = analysisStatus?.available_layers || entry.available_layers || {};
     const currentAnalysisState = analysisStatus?.status || entry.analysis_status || "not_started";
     const currentCausalState = causalState?.status || "not_available";
@@ -2226,6 +2240,18 @@ function renderCases() {
         </div>
         <div class="mt-4 grid grid-cols-1 gap-3 text-sm">
           <div class="glass rounded-2xl p-3">
+            <div class="text-xs uppercase tracking-[0.2em] text-slate-400 font-black">Time synchronization</div>
+            <div class="mt-2 ${statusClass(timeSyncState?.temporal_sync_status || timeSyncState?.status || "unknown")} font-black uppercase tracking-[0.12em] text-xs">${esc(timeSyncState?.temporal_sync_status || timeSyncState?.status || "unknown")}</div>
+            <div class="mt-2 text-xs text-slate-300">${esc(timeSyncState?.reason || "No preserved time synchronization measurement is available for this case.")}</div>
+            <div class="mt-3 grid grid-cols-2 md:grid-cols-5 gap-2 text-[11px] text-slate-300">
+              <div>Max offset: <span class="mono">${esc(timeSyncState?.max_clock_offset_ms ?? "na")}</span> ms</div>
+              <div>Nodes OK: <span class="mono">${esc(timeSyncState?.nodes_ok ?? 0)}</span></div>
+              <div>Nodes failed: <span class="mono">${esc(timeSyncState?.nodes_failed ?? 0)}</span></div>
+              <div>Correction: <span class="mono">${esc(String(timeSyncState?.correction_applied ?? false))}</span></div>
+              <div>Worst node: <span class="mono">${esc(timeSyncState?.worst_node?.name || "na")}</span></div>
+            </div>
+          </div>
+          <div class="glass rounded-2xl p-3">
             <div class="text-xs uppercase tracking-[0.2em] text-slate-400 font-black">Causal reconstruction</div>
             <div class="mt-2 ${statusClass(currentCausalState)} font-black uppercase tracking-[0.12em] text-xs">${esc(currentCausalState)}</div>
             <div class="mt-2 text-xs text-slate-300">${esc(causalState?.reason || "Causal reconstruction has not been generated yet.")}</div>
@@ -2243,6 +2269,7 @@ function renderCases() {
         <div class="mt-3">${caseArtifacts.map(a => `<div class="mono text-xs text-slate-400">${esc(a.artifact_type)} → ${esc(a.artifact_id)}</div>`).join("")}</div>
         <div class="flex flex-wrap gap-3 mt-4">
           <button class="open-analysis-btn btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase" data-case-id="${esc(entry.case_id)}"${currentAnalysisState === "running" ? " disabled" : ""}>${esc(runLabel)}</button>
+          <button class="view-time-sync-btn btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase" data-case-id="${esc(entry.case_id)}">Time Synchronization</button>
           <button class="view-analysis-btn btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase" data-case-id="${esc(entry.case_id)}">Open Analysis Status</button>
           <button class="view-analysis-report-btn btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase" data-case-id="${esc(entry.case_id)}">View Analysis Report</button>
           <button class="run-causal-btn btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase" data-case-id="${esc(entry.case_id)}"${["running", "blocked_missing_analysis", "blocked_missing_ground_truth", "not_available"].includes(currentCausalState) ? " disabled" : ""}>${esc(causalRunLabel)}</button>
@@ -2491,6 +2518,153 @@ function closeSymbolGenModal() {
   if (!modal) return;
   modal.classList.remove("is-active");
   modal.setAttribute("aria-hidden", "true");
+}
+
+function stopTimeSyncPolling() {
+  if (FOC.timeSyncPollTimer) {
+    clearTimeout(FOC.timeSyncPollTimer);
+    FOC.timeSyncPollTimer = null;
+  }
+}
+
+function openTimeSyncModalShell() {
+  const modal = byId("time-sync-modal");
+  if (!modal) return;
+  modal.classList.add("is-active");
+  modal.setAttribute("aria-hidden", "false");
+}
+
+function closeTimeSyncModalShell() {
+  const modal = byId("time-sync-modal");
+  if (!modal) return;
+  modal.classList.remove("is-active");
+  modal.setAttribute("aria-hidden", "true");
+  stopTimeSyncPolling();
+}
+
+function renderTimeSyncModal(status) {
+  const panel = byId("time-sync-modal-panel");
+  const title = byId("time-sync-modal-title");
+  const subtitle = byId("time-sync-modal-subtitle");
+  if (!panel) return;
+  const caseId = status?.case_id || FOC.selectedCaseId || "unknown";
+  const caseEntry = (FOC.cases?.cases || []).find(item => item.case_id === caseId);
+  if (title) title.textContent = `Time Synchronization: ${caseEntry?.source_case_name || caseId}`;
+  if (subtitle) {
+    subtitle.textContent = status?.status === "running"
+      ? `Time synchronization is running at ${status?.progress_percent ?? 0}% in step ${status?.current_step || "unknown"}.`
+      : "Measure-only is the safe default. Correction is explicit, logged, and treated as infrastructure intervention.";
+  }
+  FOC.timeSyncVisualState.currentCaseId = caseId;
+  FOC.timeSyncVisualState.currentStatus = status;
+  FOC.timeSyncState = status;
+  const summary = status?.summary || status || {};
+  const policy = status?.policy || {};
+  const before = summary.before || {};
+  const after = summary.after || {};
+  const outputPaths = summary.output_paths || status?.output_paths || {};
+  panel.innerHTML = `
+    <div class="space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        ${simpleValueCard("Sync status", summary.temporal_sync_status || summary.status || "unknown", "Measured platform time state")}
+        ${simpleValueCard("Max clock offset", summary.max_clock_offset_ms ?? "na", "Milliseconds")}
+        ${simpleValueCard("Temporal sync threshold", summary.synchronization_threshold_ms ?? "na", "Milliseconds")}
+        ${simpleValueCard("Nodes measured", summary.nodes_ok ?? 0, "Nodes with usable offset")}
+        ${simpleValueCard("Nodes failed", summary.nodes_failed ?? 0, "Nodes with SSH or chrony failure")}
+        ${simpleValueCard("Correction applied", String(summary.correction_applied ?? false), "Explicit infrastructure correction")}
+      </div>
+      <div class="glass-soft rounded-2xl p-4 text-sm text-slate-300">
+        <div><strong>Reason:</strong> ${esc(summary.reason || status?.reason || "not_available")}</div>
+        <div class="mt-1"><strong>Worst node:</strong> ${esc(summary.worst_node?.name || "na")} ${summary.worst_node?.offset_ms != null ? `(${esc(summary.worst_node.offset_ms)} ms)` : ""}</div>
+        <div class="mt-1"><strong>Generated at:</strong> ${esc(summary.generated_at_utc || status?.updated_at || "not_available")}</div>
+        <div class="mt-1"><strong>Mode:</strong> ${esc(summary.mode || "unknown")}</div>
+      </div>
+      <div class="glass-soft rounded-2xl p-4 text-sm ${policy.active_case_present ? "text-amber-200 border border-amber-500/30" : "text-slate-300"}">
+        <div><strong>Policy state:</strong> ${esc(policy.policy_state || "not_available")}</div>
+        <div class="mt-1"><strong>Policy reason:</strong> ${esc(policy.reason || "not_available")}</div>
+        ${policy.active_case_id ? `<div class="mt-1"><strong>Active case:</strong> ${esc(policy.active_case_id)}</div>` : ""}
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="glass-soft rounded-2xl p-4 text-sm text-slate-300">
+          <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Before</div>
+          <div class="mt-2">Max offset: ${esc(before.max_clock_offset_ms ?? "na")} ms</div>
+          <div class="mt-1">Status: ${esc(before.temporal_sync_status || "not_available")}</div>
+        </div>
+        <div class="glass-soft rounded-2xl p-4 text-sm text-slate-300">
+          <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">After / Effective</div>
+          <div class="mt-2">Max offset: ${esc((after.max_clock_offset_ms ?? summary.max_clock_offset_ms) ?? "na")} ms</div>
+          <div class="mt-1">Status: ${esc(after.temporal_sync_status || summary.temporal_sync_status || "not_available")}</div>
+        </div>
+      </div>
+      <div class="glass-soft rounded-2xl p-4 text-xs text-slate-400 mono whitespace-pre-wrap">${esc(Object.entries(outputPaths).map(([k, v]) => `${k}: ${v}`).join("\n") || "No output paths available.")}</div>
+    </div>
+  `;
+}
+
+async function fetchTimeSyncStatus(caseId) {
+  return fetchJson(timeSyncStatusUrl(caseId));
+}
+
+function scheduleTimeSyncPolling(caseId) {
+  stopTimeSyncPolling();
+  FOC.timeSyncPollTimer = setTimeout(async () => {
+    try {
+      const status = await fetchTimeSyncStatus(caseId);
+      renderTimeSyncModal(status);
+      if (status.status === "running") {
+        scheduleTimeSyncPolling(caseId);
+      } else {
+        await loadAll(true);
+      }
+    } catch (_) {
+      scheduleTimeSyncPolling(caseId);
+    }
+  }, ANALYSIS_STATUS_POLL_MS);
+}
+
+async function openTimeSyncModal(caseId) {
+  FOC.selectedCaseId = caseId;
+  openTimeSyncModalShell();
+  const status = await fetchTimeSyncStatus(caseId);
+  renderTimeSyncModal(status);
+  if (status.status === "running") scheduleTimeSyncPolling(caseId);
+}
+
+async function runTimeSync(caseId, fixTime = false) {
+  const currentPolicy = FOC.timeSyncState?.policy || {};
+  let maintenanceOverride = false;
+  if (fixTime) {
+    const confirmed = window.confirm("Fix Time Synchronization changes node state and may install/start chrony, apply chronyc makestep, and alter timestamps, logs or volatile evidence ordering. Continue?");
+    if (!confirmed) return;
+    if (currentPolicy?.active_case_present) {
+      const overrideConfirmed = window.confirm(`An active forensic case (${currentPolicy.active_case_id || "unknown"}) is present. Corrective time synchronization is normally blocked during an active case. Continue only as explicit laboratory or maintenance override intervention?`);
+      if (!overrideConfirmed) return;
+      maintenanceOverride = true;
+    }
+  }
+  FOC.selectedCaseId = caseId;
+  openTimeSyncModalShell();
+  renderTimeSyncModal({
+    case_id: caseId,
+    status: "running",
+    progress_percent: 0,
+    current_step: "queued",
+    reason: fixTime ? "Starting time synchronization correction..." : "Starting safe clock offset measurement...",
+    summary: { temporal_sync_status: "running", correction_applied: fixTime },
+  });
+  const result = await fetchJson(timeSyncRunUrl(caseId), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fix_time: fixTime, maintenance_override: maintenanceOverride }),
+  }).catch(async () => fetchTimeSyncStatus(caseId));
+  renderTimeSyncModal(result);
+  if (result.status === "running") {
+    scheduleTimeSyncPolling(caseId);
+  } else if (result.status !== "blocked_policy") {
+    await loadAll(true);
+  } else {
+    return;
+  }
 }
 
 async function generateSymbolsForSelectedCase() {
@@ -3144,10 +3318,14 @@ function renderCausalUncertaintyDetail(uncertainty) {
     <div class="space-y-3">
       <div class="glass-soft rounded-2xl p-4 text-sm text-slate-300">
         <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black">Temporal uncertainty</div>
+        <div class="mt-2"><strong>Sync status:</strong> ${esc(t.temporal_sync_status || "unknown")}</div>
         <div class="mt-2"><strong>Temporal confidence:</strong> ${esc(t.temporal_confidence_state || "unknown")}</div>
         <div class="mt-1"><strong>Uncertainty window:</strong> ${esc(t.uncertainty_window_seconds ?? "na")}s (${esc(t.uncertainty_window_ms ?? "na")}ms)</div>
         <div class="mt-1"><strong>Max clock offset:</strong> ${esc(t.max_clock_offset_seconds ?? "na")}s</div>
         <div class="mt-1"><strong>Synchronized:</strong> ${esc(String(t.synchronized ?? false))}</div>
+        <div class="mt-1"><strong>Correction applied:</strong> ${esc(String(t.correction_applied ?? false))}</div>
+        <div class="mt-1"><strong>Worst node:</strong> ${esc(t.worst_node?.name || "na")}</div>
+        <div class="mt-1"><strong>Nodes measured / failed:</strong> ${esc(t.nodes_ok ?? 0)} / ${esc(t.nodes_failed ?? 0)}</div>
         <div class="mt-2 text-slate-400">${esc(t.temporal_limitation || "")}</div>
         ${t.temporal_warning ? `<div class="mt-2 text-amber-300 font-black">${esc(t.temporal_warning)}</div>` : ""}
         ${t.temporal_caution ? `<div class="mt-1 text-amber-200">${esc(t.temporal_caution)}</div>` : ""}
@@ -3999,6 +4177,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       closeAnalysisReportModalShell();
     }
   });
+  byId("time-sync-modal-close")?.addEventListener("click", closeTimeSyncModalShell);
+  byId("time-sync-modal")?.addEventListener("click", (event) => {
+    if (event.target?.id === "time-sync-modal") {
+      closeTimeSyncModalShell();
+    }
+  });
+  byId("time-sync-measure-btn")?.addEventListener("click", () => {
+    if (FOC.selectedCaseId) runTimeSync(FOC.selectedCaseId, false).catch(() => {});
+  });
+  byId("time-sync-fix-btn")?.addEventListener("click", () => {
+    if (FOC.selectedCaseId) runTimeSync(FOC.selectedCaseId, true).catch(() => {});
+  });
   byId("causal-report-modal-close")?.addEventListener("click", closeCausalReportModalShell);
   byId("causal-report-modal")?.addEventListener("click", (event) => {
     if (event.target?.id === "causal-report-modal") {
@@ -4067,6 +4257,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!caseId) return;
     if (target.classList.contains("open-analysis-btn")) {
       openCaseAnalysis(caseId, true).catch(() => {});
+      return;
+    }
+    if (target.classList.contains("view-time-sync-btn")) {
+      openTimeSyncModal(caseId).catch(() => {});
       return;
     }
     if (target.classList.contains("view-analysis-btn")) {

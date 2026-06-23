@@ -17,6 +17,9 @@ def load_analysis_summary(case_path: Path) -> dict:
     analysis_dir = case_path / "analysis"
     return {
         "analysis_dir": analysis_dir,
+        "time_sync": _load_json(case_path / "metadata" / "time_sync.json") or {},
+        "time_sync_before": _load_json(case_path / "metadata" / "time_sync_before.json") or {},
+        "time_sync_after": _load_json(case_path / "metadata" / "time_sync_after.json") or {},
         "forensic_analysis_report": _load_json(analysis_dir / "forensic_analysis_report.json") or {},
         "analysis_visual_summary": _load_json(analysis_dir / "visual" / "analysis_visual_summary.json") or {},
         "forensic_analysis_manifest": _load_json(analysis_dir / "forensic_analysis_manifest.json") or {},
