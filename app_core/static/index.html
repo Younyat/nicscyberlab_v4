@@ -5,26 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NICS CyberLab</title>
 
+  <script>document.documentElement.setAttribute('data-theme', (function(){try{return localStorage.getItem('nics-cyberlab-theme')||'dark';}catch(e){return 'dark';}})());</script>
+  <link rel="stylesheet" href="/css/theme.css">
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 
 <style>
   :root {
-    --bg0: #020817;
-    --bg1: #061225;
-    --panel: rgba(8, 20, 41, 0.84);
-    --panel2: rgba(11, 27, 55, 0.78);
-    --border: rgba(125, 211, 252, 0.16);
-    --text: rgba(241, 245, 249, 0.96);
-    --muted: rgba(203, 213, 225, 0.68);
-    --cyan: #22d3ee;
-    --blue: #38bdf8;
-    --green: #34d399;
-    --yellow: #facc15;
+    --bg0: var(--t-bg, #020817);
+    --bg1: var(--t-bg-2, #061225);
+    --panel: var(--t-panel, rgba(8, 20, 41, 0.84));
+    --panel2: var(--t-panel-2, rgba(11, 27, 55, 0.78));
+    --border: var(--t-border, rgba(125, 211, 252, 0.16));
+    --text: var(--t-text, rgba(241, 245, 249, 0.96));
+    --muted: var(--t-text-muted, rgba(203, 213, 225, 0.68));
+    --cyan: var(--t-accent, #22d3ee);
+    --blue: var(--t-accent-2, #38bdf8);
+    --green: var(--t-ok, #34d399);
+    --yellow: var(--t-warn, #facc15);
     --orange: #fb923c;
     --pink: #f472b6;
     --violet: #a78bfa;
-    --red: #ef4444;
+    --red: var(--t-danger, #ef4444);
   }
 
   * {
@@ -41,7 +43,7 @@
       radial-gradient(circle at 15% 10%, rgba(34, 211, 238, 0.12), transparent 28%),
       radial-gradient(circle at 80% 12%, rgba(167, 139, 250, 0.10), transparent 32%),
       radial-gradient(circle at 55% 85%, rgba(14, 165, 233, 0.10), transparent 30%),
-      linear-gradient(135deg, #020817 0%, #061225 45%, #020817 100%);
+      linear-gradient(135deg, var(--bg0) 0%, var(--bg1) 45%, var(--bg0) 100%);
   }
 
   body::before {
@@ -148,7 +150,7 @@
     font-size: 23px;
     font-weight: 900;
     letter-spacing: -0.04em;
-    color: white;
+    color: var(--text);
   }
 
   .brand-title h1 span {
@@ -301,7 +303,7 @@
   .side-item.active {
     background: rgba(14, 165, 233, 0.13);
     border-color: rgba(56, 189, 248, 0.22);
-    color: white;
+    color: var(--text);
     box-shadow: inset 3px 0 0 var(--cyan);
   }
 
@@ -427,7 +429,7 @@
 
   .story-header h2 {
     margin: 0;
-    color: white;
+    color: var(--text);
     font-size: 35px;
     line-height: 1.05;
     font-weight: 900;
@@ -622,7 +624,7 @@
   }
 
   .stage-title {
-    color: white;
+    color: var(--text);
     font-size: 18px;
     font-weight: 900;
     line-height: 1.15;
@@ -1552,6 +1554,7 @@
       </div>
 
       <div class="lang-card">
+        <div id="theme-switcher-mount"></div>
         <select onchange="changeLang(this.value)">
           <option value="es" class="bg-slate-900">ESPAÑOL</option>
           <option value="en" class="bg-slate-900">ENGLISH</option>
@@ -2006,6 +2009,8 @@
     </div>
   </div>
 
+  <script src="/js/theme-switcher.js"></script>
+  <script>window.NicsThemeSwitcher.mount('#theme-switcher-mount');</script>
   <script>
     let COPILOT_PENDING = false;
 

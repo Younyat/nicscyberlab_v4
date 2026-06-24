@@ -1,0 +1,310 @@
+/*
+ * NICS | CyberLab - shared theme system.
+ * Canonical variables (prefixed --t-) are redefined per data-theme value on
+ * :root. Pages should alias their own local CSS variables to these (e.g.
+ * `--bg: var(--t-bg, #08111d);`) so switching themes cascades automatically
+ * without rewriting every var() usage in the page body.
+ */
+
+:root,
+:root[data-theme="dark"] {
+  --t-bg: #060c15;
+  --t-bg-2: #091321;
+  --t-bg-3: #08101b;
+  --t-panel: rgba(9, 18, 33, 0.88);
+  --t-panel-2: rgba(11, 21, 38, 0.95);
+  --t-border: rgba(148, 163, 184, 0.16);
+  --t-text: #e2e8f0;
+  --t-text-muted: #94a3b8;
+  --t-accent: #22d3ee;
+  --t-accent-2: #38bdf8;
+  --t-ok: #22c55e;
+  --t-warn: #f59e0b;
+  --t-danger: #ef4444;
+  --t-info: #38bdf8;
+  --t-shadow: rgba(2, 8, 23, 0.56);
+  --t-scrollbar: rgba(148, 163, 184, 0.35);
+}
+
+:root[data-theme="light"] {
+  --t-bg: #f4f7fb;
+  --t-bg-2: #e9eef6;
+  --t-bg-3: #ffffff;
+  --t-panel: rgba(255, 255, 255, 0.92);
+  --t-panel-2: rgba(244, 247, 251, 0.97);
+  --t-border: rgba(15, 23, 42, 0.12);
+  --t-text: #0f172a;
+  --t-text-muted: #475569;
+  --t-accent: #0284c7;
+  --t-accent-2: #2563eb;
+  --t-ok: #15803d;
+  --t-warn: #b45309;
+  --t-danger: #dc2626;
+  --t-info: #0284c7;
+  --t-shadow: rgba(15, 23, 42, 0.14);
+  --t-scrollbar: rgba(15, 23, 42, 0.25);
+}
+
+:root[data-theme="mixed"] {
+  --t-bg: #1e2a3a;
+  --t-bg-2: #2a3a52;
+  --t-bg-3: #15202e;
+  --t-panel: rgba(15, 23, 42, 0.78);
+  --t-panel-2: rgba(30, 41, 59, 0.86);
+  --t-border: rgba(226, 232, 240, 0.18);
+  --t-text: #f1f5f9;
+  --t-text-muted: #cbd5e1;
+  --t-accent: #38bdf8;
+  --t-accent-2: #a78bfa;
+  --t-ok: #34d399;
+  --t-warn: #fbbf24;
+  --t-danger: #fb7185;
+  --t-info: #38bdf8;
+  --t-shadow: rgba(8, 15, 28, 0.4);
+  --t-scrollbar: rgba(226, 232, 240, 0.3);
+}
+
+:root[data-theme="blueteam"] {
+  --t-bg: #04101c;
+  --t-bg-2: #07192b;
+  --t-bg-3: #021019;
+  --t-panel: rgba(6, 24, 40, 0.9);
+  --t-panel-2: rgba(8, 30, 48, 0.96);
+  --t-border: rgba(45, 212, 191, 0.22);
+  --t-text: #e6fbff;
+  --t-text-muted: #7dd3c0;
+  --t-accent: #2dd4bf;
+  --t-accent-2: #0ea5e9;
+  --t-ok: #34d399;
+  --t-warn: #eab308;
+  --t-danger: #f87171;
+  --t-info: #38bdf8;
+  --t-shadow: rgba(2, 12, 20, 0.6);
+  --t-scrollbar: rgba(45, 212, 191, 0.35);
+}
+
+:root[data-theme="redteam"] {
+  --t-bg: #160808;
+  --t-bg-2: #200b0b;
+  --t-bg-3: #0d0505;
+  --t-panel: rgba(36, 12, 12, 0.9);
+  --t-panel-2: rgba(46, 16, 16, 0.96);
+  --t-border: rgba(248, 113, 113, 0.24);
+  --t-text: #fde8e8;
+  --t-text-muted: #d6a3a3;
+  --t-accent: #ef4444;
+  --t-accent-2: #f59e0b;
+  --t-ok: #4ade80;
+  --t-warn: #fbbf24;
+  --t-danger: #ef4444;
+  --t-info: #fb923c;
+  --t-shadow: rgba(10, 3, 3, 0.6);
+  --t-scrollbar: rgba(248, 113, 113, 0.35);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Generic, opt-in component classes pages can use directly.              */
+/* ---------------------------------------------------------------------- */
+
+.t-body {
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--t-accent) 16%, transparent), transparent 26%),
+    radial-gradient(circle at top right, color-mix(in srgb, var(--t-accent-2) 14%, transparent), transparent 24%),
+    linear-gradient(180deg, var(--t-bg-3), var(--t-bg-2) 56%, var(--t-bg));
+  color: var(--t-text);
+}
+
+.t-glass {
+  background: var(--t-panel);
+  border: 1px solid var(--t-border);
+  backdrop-filter: blur(14px);
+}
+
+.t-glass-soft {
+  background: var(--t-panel-2);
+  border: 1px solid var(--t-border);
+}
+
+.t-text-muted { color: var(--t-text-muted); }
+.t-accent { color: var(--t-accent); }
+.t-ok { color: var(--t-ok); }
+.t-warn { color: var(--t-warn); }
+.t-danger { color: var(--t-danger); }
+.t-info { color: var(--t-info); }
+.t-border { border-color: var(--t-border) !important; }
+
+/* ---------------------------------------------------------------------- */
+/* Best-effort retheming for pages that still hardcode Tailwind color      */
+/* utility classes instead of the canonical variables above. This keeps   */
+/* those pages from looking visually broken once a non-dark theme is      */
+/* selected, without requiring a full markup rewrite.                     */
+/* ---------------------------------------------------------------------- */
+
+:root[data-theme]:not([data-theme="dark"]) .bg-gray-900,
+:root[data-theme]:not([data-theme="dark"]) .bg-slate-900,
+:root[data-theme]:not([data-theme="dark"]) .bg-gray-950,
+:root[data-theme]:not([data-theme="dark"]) .bg-slate-950 {
+  background-color: var(--t-bg) !important;
+}
+
+:root[data-theme]:not([data-theme="dark"]) .bg-gray-800,
+:root[data-theme]:not([data-theme="dark"]) .bg-slate-800 {
+  background-color: var(--t-panel-2) !important;
+}
+
+:root[data-theme]:not([data-theme="dark"]) .bg-gray-700,
+:root[data-theme]:not([data-theme="dark"]) .bg-slate-700 {
+  background-color: var(--t-panel) !important;
+}
+
+:root[data-theme]:not([data-theme="dark"]) .text-white,
+:root[data-theme]:not([data-theme="dark"]) .text-gray-100,
+:root[data-theme]:not([data-theme="dark"]) .text-slate-100,
+:root[data-theme]:not([data-theme="dark"]) .text-gray-200,
+:root[data-theme]:not([data-theme="dark"]) .text-slate-200 {
+  color: var(--t-text) !important;
+}
+
+:root[data-theme]:not([data-theme="dark"]) .text-gray-300,
+:root[data-theme]:not([data-theme="dark"]) .text-slate-300,
+:root[data-theme]:not([data-theme="dark"]) .text-gray-400,
+:root[data-theme]:not([data-theme="dark"]) .text-slate-400,
+:root[data-theme]:not([data-theme="dark"]) .text-gray-500,
+:root[data-theme]:not([data-theme="dark"]) .text-slate-500 {
+  color: var(--t-text-muted) !important;
+}
+
+:root[data-theme]:not([data-theme="dark"]) .text-cyan-300,
+:root[data-theme]:not([data-theme="dark"]) .text-sky-300,
+:root[data-theme]:not([data-theme="dark"]) .text-blue-300,
+:root[data-theme]:not([data-theme="dark"]) .text-cyan-400,
+:root[data-theme]:not([data-theme="dark"]) .text-sky-400,
+:root[data-theme]:not([data-theme="dark"]) .text-blue-400 {
+  color: var(--t-info) !important;
+}
+
+:root[data-theme]:not([data-theme="dark"]) .text-amber-300,
+:root[data-theme]:not([data-theme="dark"]) .text-yellow-300,
+:root[data-theme]:not([data-theme="dark"]) .text-amber-400,
+:root[data-theme]:not([data-theme="dark"]) .text-yellow-400 {
+  color: var(--t-warn) !important;
+}
+
+:root[data-theme]:not([data-theme="dark"]) .text-emerald-300,
+:root[data-theme]:not([data-theme="dark"]) .text-green-300,
+:root[data-theme]:not([data-theme="dark"]) .text-emerald-400,
+:root[data-theme]:not([data-theme="dark"]) .text-green-400 {
+  color: var(--t-ok) !important;
+}
+
+:root[data-theme]:not([data-theme="dark"]) .text-red-300,
+:root[data-theme]:not([data-theme="dark"]) .text-rose-300,
+:root[data-theme]:not([data-theme="dark"]) .text-red-400,
+:root[data-theme]:not([data-theme="dark"]) .text-rose-400 {
+  color: var(--t-danger) !important;
+}
+
+:root[data-theme]:not([data-theme="dark"]) .border-gray-700,
+:root[data-theme]:not([data-theme="dark"]) .border-slate-700,
+:root[data-theme]:not([data-theme="dark"]) .border-gray-800,
+:root[data-theme]:not([data-theme="dark"]) .border-slate-800 {
+  border-color: var(--t-border) !important;
+}
+
+body {
+  scrollbar-color: var(--t-scrollbar) transparent;
+}
+body::-webkit-scrollbar-thumb {
+  background-color: var(--t-scrollbar);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Theme switcher widget                                                  */
+/* ---------------------------------------------------------------------- */
+
+.theme-switcher {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.theme-switcher-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 999px;
+  background: var(--t-panel-2);
+  border: 1px solid var(--t-border);
+  color: var(--t-text);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.theme-switcher-trigger:hover {
+  border-color: var(--t-accent);
+}
+.theme-switcher-trigger:active {
+  transform: scale(0.97);
+}
+.theme-switcher-swatch {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--t-accent), var(--t-accent-2));
+  box-shadow: 0 0 0 2px var(--t-border);
+  flex-shrink: 0;
+}
+
+.theme-switcher-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 200;
+  min-width: 220px;
+  padding: 0.5rem;
+  border-radius: 16px;
+  background: var(--t-panel);
+  border: 1px solid var(--t-border);
+  box-shadow: 0 18px 40px var(--t-shadow);
+  display: none;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.theme-switcher.is-open .theme-switcher-menu {
+  display: flex;
+}
+.theme-switcher-option {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--t-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.theme-switcher-option:hover {
+  background: var(--t-panel-2);
+  border-color: var(--t-border);
+}
+.theme-switcher-option.is-active {
+  border-color: var(--t-accent);
+  color: var(--t-accent);
+}
+.theme-switcher-option-swatch {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px var(--t-border);
+}

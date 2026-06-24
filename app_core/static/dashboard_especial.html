@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>F-35 Tactical HUD - Cyber Ops</title>
    
+    <script>document.documentElement.setAttribute('data-theme', (function(){try{return localStorage.getItem('nics-cyberlab-theme')||'dark';}catch(e){return 'dark';}})());</script>
+    <link rel="stylesheet" href="/css/theme.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.0/cytoscape.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -639,7 +641,8 @@ aside {
             </h1>
             <div class="text-xs font-mono text-[#00ff88]/60 mt-1">OPENSTACK BATTLEFIELD - LIVE FEED</div>
         </div>
-        <div class="flex gap-3 flex-wrap">
+        <div class="flex gap-3 flex-wrap items-center">
+            <div id="theme-switcher-mount"></div>
             <button onclick="refreshBattlefield()" class="px-5 py-3 bg-[#00ff88]/10 border-2 border-[#00ff88] rounded-lg text-xs font-black text-[#00ff88] hover:bg-[#00ff88]/20 transition-all">
                 <i class="fas fa-sync-alt mr-2"></i> REFRESH SCAN
             </button>
@@ -3148,5 +3151,7 @@ async function openWazuhDynamicHUD() {
 
 
 </script>
+<script src="/js/theme-switcher.js"></script>
+<script>window.NicsThemeSwitcher.mount('#theme-switcher-mount');</script>
 </body>
 </html>

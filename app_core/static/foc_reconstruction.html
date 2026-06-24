@@ -4,20 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FOC Reconstruction</title>
+  <script>document.documentElement.setAttribute('data-theme', (function(){try{return localStorage.getItem('nics-cyberlab-theme')||'dark';}catch(e){return 'dark';}})());</script>
+  <link rel="stylesheet" href="/css/theme.css">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root {
-      --bg: #09111f;
-      --panel: rgba(14, 25, 44, 0.86);
-      --panel-2: rgba(10, 18, 32, 0.92);
-      --line: rgba(148, 163, 184, 0.16);
-      --ink: #e2e8f0;
-      --muted: #8fa3bf;
-      --ok: #22c55e;
-      --warn: #eab308;
-      --bad: #ef4444;
-      --info: #38bdf8;
-      --upd: #3b82f6;
+      --bg: var(--t-bg, #09111f);
+      --panel: var(--t-panel, rgba(14, 25, 44, 0.86));
+      --panel-2: var(--t-panel-2, rgba(10, 18, 32, 0.92));
+      --line: var(--t-border, rgba(148, 163, 184, 0.16));
+      --ink: var(--t-text, #e2e8f0);
+      --muted: var(--t-text-muted, #8fa3bf);
+      --ok: var(--t-ok, #22c55e);
+      --warn: var(--t-warn, #eab308);
+      --bad: var(--t-danger, #ef4444);
+      --info: var(--t-info, #38bdf8);
+      --upd: var(--t-accent-2, #3b82f6);
     }
     body {
       margin: 0;
@@ -25,7 +27,7 @@
       background:
         radial-gradient(circle at top left, rgba(56,189,248,0.16), transparent 30%),
         radial-gradient(circle at top right, rgba(59,130,246,0.14), transparent 24%),
-        linear-gradient(180deg, #060b14, #0a1322 58%, #08101b);
+        linear-gradient(180deg, var(--t-bg-3, #060b14), var(--t-bg-2, #0a1322) 58%, var(--t-bg, #08101b));
       color: var(--ink);
     }
     .glass { background: var(--panel); backdrop-filter: blur(14px); border: 1px solid var(--line); }
@@ -141,7 +143,8 @@
           <h1 class="text-3xl md:text-4xl font-black mt-3">Forensic Observational Context Reconstruction</h1>
           <p class="text-sm text-slate-300 mt-3 max-w-3xl">Scientific validation surface for scenario composition, installed tooling, timeline integrity, evidential traceability, reconstruction gaps, and reproducibility readiness.</p>
         </div>
-        <div class="flex flex-wrap gap-3">
+        <div class="flex flex-wrap gap-3 items-center">
+          <div id="theme-switcher-mount"></div>
           <button id="btn-bootstrap" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Bootstrap FOC</button>
           <button id="btn-regenerate" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Regenerate Reconstruction</button>
           <button id="btn-refresh" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Refresh</button>
@@ -617,6 +620,8 @@
     </div>
   </div>
 
+  <script src="/js/theme-switcher.js"></script>
+  <script>window.NicsThemeSwitcher.mount('#theme-switcher-mount');</script>
   <script src="/js/foc_reconstruction.js?v=20260622-causal-reconstruction-1"></script>
 </body>
 </html>

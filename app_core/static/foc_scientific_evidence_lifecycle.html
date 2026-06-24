@@ -4,19 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FOC Scientific Evidence Lifecycle Dashboard</title>
+  <script>document.documentElement.setAttribute('data-theme', (function(){try{return localStorage.getItem('nics-cyberlab-theme')||'dark';}catch(e){return 'dark';}})());</script>
+  <link rel="stylesheet" href="/css/theme.css">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root {
-      --bg: #08111d;
-      --panel: rgba(9, 18, 33, 0.88);
-      --panel-2: rgba(11, 21, 38, 0.95);
-      --line: rgba(148, 163, 184, 0.16);
-      --ink: #e2e8f0;
-      --muted: #94a3b8;
-      --ok: #22c55e;
-      --warn: #f59e0b;
-      --bad: #ef4444;
-      --info: #38bdf8;
+      --bg: var(--t-bg, #08111d);
+      --panel: var(--t-panel, rgba(9, 18, 33, 0.88));
+      --panel-2: var(--t-panel-2, rgba(11, 21, 38, 0.95));
+      --line: var(--t-border, rgba(148, 163, 184, 0.16));
+      --ink: var(--t-text, #e2e8f0);
+      --muted: var(--t-text-muted, #94a3b8);
+      --ok: var(--t-ok, #22c55e);
+      --warn: var(--t-warn, #f59e0b);
+      --bad: var(--t-danger, #ef4444);
+      --info: var(--t-info, #38bdf8);
     }
     body {
       margin: 0;
@@ -24,7 +26,7 @@
       background:
         radial-gradient(circle at top left, rgba(14, 165, 233, 0.14), transparent 26%),
         radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 24%),
-        linear-gradient(180deg, #060c15, #091321 56%, #08101b);
+        linear-gradient(180deg, var(--t-bg-3, #060c15), var(--t-bg-2, #091321) 56%, var(--t-bg, #08101b));
       color: var(--ink);
     }
     .glass { background: var(--panel); backdrop-filter: blur(14px); border: 1px solid var(--line); }
@@ -94,7 +96,8 @@
           <h1 class="text-3xl md:text-4xl font-black mt-3">Executive Scientific Reconstruction Surface</h1>
           <p class="text-sm text-slate-300 mt-3 max-w-4xl">Decision-oriented summary of the complete evidence lifecycle: controlled attack path, detections, acquisition trigger, preservation, multilayer forensic analysis, causal reconstruction, uncertainty budget, and auditable conclusions.</p>
         </div>
-        <div class="flex flex-wrap gap-3">
+        <div class="flex flex-wrap gap-3 items-center">
+          <div id="theme-switcher-mount"></div>
           <button id="lifecycle-refresh-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Refresh Dashboard</button>
           <button id="lifecycle-open-foc-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Open Technical FOC</button>
         </div>
@@ -371,6 +374,8 @@
     </div>
   </div>
 
+  <script src="/js/theme-switcher.js"></script>
+  <script>window.NicsThemeSwitcher.mount('#theme-switcher-mount');</script>
   <script src="js/foc_scientific_evidence_lifecycle.js?v=20260624-foc-evidence-lifecycle-rail-1"></script>
 </body>
 </html>

@@ -4,12 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cybersecurity Lab - Attack Control</title>
+    <script>document.documentElement.setAttribute('data-theme', (function(){try{return localStorage.getItem('nics-cyberlab-theme')||'dark';}catch(e){return 'dark';}})());</script>
+    <link rel="stylesheet" href="/css/theme.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
 </head>
 <body class="bg-gray-900 text-white">
     <div class="min-h-screen p-6">
         <!-- HEADER -->
+        <div id="theme-switcher-mount" class="flex justify-center mb-3"></div>
         <div class="text-center mb-6">
             <h1 class="text-4xl font-bold mb-2 flex items-center justify-center gap-3">
                 Security Training and Tools Portal
@@ -811,6 +814,7 @@ async function runToolVersionOnVictim(tool) {
             src="about:blank"></iframe>
 </div>
 
-
+<script src="/js/theme-switcher.js"></script>
+<script>window.NicsThemeSwitcher.mount('#theme-switcher-mount');</script>
 </body>
 </html>
