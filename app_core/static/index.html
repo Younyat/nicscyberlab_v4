@@ -1382,6 +1382,81 @@
     background: #7f1d1d !important;
   }
 
+  #expJobIndicator {
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    z-index: 25000;
+    display: none;
+    align-items: center;
+    gap: 12px;
+    min-width: 290px;
+    max-width: 460px;
+    padding: 12px 14px;
+    border-radius: 18px;
+    border: 1px solid rgba(34, 211, 238, 0.22);
+    background: rgba(7, 17, 31, 0.76);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+    cursor: pointer;
+  }
+
+  #expJobIndicator .exp-job-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 999px;
+    background: #22d3ee;
+    box-shadow: 0 0 0 5px rgba(34, 211, 238, 0.14);
+    flex: 0 0 auto;
+  }
+
+  #expJobIndicator .exp-job-kicker {
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: rgba(203,213,225,0.76);
+  }
+
+  #expJobIndicator .exp-job-main {
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 900;
+    color: rgba(248,250,252,0.96);
+    line-height: 1.2;
+  }
+
+  #expJobIndicator .exp-job-meta {
+    margin-top: 5px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: rgba(148,163,184,0.88);
+  }
+
+  #expJobOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 25010;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(2,6,23,0.62);
+    backdrop-filter: blur(10px);
+  }
+
+  .exp-job-card {
+    width: 760px;
+    max-width: 92vw;
+    border-radius: 28px;
+    border: 1px solid rgba(148,163,184,0.16);
+    background: rgba(9,18,33,0.92);
+    box-shadow: 0 35px 80px rgba(0,0,0,0.42);
+    padding: 24px;
+    color: rgba(241,245,249,0.96);
+  }
+
   @media (max-width: 1300px) {
     #appShell {
       grid-template-columns: 190px 1fr;
@@ -1477,6 +1552,26 @@
 
 <body>
   <div id="rt-toasts" aria-live="polite" aria-atomic="true"></div>
+  <div id="expJobIndicator" aria-live="polite">
+    <div class="exp-job-dot"></div>
+    <div style="min-width:0">
+      <div class="exp-job-kicker">Experimentation Running</div>
+      <div id="expJobMain" class="exp-job-main">Preparing…</div>
+      <div id="expJobMeta" class="exp-job-meta">0% · starting</div>
+    </div>
+  </div>
+  <div id="expJobOverlay">
+    <div class="exp-job-card">
+      <div style="display:flex;align-items:start;justify-content:space-between;gap:16px;">
+        <div>
+          <div style="font-size:10px;font-weight:900;letter-spacing:.22em;text-transform:uppercase;color:rgba(148,163,184,0.78);">Experimentation Job</div>
+          <div id="expJobOverlayTitle" style="margin-top:8px;font-size:28px;font-weight:900;letter-spacing:-0.04em;">Running</div>
+        </div>
+        <button id="expJobOverlayClose" class="dfir-auto-btn">Close</button>
+      </div>
+      <div id="expJobOverlayBody" style="margin-top:18px;"></div>
+    </div>
+  </div>
 
   <div id="dfir-auto-overlay" style="display:none;">
     <div class="dfir-auto-card">
@@ -1634,16 +1729,30 @@
           </div>
           <span id="wf-foc-scientific-lifecycle" class="side-state status-unknown">Unknown</span>
         </div>
-        <div class="side-item" data-view="nicscyberlab_dashboard" tabindex="0" role="button">
+        <div class="side-item" data-view="foc_repetition_manager" tabindex="0" role="button">
           <div class="side-item-main">
             <span class="side-glyph">11</span>
+            <div class="side-text"><span>FOC Repetition Manager</span><span class="side-sub">Campaign orchestration</span></div>
+          </div>
+          <span id="wf-foc-repetition-manager" class="side-state status-unknown">Unknown</span>
+        </div>
+        <div class="side-item" data-view="foc_reconstruction_comparability" tabindex="0" role="button">
+          <div class="side-item-main">
+            <span class="side-glyph">12</span>
+            <div class="side-text"><span>FOC Comparability</span><span class="side-sub">Execution comparison</span></div>
+          </div>
+          <span id="wf-foc-comparability" class="side-state status-unknown">Unknown</span>
+        </div>
+        <div class="side-item" data-view="nicscyberlab_dashboard" tabindex="0" role="button">
+          <div class="side-item-main">
+            <span class="side-glyph">13</span>
             <div class="side-text"><span>Comparisons</span><span class="side-sub">Scenario comparison</span></div>
           </div>
           <span id="wf-comparisons" class="side-state status-unknown">Unknown</span>
         </div>
         <div class="side-item" data-view="node_health" tabindex="0" role="button">
           <div class="side-item-main">
-            <span class="side-glyph">12</span>
+            <span class="side-glyph">14</span>
             <div class="side-text"><span>Node Health</span><span class="side-sub">Resource and cleanup</span></div>
           </div>
           <span id="wf-node-health" class="side-state status-unknown">Unknown</span>
@@ -1798,8 +1907,26 @@
               <div class="stage-dot"></div>
             </div>
 
-            <div onclick="openView('nicscyberlab_dashboard')" class="card-option flex flex-col items-center justify-center p-5">
+            <div onclick="openView('foc_repetition_manager')" class="card-option flex flex-col items-center justify-center p-5">
               <div class="stage-number">11</div>
+              <div class="stage-icon">RP</div>
+              <div class="stage-kicker text-content" data-es="REPETICIÓN" data-en="REPETITION">REPETICIÓN</div>
+              <div class="stage-title text-content" data-es="FOC Repetition Manager" data-en="FOC Repetition Manager">FOC Repetition Manager</div>
+              <div class="stage-desc text-content" data-es="Gestión de campañas de repetición experimental y registro de ejecuciones." data-en="Experimental repetition campaign management and execution registration.">Gestión de campañas de repetición experimental y registro de ejecuciones.</div>
+              <div class="stage-dot"></div>
+            </div>
+
+            <div onclick="openView('foc_reconstruction_comparability')" class="card-option flex flex-col items-center justify-center p-5">
+              <div class="stage-number">12</div>
+              <div class="stage-icon">FC</div>
+              <div class="stage-kicker text-content" data-es="COMPARABILIDAD" data-en="COMPARABILITY">COMPARABILIDAD</div>
+              <div class="stage-title text-content" data-es="FOC Comparability" data-en="FOC Comparability">FOC Comparability</div>
+              <div class="stage-desc text-content" data-es="Comparación forense entre ejecuciones ya generadas, sin reejecutar el caso." data-en="Forensic comparison across already generated executions, without rerunning the case.">Comparación forense entre ejecuciones ya generadas, sin reejecutar el caso.</div>
+              <div class="stage-dot"></div>
+            </div>
+
+            <div onclick="openView('nicscyberlab_dashboard')" class="card-option flex flex-col items-center justify-center p-5">
+              <div class="stage-number">13</div>
               <div class="stage-icon">CP</div>
               <div class="stage-kicker text-content" data-es="COMPARACIÓN" data-en="COMPARISON">COMPARACIÓN</div>
               <div class="stage-title text-content" data-es="Comparaciones" data-en="Comparisons">Comparaciones</div>
@@ -1808,7 +1935,7 @@
             </div>
 
             <div onclick="openView('modbus_traffic')" class="card-option flex flex-col items-center justify-center p-5">
-              <div class="stage-number">12</div>
+              <div class="stage-number">14</div>
               <div class="stage-icon">NW</div>
               <div class="stage-kicker text-content" data-es="TRÁFICO" data-en="TRAFFIC">TRÁFICO</div>
               <div class="stage-title text-content" data-es="Monitor IT/OT" data-en="IT/OT Monitor">Monitor IT/OT</div>
@@ -1817,7 +1944,7 @@
             </div>
 
             <div onclick="openView('node_health')" class="card-option flex flex-col items-center justify-center p-5">
-              <div class="stage-number">13</div>
+              <div class="stage-number">15</div>
               <div class="stage-icon">NH</div>
               <div class="stage-kicker text-content" data-es="SALUD" data-en="HEALTH">SALUD</div>
               <div class="stage-title text-content" data-es="Node Health" data-en="Node Health">Node Health</div>
@@ -3116,6 +3243,119 @@
     const HOME_FULL_REFRESH_MS = 45000;
     const HOME_ALERT_REFRESH_MS = 12000;
     let homeSummaryInFlight = false;
+    const EXP_JOB_STORAGE_KEY = "nics-foc-experimentation-active-job";
+    let expJobPollTimer = null;
+
+    function expLoadStoredJob() {
+      try {
+        return JSON.parse(localStorage.getItem(EXP_JOB_STORAGE_KEY) || "null");
+      } catch {
+        return null;
+      }
+    }
+
+    function expClearStoredJob() {
+      try {
+        localStorage.removeItem(EXP_JOB_STORAGE_KEY);
+      } catch {}
+    }
+
+    function expHideIndicator() {
+      const el = document.getElementById("expJobIndicator");
+      const ov = document.getElementById("expJobOverlay");
+      if (el) el.style.display = "none";
+      if (ov) ov.style.display = "none";
+    }
+
+    function expRenderIndicator(job) {
+      const el = document.getElementById("expJobIndicator");
+      const main = document.getElementById("expJobMain");
+      const meta = document.getElementById("expJobMeta");
+      if (!el || !main || !meta) return;
+      main.textContent = job.current_phase_label || job.title || "Experimentation running";
+      meta.textContent = `${Math.round(Number(job.progress_percent || 0))}% · ${job.current_phase || "starting"}`;
+      el.style.display = "flex";
+    }
+
+    function expRenderOverlay(job) {
+      const title = document.getElementById("expJobOverlayTitle");
+      const body = document.getElementById("expJobOverlayBody");
+      if (!title || !body) return;
+      title.textContent = job.title || "Experimentation job";
+      const phases = Array.isArray(job.phase_statuses) ? job.phase_statuses.slice(-10) : [];
+      body.innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;">
+          <div><strong>Status:</strong> ${job.status || "unknown"}</div>
+          <div><strong>Progress:</strong> ${Math.round(Number(job.progress_percent || 0))}%</div>
+          <div><strong>Current phase:</strong> ${job.current_phase_label || job.current_phase || "starting"}</div>
+          <div><strong>Campaign:</strong> ${(job.meta || {}).campaign_id || "not_available"}</div>
+        </div>
+        <div style="margin-top:14px;"><strong>Exact activity:</strong> ${job.current_phase_detail || "No additional detail available."}</div>
+        ${phases.length ? `
+          <div style="margin-top:18px;">
+            <strong>Recent phases</strong>
+            <div style="display:grid;gap:10px;margin-top:12px;">
+              ${phases.map((item) => `
+                <div style="border:1px solid rgba(148,163,184,0.16);border-radius:16px;padding:12px;background:rgba(2,6,23,0.28);">
+                  <div style="display:flex;justify-content:space-between;gap:12px;">
+                    <div style="font-weight:900;">${item.phase_label || item.phase_key}</div>
+                    <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(34,211,238,0.92);">${item.progress_percent}%</div>
+                  </div>
+                  <div style="margin-top:6px;color:rgba(203,213,225,0.85);">${item.detail || "No detail available."}</div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        ` : ""}
+        <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
+          <button type="button" class="dfir-auto-btn" onclick="openView('foc_repetition_manager')">Open Repetition Manager</button>
+          <button type="button" class="dfir-auto-btn" onclick="openView('foc_reconstruction_comparability')">Open Comparability</button>
+        </div>
+      `;
+    }
+
+    async function expPollIndicator() {
+      const stored = expLoadStoredJob();
+      if (!stored?.job_id) {
+        expHideIndicator();
+        return;
+      }
+      try {
+        const res = await fetch(`/api/foc/experimentation/jobs/${encodeURIComponent(stored.job_id)}`, { cache: "no-store" });
+        if (!res.ok) {
+          expClearStoredJob();
+          expHideIndicator();
+          return;
+        }
+        const job = await res.json();
+        if (["completed", "completed_with_degradation", "failed", "cancelled"].includes(String(job.status))) {
+          expClearStoredJob();
+          expHideIndicator();
+          return;
+        }
+        expRenderIndicator(job);
+        expRenderOverlay(job);
+      } catch (_) {
+        // keep last visible state if any
+      }
+    }
+
+    function expInitIndicator() {
+      const indicator = document.getElementById("expJobIndicator");
+      const overlay = document.getElementById("expJobOverlay");
+      const closeBtn = document.getElementById("expJobOverlayClose");
+      if (indicator) indicator.addEventListener("click", () => {
+        if (overlay) overlay.style.display = "flex";
+      });
+      if (closeBtn) closeBtn.addEventListener("click", () => {
+        if (overlay) overlay.style.display = "none";
+      });
+      if (overlay) overlay.addEventListener("click", (ev) => {
+        if (ev.target === overlay) overlay.style.display = "none";
+      });
+      expPollIndicator().catch(() => {});
+      expJobPollTimer = setInterval(() => expPollIndicator().catch(() => {}), 2500);
+    }
 
     function homeBindSidebarNavigation() {
       document.querySelectorAll(".side-item[data-view]").forEach(item => {
@@ -3293,6 +3533,7 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
+      expInitIndicator();
       homeBindSidebarNavigation();
       loadHomeOperationalSummary(true).catch(() => {});
 

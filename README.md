@@ -3014,6 +3014,283 @@ The `Run Full Evidence Lifecycle` action is intentionally an orchestrator, not a
 
 It reuses the existing runners and waits for their terminal states. It does not reimplement PCAP, memory, disk, OT, alert, or causal evaluators.
 
+### FOC Experimentation module
+
+The platform now also includes an additional, optional module for **campaign-oriented repetition and comparability management**:
+
+```bash
+app_core/infrastructure/foc_experimentation/
+```
+
+with dedicated API surface:
+
+```bash
+/api/foc/experimentation/...
+```
+
+and two new independent views:
+
+```bash
+app_core/static/foc_repetition_manager.html
+app_core/static/foc_reconstruction_comparability.html
+```
+
+This module is intentionally **separate from**:
+
+- `FOC Scientific Evidence Lifecycle Dashboard`
+- `FOC Reconstruction`
+- `Forensic Acquisition and Analysis Dashboard`
+
+It does **not** replace them and it does **not** modify their internal execution logic.
+
+Its responsibilities are different:
+
+- **Executive Scientific Reconstruction Surface**
+  - explains a single preserved execution
+- **Forensic Repetition Manager**
+  - manages repetition campaigns and registers execution workspaces
+- **Forensic Reconstruction Comparability View**
+  - compares already-generated executions
+
+#### Architectural rules
+
+The module is designed as:
+
+- optional
+- modular
+- non-invasive
+- reversible
+
+If the experimentation blueprint is not registered or fails to load, the current platform views continue to operate normally.
+
+The module never writes campaign artifacts into the original case directory structure except by **linking** an existing case in read-only mode. Campaign outputs remain isolated under:
+
+```bash
+app_core/infrastructure/forensics/evidence_store/repetition_campaigns/
+```
+
+with per-campaign structure such as:
+
+```bash
+app_core/infrastructure/forensics/evidence_store/repetition_campaigns/<CAMPAIGN_ID>/
+```
+
+and per-execution structure such as:
+
+```bash
+app_core/infrastructure/forensics/evidence_store/repetition_campaigns/<CAMPAIGN_ID>/<LEVEL>/<EXECUTION_ID>/
+```
+
+#### Campaign levels
+
+The module distinguishes three methodological levels:
+
+- **Level A**
+  - reuses an already preserved forensic case in read-only mode
+  - does not modify the original case
+  - is intended to study **repeatability of the analytical and reconstruction layer** over the same preserved artifacts
+- **Level B**
+  - represents controlled repetition under the same scenario conditions
+  - is intended to study **stability of forensic reconstruction** under equivalent experimental conditions
+- **Level C**
+  - extends Level B with environment redeployment concerns
+  - is intended to study **platform and environment reproducibility**, not only forensic repeatability
+
+In the current first-phase implementation, the module fully supports **linked-case registration** and isolated execution-profile generation without touching the original evidence. This means the experimentation layer can already:
+
+- register campaigns
+- create independent execution workspaces
+- seal ground-truth context
+- build comparison profiles
+- compare executions
+
+#### Simple usage guide
+
+Use the experimentation module in this order:
+
+1. Open `Forensic Repetition Manager`
+2. Select the methodological level:
+   - `Level A` for reanalysis repeatability over an existing preserved case
+   - `Level B` for controlled repeated incident execution
+   - `Level C` for redeployment-aware reproducibility studies
+3. Link the source case or provide the scenario context
+4. Review the proposed defaults and the pre-flight checklist
+5. Create the campaign
+6. Start the campaign or run the next execution
+7. Wait until the execution generates its scientific profiles, especially:
+   - `ground_truth_seal.json`
+   - `baseline_noise_profile.json` when applicable
+   - `forensic_comparison_profile.json`
+8. After at least two executions have generated `forensic_comparison_profile.json`, open `Forensic Reconstruction Comparability View`
+
+#### Campaign status semantics
+
+The experimentation module now separates **technical completion**, **scientific limitation**, and **comparability readiness**.
+
+This distinction is deliberate:
+
+- **Scientific degradation is not a technical failure**
+- a campaign may finish correctly and still remain scientifically limited
+- a stable Level A reanalysis can preserve inherited case limitations without meaning the module failed
+
+The campaign manifest therefore distinguishes:
+
+- `status`
+  - the aggregated campaign status shown in the UI
+- `technical_outcome`
+  - whether the executions completed technically
+- `scientific_outcome`
+  - whether usable outputs still carry scientific limitations
+- `comparison_readiness`
+  - whether enough execution profiles exist for comparability analysis
+- `technical_failures`
+  - real blocking failures such as missing required profiles, invalid JSON, unreadable artifacts, or failed stages
+- `scientific_limitations`
+  - non-blocking limitations such as degraded causal edges, trigger-path mismatch, partial integrity, limited temporal ordering confidence, or reconstructed ground-truth context
+
+The intended aggregation rule is:
+
+- if all executions are `completed`, the campaign is `completed`
+- if executions are usable but one or more are `completed_with_degradation`, the campaign is `completed_with_degradation`
+- if real technical failures exist, the campaign is `completed_with_failures`
+- if outputs exist but the campaign is incomplete, the campaign is `partial`
+- if not enough profiles exist for scientific comparison, the campaign may remain `insufficient_data`
+
+In practical terms, a Level A campaign can now correctly read as:
+
+```text
+Campaign status: completed_with_degradation
+Technical outcome: completed
+Scientific outcome: completed_with_degradation
+Comparison readiness: ready
+```
+
+This means:
+
+- the campaign is not broken
+- the executions were created
+- usable `forensic_comparison_profile.json` artifacts exist
+- the comparison can proceed
+- the degradation is inherited from the base case or from preserved scientific limitations, not from orchestration failure
+
+#### What to do next
+
+- If you only have one execution:
+  - inspect the execution workspace and verify that the expected scientific profiles were created correctly
+- If you have two or more executions:
+  - open the comparability view and evaluate whether the reconstructions are:
+    - `Comparable`
+    - `Comparable With Degradation`
+    - `Not Comparable`
+    - `Insufficient Data`
+- If the campaign is `completed_with_degradation`:
+  - treat this as usable output with scientific limitations, not as a broken run
+  - inspect `scientific_limitations` before concluding that the experimentation pipeline failed
+- If the campaign is `completed_with_failures`:
+  - inspect `technical_failures` first
+  - repair missing profiles, failed stages, unreadable artifacts, or invalid manifests before comparing executions
+- If the campaign or execution is degraded:
+  - inspect temporal confidence, trigger alignment, missing profiles, and execution warnings before drawing conclusions
+- If `scenario_id` is missing:
+  - `Level A` can still proceed, but the comparison metadata will be weaker
+  - `Level B` and `Level C` should be completed with a valid scenario context before execution
+
+The intended role separation remains:
+
+- `FOC Scientific Evidence Lifecycle Dashboard`
+  - explains one execution
+- `Forensic Repetition Manager`
+  - creates campaigns and generates executions
+- `Forensic Reconstruction Comparability View`
+  - compares already-generated executions
+
+while keeping the original case read-only.
+
+#### Ground-truth sealing
+
+The experimentation module uses **cryptographic sealing**, not encryption, for the experimental ground truth.
+
+Each execution can store:
+
+- `ground_truth.json`
+- `ground_truth_seal.json`
+
+The seal records:
+
+- `ground_truth_sha256`
+- `scenario_profile_sha256`
+- `attack_profile_sha256`
+- `attack_script_sha256`
+- creation time
+- attack start time
+- whether the seal is valid with respect to the attack start boundary
+
+The purpose is methodological:
+
+- to prove what attack model and scenario profile the execution claims to evaluate
+- to record whether that profile was sealed before the attack timing boundary
+- to distinguish valid pre-attack sealing from post-hoc linked-case reconstruction
+
+#### Baseline noise and comparability
+
+For Level B and Level C interpretations, the module also defines a `baseline_noise_profile.json` and a threshold-based comparability rule.
+
+The initial configurable baseline threshold is:
+
+```text
+baseline_noise_threshold = 0.15
+```
+
+and the relative-difference model is:
+
+```text
+relative_difference = abs(value_i - value_j) / max(value_i, value_j, epsilon)
+```
+
+Comparability is not subjective. It is computed with explicit thresholds over:
+
+- `CPR`
+- `Weighted CPR`
+- hypothesis-support shift
+- degradation flags
+- temporal confidence
+- trigger-path alignment
+- integrity completeness
+
+This produces one of four states:
+
+- `Comparable`
+- `Comparable With Degradation`
+- `Not Comparable`
+- `Insufficient Data`
+
+#### Methodological basis
+
+The experimentation module includes a dedicated methodological reference basis rather than decorative bibliography.
+
+It records why specific comparison and repeatability rules are justified, including references such as:
+
+- NIST SP 800-86
+- NIST SP 800-61 Rev. 3
+- NIST SP 800-82 Rev. 3
+- NIST SP 800-92
+- NIST IR 8387
+- SWGDE Best Practices for Digital Evidence Collection
+- NIST CFTT
+- ISO 5725-1
+- ISO 5725-2
+- JCGM VIM repeatability / reproducibility / uncertainty
+- ACM Artifact Review and Badging
+- MITRE ATT&CK
+- Lakens equivalence-testing methodology
+
+The purpose is not citation for its own sake. The purpose is to justify:
+
+- why executions are separated from comparisons
+- why read-only linkage to preserved cases matters
+- why threshold-based comparability is used instead of vague similarity claims
+- why uncertainty and degradation remain explicit
+
 #### Scientific interpretation rules enforced by the executive summary
 
 The executive summary does not collapse everything into a single "confidence" label.

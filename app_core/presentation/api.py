@@ -2770,6 +2770,12 @@ try:
 except Exception:
     pass
 
+try:
+    from app_core.presentation.foc_experimentation_api import experimentation_bp
+    api_bp.register_blueprint(experimentation_bp)
+except Exception:
+    pass
+
 
 #-------------------------------------------Forensics new one  end----------------------------------------------------
 

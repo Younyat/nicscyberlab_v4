@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FOC Repetition Manager</title>
+  <script>document.documentElement.setAttribute('data-theme',(function(){try{return localStorage.getItem('nics-cyberlab-theme')||'dark';}catch(e){return 'dark';}})());</script>
+  <link rel="stylesheet" href="/css/theme.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body{margin:0;font-family:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;background:linear-gradient(180deg,var(--t-bg-3,#060c15),var(--t-bg,#08101b));color:var(--t-text,#e2e8f0)}
+    .glass{background:var(--t-panel,rgba(9,18,33,.88));backdrop-filter:blur(14px);border:1px solid var(--t-border,rgba(148,163,184,.16))}
+    .glass-soft{background:var(--t-panel-2,rgba(11,21,38,.95));border:1px solid var(--t-border,rgba(148,163,184,.16))}
+    .btn-primary{background:linear-gradient(135deg,#0891b2,#18336f)}
+    .btn-secondary{background:rgba(15,23,42,.84);border:1px solid rgba(148,163,184,.16)}
+    .btn-danger{background:linear-gradient(135deg,#6f3f4b,#ed8c03)}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+    .help-chip{display:inline-flex;align-items:center;gap:.4rem;padding:.25rem .6rem;border-radius:999px;border:1px solid rgba(148,163,184,.18);background:rgba(15,23,42,.62);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+    .mode-btn.is-active,.level-btn.is-active{box-shadow:0 0 0 1px rgba(34,211,238,.6),0 0 0 6px rgba(34,211,238,.08)}
+    .helper-details summary{cursor:pointer;list-style:none}
+    .helper-details summary::-webkit-details-marker{display:none}
+    .info-tip{position:relative;display:inline-flex;align-items:center;gap:.35rem;cursor:help;border-bottom:1px dotted rgba(34,211,238,.45)}
+    .info-tip .info-badge{display:inline-flex;align-items:center;justify-content:center;width:1rem;height:1rem;border-radius:999px;background:rgba(8,145,178,.2);border:1px solid rgba(34,211,238,.35);font-size:10px;font-weight:900;color:#67e8f9}
+    .info-tip .tip-panel{position:absolute;left:0;top:calc(100% + .5rem);width:min(28rem,80vw);padding:.85rem 1rem;border-radius:1rem;background:rgba(6,12,21,.96);border:1px solid rgba(148,163,184,.2);box-shadow:0 20px 50px rgba(2,6,23,.45);backdrop-filter:blur(14px);opacity:0;visibility:hidden;transform:translateY(4px);transition:opacity .14s ease,transform .14s ease,visibility .14s ease;z-index:70;pointer-events:none}
+    .info-tip:hover .tip-panel,.info-tip:focus-within .tip-panel{opacity:1;visibility:visible;transform:translateY(0)}
+    .info-tip .tip-panel strong{color:#67e8f9}
+    .info-tip .tip-panel .tip-line{margin-top:.35rem;color:#cbd5e1}
+  </style>
+</head>
+<body>
+  <div class="px-6 py-6 md:px-10 md:py-8 space-y-6">
+    <header class="glass rounded-[30px] p-6 md:p-8">
+      <div class="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+        <div>
+          <div class="text-[11px] tracking-[0.35em] uppercase text-cyan-300 font-extrabold">FOC Repetition Manager</div>
+          <h1 class="text-3xl md:text-4xl font-black mt-3">Forensic Repetition Manager</h1>
+          <p class="text-sm text-slate-300 mt-3 max-w-4xl">This view creates and manages repetition campaigns. A campaign groups several executions of the same forensic experiment. Each execution produces its own workspace, artifacts, logs, ground truth seal, baseline noise profile, and forensic comparison profile. These profiles are later consumed by the Forensic Reconstruction Comparability View.</p>
+          <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 max-w-5xl text-sm">
+            <div class="glass-soft rounded-2xl p-4">
+              <div class="font-black text-cyan-300">Scientific Lifecycle</div>
+              <div class="mt-2 text-slate-300">Explains one individual execution.</div>
+            </div>
+            <div class="glass-soft rounded-2xl p-4">
+              <div class="font-black text-cyan-300">Repetition Manager</div>
+              <div class="mt-2 text-slate-300">Creates campaigns and generates executions.</div>
+            </div>
+            <div class="glass-soft rounded-2xl p-4">
+              <div class="font-black text-cyan-300">Comparability View</div>
+              <div class="mt-2 text-slate-300">Compares already-generated executions.</div>
+            </div>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-3 items-center">
+          <div id="theme-switcher-mount"></div>
+          <a href="/foc_scientific_evidence_lifecycle.html" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase no-underline text-inherit">Open Scientific Lifecycle</a>
+          <a href="/foc_reconstruction_comparability.html" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase no-underline text-inherit">Open Comparability View</a>
+        </div>
+      </div>
+    </header>
+
+    <section class="glass rounded-[28px] p-6">
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">View Mode</div>
+          <h2 class="text-2xl font-black mt-2">Scientific Story Mode</h2>
+          <p class="text-sm text-slate-300 mt-3 max-w-4xl">Scientific Story Mode explains what the view is trying to test, what it will generate, how to interpret the current state, and what to do next. Technical Mode keeps the technical panels, artifacts and raw execution details in focus.</p>
+        </div>
+        <div class="flex gap-3 flex-wrap">
+          <button id="story-mode-btn" type="button" class="mode-btn is-active btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Scientific Story Mode</button>
+          <button id="technical-mode-btn" type="button" class="mode-btn btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Technical Mode</button>
+        </div>
+      </div>
+      <div id="rm-story-mode-panel" class="mt-5 grid grid-cols-1 xl:grid-cols-3 gap-4 text-sm"></div>
+    </section>
+
+    <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div class="glass rounded-[28px] p-6">
+        <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Usage Guide</div>
+        <h2 class="text-2xl font-black mt-2">What To Do Here</h2>
+        <div class="mt-4 space-y-3 text-sm text-slate-300">
+          <div><span class="font-black text-cyan-300">1. Choose the level.</span> Use Level A if you want to repeat analysis over an existing preserved case. Use Level B if you want repeated controlled incident runs. Use Level C only when redeployment-level reproducibility is part of the objective.</div>
+          <div><span class="font-black text-cyan-300">2. Link the source.</span> For Level A, select a preserved base case. For Level B and Level C, provide a scenario context and review the proposed defaults.</div>
+          <div><span class="font-black text-cyan-300">3. Review the plan.</span> Check the autogenerated defaults, the pre-flight checklist, and the execution plan before creating the campaign.</div>
+          <div><span class="font-black text-cyan-300">4. Create the campaign.</span> This creates the isolated campaign container. It does not yet compare executions.</div>
+          <div><span class="font-black text-cyan-300">5. Start or run executions.</span> Use <span class="mono">Start Campaign</span> or <span class="mono">Run Next Execution</span> to generate execution workspaces and forensic comparison profiles.</div>
+        </div>
+      </div>
+      <div class="glass rounded-[28px] p-6">
+        <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Next Steps</div>
+        <h2 class="text-2xl font-black mt-2">What Happens After</h2>
+        <div class="mt-4 space-y-3 text-sm text-slate-300">
+          <div><span class="font-black text-cyan-300">After one execution:</span> open the execution workspace or the base-case dashboard and verify that the scientific profiles were generated correctly.</div>
+          <div><span class="font-black text-cyan-300">After two or more executions:</span> open the Comparability View and evaluate whether their forensic reconstructions are comparable.</div>
+          <div><span class="font-black text-cyan-300">If the campaign is degraded or partial:</span> inspect the Job Status panel, execution warnings, trigger alignment, temporal confidence, and missing profiles before comparing results.</div>
+          <div><span class="font-black text-cyan-300">If the scenario ID is missing:</span> Level A can still proceed, but the comparison metadata will be weaker. Level B and Level C should be completed with a valid scenario context before execution.</div>
+          <div><span class="font-black text-cyan-300">Scientific rule:</span> this view generates executions. The Comparability View evaluates execution-to-execution stability. The Scientific Lifecycle view explains one execution in depth.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div class="glass rounded-[28px] p-6">
+        <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Level Story</div>
+        <h2 class="text-2xl font-black mt-2">Scientific Interpretation By Level</h2>
+        <div id="rm-level-story-panel" class="mt-5 text-sm text-slate-300"></div>
+      </div>
+      <div class="glass rounded-[28px] p-6">
+        <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Guided Path</div>
+        <h2 class="text-2xl font-black mt-2">Execution Storyline</h2>
+        <div id="rm-storyline-panel" class="mt-5 text-sm text-slate-300"></div>
+      </div>
+    </section>
+
+    <section class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+      <aside class="xl:col-span-3 space-y-6">
+        <div class="glass rounded-[28px] p-5">
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Campaigns</div>
+          <h2 class="text-2xl font-black mt-2">Registered Campaigns</h2>
+          <div class="mt-3 text-sm text-slate-300">A campaign is a container for repeated executions of the same experimental objective.</div>
+          <div id="campaign-list" class="space-y-3 mt-5 text-sm text-slate-300">Loading campaigns…</div>
+        </div>
+        <div class="glass rounded-[28px] p-5">
+          <details id="method-basis-details" class="helper-details">
+            <summary class="flex items-center justify-between gap-3">
+              <div>
+                <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Methodological Basis</div>
+                <h2 class="text-2xl font-black mt-2">Reference Basis</h2>
+              </div>
+              <span class="help-chip">Collapsed by default</span>
+            </summary>
+            <div id="method-basis-list" class="space-y-3 mt-5 text-sm text-slate-300">Loading reference basis…</div>
+          </details>
+        </div>
+      </aside>
+
+      <main class="xl:col-span-9 space-y-6">
+        <section class="glass rounded-[28px] p-6">
+          <div class="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Campaign Builder</div>
+              <h2 class="text-2xl font-black mt-2">Guided Campaign Assistant</h2>
+              <p class="text-sm text-slate-300 mt-3 max-w-4xl">Use this view first to create or register repeated executions. After at least two executions have generated <span class="mono">forensic_comparison_profile.json</span>, open the Comparability View to evaluate whether their forensic reconstructions are comparable.</p>
+            </div>
+            <div class="flex items-center gap-3 flex-wrap">
+              <div id="campaign-health" class="text-sm text-slate-300"></div>
+              <button id="campaign-refresh-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase" type="button">Refresh</button>
+            </div>
+          </div>
+
+          <div class="mt-5 flex gap-3 flex-wrap">
+            <button id="guided-mode-btn" type="button" class="mode-btn is-active btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Guided Mode</button>
+            <button id="advanced-mode-btn" type="button" class="mode-btn btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Advanced Mode</button>
+          </div>
+
+          <form id="campaign-create-form" class="space-y-6 mt-6 text-sm">
+            <input type="hidden" name="level" id="level-hidden" value="A">
+
+            <div class="glass-soft rounded-[24px] p-5">
+              <div class="text-[11px] tracking-[0.24em] uppercase text-slate-400 font-black">Step 1</div>
+              <h3 class="text-xl font-black mt-2">Select evaluation level</h3>
+              <p class="mt-2 text-slate-300">Choose what kind of repetition you want to create. This determines what will be reused, what will be generated, and what will later be compared.</p>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
+                <button type="button" class="level-btn glass rounded-2xl p-4 text-left" data-level="A">
+                  <div class="font-black text-cyan-300">Level A</div>
+                  <div class="mt-2 font-bold">Reanalysis Repeatability</div>
+                  <div class="mt-2 text-slate-300">Reuses an existing preserved case in read-only mode.</div>
+                </button>
+                <button type="button" class="level-btn glass rounded-2xl p-4 text-left" data-level="B">
+                  <div class="font-black text-cyan-300">Level B</div>
+                  <div class="mt-2 font-bold">Controlled Repeated Incident Execution</div>
+                  <div class="mt-2 text-slate-300">Equivalent incident repetitions under documented conditions.</div>
+                </button>
+                <button type="button" class="level-btn glass rounded-2xl p-4 text-left" data-level="C">
+                  <div class="font-black text-cyan-300">Level C</div>
+                  <div class="mt-2 font-bold">Full Environment Redeployment Reproducibility</div>
+                  <div class="mt-2 text-slate-300">Includes redeployment and environment-level variability.</div>
+                </button>
+              </div>
+              <div id="level-explanation-panel" class="glass-soft rounded-[20px] p-4 mt-5 text-slate-300"></div>
+            </div>
+
+            <div class="glass-soft rounded-[24px] p-5">
+              <div class="text-[11px] tracking-[0.24em] uppercase text-slate-400 font-black">Step 2</div>
+              <h3 class="text-xl font-black mt-2">Select source or scenario</h3>
+              <p class="mt-2 text-slate-300">The platform proposes a safe source mode automatically. Level A normally links an existing preserved case. Level B and Level C normally require a scenario context.</p>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
+                <label class="block">
+                  <span class="text-slate-300 font-bold">Linked source case</span>
+                  <details class="helper-details mt-2"><summary class="help-chip">What does this mean?</summary><div class="mt-2 text-slate-400">The preserved case used as input for Level A reanalysis. It is read-only and must not be modified.</div></details>
+                  <select id="source-case-select" name="base_case_id" class="w-full mt-3 rounded-xl bg-slate-950/60 border border-slate-700 px-3 py-2 text-slate-100"><option value="">No linked case</option></select>
+                </label>
+                <label class="block">
+                  <span class="text-slate-300 font-bold">Scenario ID</span>
+                  <details class="helper-details mt-2"><summary class="help-chip">What does this mean?</summary><div class="mt-2 text-slate-400">The identifier of the scenario used by the campaign. If possible, this is extracted automatically from the linked case or preserved FOC artifacts.</div></details>
+                  <input id="scenario-id-input" name="scenario_id" class="w-full mt-3 rounded-xl bg-slate-950/60 border border-slate-700 px-3 py-2 text-slate-100" placeholder="scn-...">
+                </label>
+              </div>
+              <div id="source-summary-panel" class="glass-soft rounded-[20px] p-4 mt-5 text-slate-300"></div>
+            </div>
+
+            <div class="glass-soft rounded-[24px] p-5">
+              <div class="text-[11px] tracking-[0.24em] uppercase text-slate-400 font-black">Step 3</div>
+              <h3 class="text-xl font-black mt-2">Configure execution defaults</h3>
+              <p class="mt-2 text-slate-300">The platform proposes safe scientific defaults. In Guided Mode you only review them. In Advanced Mode you can modify them manually.</p>
+              <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-5">
+                <label class="block"><span class="text-slate-300 font-bold">Campaign name</span><input id="campaign-name-input" name="name" class="w-full mt-2 rounded-xl bg-slate-950/60 border border-slate-700 px-3 py-2 text-slate-100"></label>
+                <label class="block"><span class="text-slate-300 font-bold">Number of repetitions</span><input id="repetitions-input" name="repetitions" type="number" min="1" class="w-full mt-2 rounded-xl bg-slate-950/60 border border-slate-700 px-3 py-2 text-slate-100"></label>
+                <label class="block"><span class="text-slate-300 font-bold">Methodological notes</span><input id="notes-input" name="notes" class="w-full mt-2 rounded-xl bg-slate-950/60 border border-slate-700 px-3 py-2 text-slate-100"></label>
+              </div>
+              <div id="guided-defaults-panel" class="glass-soft rounded-[20px] p-4 mt-5 text-slate-300"></div>
+
+              <div id="advanced-panel" class="hidden mt-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  <label class="block">
+                    <span class="text-slate-300 font-bold">Baseline threshold</span>
+                    <details class="helper-details mt-2"><summary class="help-chip">What does this mean?</summary><div class="mt-2 text-slate-400">Maximum accepted relative difference in baseline noise between executions. Default value: 0.15.</div></details>
+                    <input id="baseline-threshold-input" name="baseline_noise_threshold" type="number" step="0.01" class="w-full mt-3 rounded-xl bg-slate-950/60 border border-slate-700 px-3 py-2 text-slate-100">
+                  </label>
+                  <label class="block">
+                    <span class="text-slate-300 font-bold">Delta WCPR allowed</span>
+                    <details class="helper-details mt-2"><summary class="help-chip">What does this mean?</summary><div class="mt-2 text-slate-400">Maximum accepted difference in Weighted CPR between executions. Default value: 0.10.</div></details>
+                    <input id="delta-wcpr-input" name="delta_wcpr_allowed" type="number" step="0.01" class="w-full mt-3 rounded-xl bg-slate-950/60 border border-slate-700 px-3 py-2 text-slate-100">
+                  </label>
+                  <label class="block">
+                    <span class="text-slate-300 font-bold">Baseline window (seconds)</span>
+                    <input id="baseline-window-input" name="baseline_window_seconds" type="number" min="1" class="w-full mt-2 rounded-xl bg-slate-950/60 border border-slate-700 px-3 py-2 text-slate-100">
+                  </label>
+                  <label class="block md:col-span-3">
+                    <span class="text-slate-300 font-bold">Description</span>
+                    <textarea id="description-input" name="description" rows="3" class="w-full mt-2 rounded-xl bg-slate-950/60 border border-slate-700 px-3 py-2 text-slate-100" placeholder="Controlled repetition campaign"></textarea>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="glass-soft rounded-[24px] p-5">
+              <div class="text-[11px] tracking-[0.24em] uppercase text-slate-400 font-black">Step 4</div>
+              <h3 class="text-xl font-black mt-2">Review execution plan</h3>
+              <p class="mt-2 text-slate-300">Before creating the campaign, review what will be generated automatically, what will not be executed, and whether the required inputs are available.</p>
+              <div id="execution-plan-panel" class="glass-soft rounded-[20px] p-4 mt-5 text-slate-300"></div>
+              <div id="preflight-panel" class="glass-soft rounded-[20px] p-4 mt-5 text-slate-300">Loading pre-flight validation…</div>
+            </div>
+
+            <div class="glass-soft rounded-[24px] p-5">
+              <div class="text-[11px] tracking-[0.24em] uppercase text-slate-400 font-black">Step 5</div>
+              <h3 class="text-xl font-black mt-2">Create campaign</h3>
+              <p class="mt-2 text-slate-300">The module will auto-generate campaign IDs, isolated directories, campaign manifests, methodological basis, execution workspaces, and later forensic comparison profiles for each execution.</p>
+              <div class="mt-5 flex gap-3 flex-wrap">
+                <button class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase" type="submit">Create Campaign</button>
+              </div>
+            </div>
+          </form>
+        </section>
+
+        <section class="glass rounded-[28px] p-6">
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Campaign Detail</div>
+          <h2 class="text-2xl font-black mt-2">Campaign Summary</h2>
+          <div id="rm-campaign-story-panel" class="glass-soft rounded-[24px] p-5 mt-5 text-sm text-slate-300">Select or create a campaign to see its beginner and expert interpretation.</div>
+          <div id="campaign-detail" class="glass-soft rounded-[24px] p-5 mt-5 text-sm text-slate-300">Select a campaign to inspect its configuration, execution list, and job activity.</div>
+          <div class="mt-4 text-sm text-slate-400">This action creates the next isolated execution workspace for the selected campaign. The exact stages depend on the evaluation level.</div>
+          <div class="flex gap-3 flex-wrap mt-5">
+            <button id="campaign-start-btn" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Start Campaign</button>
+            <button id="campaign-pause-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Pause</button>
+            <button id="campaign-stop-btn" class="btn-danger rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Stop</button>
+            <button id="campaign-run-next-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Run Next Execution</button>
+          </div>
+          <div class="mt-4 text-sm text-slate-400">Run Next Execution creates the next isolated execution workspace inside the selected campaign and generates the scientific profiles required for later comparability analysis.</div>
+        </section>
+
+        <section class="glass rounded-[28px] p-6">
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Execution Registry</div>
+          <h2 class="text-2xl font-black mt-2">Registered Executions</h2>
+          <div id="execution-registry-note" class="mt-3 text-sm text-slate-300"></div>
+          <div id="execution-list" class="space-y-3 mt-5 text-sm text-slate-300">No campaign selected.</div>
+        </section>
+
+        <section class="glass rounded-[28px] p-6">
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Background Jobs</div>
+          <h2 class="text-2xl font-black mt-2">Job Status</h2>
+          <div id="job-panel" class="glass-soft rounded-[24px] p-5 mt-5 text-sm text-slate-300">No active background job. Campaign execution runs as background jobs. When a campaign or execution is started, this panel will show the active stage, job ID, progress, logs and errors.</div>
+        </section>
+      </main>
+    </section>
+  </div>
+  <script src="/js/theme-switcher.js"></script>
+  <script>window.NicsThemeSwitcher.mount('#theme-switcher-mount');</script>
+  <script src="/js/foc_repetition_manager.js?v=20260624-foc-experimentation-6"></script>
+</body>
+</html>

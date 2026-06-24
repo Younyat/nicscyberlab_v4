@@ -1,0 +1,168 @@
+{
+  "generated_by": "foc_experimentation",
+  "description": "Methodological reference basis used by the FOC experimentation module to justify repeatability, reproducibility, preservation, logging, uncertainty, and comparability decisions.",
+  "references": [
+    {
+      "id": "nist_sp_800_86",
+      "title": "NIST SP 800-86",
+      "url": "https://csrc.nist.gov/pubs/sp/800/86/final",
+      "why_applies": "Supports the forensic workflow basis for collection, examination, analysis, and reporting over preserved digital evidence.",
+      "justifies": [
+        "campaign execution profiles",
+        "forensic comparison profiles",
+        "evidence-preservation-aware repeatability analysis"
+      ]
+    },
+    {
+      "id": "nist_sp_800_61_r3",
+      "title": "NIST SP 800-61 Rev. 3",
+      "url": "https://csrc.nist.gov/pubs/sp/800/61/r3/final",
+      "why_applies": "Frames detection, triage, response, and evidence-driven incident handling in a structured lifecycle.",
+      "justifies": [
+        "trigger selection context",
+        "acquisition and intervention profiles",
+        "incident handling sequencing"
+      ]
+    },
+    {
+      "id": "nist_sp_800_82_r3",
+      "title": "NIST SP 800-82 Rev. 3",
+      "url": "https://csrc.nist.gov/pubs/sp/800/82/r3/final",
+      "why_applies": "Supports OT and ICS-specific interpretation boundaries, including process-state, PLC, and SCADA context.",
+      "justifies": [
+        "OT-specific comparability",
+        "Modbus precision caveats",
+        "industrial environment interpretation"
+      ]
+    },
+    {
+      "id": "nist_sp_800_92",
+      "title": "NIST SP 800-92",
+      "url": "https://csrc.nist.gov/pubs/sp/800/92/final",
+      "why_applies": "Supports log management, alert triage, and event interpretation over preserved records.",
+      "justifies": [
+        "detection trigger profile",
+        "alert triage visibility",
+        "timeline and log-based comparability"
+      ]
+    },
+    {
+      "id": "nist_ir_8387",
+      "title": "NIST IR 8387",
+      "url": "https://www.nist.gov/publications/digital-evidence-preservation-considerations-evidence-handlers",
+      "why_applies": "Supports evidence preservation considerations and intervention boundaries around volatile systems.",
+      "justifies": [
+        "read-only linkage to base cases",
+        "preservation profile",
+        "non-destructive campaign registration"
+      ]
+    },
+    {
+      "id": "swgde_collection",
+      "title": "SWGDE Best Practices for Digital Evidence Collection",
+      "url": "https://www.swgde.org/documents/published-complete-listing/18-f-002-swgde-best-practices-for-digital-evidence-collection/",
+      "why_applies": "Supports cautious evidence collection, traceability, and documentation discipline.",
+      "justifies": [
+        "execution manifests",
+        "custody-aware profile generation",
+        "comparison traceability"
+      ]
+    },
+    {
+      "id": "nist_cftt",
+      "title": "NIST CFTT",
+      "url": "https://www.nist.gov/programs-projects/computer-forensics-tool-testing-cftt",
+      "why_applies": "Supports tool validation awareness and careful interpretation of forensic-tool outputs.",
+      "justifies": [
+        "multilayer analysis reuse",
+        "plugin-level memory coverage reporting",
+        "comparability limits for tool-derived outputs"
+      ]
+    },
+    {
+      "id": "iso_5725_1",
+      "title": "ISO 5725-1",
+      "url": "https://www.iso.org/standard/69418.html",
+      "why_applies": "Introduces accuracy principles and the methodological distinction between repeatability and reproducibility.",
+      "justifies": [
+        "campaign level semantics",
+        "Level A / B / C interpretation"
+      ]
+    },
+    {
+      "id": "iso_5725_2",
+      "title": "ISO 5725-2",
+      "url": "https://www.iso.org/standard/90054.html",
+      "why_applies": "Supports experimental design thinking around repeated measurements and between-run variation.",
+      "justifies": [
+        "comparability thresholds",
+        "repeatability analysis",
+        "execution-to-execution deltas"
+      ]
+    },
+    {
+      "id": "vim_repeatability",
+      "title": "JCGM VIM Measurement Repeatability",
+      "url": "https://jcgm.bipm.org/vim/en/2.21.html",
+      "why_applies": "Defines repeatability under same conditions, used for Level A and stable-conditions Level B interpretation.",
+      "justifies": [
+        "repeatability language",
+        "same-condition execution comparison"
+      ]
+    },
+    {
+      "id": "vim_reproducibility",
+      "title": "JCGM VIM Measurement Reproducibility",
+      "url": "https://jcgm.bipm.org/vim/en/2.25.html",
+      "why_applies": "Defines reproducibility under changed conditions, used for Level C interpretation.",
+      "justifies": [
+        "redeployment-aware comparison",
+        "environmental variation semantics"
+      ]
+    },
+    {
+      "id": "vim_uncertainty",
+      "title": "JCGM VIM Measurement Uncertainty",
+      "url": "https://jcgm.bipm.org/vim/en/2.26.html",
+      "why_applies": "Supports explicit uncertainty-aware reporting instead of hiding unresolved variance.",
+      "justifies": [
+        "uncertainty integration in comparability",
+        "temporal confidence interpretation",
+        "degradation-aware result classes"
+      ]
+    },
+    {
+      "id": "acm_artifact_review",
+      "title": "ACM Artifact Review and Badging",
+      "url": "https://www.acm.org/publications/policies/artifact-review-and-badging-current",
+      "why_applies": "Supports artifact-centric reproducibility discipline and explicit separation between claims and artifacts.",
+      "justifies": [
+        "campaign artifact structure",
+        "derived profile generation",
+        "reproducibility-oriented reporting"
+      ]
+    },
+    {
+      "id": "mitre_attack",
+      "title": "MITRE ATT&CK",
+      "url": "https://attack.mitre.org/",
+      "why_applies": "Supports technique-centric modeling of the expected incident path and comparison semantics.",
+      "justifies": [
+        "ground truth interpretation",
+        "attack profile normalization",
+        "causal relation expectations"
+      ]
+    },
+    {
+      "id": "lakens_equivalence_testing",
+      "title": "Lakens Equivalence Testing",
+      "url": "https://journals.sagepub.com/doi/10.1177/1948550617697177",
+      "why_applies": "Supports explicit threshold-based comparability decisions instead of vague similarity claims.",
+      "justifies": [
+        "delta_CPR_allowed",
+        "delta_WCPR_allowed",
+        "boolean comparability logic"
+      ]
+    }
+  ]
+}

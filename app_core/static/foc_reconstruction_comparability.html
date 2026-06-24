@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FOC Reconstruction Comparability</title>
+  <script>document.documentElement.setAttribute('data-theme',(function(){try{return localStorage.getItem('nics-cyberlab-theme')||'dark';}catch(e){return 'dark';}})());</script>
+  <link rel="stylesheet" href="/css/theme.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body{margin:0;font-family:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;background:linear-gradient(180deg,var(--t-bg-3,#060c15),var(--t-bg,#08101b));color:var(--t-text,#e2e8f0)}
+    .glass{background:var(--t-panel,rgba(9,18,33,.88));backdrop-filter:blur(14px);border:1px solid var(--t-border,rgba(148,163,184,.16))}
+    .glass-soft{background:var(--t-panel-2,rgba(11,21,38,.95));border:1px solid var(--t-border,rgba(148,163,184,.16))}
+    .btn-primary{background:linear-gradient(135deg,#0891b2,#18336f)}
+    .btn-secondary{background:rgba(15,23,42,.84);border:1px solid rgba(148,163,184,.16)}
+    .info-tip{position:relative;display:inline-flex;align-items:center;gap:.35rem;cursor:help;border-bottom:1px dotted rgba(34,211,238,.45)}
+    .info-tip .info-badge{display:inline-flex;align-items:center;justify-content:center;width:1rem;height:1rem;border-radius:999px;background:rgba(8,145,178,.2);border:1px solid rgba(34,211,238,.35);font-size:10px;font-weight:900;color:#67e8f9}
+    .info-tip .tip-panel{position:absolute;left:0;top:calc(100% + .5rem);width:min(28rem,80vw);padding:.85rem 1rem;border-radius:1rem;background:rgba(6,12,21,.96);border:1px solid rgba(148,163,184,.2);box-shadow:0 20px 50px rgba(2,6,23,.45);backdrop-filter:blur(14px);opacity:0;visibility:hidden;transform:translateY(4px);transition:opacity .14s ease,transform .14s ease,visibility .14s ease;z-index:70;pointer-events:none}
+    .info-tip:hover .tip-panel,.info-tip:focus-within .tip-panel{opacity:1;visibility:visible;transform:translateY(0)}
+    .info-tip .tip-panel strong{color:#67e8f9}
+    .info-tip .tip-panel .tip-line{margin-top:.35rem;color:#cbd5e1}
+  </style>
+</head>
+<body>
+  <div class="px-6 py-6 md:px-10 md:py-8 space-y-6">
+    <header class="glass rounded-[30px] p-6 md:p-8">
+      <div class="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+        <div>
+          <div class="text-[11px] tracking-[0.35em] uppercase text-cyan-300 font-extrabold">FOC Reconstruction Comparability</div>
+          <h1 class="text-3xl md:text-4xl font-black mt-3">Forensic Reconstruction Comparability View</h1>
+          <p class="text-sm text-slate-300 mt-3 max-w-4xl">Dedicated comparison surface for already generated executions. This view does not create runs; it only compares execution profiles, ground-truth seals, baseline noise, causal metrics, and final conclusions.</p>
+        </div>
+        <div class="flex flex-wrap gap-3 items-center">
+          <div id="theme-switcher-mount"></div>
+          <a href="/foc_repetition_manager.html" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase no-underline text-inherit">Open Repetition Manager</a>
+          <a href="/foc_scientific_evidence_lifecycle.html" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase no-underline text-inherit">Open Scientific Lifecycle</a>
+        </div>
+      </div>
+    </header>
+
+    <section class="glass rounded-[28px] p-6">
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">View Mode</div>
+          <h2 class="text-2xl font-black mt-2">Scientific Story Mode</h2>
+          <p class="text-sm text-slate-300 mt-3 max-w-4xl">Scientific Story Mode explains what is being compared, what comparable means, what passed, what remains limited, and what to inspect next. Technical Mode keeps metrics, artifacts and advanced details in focus.</p>
+        </div>
+        <div class="flex gap-3 flex-wrap">
+          <button id="cmp-story-mode-btn" type="button" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Scientific Story Mode</button>
+          <button id="cmp-technical-mode-btn" type="button" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Technical Mode</button>
+        </div>
+      </div>
+      <div id="cmp-story-intro" class="mt-5 grid grid-cols-1 xl:grid-cols-3 gap-4 text-sm"></div>
+    </section>
+
+    <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div class="glass rounded-[28px] p-6">
+        <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Guided Path</div>
+        <h2 class="text-2xl font-black mt-2">Comparability Storyline</h2>
+        <div id="cmp-storyline-panel" class="mt-5 text-sm text-slate-300"></div>
+      </div>
+      <div class="glass rounded-[28px] p-6">
+        <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Result Story</div>
+        <h2 class="text-2xl font-black mt-2">Narrative Decision Surface</h2>
+        <div id="cmp-result-story-panel" class="mt-5 text-sm text-slate-300">Select a campaign and at least two executions to prepare the comparison story.</div>
+      </div>
+    </section>
+
+    <section class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+      <aside class="xl:col-span-3 space-y-6">
+        <div class="glass rounded-[28px] p-5">
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Campaigns</div>
+          <h2 class="text-2xl font-black mt-2">Comparison Scope</h2>
+          <div id="cmp-campaign-list" class="space-y-3 mt-5 text-sm text-slate-300">Loading campaigns…</div>
+        </div>
+        <div class="glass rounded-[28px] p-5">
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Methodological Basis</div>
+          <div id="cmp-method-basis" class="space-y-3 mt-5 text-sm text-slate-300">Loading reference basis…</div>
+        </div>
+      </aside>
+
+      <main class="xl:col-span-9 space-y-6">
+        <section class="glass rounded-[28px] p-6">
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Execution Selection</div>
+          <h2 class="text-2xl font-black mt-2">Choose Existing Executions</h2>
+          <div class="mt-3 text-sm text-slate-400">This action compares the selected execution profiles. It does not rerun analysis, does not modify evidence, and does not create new executions.</div>
+          <div id="cmp-execution-list" class="space-y-3 mt-5 text-sm text-slate-300">Select a campaign to see its executions.</div>
+          <div class="flex gap-3 flex-wrap mt-5">
+            <button id="cmp-run-btn" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Compare Selected Executions</button>
+            <button id="cmp-refresh-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Refresh</button>
+          </div>
+          <div id="cmp-readiness-panel" class="glass-soft rounded-[24px] p-5 mt-5 text-sm text-slate-300">Readiness checks will appear here.</div>
+        </section>
+
+        <section class="glass rounded-[28px] p-6">
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Background Job</div>
+          <h2 class="text-2xl font-black mt-2">Comparison Job Status</h2>
+          <div id="cmp-job-panel" class="glass-soft rounded-[24px] p-5 mt-5 text-sm text-slate-300">No comparison job tracked yet.</div>
+        </section>
+
+        <section class="glass rounded-[28px] p-6">
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Comparability Result</div>
+          <h2 class="text-2xl font-black mt-2">Decision Surface</h2>
+          <div id="cmp-beginner-expert-panel" class="glass-soft rounded-[24px] p-5 mt-5 text-sm text-slate-300">The beginner and expert interpretation will appear here after a comparison or after loading a prior result.</div>
+          <div id="cmp-passed-limited-panel" class="glass-soft rounded-[24px] p-5 mt-5 text-sm text-slate-300">What passed, what remains limited, and what to do next will appear here.</div>
+          <div id="cmp-result-panel" class="glass-soft rounded-[24px] p-5 mt-5 text-sm text-slate-300">Run a comparison to generate matrix, result, and report artifacts.</div>
+        </section>
+      </main>
+    </section>
+  </div>
+  <script src="/js/theme-switcher.js"></script>
+  <script>window.NicsThemeSwitcher.mount('#theme-switcher-mount');</script>
+  <script src="/js/foc_reconstruction_comparability.js?v=20260624-foc-experimentation-4"></script>
+</body>
+</html>
