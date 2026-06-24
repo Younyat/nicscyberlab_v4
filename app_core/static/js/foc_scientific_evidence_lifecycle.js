@@ -9,6 +9,70 @@ const DashboardState = {
   evidenceSupportDetailVisible: false,
 };
 
+const RailSectionLinks = {
+  scenario_deployed: [
+    ["Executive Summary", "executive-summary-section"],
+    ["Evidence Lifecycle Rail", "evidence-lifecycle-rail-section"],
+  ],
+  attack_executed: [
+    ["Causal Reconstruction Summary", "causal-summary-section"],
+    ["Evidence-Based Reconstruction Story", "evidence-story-section"],
+    ["Modbus Specificity", "modbus-specificity-section"],
+  ],
+  detection_observed: [
+    ["Alert Triage and Trigger Selection", "alert-triage-section"],
+    ["Evidence-Based Hypothesis Support", "evidence-support-section"],
+  ],
+  trigger_selected: [
+    ["Alert Triage and Trigger Selection", "alert-triage-section"],
+    ["Acquisition Trigger Path vs Reconstructed Attack Path", "trigger-causal-section"],
+    ["Final Forensic Conclusion", "final-conclusion-section"],
+  ],
+  acquisition_executed: [
+    ["Alert Triage and Trigger Selection", "alert-triage-section"],
+    ["Reports and Artifacts", "reports-section"],
+  ],
+  evidence_preserved: [
+    ["Executive Summary", "executive-summary-section"],
+    ["Reports and Artifacts", "reports-section"],
+    ["Limitations", "limitations-section"],
+  ],
+  integrity_custody_checked: [
+    ["Uncertainty Summary", "uncertainty-summary-section"],
+    ["Limitations", "limitations-section"],
+    ["Next Required Actions", "next-actions-section"],
+  ],
+  time_synchronization_validated: [
+    ["Uncertainty Summary", "uncertainty-summary-section"],
+    ["Lifecycle Actions", "lifecycle-actions-section"],
+  ],
+  multilayer_analysis_completed: [
+    ["Multilayer Forensic Analysis", "multilayer-analysis-section"],
+    ["Memory Analysis Coverage", "memory-analysis-section"],
+    ["Alert Triage and Trigger Selection", "alert-triage-section"],
+  ],
+  timeline_generated: [
+    ["Multilayer Forensic Analysis", "multilayer-analysis-section"],
+    ["Evidence-Based Reconstruction Story", "evidence-story-section"],
+  ],
+  cross_layer_findings_generated: [
+    ["Multilayer Forensic Analysis", "multilayer-analysis-section"],
+    ["Evidence-Based Hypothesis Support", "evidence-support-section"],
+    ["Final Forensic Conclusion", "final-conclusion-section"],
+  ],
+  causal_reconstruction_generated: [
+    ["Causal Reconstruction Summary", "causal-summary-section"],
+    ["Uncertainty Summary", "uncertainty-summary-section"],
+    ["Modbus Specificity", "modbus-specificity-section"],
+    ["Evidence-Based Reconstruction Story", "evidence-story-section"],
+  ],
+  executive_conclusion_produced: [
+    ["Final Forensic Conclusion", "final-conclusion-section"],
+    ["Limitations", "limitations-section"],
+    ["Next Required Actions", "next-actions-section"],
+  ],
+};
+
 function byId(id) {
   return document.getElementById(id);
 }
@@ -102,6 +166,291 @@ function maybeTruncate(value, max = 220) {
 function setJobPanel(html) {
   const panel = byId("lifecycle-job-panel");
   if (panel) panel.innerHTML = html;
+}
+
+function reportPath(payload, type) {
+  const reports = payload?.reports_index || payload?.summary?.reports_and_artifacts || [];
+  const entry = Array.isArray(reports) ? reports.find(item => item.type === type) : null;
+  return entry?.path || "not_available";
+}
+
+function flashSection(sectionId) {
+  const el = byId(sectionId);
+  if (!el) return;
+  el.classList.remove("section-highlight");
+  void el.offsetWidth;
+  el.classList.add("section-highlight");
+  window.setTimeout(() => el.classList.remove("section-highlight"), 1800);
+}
+
+function scrollToDashboardSection(sectionId) {
+  const el = byId(sectionId);
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+  window.setTimeout(() => flashSection(sectionId), 180);
+}
+
+function renderRailLinks(phase) {
+  const links = RailSectionLinks[phase] || [];
+  if (!links.length) return `<div class="text-slate-500">No related detailed sections are mapped for this phase.</div>`;
+  return `
+    <div class="flex flex-wrap gap-2">
+      ${links.map(([label, sectionId]) => `
+        <button type="button" class="btn-secondary rounded-2xl px-4 py-2 text-xs font-extrabold tracking-[0.14em] uppercase rail-jump-btn" data-target-section="${esc(sectionId)}">
+          ${esc(label)}
+        </button>
+      `).join("")}
+    </div>
+  `;
+}
+
+function buildRailPhaseDetail(phase, status, summary, payload) {
+  const exec = summary?.execution_summary || {};
+  const trigger = summary?.trigger_summary || {};
+  const causal = summary?.causal_summary || {};
+  const uncertainty = summary?.uncertainty_summary || {};
+  const integrity = summary?.integrity_summary || {};
+  const multi = summary?.multilayer_analysis_summary || {};
+  const memory = summary?.memory_analysis_detail || {};
+  const alertTriage = summary?.alert_triage_summary || {};
+  const story = summary?.evidence_based_reconstruction_story || {};
+  const common = {
+    status,
+    phase,
+    relatedSections: RailSectionLinks[phase] || [],
+  };
+  switch (phase) {
+    case "scenario_deployed":
+      return {
+        ...common,
+        title: "Scenario deployed",
+        meaning: "This phase records that a controlled scenario context exists for the case and defines the scientific frame under which the evidence lifecycle is interpreted.",
+        why: `The case is tied to scenario ${summary?.scenario_id || "unknown"} (${summary?.scenario_name || "unknown"}).`,
+        evidence: [
+          `Executive summary snapshot for case ${summary?.case_id || "unknown"}.`,
+          `Scenario context reflected in the causal ground truth: ${causal.ground_truth_path || "not_available"}.`,
+        ],
+        limitation: summary?.summary_status?.status === "stale" ? summary.summary_status.reason : "none",
+        action: summary?.summary_status?.status === "stale" ? "Regenerate executive summary if scenario-linked derived artifacts changed." : null,
+      };
+    case "attack_executed":
+      return {
+        ...common,
+        title: "Attack executed",
+        meaning: "This phase represents the controlled intervention or expected attack path declared by the scenario and later evaluated by the causal reconstruction.",
+        why: `Selected attack path: ${(causal.selected_attack || {}).technique_id || "not_available"} ${(causal.selected_attack || {}).protocol || ""} -> ${(causal.selected_attack || {}).target || "not_available"}.`,
+        evidence: [
+          `Ground truth path: ${causal.ground_truth_path || "not_available"}`,
+          `Attack evidence summarized in the causal reconstruction: ${reportPath(payload, "causal_status")}`,
+        ],
+        limitation: causal.main_limitation || "none",
+        action: "Inspect the causal summary and Modbus specificity if stronger protocol-level causal claims are required.",
+      };
+    case "detection_observed":
+      return {
+        ...common,
+        title: "Detection observed",
+        meaning: "This phase captures that preserved detections and alerts were observed and made available to the case, independently of whether they perfectly align with the reconstructed OT attack path.",
+        why: `Alerts were summarized and triaged; total indexed alerts: ${alertTriage.total_alerts_indexed ?? "not_available"}, correlated alerts: ${alertTriage.correlated_alerts ?? "not_available"}.`,
+        evidence: [
+          `Alerts findings: ${reportPath(payload, "alert_findings")}`,
+          `Evidence support report: ${summary?.evidence_support_extract?.path || "not_available"}`,
+        ],
+        limitation: summary?.evidence_support_extract?.main_limitation || "Detection evidence exists, but some of it remains inferred or only partially aligned with the causal path.",
+        action: "Use Alert Triage and Evidence-Based Hypothesis Support to inspect which detections support, degrade, or contradict the causal model.",
+      };
+    case "trigger_selected":
+      return {
+        ...common,
+        title: "Trigger selected",
+        meaning: "This phase records which preserved alert or signal triggered the forensic acquisition workflow.",
+        why: `The selected trigger was ${trigger.trigger || "not_available"} using rule ${trigger.triggering_alert_rule_id || "not_available"} with score ${trigger.trigger_selection_score ?? "not_available"}.`,
+        evidence: [
+          `Alert triage summary captured ${alertTriage.trigger_candidates_evaluated ?? "not_available"} evaluated trigger candidates.`,
+          `Selected trigger source: ${trigger.trigger_type || "not_available"} / ${alertTriage.selected_trigger_source || "not_available"}.`,
+        ],
+        limitation: (causal.trigger_vs_causal_path || {}).message || "none",
+        action: "Review the trigger-versus-causal-path section if a direct OT-to-acquisition link is required.",
+      };
+    case "acquisition_executed":
+      return {
+        ...common,
+        title: "Acquisition executed",
+        meaning: "This phase means the acquisition workflow preserved case artifacts after the selected trigger fired.",
+        why: `The preserved intervention status is ${trigger.intervention_status || "not_available"} and target nodes count is ${(trigger.target_nodes || []).length}.`,
+        evidence: [
+          `Manifest path: ${summary?.evidence_lifecycle?.manifest_path || "not_available"}`,
+          `Chain of custody path: ${summary?.evidence_lifecycle?.chain_of_custody_path || "not_available"}`,
+        ],
+        limitation: (causal.trigger_vs_causal_path || {}).same_event_family === false ? "Acquisition was triggered by a host/FIM-oriented path rather than a directly confirmed OT alert." : "none",
+        action: "Generate an OT-triggered case if direct OT-to-acquisition linkage is scientifically required.",
+      };
+    case "evidence_preserved":
+      return {
+        ...common,
+        title: "Evidence preserved",
+        meaning: "This phase states that artifacts were sealed into the preserved case structure under manifest and custody tracking.",
+        why: `Manifest present: ${integrity.manifest_present ? "yes" : "no"}; chain of custody present: ${integrity.chain_of_custody_present ? "yes" : "no"}.`,
+        evidence: [
+          `Manifest: ${summary?.evidence_lifecycle?.manifest_path || "not_available"}`,
+          `Chain of custody: ${summary?.evidence_lifecycle?.chain_of_custody_path || "not_available"}`,
+        ],
+        limitation: integrity.main_limitation || "none",
+        action: integrity.main_limitation ? "Review preservation and integrity limitations before escalating confidence claims." : null,
+      };
+    case "integrity_custody_checked":
+      return {
+        ...common,
+        title: "Integrity and custody checked",
+        meaning: "This phase means the integrity and custody validation step executed and produced an evaluable result. It does not automatically mean the global integrity result is complete.",
+        why: `Validation execution: ${integrity.validation_execution_status || "unknown"}; validation output: ${integrity.validation_output_status || "unknown"}; case-wide integrity completeness: ${integrity.case_wide_integrity_completeness || "unknown"}.`,
+        evidence: [
+          `Integrity and custody report: ${integrity.artifact_path || "not_available"}`,
+          `Case-wide integrity ratio: ${formatMaybeNumber(integrity.case_wide_integrity_ratio, 4)}`,
+        ],
+        limitation: integrity.case_wide_integrity_completeness && integrity.case_wide_integrity_completeness !== "completed" ? "The integrity and custody validation step completed successfully, but the case-wide integrity assessment remains partial." : (integrity.main_limitation || "none"),
+        action: integrity.case_wide_integrity_completeness && integrity.case_wide_integrity_completeness !== "completed" ? "Review missing or unvalidated integrity conditions before making stronger admissibility-oriented claims." : null,
+      };
+    case "time_synchronization_validated":
+      return {
+        ...common,
+        title: "Time synchronization validated",
+        meaning: "This phase evaluates node clock offset and synchronization state. It does not by itself guarantee strong causal temporal ordering.",
+        why: `Clock synchronization is ${uncertainty.synchronized_status || "unknown"} with max clock offset ${formatMaybeNumber(uncertainty.max_clock_offset_seconds)}s, but causal temporal ordering confidence remains ${uncertainty.causal_temporal_ordering_confidence || "unknown"}.`,
+        evidence: [
+          `Time sync metadata: ${uncertainty.latest_path || "not_available"}`,
+          `Uncertainty report: ${reportPath(payload, "uncertainty_report")}`,
+        ],
+        limitation: uncertainty.causal_temporal_ordering_reason || "A synchronized infrastructure does not guarantee that all forensic artifacts contain usable timestamps for causal ordering.",
+        action: "Inspect uncertainty and temporal validation before asserting strong time-order causality.",
+      };
+    case "multilayer_analysis_completed":
+      return {
+        ...common,
+        title: "Multilayer analysis completed",
+        meaning: "This phase records whether the preserved case evidence was processed across the expected forensic layers and whether those layers produced useful output.",
+        why: `${multi.layers_with_useful_output || 0} of ${multi.layers_expected || 0} expected layers produced useful output; memory dumps analyzed: ${memory.dumps_analyzed || 0}.`,
+        evidence: [
+          `Forensic analysis report: ${multi.report_path || "not_available"}`,
+          `Memory findings: ${reportPath(payload, "memory_findings")}`,
+          `Network findings: ${reportPath(payload, "network_findings")}`,
+          `Disk findings: ${reportPath(payload, "disk_findings")}`,
+          `OT findings: ${reportPath(payload, "ot_findings")}`,
+        ],
+        limitation: multi.main_limitation || "none",
+        action: multi.main_limitation ? "Inspect the affected layer matrix entries and regenerate the multilayer analysis if upstream artifacts changed." : null,
+      };
+    case "timeline_generated":
+      return {
+        ...common,
+        title: "Timeline generated",
+        meaning: "This phase captures whether the unified forensic timeline was generated from preserved and derived artifacts.",
+        why: `Timeline entries generated: ${multi.timeline_entries || 0}.`,
+        evidence: [
+          `Unified forensic timeline: ${reportPath(payload, "unified_forensic_timeline")}`,
+          `Cross-layer findings: ${reportPath(payload, "cross_layer_findings")}`,
+        ],
+        limitation: story.status === "available" ? "Timeline availability does not mean every causal edge can be temporally ordered." : "none",
+        action: "Use the evidence-based reconstruction story and uncertainty summary to understand which timeline relations remain unresolved.",
+      };
+    case "cross_layer_findings_generated":
+      return {
+        ...common,
+        title: "Cross-layer findings generated",
+        meaning: "This phase indicates that the dashboard has cross-layer findings or support relationships linking multiple forensic layers together.",
+        why: `Cross-layer findings count: ${multi.cross_layer_findings || 0}.`,
+        evidence: [
+          `Cross-layer findings artifact: ${reportPath(payload, "cross_layer_findings")}`,
+          `Evidence support report: ${summary?.evidence_support_extract?.path || "not_available"}`,
+        ],
+        limitation: summary?.evidence_support_extract?.main_limitation || "none",
+        action: "Review the evidence support matrix to see where cross-layer support is direct, partial, contradictory, or not evaluable.",
+      };
+    case "causal_reconstruction_generated":
+      return {
+        ...common,
+        title: "Causal reconstruction generated",
+        meaning: "This phase means the derived causal-forensic reconstruction was generated from preserved FOC and multilayer artifacts. It does not imply complete or absolute causality.",
+        why: `Recovered edges: ${causal.recovered_edges || 0} / ${causal.expected_edges || 0}; degraded edges: ${causal.degraded_edges || 0}; CPR: ${formatMaybeNumber(causal.cpr)}.`,
+        evidence: [
+          `Causal status: ${reportPath(payload, "causal_status")}`,
+          `Causal graph: ${reportPath(payload, "causal_graph")}`,
+          `Reconstruction metrics: ${reportPath(payload, "reconstruction_metrics")}`,
+          `Uncertainty report: ${reportPath(payload, "uncertainty_report")}`,
+        ],
+        limitation: causal.main_limitation || "none",
+        action: "Inspect CPR, Modbus specificity, uncertainty, and evidence story before making stronger causal claims.",
+      };
+    case "executive_conclusion_produced":
+      return {
+        ...common,
+        title: "Executive conclusion produced",
+        meaning: "This phase consolidates the preserved evidence lifecycle, multilayer analysis, causal reconstruction, and uncertainty into an auditable scientific conclusion.",
+        why: `The executive summary snapshot is ${summary?.summary_status?.status || "unknown"} and the final conclusion currently reports ${exec.evidence_processing_coverage || "unknown"} evidence processing coverage, ${exec.forensic_reconstruction_confidence || "unknown"} forensic reconstruction confidence, and ${exec.causal_interpretation_confidence || "unknown"} causal interpretation confidence.`,
+        evidence: [
+          `Executive summary snapshot: ${payload?.summary_path || "not_available"}`,
+          `Final conclusion panel supported by: ${reportPath(payload, "forensic_analysis_report")}`,
+        ],
+        limitation: exec.main_limitation || "none",
+        action: summary?.summary_status?.status === "stale" ? "Regenerate the executive summary before citing it as the current authoritative scientific conclusion." : "Review supported, degraded, unsupported claims, limitations, and next actions before exporting conclusions.",
+      };
+    default:
+      return {
+        ...common,
+        title: titleize(phase),
+        meaning: "This rail phase summarizes one stage of the preserved evidence lifecycle.",
+        why: `Current state: ${status}.`,
+        evidence: [],
+        limitation: "none",
+        action: null,
+      };
+  }
+}
+
+function openRailPhaseModal(phase, summary, payload) {
+  const rail = summary?.evidence_lifecycle?.rail || [];
+  const step = rail.find(item => item.phase === phase) || {};
+  const detail = buildRailPhaseDetail(phase, step.status || "unknown", summary, payload);
+  const title = byId("rail-phase-title");
+  const status = byId("rail-phase-status");
+  const body = byId("rail-phase-body");
+  const modal = byId("rail-phase-modal");
+  if (!title || !status || !body || !modal) return;
+  title.textContent = detail.title;
+  status.innerHTML = `<span class="${statusTone(detail.status)} font-black uppercase tracking-[0.14em]">${esc(titleize(detail.status || "unknown"))}</span>`;
+  body.innerHTML = `
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+      <div class="glass-soft rounded-[24px] p-5">
+        <div class="text-[10px] uppercase tracking-[0.22em] text-slate-400 font-black">What this phase means</div>
+        <div class="mt-3">${esc(detail.meaning || "not_available")}</div>
+      </div>
+      <div class="glass-soft rounded-[24px] p-5">
+        <div class="text-[10px] uppercase tracking-[0.22em] text-slate-400 font-black">Why this phase has this state</div>
+        <div class="mt-3">${esc(detail.why || "not_available")}</div>
+      </div>
+    </div>
+    <div class="glass-soft rounded-[24px] p-5">
+      <div class="text-[10px] uppercase tracking-[0.22em] text-slate-400 font-black">Supporting evidence and artifacts</div>
+      <div class="mt-4 space-y-2">
+        ${(detail.evidence || []).length ? (detail.evidence || []).map(item => `<div class="rounded-xl bg-slate-950/30 px-4 py-3">${esc(item)}</div>`).join("") : `<div class="text-slate-500">No direct artifact summary is available for this phase.</div>`}
+      </div>
+    </div>
+    <div class="glass-soft rounded-[24px] p-5">
+      <div class="text-[10px] uppercase tracking-[0.22em] text-slate-400 font-black">Related detailed sections</div>
+      <div class="mt-4">${renderRailLinks(phase)}</div>
+    </div>
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+      <div class="glass-soft rounded-[24px] p-5">
+        <div class="text-[10px] uppercase tracking-[0.22em] text-slate-400 font-black">Scientific limitation</div>
+        <div class="mt-3">${esc(detail.limitation || "none")}</div>
+      </div>
+      <div class="glass-soft rounded-[24px] p-5">
+        <div class="text-[10px] uppercase tracking-[0.22em] text-slate-400 font-black">Future reinforcement action</div>
+        <div class="mt-3">${esc(detail.action || "No specific follow-up action is required beyond normal case review.")}</div>
+      </div>
+    </div>
+  `;
+  modal.classList.add("is-active");
 }
 
 async function loadCases() {
@@ -417,10 +766,11 @@ function renderLifecycleRail(summary, payload) {
   }
   container.innerHTML = rail.map(step => `
     <div class="rail-step relative min-w-[180px] max-w-[220px]">
-      <div class="glass-soft rounded-[22px] p-4 h-full">
+      <button type="button" class="glass-soft rounded-[22px] p-4 h-full w-full text-left rail-phase-btn" data-rail-phase="${esc(step.phase)}">
         <div class="text-[10px] uppercase tracking-[0.22em] text-slate-400 font-black">${esc(step.label)}</div>
         <div class="text-sm font-black mt-3 ${statusTone(step.status)}">${esc(titleize(step.status))}</div>
-      </div>
+        <div class="text-[11px] text-slate-500 mt-3 uppercase tracking-[0.14em] font-black">View explanation</div>
+      </button>
     </div>
   `).join("");
 }
@@ -939,9 +1289,15 @@ function bindEvents() {
     }
   });
   byId("report-modal-close")?.addEventListener("click", () => byId("report-modal")?.classList.remove("is-active"));
+  byId("rail-phase-close")?.addEventListener("click", () => byId("rail-phase-modal")?.classList.remove("is-active"));
   byId("report-modal")?.addEventListener("click", event => {
     if (event.target?.id === "report-modal") {
       byId("report-modal")?.classList.remove("is-active");
+    }
+  });
+  byId("rail-phase-modal")?.addEventListener("click", event => {
+    if (event.target?.id === "rail-phase-modal") {
+      byId("rail-phase-modal")?.classList.remove("is-active");
     }
   });
   document.addEventListener("click", event => {
@@ -955,6 +1311,17 @@ function bindEvents() {
       openReport(reportBtn.dataset.reportType).catch(err => {
         setJobPanel(`<div class="status-error">Could not open report: ${esc(err.message)}</div>`);
       });
+      return;
+    }
+    const railBtn = event.target.closest(".rail-phase-btn");
+    if (railBtn?.dataset.railPhase) {
+      openRailPhaseModal(railBtn.dataset.railPhase, DashboardState.dashboard?.summary, DashboardState.dashboard);
+      return;
+    }
+    const jumpBtn = event.target.closest(".rail-jump-btn");
+    if (jumpBtn?.dataset.targetSection) {
+      byId("rail-phase-modal")?.classList.remove("is-active");
+      scrollToDashboardSection(jumpBtn.dataset.targetSection);
       return;
     }
     const storylineBtn = event.target.closest('[data-run-action="view-storyline-step"]');

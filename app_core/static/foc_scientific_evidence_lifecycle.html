@@ -49,6 +49,14 @@
       background: rgba(148, 163, 184, 0.18);
     }
     .rail-step:last-child::before { display: none; }
+    .section-highlight {
+      animation: sectionFlash 1.8s ease;
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.42), 0 0 0 10px rgba(56, 189, 248, 0.08);
+    }
+    @keyframes sectionFlash {
+      0% { box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.8), 0 0 0 0 rgba(56, 189, 248, 0.28); }
+      100% { box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.0), 0 0 0 18px rgba(56, 189, 248, 0.0); }
+    }
     .modal-shell {
       position: fixed;
       inset: 0;
@@ -103,7 +111,7 @@
       </aside>
 
       <main class="xl:col-span-9 space-y-6">
-        <section class="glass rounded-[28px] p-6">
+        <section id="executive-summary-section" class="glass rounded-[28px] p-6">
           <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Executive Summary</div>
@@ -117,7 +125,7 @@
           <div id="lifecycle-exec-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-5"></div>
         </section>
 
-        <section class="glass rounded-[28px] p-6">
+        <section id="evidence-lifecycle-rail-section" class="glass rounded-[28px] p-6">
           <div class="flex items-start justify-between gap-4">
             <div>
               <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Evidence Lifecycle Rail</div>
@@ -128,7 +136,7 @@
           <div id="lifecycle-rail" class="flex flex-wrap gap-4 mt-6"></div>
         </section>
 
-        <section class="glass rounded-[28px] p-6">
+        <section id="lifecycle-actions-section" class="glass rounded-[28px] p-6">
           <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div>
               <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Lifecycle Actions</div>
@@ -149,7 +157,7 @@
           <div id="lifecycle-job-panel" class="glass-soft rounded-[24px] p-5 mt-5 text-sm text-slate-300">No job is currently tracked for this case.</div>
         </section>
 
-        <section class="glass rounded-[28px] p-6">
+        <section id="multilayer-analysis-section" class="glass rounded-[28px] p-6">
           <div class="flex items-start justify-between gap-4">
             <div>
               <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Multilayer Forensic Analysis</div>
@@ -178,7 +186,7 @@
         </section>
 
         <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <div class="glass rounded-[28px] p-6">
+          <div id="memory-analysis-section" class="glass rounded-[28px] p-6">
             <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Memory Analysis Coverage</div>
             <div class="text-xs text-cyan-300 mt-2">Source: executive summary snapshot derived from Volatility 3 execution reports</div>
             <h2 class="text-2xl font-black mt-2">Memory Layer Usefulness</h2>
@@ -198,7 +206,7 @@
               </table>
             </div>
           </div>
-          <div class="glass rounded-[28px] p-6">
+          <div id="alert-triage-section" class="glass rounded-[28px] p-6">
             <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Alert Triage and Trigger Selection</div>
             <div class="text-xs text-cyan-300 mt-2">Source: executive summary snapshot derived from alerts analysis and preserved intervention attestations</div>
             <h2 class="text-2xl font-black mt-2">Alert Noise, Correlation, and Trigger Choice</h2>
@@ -208,14 +216,14 @@
         </section>
 
         <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <div class="glass rounded-[28px] p-6">
+          <div id="causal-summary-section" class="glass rounded-[28px] p-6">
             <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Causal Reconstruction Summary</div>
             <div class="text-xs text-cyan-300 mt-2">Source: causal reconstruction artifacts</div>
             <h2 class="text-2xl font-black mt-2">Recovered Path and CPR</h2>
             <div id="causal-summary-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5"></div>
             <div id="causal-summary-text" class="glass-soft rounded-[24px] p-4 mt-5 text-sm text-slate-300"></div>
           </div>
-          <div class="glass rounded-[28px] p-6">
+          <div id="uncertainty-summary-section" class="glass rounded-[28px] p-6">
             <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Uncertainty Summary</div>
             <div class="text-xs text-cyan-300 mt-2">Source: causal reconstruction artifacts and preserved time synchronization metadata</div>
             <h2 class="text-2xl font-black mt-2">Temporal and Integrity Constraints</h2>
@@ -225,26 +233,26 @@
         </section>
 
         <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <div class="glass rounded-[28px] p-6">
+          <div id="trigger-causal-section" class="glass rounded-[28px] p-6">
             <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Acquisition Trigger Path vs Reconstructed Attack Path</div>
             <h2 class="text-2xl font-black mt-2">Acquisition Trigger Alignment</h2>
             <div id="trigger-vs-causal" class="glass-soft rounded-[24px] p-5 mt-5 text-sm text-slate-300">No case selected.</div>
           </div>
-          <div class="glass rounded-[28px] p-6">
+          <div id="modbus-specificity-section" class="glass rounded-[28px] p-6">
             <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Modbus Specificity</div>
             <h2 class="text-2xl font-black mt-2">Protocol-Level Precision</h2>
             <div id="modbus-specificity" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5"></div>
           </div>
         </section>
 
-        <section class="glass rounded-[28px] p-6">
+        <section id="evidence-story-section" class="glass rounded-[28px] p-6">
           <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Evidence-Based Reconstruction Story</div>
           <div class="text-xs text-cyan-300 mt-2">Source: evidence support extract</div>
           <h2 class="text-2xl font-black mt-2">Narrative Built From Preserved Evidence</h2>
           <div id="evidence-story-panel" class="glass-soft rounded-[24px] p-5 mt-5 text-sm text-slate-300"></div>
         </section>
 
-        <section class="glass rounded-[28px] p-6">
+        <section id="evidence-support-section" class="glass rounded-[28px] p-6">
           <div class="flex items-center justify-between gap-3 flex-wrap">
             <div>
               <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Evidence-Based Hypothesis Support</div>
@@ -292,7 +300,7 @@
           </div>
         </section>
 
-        <section class="glass rounded-[28px] p-6">
+        <section id="final-conclusion-section" class="glass rounded-[28px] p-6">
           <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Final Forensic Conclusion</div>
           <h2 class="text-2xl font-black mt-2">Supported, Degraded, and Unsupported Claims</h2>
           <div id="final-conclusion-summary" class="glass-soft rounded-[24px] p-5 mt-5 text-sm text-slate-300"></div>
@@ -312,19 +320,19 @@
           </div>
         </section>
 
-        <section class="glass rounded-[28px] p-6">
+        <section id="reports-section" class="glass rounded-[28px] p-6">
           <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Reports and Artifacts</div>
           <h2 class="text-2xl font-black mt-2">Technical Access Under Demand</h2>
           <div id="reports-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-5"></div>
         </section>
 
         <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <div class="glass rounded-[28px] p-6">
+          <div id="limitations-section" class="glass rounded-[28px] p-6">
             <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Limitations</div>
             <h2 class="text-2xl font-black mt-2">Current Scientific Boundaries</h2>
             <div id="limitations-list" class="space-y-3 mt-5 text-sm text-slate-300"></div>
           </div>
-          <div class="glass rounded-[28px] p-6">
+          <div id="next-actions-section" class="glass rounded-[28px] p-6">
             <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Next Required Actions</div>
             <h2 class="text-2xl font-black mt-2">How to Strengthen the Case</h2>
             <div id="next-actions-list" class="space-y-3 mt-5 text-sm text-slate-300"></div>
@@ -349,6 +357,20 @@
     </div>
   </div>
 
-  <script src="js/foc_scientific_evidence_lifecycle.js?v=20260623-foc-evidence-lifecycle-2"></script>
+  <div id="rail-phase-modal" class="modal-shell" aria-hidden="true">
+    <div class="modal-card">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <div class="text-[11px] tracking-[0.28em] uppercase text-cyan-300 font-extrabold">Evidence Lifecycle Rail Explanation</div>
+          <h2 id="rail-phase-title" class="text-2xl font-black mt-2">Phase explanation</h2>
+          <div id="rail-phase-status" class="text-sm mt-2"></div>
+        </div>
+        <button id="rail-phase-close" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Close</button>
+      </div>
+      <div id="rail-phase-body" class="mt-5 space-y-5 text-sm text-slate-300"></div>
+    </div>
+  </div>
+
+  <script src="js/foc_scientific_evidence_lifecycle.js?v=20260624-foc-evidence-lifecycle-rail-1"></script>
 </body>
 </html>

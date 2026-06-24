@@ -100,6 +100,276 @@ This design allows the user to move from infrastructure provisioning to full cyb
 
 ---
 
+## 2.1. Scientific method used across NICS CyberLab
+
+NICS CyberLab is not designed as a collection of isolated tools. It is designed as a **controlled scientific workflow** for cybersecurity experimentation, preservation, forensic analysis, reconstruction, and uncertainty-aware interpretation in IT and hybrid IT/OT environments.
+
+The scientific value of the platform does not come from calling a result "scientific". It comes from making explicit, step by step:
+
+- what scenario was declared and deployed
+- what intervention or attack was executed
+- what detections and alerts were observed
+- what artifact triggered acquisition
+- what evidence was preserved
+- what integrity and custody guarantees exist
+- what forensic layers were actually analyzed
+- what causal relations were reconstructed from preserved evidence
+- what uncertainty still limits interpretation
+- what can be supported, degraded, or not yet claimed
+
+### Core methodological principle
+
+The project follows a **preserve first, analyze second, reconstruct third, interpret cautiously** model.
+
+This means:
+
+- primary evidence is acquired and preserved before high-level interpretation
+- derived reports never replace preserved artifacts
+- causal reconstruction is performed over preserved and normalized outputs, not over live systems
+- uncertainty, degradation, and unsupported claims remain visible instead of being hidden
+
+In practical terms, the platform distinguishes four scientific layers:
+
+1. **Controlled intervention layer**
+   - the scenario is deployed in a reproducible environment
+   - tools, roles, and OT/IT topology are declared explicitly
+   - attacks and detections are executed under controlled conditions
+2. **Preservation layer**
+   - acquisition, manifests, custody logs, hashes, and evidence links preserve what was captured
+   - the preserved case becomes the auditable reference point
+3. **Analytical layer**
+   - multilayer forensic analysis processes preserved network, memory, disk, OT, alert, custody, and timeline artifacts
+   - each analytical layer is evaluated for usefulness, not just completion
+4. **Interpretive layer**
+   - FOC Reconstruction, causal reconstruction, uncertainty budgeting, evidence-support evaluation, and executive conclusions operate on preserved and derived artifacts
+   - no claim is stronger than the evidence and uncertainty budget allow
+
+### End-to-end scientific lifecycle
+
+Across the platform, the scientific method can be summarized as the following chain:
+
+```text
+Scenario declaration
+-> controlled deployment
+-> tool preparation
+-> attack / intervention execution
+-> detection observation
+-> trigger selection
+-> evidence acquisition
+-> preservation and custody
+-> multilayer forensic analysis
+-> timeline and cross-layer findings
+-> causal reconstruction
+-> uncertainty evaluation
+-> evidence-based conclusions
+```
+
+This chain is visible in different parts of the platform:
+
+- **Scenario editors**
+  - declare the environment to be studied
+- **Instance Tools Manager**
+  - defines the operational and detection surface available in the experiment
+- **Attack and detection workflows**
+  - produce the controlled intervention and the observable reaction
+- **Forensic Acquisition and Analysis Dashboard**
+  - preserves, indexes, hashes, and analyzes the resulting case
+- **FOC Reconstruction**
+  - organizes the structural, evidential, analytical, and readiness context
+- **FOC Causal Reconstruction**
+  - evaluates expected causal relations against preserved evidence
+- **FOC Scientific Evidence Lifecycle Dashboard**
+  - presents the final scientific reading of what can and cannot be concluded
+
+### Scientific claims model
+
+NICS CyberLab does not treat every generated file as equivalent to knowledge. Instead, it separates claims into three classes:
+
+- **Supported claims**
+  - directly supported by preserved and verifiable evidence
+- **Degraded or ambiguous claims**
+  - partially supported, inferred, temporally unresolved, or limited by incomplete coverage
+- **Unsupported or not-yet-claimable statements**
+  - not justified by the preserved artifacts or blocked by missing evidence
+
+This is why the platform preserves distinctions such as:
+
+- `completed` vs `completed_with_degradation`
+- `useful output` vs `completed_without_useful_output`
+- `synchronized clocks` vs `limited causal temporal ordering confidence`
+- `evidence processing coverage: strong` vs `causal interpretation confidence: limited`
+
+These distinctions are not cosmetic. They are part of the scientific method of the platform.
+
+### Role of preservation, integrity, and custody
+
+The project assumes that an interesting detection or a plausible attack narrative is not enough on its own.
+
+Scientific and forensic interpretation must be grounded in:
+
+- preserved artifacts
+- manifest linkage
+- chain of custody
+- integrity verification
+- reproducible case paths
+- explicit source references
+
+For this reason, the platform separates:
+
+- the **execution** of integrity and custody validation
+- from the **result** of case-wide integrity completeness
+
+A validation step may execute successfully while the final integrity assessment remains partial. The platform records that distinction instead of hiding it.
+
+### Role of multilayer forensic analysis
+
+The multilayer forensic pipeline is the empirical processing stage of the method. Its purpose is to answer:
+
+- was the preserved evidence actually processed
+- which layers produced useful findings
+- which layers remained partial, failed, blocked, or unavailable
+
+The expected layers include:
+
+- evidence inventory
+- integrity and custody validation
+- temporal validation
+- network analysis
+- memory analysis
+- disk analysis
+- OT export analysis
+- alert and detection analysis
+- pipeline and custody analysis
+- unified timeline generation
+- cross-layer findings
+- forensic report generation
+
+Scientifically, this stage measures **coverage and usefulness of evidence processing**, not causal proof. A case may have strong multilayer coverage and still only partial causal reconstruction.
+
+### Role of temporal calibration and uncertainty
+
+Temporal interpretation is treated as a first-class scientific constraint.
+
+The platform therefore distinguishes:
+
+- node clock synchronization
+- availability of timestamps in preserved artifacts
+- resolvability of available timestamps
+- coverage of timestamps needed by causal edges
+- final causal temporal ordering confidence
+
+The uncertainty model is explicit rather than implicit. It is used to prevent overclaiming.
+
+For example:
+
+- synchronized clocks do not guarantee that every artifact contains usable timestamps
+- a low `max_clock_offset` does not automatically imply strong causal temporal ordering
+- missing or unresolved timestamps can keep a causal relation degraded or ambiguous even when synchronization is good
+
+This is why the platform generates and consumes:
+
+- time synchronization measurements
+- time validation reports
+- uncertainty budgets
+- temporal confidence states
+
+### Role of ground truth and causal reconstruction
+
+The project uses **scenario ground truth** as an expected causal model, not as assumed proof.
+
+Ground truth defines:
+
+- the expected attack path
+- expected relations
+- expected evidence sources
+- temporal and semantic expectations
+- optional OT-specific details such as protocol, function code, register, and expected value
+
+The causal module then tests that expected model against preserved evidence and classifies each expected relation as:
+
+- `recovered`
+- `degraded`
+- `ambiguous`
+- `missing`
+
+Metrics such as `CPR`, `Weighted CPR`, degraded rate, ambiguous rate, missing rate, integrity ratio, evidence completeness ratio, and reconstruction confidence are therefore **derived interpretive metrics**, not claims of absolute truth.
+
+### Role of OT specificity
+
+For hybrid IT/OT scenarios, the scientific method must preserve the difference between:
+
+- observing generic traffic
+- observing protocol-specific OT activity
+- inferring process-level impact
+- proving packet-level register/value causality
+
+This is why the platform makes Modbus specificity explicit:
+
+- protocol presence may be confirmed
+- target PLC may be confirmed
+- function code, register, value, or OT-state effect may remain only partial
+
+The platform does not silently upgrade protocol presence into full industrial causal precision.
+
+### Role of evidence-based interpretation
+
+The final scientific reading of a case is not a raw log dump and not a single score.
+
+Instead, the platform derives:
+
+- evidence-based reconstruction stories
+- hypothesis support summaries
+- cross-layer support matrices
+- claimability boundaries
+- counter-evidence and gaps
+- supported, degraded, and unsupported conclusions
+
+The intended question is not:
+
+```text
+Did the platform produce a nice dashboard?
+```
+
+The intended question is:
+
+```text
+What can be defended from preserved evidence, what remains degraded, and what cannot yet be claimed?
+```
+
+### Reproducibility and auditability
+
+The scientific method used throughout the project also depends on reproducibility.
+
+This is why the platform favors:
+
+- normalized case directories
+- stored manifests and custody logs
+- explicit derived artifacts
+- staleness detection
+- on-demand regeneration instead of silent recalculation
+- separation between primary evidence and derived interpretation
+
+If a derived executive summary, causal graph, or support report becomes stale because a dependent artifact changed, the platform marks it as stale and requires regeneration. It never silently upgrades the conclusion.
+
+### Final methodological interpretation
+
+Taken together, the method used across NICS CyberLab can be summarized as follows:
+
+```text
+Preserved evidence is the foundation.
+Multilayer analysis establishes empirical processing coverage.
+FOC organizes the reconstruction context.
+Causal reconstruction evaluates expected relations against preserved evidence.
+Uncertainty constrains interpretation.
+Final conclusions remain bounded by what the evidence, integrity state, temporal model, and analytical coverage actually support.
+```
+
+This is the central methodological rule of the project:
+
+> The scientific value of NICS CyberLab lies in exposing what was declared, what was preserved, what was analyzed, what was reconstructed, what remains uncertain, and what cannot be claimed.
+
+---
+
 ## 3. Main platform services
 
 ## IT Scenario Editor
@@ -2524,6 +2794,13 @@ The `FOC Scientific Evidence Lifecycle Dashboard` shows:
   - case ID, scenario ID, evidence lifecycle status, multilayer status, causal status, evidence-analysis confidence, forensic-reconstruction confidence, causal-interpretation confidence, and main limitation
 - **Evidence Lifecycle Rail**
   - scenario deployed, attack executed, detection observed, trigger selected, acquisition executed, evidence preserved, integrity/custody checked, time synchronization validated, multilayer analysis completed, timeline generated, cross-layer findings generated, causal reconstruction generated, and executive conclusion produced
+  - each rail card is clickable and opens a transparent explanation panel with:
+    - what the phase means
+    - why it has its current state
+    - which artifacts support it
+    - which scientific limitation applies
+    - which detailed dashboard sections explain it further
+  - internal links from that panel scroll to the relevant dashboard section and temporarily highlight it
 - **Lifecycle Actions**
   - run/regenerate multilayer analysis, measure/fix time synchronization, run/regenerate causal reconstruction, run full evidence lifecycle, generate executive summary
 - **Multilayer Forensic Analysis**
