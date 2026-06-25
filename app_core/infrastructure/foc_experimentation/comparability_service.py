@@ -48,6 +48,39 @@ def _profile_path(execution: dict) -> Path | None:
     return candidate if candidate.is_file() else None
 
 
+def _result_card_path(execution: dict) -> Path | None:
+    execution_path = execution.get("execution_path")
+    if not execution_path:
+        return None
+    base = Path.cwd() / execution_path
+    candidate = base / "forensic_result_card.json"
+    return candidate if candidate.is_file() else None
+
+
+def _classify_comparison_type(executions: list[dict]) -> str:
+    family_ids = []
+    scenario_fingerprints = []
+    topology_fingerprints = []
+    any_level_c = False
+    for execution in executions:
+        card_path = _result_card_path(execution)
+        card = _json_load(card_path)
+        if not isinstance(card, dict) or not card.get("comparison_family_id"):
+            return "insufficient_data"
+        family_ids.append(card["comparison_family_id"])
+        scenario_fingerprints.append(str(card.get("scenario_fingerprint") or "not_available"))
+        topology_fingerprints.append(str(card.get("topology_fingerprint") or "not_available"))
+        if str(execution.get("level") or "").upper() == "C":
+            any_level_c = True
+    if len(set(family_ids)) == 1:
+        return "direct_family_comparison"
+    if any_level_c:
+        if len(set(scenario_fingerprints)) > 1 or len(set(topology_fingerprints)) > 1:
+            return "platform_level_comparison_with_scenario_drift"
+        return "platform_level_comparison"
+    return "exploratory_comparison_only"
+
+
 def _support_rank(value: str | None) -> int:
     order = {
         "strong_support": 4,
@@ -79,7 +112,7 @@ def _has_degradation(profile: dict) -> tuple[bool, list[str]]:
 
 
 def compare_executions(execution_ids: list[str], *, campaign_id: str | None = None, delta_wcpr_allowed: float | None = None) -> dict:
-    executions = [load_execution(item) for item in execution_ids]
+    executions = [load_execution(item, campaign_id=campaign_id) for item in execution_ids]
     if not executions or any(item is None for item in executions):
         return {"status": "Insufficient Data", "reason": "one or more execution manifests were not found", "execution_ids": execution_ids}
 
@@ -159,6 +192,14 @@ def compare_executions(execution_ids: list[str], *, campaign_id: str | None = No
         status = "Comparable"
     assert status in COMPARABILITY_STATES
 
+    # comparison_type is an independent axis from status: it answers "are
+    # these executions even the same experiment by design?" (family grouping)
+    # rather than "did the numbers come out close?" (status). A
+    # direct_family_comparison can still be Not Comparable if the numbers
+    # diverged, and an exploratory_comparison can still be numerically
+    # Comparable while not being valid reproducibility evidence.
+    comparison_type = _classify_comparison_type([execution for execution, _profile, _path in profiles])
+
     comparison_id = f"comparison-{uuid.uuid4().hex[:12]}"
     target_root = campaign_dir(campaign_id) / "comparisons" if campaign_id else campaign_dir("_cross_campaign") / "comparisons"
     result_dir = target_root / comparison_id
@@ -175,6 +216,10 @@ def compare_executions(execution_ids: list[str], *, campaign_id: str | None = No
         "comparison_id": comparison_id,
         "generated_at": utc_now(),
         "status": status,
+        "comparison_type": comparison_type,
+        "direct_comparison_valid": comparison_type == "direct_family_comparison",
+        "exploratory_only": comparison_type == "exploratory_comparison_only",
+        "scenario_drift": comparison_type == "platform_level_comparison_with_scenario_drift",
         "execution_ids": execution_ids,
         "reference_execution_id": reference_execution["execution_id"],
         "delta_cpr_allowed": delta_cpr_allowed,
@@ -192,9 +237,16 @@ def compare_executions(execution_ids: list[str], *, campaign_id: str | None = No
         "",
         f"- Comparison ID: `{comparison_id}`",
         f"- Status: **{status}**",
+        f"- Comparison type: **{comparison_type}**",
         f"- Reference execution: `{reference_execution['execution_id']}`",
         f"- Delta CPR allowed: `{delta_cpr_allowed:.4f}`",
         f"- Delta Weighted CPR allowed: `{delta_wcpr_allowed:.4f}`",
+        "",
+        "## Scientific comparison scope",
+        "",
+        "- This comparison uses lightweight forensic result profiles, not duplicated heavy cases.",
+        "- Direct reproducibility evidence requires the same comparison family.",
+        f"- Comparison type for this run: `{comparison_type}`",
         "",
         "## Execution rows",
     ]

@@ -20,10 +20,26 @@ from app_core.infrastructure.foc_experimentation.comparability_service import (
     load_comparison_result,
     load_execution_profile,
 )
-from app_core.infrastructure.foc_experimentation.config import CAMPAIGNS_ROOT, METHODOLOGICAL_BASIS_FILE
+from app_core.infrastructure.foc_experimentation.comparison_registry import (
+    find_comparable_families,
+    find_recommended_comparable_result,
+    load_registry,
+    register_existing_case_as_result_card,
+)
+from app_core.infrastructure.foc_experimentation.config import (
+    CAMPAIGNS_ROOT,
+    CASE_REGISTRY_PATH,
+    METHODOLOGICAL_BASIS_FILE,
+    RESULT_REGISTRY_PATH,
+    SCENARIO_REGISTRY_PATH,
+)
 from app_core.infrastructure.foc_experimentation.execution_service import execution_artifacts, load_execution, regenerate_execution_profile
 from app_core.infrastructure.foc_experimentation.job_runner import get_job
 from app_core.infrastructure.foc_experimentation.methodological_basis import load_methodological_basis
+from app_core.infrastructure.foc_experimentation.scientific_memory import load_registry as load_memory_registry
+from app_core.infrastructure.foc_experimentation.scientific_memory_sync import sync_scientific_memory
+from app_core.infrastructure.foc_experimentation.retention_service import prepare_retention_cleanup
+from app_core.infrastructure.attack.catalog import get_attack_catalog
 from app_core.infrastructure.foc_reconstruction.foc_case_analysis import cases_with_analysis_state
 from app_core.infrastructure.foc_reconstruction.foc_paths import relative_path
 
@@ -32,6 +48,7 @@ experimentation_bp = Blueprint("foc_experimentation", __name__)
 
 @experimentation_bp.route("/api/foc/experimentation/health", methods=["GET"])
 def api_foc_experimentation_health():
+    sync_scientific_memory()
     return jsonify(
         {
             "status": "ok",
@@ -45,6 +62,7 @@ def api_foc_experimentation_health():
 
 @experimentation_bp.route("/api/foc/experimentation/campaigns", methods=["GET"])
 def api_foc_experimentation_campaigns():
+    sync_scientific_memory()
     return jsonify(list_campaigns()), 200
 
 
@@ -67,6 +85,7 @@ def api_foc_experimentation_campaign_preflight():
 
 @experimentation_bp.route("/api/foc/experimentation/source-cases", methods=["GET"])
 def api_foc_experimentation_source_cases():
+    sync_scientific_memory()
     return jsonify(cases_with_analysis_state()), 200
 
 
@@ -213,3 +232,140 @@ def api_foc_experimentation_job_status(job_id: str):
     if not payload:
         return jsonify({"error": "job_not_found", "job_id": job_id}), 404
     return jsonify(payload), 200
+
+
+@experimentation_bp.route("/api/foc/experimentation/comparison-registry", methods=["GET"])
+def api_foc_experimentation_comparison_registry():
+    registry = load_registry()
+    scenario_id = str(request.args.get("scenario_id") or "").strip() or None
+    scenario_fingerprint = str(request.args.get("scenario_fingerprint") or "").strip() or None
+    entries = registry.get("entries", [])
+    if scenario_fingerprint:
+        entries = [item for item in entries if item.get("scenario_fingerprint") == scenario_fingerprint]
+    elif scenario_id:
+        matches = find_comparable_families(scenario_id=scenario_id)
+        match_ids = {item.get("result_card_id") for item in matches}
+        entries = [item for item in entries if item.get("result_card_id") in match_ids]
+    return jsonify({"generated_at": registry.get("generated_at"), "entries": entries}), 200
+
+
+@experimentation_bp.route("/api/foc/experimentation/comparison-registry/recommend", methods=["GET"])
+def api_foc_experimentation_comparison_registry_recommend():
+    scenario_id = str(request.args.get("scenario_id") or "").strip()
+    if not scenario_id:
+        return jsonify({"error": "scenario_id_required"}), 400
+    level = str(request.args.get("level") or "").strip().upper() or None
+    attack_profile_id = str(request.args.get("attack_profile_id") or "").strip() or None
+    trigger_policy = str(request.args.get("trigger_policy") or "").strip() or None
+    acquisition_profile_id = str(request.args.get("acquisition_profile_id") or "").strip() or None
+    matches = find_comparable_families(scenario_id=scenario_id)
+    if not matches:
+        return jsonify({"scenario_id": scenario_id, "level": level, "has_recommendation": False, "matches": []}), 200
+    recommended = find_recommended_comparable_result(
+        scenario_id=scenario_id,
+        attack_profile_id=attack_profile_id,
+        trigger_policy=trigger_policy,
+        acquisition_profile_id=acquisition_profile_id,
+    ) or matches[0]
+    return (
+        jsonify(
+            {
+                "scenario_id": scenario_id,
+                "level": level,
+                "has_recommendation": True,
+                "recommended": recommended,
+                "matches": matches,
+                "message": "The system found previous comparable results. To compare the next execution with those results, use the same attack profile, trigger policy, acquisition profile, and scenario family.",
+            }
+        ),
+        200,
+    )
+
+
+@experimentation_bp.route("/api/foc/experimentation/scientific-memory/scenarios", methods=["GET"])
+def api_foc_experimentation_scientific_memory_scenarios():
+    sync_scientific_memory()
+    return jsonify(load_memory_registry(SCENARIO_REGISTRY_PATH)), 200
+
+
+@experimentation_bp.route("/api/foc/experimentation/scientific-memory/cases", methods=["GET"])
+def api_foc_experimentation_scientific_memory_cases():
+    sync_scientific_memory()
+    return jsonify(load_memory_registry(CASE_REGISTRY_PATH)), 200
+
+
+@experimentation_bp.route("/api/foc/experimentation/scientific-memory/results", methods=["GET"])
+def api_foc_experimentation_scientific_memory_results():
+    sync_scientific_memory()
+    return jsonify(load_memory_registry(RESULT_REGISTRY_PATH)), 200
+
+
+@experimentation_bp.route("/api/foc/experimentation/scientific-memory/sync", methods=["POST"])
+def api_foc_experimentation_scientific_memory_sync():
+    return jsonify(sync_scientific_memory()), 200
+
+
+@experimentation_bp.route("/api/foc/experimentation/comparison-registry/register-case", methods=["POST"])
+def api_foc_experimentation_comparison_registry_register_case():
+    body = request.get_json(silent=True) or {}
+    case_id = str(body.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "case_id_required"}), 400
+    result = register_existing_case_as_result_card(case_id)
+    if result.get("error") == "case_not_found":
+        return jsonify(result), 404
+    if result.get("error"):
+        return jsonify(result), 400
+    return jsonify(result), 201
+
+
+@experimentation_bp.route("/api/foc/experimentation/retention/prepare", methods=["POST"])
+def api_foc_experimentation_retention_prepare():
+    body = request.get_json(silent=True) or {}
+    execution_id = str(body.get("execution_id") or "").strip()
+    if not execution_id:
+        return jsonify({"error": "execution_id_required"}), 400
+    payload = prepare_retention_cleanup(
+        execution_id,
+        campaign_id=str(body.get("campaign_id") or "").strip() or None,
+        operator=str(body.get("operator") or "foc_experimentation"),
+        reason=str(body.get("reason") or "Preserve lightweight profiles for future comparison without duplicating heavy evidence."),
+        action=str(body.get("action") or "archive_metadata_only"),
+        apply_changes=bool(body.get("apply_changes")),
+        confirm_delete=bool(body.get("confirm_delete")),
+    )
+    if payload.get("error"):
+        return jsonify(payload), 400
+    return jsonify(payload), 200
+
+
+_ATTACK_CATALOG_FIELDS = (
+    "attack_id",
+    "display_name",
+    "category",
+    "description",
+    "mitre_domain",
+    "mitre_id",
+    "mitre_technique",
+    "tactic",
+    "detection_engine",
+    "target_roles",
+    "severity",
+    "script",
+    "expected_alerts",
+    "expected_artifacts",
+    "rollback_required",
+    "dfir_escalation",
+)
+
+
+@experimentation_bp.route("/api/foc/experimentation/attack-catalog", methods=["GET"])
+def api_foc_experimentation_attack_catalog():
+    # Reuses the real MITRE ATT&CK-aligned catalog used by the Tactical Cyber
+    # Operations Dashboard (app_core/infrastructure/attack/catalog.py) so the
+    # campaign builder shows the operator the actual technique, script, and
+    # expected evidence that would be selected -- never a placeholder.
+    target_role = str(request.args.get("target_role") or "").strip()
+    attacks = get_attack_catalog(target_role=target_role)
+    items = [{key: attack.get(key) for key in _ATTACK_CATALOG_FIELDS} for attack in attacks]
+    return jsonify({"attacks": items}), 200

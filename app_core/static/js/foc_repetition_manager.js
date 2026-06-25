@@ -8,6 +8,7 @@
       purpose: "Repeat the analysis and reconstruction pipeline over the same preserved case without modifying the original evidence.",
       sourceMode: "linked_existing_case",
       sourceModeLabel: "Linked existing case",
+      stepTwoTitle: "Select source or scenario",
       dashboardActionLabel: "Open Base Case Dashboard",
       baselineLabel: "Not applicable for Level A",
       groundTruthLabel: "Reused from base case if available, otherwise reconstructed from preserved artifacts.",
@@ -24,7 +25,8 @@
       purpose: "Measure stability of forensic reconstruction under equivalent and documented experimental conditions.",
       sourceMode: "new_incident_execution",
       sourceModeLabel: "New incident execution",
-      dashboardActionLabel: "Open Execution Dashboard",
+      stepTwoTitle: "Select deployed scenario and incident profile",
+      dashboardActionLabel: "Open Generated Case Dashboard",
       baselineLabel: "Generated before the controlled attack to measure baseline-noise drift.",
       groundTruthLabel: "Generated before the attack and cryptographically sealed.",
       notExecuted: [],
@@ -35,7 +37,8 @@
       purpose: "Measure platform-level reproducibility across redeployment and environment-level variation.",
       sourceMode: "full_redeployment",
       sourceModeLabel: "Full redeployment",
-      dashboardActionLabel: "Open Execution Dashboard",
+      stepTwoTitle: "Select deployed scenario and redeployment profile",
+      dashboardActionLabel: "Open Generated Case Dashboard",
       baselineLabel: "Generated before the controlled attack to measure baseline-noise drift.",
       groundTruthLabel: "Generated before the attack and cryptographically sealed.",
       notExecuted: [],
@@ -100,6 +103,10 @@
     methodBasis: null,
     storyMode: true,
     selectedCampaignDetail: null,
+    recommendedFamily: null,
+    attackCatalog: [],
+    lastRecommendation: null,
+    justCreatedCampaignId: null,
   };
   const ACTIVE_JOB_STORAGE_KEY = "nics-foc-experimentation-active-job";
 
@@ -601,14 +608,54 @@
 
   function renderSourceCases() {
     const select = byId("source-case-select");
-    if (!select) return;
-    const current = select.value;
-    select.innerHTML = '<option value="">No linked case</option>' + state.sourceCases.map((item) => `
-      <option value="${esc(item.case_id)}">${esc(item.case_id)} · ${esc(item.source_case_name || item.case_dir_name || item.path || "preserved case")}</option>
-    `).join("");
-    const preferred = state.currentCaseId || current;
-    if ([...select.options].some((opt) => opt.value === preferred)) {
-      select.value = preferred;
+    if (select) {
+      const current = select.value;
+      select.innerHTML = '<option value="">No linked case</option>' + state.sourceCases.map((item) => `
+        <option value="${esc(item.case_id)}">${esc(item.case_id)} · ${esc(item.source_case_name || item.case_dir_name || item.path || "preserved case")}</option>
+      `).join("");
+      const preferred = state.currentCaseId || current;
+      if ([...select.options].some((opt) => opt.value === preferred)) {
+        select.value = preferred;
+      }
+    }
+    const registerSelect = byId("register-case-select");
+    if (registerSelect) {
+      const current = registerSelect.value;
+      registerSelect.innerHTML = '<option value="">Select a case…</option>' + state.sourceCases.map((item) => `
+        <option value="${esc(item.case_id)}">${esc(item.case_id)} · ${esc(item.source_case_name || item.case_dir_name || item.path || "preserved case")}</option>
+      `).join("");
+      if ([...registerSelect.options].some((opt) => opt.value === current)) {
+        registerSelect.value = current;
+      }
+    }
+  }
+
+  async function registerExistingCaseAsResultCard() {
+    const resultNode = byId("register-case-result");
+    const caseId = String(byId("register-case-select")?.value || "").trim();
+    if (!resultNode) return;
+    if (!caseId) {
+      resultNode.innerHTML = '<div class="text-amber-300">Select a case before registering it as a result card.</div>';
+      return;
+    }
+    resultNode.innerHTML = '<div class="text-slate-400">Registering case…</div>';
+    try {
+      const card = await getJson("/api/foc/experimentation/comparison-registry/register-case", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ case_id: caseId }),
+      });
+      resultNode.innerHTML = `
+        <div class="text-cyan-300">This comparison uses lightweight forensic result profiles, not full duplicated cases.</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-3">
+          <div><div class="text-xs text-slate-400">Result card</div><div class="font-black mt-1 mono">${esc(card.result_card_id)}</div></div>
+          <div><div class="text-xs text-slate-400">Comparison family</div><div class="font-black mt-1 mono">${esc(card.comparison_family_id)}</div></div>
+          <div><div class="text-xs text-slate-400">Original case</div><div class="font-black mt-1 mono">${esc(card.original_case_id)}</div></div>
+          <div><div class="text-xs text-slate-400">Retention policy</div><div class="font-black mt-1">${esc(card.retention_policy)}</div></div>
+        </div>
+      `;
+    } catch (err) {
+      resultNode.innerHTML = `<div class="text-red-300">${esc(err.message)}</div>`;
     }
   }
 
@@ -651,6 +698,35 @@
     });
   }
 
+  function syncStepTwoTitle() {
+    const level = currentLevel();
+    const title = byId("step-two-title");
+    if (title) title.textContent = LEVEL_META[level]?.stepTwoTitle || "Select source or scenario";
+  }
+
+  // "Linked source case" is mandatory and visible only for Level A. For
+  // Level B/C it is relocated into the Advanced Mode panel as an optional
+  // reference case -- it copies defaults/thresholds only, it is never
+  // reused as evidence, and it is not required to create the campaign.
+  function syncLinkedCaseField() {
+    const level = currentLevel();
+    const field = byId("linked-case-field");
+    const labelSpan = byId("linked-case-field-label");
+    const helpDiv = byId("linked-case-field-help");
+    const guidedGrid = byId("step-two-source-grid");
+    const advancedGrid = byId("advanced-panel-grid");
+    if (!field || !guidedGrid || !advancedGrid) return;
+    if (level === "A") {
+      if (field.parentElement !== guidedGrid) guidedGrid.insertBefore(field, guidedGrid.firstChild);
+      if (labelSpan) labelSpan.textContent = "Linked source case";
+      if (helpDiv) helpDiv.textContent = "Required. Level A reuses this preserved case in read-only mode and repeats analysis over the same evidence.";
+    } else {
+      if (field.parentElement !== advancedGrid) advancedGrid.appendChild(field);
+      if (labelSpan) labelSpan.textContent = "Optional reference case";
+      if (helpDiv) helpDiv.textContent = "Optional. This case is only used to copy defaults, thresholds, expected causal model, or comparison-family settings. It is not reused as evidence and is not required for Level B/C.";
+    }
+  }
+
   function renderLevelExplanation() {
     const panel = byId("level-explanation-panel");
     if (!panel) return;
@@ -671,12 +747,30 @@
       ${explanation.used_for ? `<div class="mt-3"><span class="font-black">Used for:</span> ${esc(explanation.used_for)}</div>` : ""}
       ${explanation.required_input ? `<div class="mt-3"><span class="font-black">Required input:</span> ${esc(explanation.required_input)}</div>` : ""}
       ${explanation.important ? `<div class="mt-3 text-amber-300"><span class="font-black">Important:</span> ${esc(explanation.important)}</div>` : ""}
+      ${explanation.source_note ? `<div class="mt-3 text-amber-300"><span class="font-black">Source note:</span> ${esc(explanation.source_note)}</div>` : ""}
       <div class="mt-3"><span class="font-black">Automatically generated:</span></div>
       <ul class="mt-2 list-disc pl-5 text-slate-400 space-y-1">${(explanation.auto_generated || []).map((item) => `<li>${esc(item)}</li>`).join("")}</ul>
     `;
+    syncStepTwoTitle();
+    syncLinkedCaseField();
+    syncScenarioIdHelp();
+    syncAttackProfileField();
     renderLevelStory();
     renderStoryline();
     renderCampaignStoryPanel();
+    renderRecommendedExperiment();
+    renderPreCreateNote();
+  }
+
+  function syncScenarioIdHelp() {
+    const help = byId("scenario-id-help");
+    if (!help) return;
+    const level = currentLevel();
+    if (level === "A") {
+      help.textContent = "The identifier of the scenario used by the campaign. If possible, this is extracted automatically from the linked case or preserved FOC artifacts.";
+    } else {
+      help.textContent = "Scenario ID identifies the active deployed scenario where the new incident execution will run. Level B requires a deployed scenario because each execution launches a new attack, waits for detection, creates a new forensic case, preserves evidence, and generates a new comparison profile.";
+    }
   }
 
   function renderSourceSummary() {
@@ -687,6 +781,7 @@
     const scenarioId = currentScenarioId() || "not_available";
     const sourceMode = LEVEL_META[level]?.sourceMode || state.proposal?.source_mode || "linked_existing_case";
     const sourceCase = state.sourceCases.find((item) => item.case_id === caseId);
+    const cfg = state.proposal || {};
     panel.innerHTML = `
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
@@ -696,15 +791,139 @@
         </div>
         <div>
           <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Scenario and source context</div>
-          <div class="mt-2"><span class="font-black">Linked source case:</span> ${esc(caseId || "not_selected")}</div>
+          ${level === "A" ? `<div class="mt-2"><span class="font-black">Linked source case:</span> ${esc(caseId || "not_selected")}</div>` : ""}
           <div class="mt-2"><span class="font-black">Scenario ID:</span> ${esc(scenarioId)}</div>
           ${!truthy(scenarioId) ? `<div class="mt-2 text-amber-300">Scenario ID could not be extracted automatically. For Level A this is allowed, but the comparison profile will be weaker. For Level B and Level C, scenario ID should be provided before execution.</div>` : ""}
-          ${sourceCase ? `<div class="mt-2 text-slate-400">Selected case path: <span class="mono">${esc(sourceCase.path || sourceCase.case_path || "not_available")}</span></div>` : ""}
+          ${level === "A" && sourceCase ? `<div class="mt-2 text-slate-400">Selected case path: <span class="mono">${esc(sourceCase.path || sourceCase.case_path || "not_available")}</span></div>` : ""}
+          ${level !== "A" && caseId && sourceCase ? `
+            <div class="mt-2"><span class="font-black">Scenario context source:</span> <span class="mono">${esc(sourceCase.path || sourceCase.case_path || "not_available")}</span></div>
+            <div class="mt-2 text-slate-400">Scenario context was inferred from a previous case, but this case will not be reused as evidence. Level ${esc(level)} will create a new forensic case for each execution.</div>
+          ` : ""}
+          ${level !== "A" && !caseId ? `<div class="mt-2 text-slate-400">No optional reference case selected. This is valid for Level ${esc(level)}.</div>` : ""}
         </div>
       </div>
+      ${level !== "A" ? `
+        <div class="mt-5">
+          <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Deployed scenario and incident profile</div>
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-3">
+            <div><div class="text-xs text-slate-400">Active deployed scenario</div><div class="font-black mt-1">${esc(truthy(scenarioId) ? scenarioId : "Not selected yet")}</div></div>
+            <div><div class="text-xs text-slate-400">Scenario health</div><div class="font-black mt-1">Not available in this phase</div></div>
+            <div>
+              <div class="text-xs text-slate-400">Detection policy</div>
+              <div class="font-black mt-1 mono">${esc(cfg.detection_policy_id || "wazuh_suricata_alert_ingestion_v1")}</div>
+              <div class="text-xs text-slate-500 mt-1">Which detection source is listened to and which alert is expected.</div>
+            </div>
+            <div>
+              <div class="text-xs text-slate-400">Trigger policy</div>
+              <div class="font-black mt-1 mono">${esc(cfg.trigger_policy_id || "highest_severity_alert_v1")}</div>
+              <div class="text-xs text-slate-500 mt-1">Which condition fires forensic acquisition.</div>
+            </div>
+            <div>
+              <div class="text-xs text-slate-400">Acquisition policy</div>
+              <div class="font-black mt-1 mono">${esc(cfg.acquisition_profile_id || "default_kolla_lime_tshark_v1")}</div>
+              <div class="text-xs text-slate-500 mt-1">Which evidence is preserved after the trigger fires.</div>
+            </div>
+            <div><div class="text-xs text-slate-400">New case creation policy</div><div class="font-black mt-1">A new forensic case will be created for every execution after detection-triggered acquisition.</div></div>
+          </div>
+        </div>
+      ` : ""}
       ${level === "A" && !caseId ? `<div class="mt-4 text-red-300">A linked source case is required for Level A. Select a preserved case or open the manager from the Scientific Lifecycle dashboard.</div>` : ""}
     `;
     renderStoryline();
+  }
+
+  function syncRecommendUseButtonState() {
+    const btn = byId("recommend-use-btn");
+    const reason = byId("recommend-use-disabled-reason");
+    if (!btn) return;
+    const hasRecommendation = !!state.lastRecommendation?.has_recommendation;
+    btn.disabled = !hasRecommendation;
+    btn.classList.toggle("opacity-50", !hasRecommendation);
+    btn.classList.toggle("cursor-not-allowed", !hasRecommendation);
+    if (reason) {
+      reason.textContent = hasRecommendation ? "" : "No previous comparable result exists for this scenario family.";
+    }
+  }
+
+  async function renderRecommendedExperiment() {
+    const panel = byId("recommended-experiment-panel");
+    const content = byId("recommended-experiment-content");
+    const choiceNode = byId("recommended-experiment-choice");
+    if (!panel || !content) return;
+    const level = currentLevel();
+    const scenarioId = currentScenarioId();
+    if (level === "A" || !truthy(scenarioId)) {
+      panel.classList.add("hidden");
+      state.lastRecommendation = null;
+      syncRecommendUseButtonState();
+      return;
+    }
+    panel.classList.remove("hidden");
+    content.innerHTML = '<div class="text-slate-400">Checking the comparison registry for previous comparable results…</div>';
+    if (choiceNode) choiceNode.innerHTML = "";
+    let payload;
+    try {
+      const attackProfileId = String(byId("attack-profile-select")?.value || "").trim();
+      const triggerPolicy = state.proposal?.trigger_policy_id || "highest_severity_alert_v1";
+      const acquisitionProfileId = state.proposal?.acquisition_profile_id || "default_kolla_lime_tshark_v1";
+      payload = await getJson(`/api/foc/experimentation/comparison-registry/recommend?scenario_id=${encodeURIComponent(scenarioId)}&level=${encodeURIComponent(level)}&attack_profile_id=${encodeURIComponent(attackProfileId)}&trigger_policy=${encodeURIComponent(triggerPolicy)}&acquisition_profile_id=${encodeURIComponent(acquisitionProfileId)}`);
+    } catch (err) {
+      content.innerHTML = `<div class="text-amber-300">Could not query the comparison registry: ${esc(err.message)}</div>`;
+      state.lastRecommendation = null;
+      syncRecommendUseButtonState();
+      return;
+    }
+    state.lastRecommendation = payload;
+    syncRecommendUseButtonState();
+    if (!payload.has_recommendation) {
+      content.innerHTML = `<div class="text-slate-300">No previous comparable result was found. You can start a new comparison family. Future executions using the same scenario, attack profile, trigger policy, acquisition policy, and FOC profile will be directly comparable with this one.</div>`;
+      return;
+    }
+    const rec = payload.recommended;
+    content.innerHTML = `
+      <div>${esc(payload.message)}</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-4">
+        <div><div class="text-xs text-slate-400">Previous result card</div><div class="font-black mt-1 mono">${esc(rec.result_card_id)}</div></div>
+        <div><div class="text-xs text-slate-400">Previous case</div><div class="font-black mt-1 mono">${esc(rec.original_case_id || rec.case_id || "not_available")}</div></div>
+        <div><div class="text-xs text-slate-400">Previous campaign</div><div class="font-black mt-1 mono">${esc(rec.campaign_id || "not_available")}</div></div>
+        <div><div class="text-xs text-slate-400">Comparison family</div><div class="font-black mt-1 mono">${esc(rec.comparison_family_id)}</div></div>
+        <div><div class="text-xs text-slate-400">Scenario fingerprint</div><div class="font-black mt-1 mono">${esc(rec.scenario_fingerprint)}</div></div>
+        <div><div class="text-xs text-slate-400">Attack profile</div><div class="font-black mt-1 mono">${esc(rec.attack_profile_id)}</div></div>
+        <div><div class="text-xs text-slate-400">MITRE technique</div><div class="font-black mt-1 mono">${esc(rec.mitre_technique || rec.mitre_technique_id || "not_available")}</div></div>
+        <div><div class="text-xs text-slate-400">Attack script</div><div class="font-black mt-1 mono break-all">${esc(rec.attack_script)}</div></div>
+        <div><div class="text-xs text-slate-400">Attack script SHA-256</div><div class="font-black mt-1 mono break-all">${esc(rec.attack_script_sha256)}</div></div>
+        <div><div class="text-xs text-slate-400">Attack parameters hash</div><div class="font-black mt-1 mono break-all">${esc(rec.attack_parameters_hash)}</div></div>
+        <div><div class="text-xs text-slate-400">Expected causal edges</div><div class="font-black mt-1">${esc((rec.expected_causal_edges || []).length)}</div></div>
+        <div><div class="text-xs text-slate-400">Trigger policy</div><div class="font-black mt-1 mono">${esc(rec.trigger_policy_id || rec.trigger_policy || "not_available")}</div></div>
+        <div><div class="text-xs text-slate-400">Acquisition profile</div><div class="font-black mt-1 mono">${esc(rec.acquisition_profile_id)}</div></div>
+        <div><div class="text-xs text-slate-400">Analysis profile</div><div class="font-black mt-1 mono">${esc(rec.analysis_profile_id)}</div></div>
+        <div><div class="text-xs text-slate-400">FOC profile</div><div class="font-black mt-1 mono">${esc(rec.foc_profile_id)}</div></div>
+        <div><div class="text-xs text-slate-400">Reason</div><div class="font-black mt-1">This matches the saved comparison family used by the previous forensic result.</div></div>
+      </div>
+    `;
+  }
+
+  function bindRecommendedExperimentButtons() {
+    byId("recommend-use-btn")?.addEventListener("click", () => {
+      const rec = state.lastRecommendation?.recommended;
+      const choiceNode = byId("recommended-experiment-choice");
+      if (!rec) {
+        if (choiceNode) choiceNode.innerHTML = '<div class="text-amber-300">No recommendation is available yet.</div>';
+        return;
+      }
+      state.recommendedFamily = rec;
+      const select = byId("attack-profile-select");
+      if (select && rec.attack_profile_id && [...select.options].some((opt) => opt.value === rec.attack_profile_id)) {
+        select.value = rec.attack_profile_id;
+        renderAttackProfileDetail();
+      }
+      if (choiceNode) choiceNode.innerHTML = '<div class="text-cyan-300">To compare with this previous result, use this attack profile.</div>';
+    });
+    byId("recommend-new-family-btn")?.addEventListener("click", () => {
+      state.recommendedFamily = null;
+      const choiceNode = byId("recommended-experiment-choice");
+      if (choiceNode) choiceNode.innerHTML = '<div class="text-slate-300">This execution will create a new comparison family. It can be compared with future executions using the same scenario, attack profile, trigger policy, acquisition profile, and FOC profile.</div>';
+    });
   }
 
   function renderGuidedDefaults() {
@@ -719,11 +938,53 @@
         <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Delta WCPR allowed</div><div class="font-black mt-2">${esc(p.delta_wcpr_allowed ?? "0.10")}</div></div>
         <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Baseline window</div><div class="font-black mt-2">${esc(p.baseline_window_seconds ?? "60")}s</div></div>
       </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div><span class="font-black">Retention policy:</span> ${esc(p.retention_policy || "not_available")}</div>
+        <div><span class="font-black">Dry-run default:</span> ${p.dry_run_default ? "yes" : "no"}</div>
+      </div>
       <div class="mt-4"><span class="font-black">Ground truth seal:</span> ${esc(p.ground_truth_seal_mode || LEVEL_META[level]?.groundTruthLabel || "not_available")}</div>
       <div class="mt-2"><span class="font-black">Comparison profile after each run:</span> ${p.comparison_profile_after_each_run ? "enabled by default" : "disabled"}</div>
       <div class="mt-2 text-slate-400">${esc(p.methodological_notes || "")}</div>
     `;
   }
+
+  const OPERATIONAL_FLOW = {
+    B: [
+      "Validate deployed scenario",
+      "Capture baseline noise",
+      "Seal ground truth before attack",
+      "Launch selected automated attack",
+      "Wait for detection",
+      "Evaluate severity and forensic recommendation",
+      "Select trigger",
+      "Create new forensic case",
+      "Run acquisition",
+      "Preserve evidence",
+      "Run multilayer analysis",
+      "Run FOC and causal reconstruction",
+      "Generate executive lifecycle outputs",
+      "Generate forensic comparison profile",
+      "Register forensic result card",
+    ],
+    C: [
+      "Redeploy scenario and environment",
+      "Validate deployed scenario",
+      "Capture baseline noise",
+      "Seal ground truth before attack",
+      "Launch selected automated attack",
+      "Wait for detection",
+      "Evaluate severity and forensic recommendation",
+      "Select trigger",
+      "Create new forensic case",
+      "Run acquisition",
+      "Preserve evidence",
+      "Run multilayer analysis",
+      "Run FOC and causal reconstruction",
+      "Generate executive lifecycle outputs",
+      "Generate forensic comparison profile",
+      "Register forensic result card",
+    ],
+  };
 
   function renderExecutionPlan() {
     const panel = byId("execution-plan-panel");
@@ -732,6 +993,7 @@
     const explanation = state.proposal?.level_explanation || {};
     const meta = LEVEL_META[level];
     const sourceMode = LEVEL_META[level]?.sourceMode || "linked_existing_case";
+    const flow = OPERATIONAL_FLOW[level];
     panel.innerHTML = `
       <div class="font-black text-cyan-300">${esc(meta?.long || `Level ${level}`)}</div>
       <div class="mt-3">${esc(meta?.purpose || explanation.meaning || "No execution-plan summary is currently available.")}</div>
@@ -742,9 +1004,24 @@
         <div class="mt-4"><span class="font-black">What will not be executed:</span></div>
         <ul class="mt-2 list-disc pl-5 text-slate-400 space-y-1">${meta.notExecuted.map((item) => `<li>${esc(item)}</li>`).join("")}</ul>
       ` : ""}
+      ${flow ? `
+        <div class="mt-4"><span class="font-black">Operational flow for each Level ${esc(level)} execution:</span></div>
+        <ol class="mt-2 list-decimal pl-5 text-slate-300 space-y-1">${flow.map((item) => `<li>${esc(item)}</li>`).join("")}</ol>
+      ` : ""}
       <div class="mt-4 text-slate-400">The generated artifacts will later be consumed by the Forensic Reconstruction Comparability View, especially <span class="mono">forensic_comparison_profile.json</span>.</div>
     `;
     renderStoryline();
+  }
+
+  function renderPreCreateNote() {
+    const note = byId("pre-create-note");
+    if (!note) return;
+    const level = currentLevel();
+    if (level === "A") {
+      note.innerHTML = "";
+      return;
+    }
+    note.innerHTML = `<div class="rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-4 text-cyan-200">This Level ${esc(level)} campaign will not reuse an old forensic case. It will create a new forensic case for each execution after attack detection and forensic acquisition.</div>`;
   }
 
   function renderPreflight(payload) {
@@ -766,6 +1043,11 @@
           <span class="text-slate-400 ml-2">ok ${esc(payload.ok_count)} · missing ${esc(payload.missing_count)}</span>
         </div>
       </div>
+      ${(payload.info_notes || []).length ? `
+        <div class="mt-4 space-y-2">
+          ${payload.info_notes.map((item) => `<div class="text-cyan-300">${esc(item)}</div>`).join("")}
+        </div>
+      ` : ""}
       <div class="space-y-3 mt-5">
         ${(payload.items || []).map((item) => `
           <div class="rounded-2xl border ${item.status === "ok" ? "border-cyan-500/30 bg-cyan-500/5" : "border-amber-500/30 bg-amber-500/5"} p-4">
@@ -836,6 +1118,12 @@
       delta_wcpr_allowed: Number(byId("delta-wcpr-input")?.value || state.proposal?.delta_wcpr_allowed || 0.10),
       repetitions: Number(byId("repetitions-input")?.value || state.proposal?.number_of_repetitions || 3),
       source_mode: LEVEL_META[level]?.sourceMode,
+      requested_comparison_family_id: state.recommendedFamily?.comparison_family_id || undefined,
+      attack_id: String(byId("attack-profile-select")?.value || "").trim() || state.recommendedFamily?.attack_profile_id || undefined,
+      trigger_policy_id: state.proposal?.trigger_policy_id || "highest_severity_alert_v1",
+      acquisition_profile_id: state.proposal?.acquisition_profile_id || "default_kolla_lime_tshark_v1",
+      retention_policy: state.proposal?.retention_policy || (level === "A" ? "original_case_retained" : "profiles_only_after_archive"),
+      dry_run: level !== "A",
     };
   }
 
@@ -872,6 +1160,7 @@
       root.textContent = "Select a campaign to inspect its configuration, execution list, and job activity.";
       execRoot.innerHTML = "No campaign selected.";
       execNote.textContent = "";
+      applyCampaignActionState(null, null);
       if (!state.activeJobId) renderJob(null);
       return;
     }
@@ -927,9 +1216,15 @@
         <div><span class="font-black">Reason:</span> ${esc(campaignTechnicalReason(campaign, level))}</div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <div><span class="font-black">Source:</span> ${esc(sourceModeLabel(sourceMode))}</div>
-            <div class="mt-2"><span class="font-black">Linked base case:</span> ${esc(cfg.base_case_id || cfg.run_case_id || cfg.base_case_path || cfg.run_case_path || "not_configured")}</div>
-            <div class="mt-2"><span class="font-black">Source case policy:</span> ${level === "A" ? "Read-only. The original case will not be modified." : "Campaign workspaces remain isolated from the original evidence store."}</div>
+            ${level === "A" ? `
+              <div><span class="font-black">Source:</span> ${esc(sourceModeLabel(sourceMode))}</div>
+              <div class="mt-2"><span class="font-black">Linked base case:</span> ${esc(cfg.base_case_id || cfg.run_case_id || cfg.base_case_path || cfg.run_case_path || "not_configured")}</div>
+              <div class="mt-2"><span class="font-black">Source case policy:</span> Read-only. The original case will not be modified.</div>
+            ` : `
+              <div><span class="font-black">Source:</span> Active deployed scenario</div>
+              <div class="mt-2"><span class="font-black">New case policy:</span> A new forensic case will be created for every execution after detection-triggered acquisition.</div>
+              <div class="mt-2"><span class="font-black">Reference case:</span> ${esc(cfg.base_case_id || cfg.run_case_id ? (cfg.base_case_id || cfg.run_case_id) : "Not selected, not required.")}</div>
+            `}
           </div>
           <div>
             <div><span class="font-black">Scenario:</span> ${esc(scenarioId)}</div>
@@ -941,6 +1236,12 @@
           <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">${infoTip("delta_wcpr_allowed", "Weighted CPR tolerance", cfg.delta_wcpr_allowed)}</div><div class="font-black mt-2">${infoTip("delta_wcpr_allowed", cfg.delta_wcpr_allowed, cfg.delta_wcpr_allowed)}</div></div>
           <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Registered executions</div><div class="font-black mt-2">${esc(execs.length)}</div></div>
           <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Artifacts root</div><div class="font-black mt-2 mono text-[12px] break-all">${esc(campaign.campaign_path || "not_available")}</div></div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Retention policy</div><div class="font-black mt-2">${esc(cfg.retention_policy || (level === "A" ? "original_case_retained" : "profiles_only_after_archive"))}</div></div>
+          <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Heavy case policy</div><div class="font-black mt-2">${esc(cfg.heavy_case_policy || (level === "A" ? "reuse_original_case" : "new_case_per_execution"))}</div></div>
+          <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Dry-run default</div><div class="font-black mt-2">${cfg.dry_run ? "yes" : "no"}</div></div>
+          <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Requested comparison family</div><div class="font-black mt-2 mono">${esc(cfg.requested_comparison_family_id || "new family unless recommendation is applied")}</div></div>
         </div>
         ${technicalFailures.length ? `
           <div>
@@ -983,26 +1284,41 @@
 
   function applyCampaignActionState(campaign, runningJob) {
     const busy = !!runningJob || !!state.activeJobId;
+    const noCampaign = !campaign;
     const startBtn = byId("campaign-start-btn");
     const runNextBtn = byId("campaign-run-next-btn");
     const pauseBtn = byId("campaign-pause-btn");
     const stopBtn = byId("campaign-stop-btn");
+    const note = byId("campaign-action-note");
     if (startBtn) {
-      startBtn.disabled = busy;
-      startBtn.classList.toggle("opacity-50", busy);
-      startBtn.classList.toggle("cursor-not-allowed", busy);
+      startBtn.disabled = busy || noCampaign;
+      startBtn.classList.toggle("opacity-50", busy || noCampaign);
+      startBtn.classList.toggle("cursor-not-allowed", busy || noCampaign);
       startBtn.textContent = busy ? "Campaign Running" : "Start Campaign";
-      startBtn.title = busy ? "A campaign job is already running for this workspace." : "";
+      startBtn.title = busy ? "A campaign job is already running for this workspace." : (noCampaign ? "Select or create a campaign first." : "");
     }
     if (runNextBtn) {
-      runNextBtn.disabled = busy;
-      runNextBtn.classList.toggle("opacity-50", busy);
-      runNextBtn.classList.toggle("cursor-not-allowed", busy);
+      runNextBtn.disabled = busy || noCampaign;
+      runNextBtn.classList.toggle("opacity-50", busy || noCampaign);
+      runNextBtn.classList.toggle("cursor-not-allowed", busy || noCampaign);
       runNextBtn.textContent = busy ? "Execution In Progress" : "Run Next Execution";
-      runNextBtn.title = busy ? "Wait until the current experimentation job finishes." : "";
+      runNextBtn.title = busy ? "Wait until the current experimentation job finishes." : (noCampaign ? "Select or create a campaign first." : "");
     }
-    if (pauseBtn) pauseBtn.disabled = !campaign;
-    if (stopBtn) stopBtn.disabled = !campaign;
+    if (pauseBtn) {
+      pauseBtn.disabled = noCampaign;
+      pauseBtn.classList.toggle("opacity-50", noCampaign);
+      pauseBtn.classList.toggle("cursor-not-allowed", noCampaign);
+    }
+    if (stopBtn) {
+      stopBtn.disabled = noCampaign;
+      stopBtn.classList.toggle("opacity-50", noCampaign);
+      stopBtn.classList.toggle("cursor-not-allowed", noCampaign);
+    }
+    if (note) {
+      note.innerHTML = noCampaign
+        ? '<span class="text-amber-300">No campaign selected. Create or select a campaign before running executions.</span>'
+        : "";
+    }
   }
 
   function renderExecutionCard(item, comparableCount) {
@@ -1016,6 +1332,9 @@
       ? "Not applicable for Level A"
       : (item.artifacts?.baseline_noise_profile ? "Available" : "Missing");
     const sourceCase = item.source_case_id || item.base_case_id || item.run_case_id || "not_available";
+    const generatedCase = item.run_case_id || item.planned_case_id || "not_created_yet";
+    const generatedCaseLabel = item.run_case_id ? "Generated case" : (item.planned_case_id ? "Planned case" : "Generated case");
+    const retentionPolicy = item.retention_policy || (level === "A" ? "original_case_retained" : "profiles_only_after_archive");
     return `
       <div class="glass-soft rounded-2xl p-4 space-y-4">
         <div class="flex items-start justify-between gap-3">
@@ -1027,15 +1346,21 @@
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Level</div><div class="font-black mt-2">${esc(meta.long)}</div></div>
-          <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Source</div><div class="font-black mt-2">Base case ${esc(sourceCase)}</div></div>
+          <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Source</div><div class="font-black mt-2">${level === "A" ? `Base case ${esc(sourceCase)}` : `Scenario execution ${esc(item.scenario_id || "not_available")}`}</div></div>
           <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Generated profile</div><div class="font-black mt-2 ${profileAvailable ? "text-cyan-300" : "text-red-300"}">${profileAvailable ? "Available" : "Missing"}</div></div>
           <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Ground truth seal</div><div class="font-black mt-2">${esc(sealState)}</div></div>
         </div>
         <div><span class="font-black">Status explanation:</span> ${esc(statusExplanation(item.status, "execution"))}</div>
         <div><span class="font-black">Baseline noise:</span> ${esc(baselineState)}</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div><span class="font-black">${esc(generatedCaseLabel)}:</span> <span class="mono">${esc(generatedCase)}</span></div>
+          <div><span class="font-black">Retention policy:</span> ${esc(retentionPolicy)}</div>
+          <div><span class="font-black">Dry-run:</span> ${item.dry_run ? "yes" : "no"}</div>
+        </div>
         ${item.warnings?.length ? `<div class="text-amber-300"><span class="font-black">Warnings:</span> ${esc(item.warnings.join(" | "))}</div>` : ""}
+        ${level !== "A" && item.dry_run ? `<div class="text-slate-400">This Level ${esc(level)} execution currently preserves the experimental design, planned case ID, and normalized profiles as a dry-run scaffold. It does not yet prove that a heavy case was acquired.</div>` : ""}
         <div class="flex gap-3 flex-wrap">
-          <a class="text-cyan-300 underline" href="/foc_scientific_evidence_lifecycle.html?case_id=${encodeURIComponent(sourceCase)}">${esc(meta.dashboardActionLabel)}</a>
+          ${level === "A" || (item.run_case_id && truthy(item.run_case_id)) ? `<a class="text-cyan-300 underline" href="/foc_scientific_evidence_lifecycle.html?case_id=${encodeURIComponent(level === "A" ? sourceCase : item.run_case_id)}">${esc(meta.dashboardActionLabel)}</a>` : ""}
           <button type="button" class="text-cyan-300 underline execution-workspace-btn" data-execution-id="${esc(item.execution_id)}">Open Execution Workspace</button>
           <button type="button" class="text-cyan-300 underline execution-profile-btn" data-execution-id="${esc(item.execution_id)}" ${profileAvailable ? "" : "disabled"}>Open Comparison Profile</button>
           <button type="button" class="text-cyan-300 underline execution-compare-btn ${comparableCount >= 2 && profileAvailable ? "" : "opacity-50 cursor-not-allowed"}" data-execution-id="${esc(item.execution_id)}" ${comparableCount >= 2 && profileAvailable ? "" : "disabled"}>Compare with other executions</button>
@@ -1130,6 +1455,61 @@
     renderSourceCases();
   }
 
+  async function loadAttackCatalog() {
+    try {
+      const payload = await getJson("/api/foc/experimentation/attack-catalog");
+      state.attackCatalog = payload.attacks || [];
+    } catch {
+      state.attackCatalog = [];
+    }
+    renderAttackProfileOptions();
+  }
+
+  function renderAttackProfileOptions() {
+    const select = byId("attack-profile-select");
+    if (!select) return;
+    const current = select.value;
+    select.innerHTML = '<option value="">Select an attack profile…</option>' + state.attackCatalog.map((item) => `
+      <option value="${esc(item.attack_id)}">${esc(item.display_name)} (${esc(item.mitre_id)})</option>
+    `).join("");
+    if ([...select.options].some((opt) => opt.value === current)) select.value = current;
+  }
+
+  function renderAttackProfileDetail() {
+    const detail = byId("attack-profile-detail");
+    if (!detail) return;
+    const attackId = String(byId("attack-profile-select")?.value || "").trim();
+    const attack = state.attackCatalog.find((item) => item.attack_id === attackId);
+    if (!attack) {
+      detail.innerHTML = '<div class="text-slate-400">No attack profile selected yet. The campaign will not specify a planned attack until one is selected here.</div>';
+      return;
+    }
+    detail.innerHTML = `
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div><div class="text-xs text-slate-400">Attack profile</div><div class="font-black mt-1">${esc(attack.display_name)}</div></div>
+        <div><div class="text-xs text-slate-400">MITRE</div><div class="font-black mt-1 mono">${esc(attack.mitre_id)} — ${esc(attack.mitre_technique)}</div></div>
+        <div><div class="text-xs text-slate-400">Tactic / domain</div><div class="font-black mt-1">${esc(attack.tactic)} (${esc(attack.mitre_domain)})</div></div>
+        <div><div class="text-xs text-slate-400">Script</div><div class="font-black mt-1 mono break-all">${esc(attack.script || "not_available")}</div></div>
+        <div><div class="text-xs text-slate-400">Severity</div><div class="font-black mt-1">${esc(attack.severity)}</div></div>
+        <div><div class="text-xs text-slate-400">Detection engine</div><div class="font-black mt-1">${esc(attack.detection_engine || "not_available")}</div></div>
+        <div><div class="text-xs text-slate-400">Expected alerts</div><div class="font-black mt-1">${esc((attack.expected_alerts || []).join(", ") || "not_available")}</div></div>
+        <div><div class="text-xs text-slate-400">Expected artifacts</div><div class="font-black mt-1">${esc((attack.expected_artifacts || []).join(", ") || "not_available")}</div></div>
+        <div><div class="text-xs text-slate-400">Rollback required</div><div class="font-black mt-1">${attack.rollback_required ? "Yes" : "No"}</div></div>
+        <div><div class="text-xs text-slate-400">DFIR escalation expectation</div><div class="font-black mt-1">${attack.dfir_escalation ? "Yes — high/critical severity is treated as an escalation candidate." : "No"}</div></div>
+      </div>
+      <div class="mt-3 text-slate-400">${esc(attack.description || "")}</div>
+      <div class="mt-3 text-cyan-200">This attack profile is used to define the experimental design and the comparison family. Changing it will normally create a new comparison family instead of preserving direct comparability with previous results.</div>
+    `;
+  }
+
+  function syncAttackProfileField() {
+    const field = byId("attack-profile-field");
+    if (!field) return;
+    const level = currentLevel();
+    field.classList.toggle("hidden", level === "A");
+    if (level !== "A") renderAttackProfileDetail();
+  }
+
   async function loadMethodBasis() {
     renderMethodBasis(await getJson("/api/foc/experimentation/methodological-basis"));
   }
@@ -1222,14 +1602,30 @@
       const proceed = window.confirm("Pre-flight validation still shows missing requirements. Create the campaign anyway as a scaffolded experimental container?");
       if (!proceed) return;
     }
-    const res = await getJson("/api/foc/experimentation/campaigns/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const successNode = byId("campaign-create-success");
+    let res;
+    try {
+      res = await getJson("/api/foc/experimentation/campaigns/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } catch (err) {
+      if (successNode) successNode.innerHTML = `<div class="rounded-2xl border border-red-500/30 bg-red-500/5 p-4 text-red-300">${esc(err.message)}</div>`;
+      return;
+    }
     state.selectedCampaignId = res.campaign.campaign_id;
     state.dirtyFields.clear();
     await loadCampaigns();
+    if (successNode) {
+      const level = String(res.campaign.level || "A").toUpperCase();
+      successNode.innerHTML = `
+        <div class="rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-4 text-cyan-200">
+          <div class="font-black">Campaign created successfully.</div>
+          <div class="mt-2"><span class="font-black">Next action:</span> Run first Level ${esc(level)} execution.</div>
+        </div>
+      `;
+    }
   }
 
   async function changeCampaignState(targetState) {
@@ -1308,6 +1704,9 @@
     byId("campaign-pause-btn")?.addEventListener("click", () => changeCampaignState("pause"));
     byId("campaign-stop-btn")?.addEventListener("click", () => changeCampaignState("stop"));
     byId("campaign-run-next-btn")?.addEventListener("click", runNextExecution);
+    byId("register-case-btn")?.addEventListener("click", registerExistingCaseAsResultCard);
+    byId("attack-profile-select")?.addEventListener("change", renderAttackProfileDetail);
+    bindRecommendedExperimentButtons();
     bindFieldListeners();
     renderModeButtons();
     renderViewModeButtons();
@@ -1320,6 +1719,7 @@
     }
     await loadHealth();
     await loadSourceCases();
+    await loadAttackCatalog();
     await loadMethodBasis();
     await refreshProposalAndPreflight({ caseId: state.currentCaseId || currentSourceCaseId(), force: true });
     await loadCampaigns();

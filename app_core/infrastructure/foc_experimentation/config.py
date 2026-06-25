@@ -7,6 +7,23 @@ from ..foc_reconstruction.foc_paths import project_path, relative_path
 CAMPAIGNS_ROOT = project_path("app_core", "infrastructure", "forensics", "evidence_store", "repetition_campaigns")
 EVIDENCE_STORE_ROOT = project_path("app_core", "infrastructure", "forensics", "evidence_store")
 METHODOLOGICAL_BASIS_FILE = project_path("app_core", "infrastructure", "foc_experimentation", "methodological_basis.json")
+SCIENTIFIC_MEMORY_ROOT = CAMPAIGNS_ROOT / "scientific_memory"
+SCENARIO_REGISTRY_DIR = SCIENTIFIC_MEMORY_ROOT / "scenario_registry"
+CASE_REGISTRY_DIR = SCIENTIFIC_MEMORY_ROOT / "case_registry"
+EXECUTION_REGISTRY_DIR = SCIENTIFIC_MEMORY_ROOT / "execution_registry"
+RESULT_REGISTRY_DIR = SCIENTIFIC_MEMORY_ROOT / "result_registry"
+ANALYSIS_REGISTRY_DIR = SCIENTIFIC_MEMORY_ROOT / "analysis_registry"
+RETENTION_REGISTRY_DIR = SCIENTIFIC_MEMORY_ROOT / "retention_registry"
+BLUEPRINTS_DIR = SCIENTIFIC_MEMORY_ROOT / "blueprints"
+LEGACY_COMPARISON_REGISTRY_DIR = CAMPAIGNS_ROOT / "comparison_registry"
+
+SCENARIO_REGISTRY_PATH = SCENARIO_REGISTRY_DIR / "scenario_registry.json"
+CASE_REGISTRY_PATH = CASE_REGISTRY_DIR / "case_registry.json"
+EXECUTION_REGISTRY_PATH = EXECUTION_REGISTRY_DIR / "execution_registry.json"
+RESULT_REGISTRY_PATH = RESULT_REGISTRY_DIR / "comparison_result_registry.json"
+ANALYSIS_REGISTRY_PATH = ANALYSIS_REGISTRY_DIR / "analysis_registry.json"
+RETENTION_REGISTRY_PATH = RETENTION_REGISTRY_DIR / "retention_registry.json"
+LEGACY_COMPARISON_REGISTRY_PATH = LEGACY_COMPARISON_REGISTRY_DIR / "comparison_result_registry.json"
 
 CAMPAIGN_STATES = {
     "not_started",

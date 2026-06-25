@@ -104,6 +104,27 @@
     return "text-slate-300";
   }
 
+  // comparison_type is an independent axis from status: it answers "are these
+  // executions even the same experiment by design?" (family grouping),
+  // separate from "did the numbers come out close?" (status).
+  function comparisonTypeLabel(value) {
+    const labels = {
+      direct_family_comparison: "Direct family comparison",
+      exploratory_comparison_only: "Exploratory comparison only",
+      platform_level_comparison: "Platform-level comparison",
+      platform_level_comparison_with_scenario_drift: "Platform-level comparison with scenario drift",
+      insufficient_data: "Insufficient data",
+    };
+    return labels[String(value || "insufficient_data")] || titleCase(value);
+  }
+
+  function comparisonTypeClass(value) {
+    const normalized = String(value || "insufficient_data");
+    if (normalized === "direct_family_comparison") return "text-cyan-300";
+    if (normalized === "exploratory_comparison_only" || normalized === "platform_level_comparison" || normalized === "platform_level_comparison_with_scenario_drift") return "text-amber-300";
+    return "text-slate-300";
+  }
+
   function selectedCampaign() {
     return state.campaigns.find((item) => item.campaign_id === state.selectedCampaignId) || null;
   }
@@ -141,6 +162,30 @@
           <li>is uncertainty stable?</li>
           <li>is hypothesis support stable?</li>
           <li>is the final conclusion stable enough for the configured comparison rule?</li>
+        </ul>
+      </div>
+      <div class="glass-soft rounded-2xl p-4">
+        <div class="font-black text-cyan-300">What is being compared?</div>
+        <ul class="mt-3 list-disc pl-5 text-slate-300 space-y-1">
+          <li>attack profile</li>
+          <li>scenario fingerprint</li>
+          <li>trigger policy</li>
+          <li>acquisition profile</li>
+          <li>causal metrics</li>
+          <li>uncertainty</li>
+          <li>hypothesis support</li>
+          <li>final conclusion</li>
+          <li>scientific limitations</li>
+        </ul>
+      </div>
+      <div class="glass-soft rounded-2xl p-4">
+        <div class="font-black text-amber-300">What is not being compared?</div>
+        <ul class="mt-3 list-disc pl-5 text-slate-300 space-y-1">
+          <li>full memory dumps</li>
+          <li>full disk images</li>
+          <li>full PCAP equality</li>
+          <li>byte-level artifact equality</li>
+          <li>complete raw case equality</li>
         </ul>
       </div>
     `;
@@ -324,6 +369,15 @@
     return "No comparability decision is available yet.";
   }
 
+  function comparisonTypeNarrative(result) {
+    const comparisonType = String(result?.comparison_type || "insufficient_data");
+    if (comparisonType === "direct_family_comparison") return "The selected executions belong to the same comparison family. Direct forensic comparability is scientifically valid under the configured thresholds.";
+    if (comparisonType === "exploratory_comparison_only") return "The selected executions belong to different comparison families. This is an exploratory comparison only, not direct reproducibility evidence.";
+    if (comparisonType === "platform_level_comparison_with_scenario_drift") return "The selected executions include Level C redeployment outputs with scenario drift. This supports platform-level interpretation, not direct family equivalence.";
+    if (comparisonType === "platform_level_comparison") return "The selected executions include Level C redeployment outputs under a compatible scenario family. This supports platform-level reproducibility interpretation.";
+    return "The comparison family could not be validated from the available lightweight result cards.";
+  }
+
   async function renderResultStory() {
     const root = byId("cmp-result-story-panel");
     if (!root) return;
@@ -356,6 +410,7 @@
     root.innerHTML = `
       <div class="font-black text-cyan-300">Result Story</div>
       <div class="mt-3">${story}</div>
+      <div class="mt-4"><span class="font-black">Comparison family interpretation:</span> ${esc(comparisonTypeNarrative(result))}</div>
       <div class="mt-4"><span class="font-black">Interpretation by state:</span> ${esc(statusNarrative(result.status))}</div>
     `;
     await renderBeginnerExpert(result);
@@ -403,6 +458,8 @@
       else nextActions.push("Inspect the affected execution profiles and execution workspace before drawing stronger conclusions.");
     });
     if (payload?.status === "Insufficient Data") nextActions.push("Generate the missing forensic_comparison_profile.json, open the execution workspace, inspect job logs, and regenerate the missing profile.");
+    if (payload?.comparison_type === "exploratory_comparison_only") nextActions.push("Treat this as exploratory only. Use the same attack profile, trigger policy, acquisition profile, and FOC profile to return to a direct comparison family.");
+    if (payload?.comparison_type === "platform_level_comparison_with_scenario_drift") nextActions.push("Inspect scenario drift. Confirm whether the redeployed topology and scenario fingerprint still satisfy your equivalence criteria before claiming reproducibility.");
     root.innerHTML = `
       <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div class="glass-soft rounded-2xl p-4">
@@ -425,6 +482,7 @@
         <div class="glass-soft rounded-2xl p-4">
           <div class="font-black text-cyan-300">What this means</div>
           <div class="mt-3 text-slate-300">${esc(statusNarrative(payload.status))}</div>
+          <div class="mt-3 text-slate-300">${esc(comparisonTypeNarrative(payload))}</div>
           <div class="mt-4 text-slate-300">
             <span class="font-black">${infoTip("comparable_status", "Result meaning", payload.status)}</span>
           </div>
@@ -447,13 +505,20 @@
       return;
     }
     const summary = payload.summary || {};
+    const comparisonType = payload.comparison_type || "insufficient_data";
     root.innerHTML = `
-      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
         <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">${infoTip("comparable_status", "Status", payload.status)}</div><div class="font-black mt-2 ${statusClass(payload.status)}">${infoTip("comparable_status", payload.status, payload.status)}</div></div>
+        <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Comparison type</div><div class="font-black mt-2 ${comparisonTypeClass(comparisonType)}">${esc(comparisonTypeLabel(comparisonType))}</div></div>
         <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Reference execution</div><div class="font-black mt-2">${esc(payload.reference_execution_id || "not_available")}</div></div>
         <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">${infoTip("max_delta_cpr", "Max |ΔCPR|", summary.max_abs_cpr_difference ?? "n/a")}</div><div class="font-black mt-2">${infoTip("max_delta_cpr", summary.max_abs_cpr_difference ?? "n/a", summary.max_abs_cpr_difference ?? "n/a")}</div></div>
         <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">${infoTip("max_delta_wcpr", "Max |ΔWCPR|", summary.max_abs_weighted_cpr_difference ?? "n/a")}</div><div class="font-black mt-2">${infoTip("max_delta_wcpr", summary.max_abs_weighted_cpr_difference ?? "n/a", summary.max_abs_weighted_cpr_difference ?? "n/a")}</div></div>
       </div>
+      ${comparisonType !== "direct_family_comparison" ? `
+        <div class="mt-5 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-amber-200">
+          The selected executions belong to different comparison families. They can be inspected together, but they should not be used as direct forensic reconstruction comparability evidence unless the difference is explicitly accepted as exploratory or platform-level comparison.
+        </div>
+      ` : ""}
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
         <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
           <div class="text-xs uppercase tracking-[0.16em] text-slate-400">${infoTip("delta_cpr_allowed", "Allowed |ΔCPR| margin", payload.delta_cpr_allowed ?? "n/a")}</div>

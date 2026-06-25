@@ -253,6 +253,7 @@ def create_execution_from_campaign(campaign_id: str, overrides: dict | None = No
     level = str((overrides.get("level") or config.get("level") or manifest.get("level") or "A")).upper()
     index = _execution_index(campaign_id, level)
     execution_id = f"EXEC-{index:04d}"
+    planned_case_id = f"CASE-PLANNED-{campaign_id.split('-')[-1]}-{execution_id}"
     exec_dir = execution_dir(campaign_id, level, execution_id)
     exec_dir.mkdir(parents=True, exist_ok=True)
 
@@ -279,6 +280,7 @@ def create_execution_from_campaign(campaign_id: str, overrides: dict | None = No
         baseline_threshold=baseline_threshold,
         baseline_builder=build_baseline_noise_profile,
         seal_builder=build_ground_truth_seal,
+        campaign_config=config,
         progress_hook=progress_hook,
     )
 
@@ -290,6 +292,29 @@ def create_execution_from_campaign(campaign_id: str, overrides: dict | None = No
     warnings = list(profile_result.get("warnings") or [])
     if not case_bundle:
         warnings.append("No linked source case was provided. The execution was scaffolded but no scientific profiles could be populated from preserved artifacts.")
+        if level in {"B", "C"} and bool(config.get("dry_run", True)):
+            warnings.append("This Level B/C execution is currently a dry-run planning scaffold. It declares the experimental design and planned new forensic case, but it does not yet launch a real attack or create a real preserved case.")
+
+    if level in {"B", "C"} and not case_bundle:
+        _write_json(
+            exec_dir / "execution_plan.json",
+            {
+                "execution_id": execution_id,
+                "campaign_id": campaign_id,
+                "level": level,
+                "planned_case_id": planned_case_id,
+                "dry_run": bool(config.get("dry_run", True)),
+                "scenario_id": config.get("scenario_id") or "not_available",
+                "attack_id": config.get("attack_id") or "not_available",
+                "trigger_policy_id": config.get("trigger_policy_id") or "highest_severity_alert_v1",
+                "acquisition_profile_id": config.get("acquisition_profile_id") or "default_kolla_lime_tshark_v1",
+                "analysis_profile_id": config.get("analysis_profile_id") or "default_multilayer_analysis_v1",
+                "foc_profile_id": config.get("foc_profile_id") or "default_foc_causal_reconstruction_v1",
+                "retention_policy": config.get("retention_policy") or "profiles_only_after_archive",
+                "heavy_case_policy": config.get("heavy_case_policy") or "new_case_per_execution",
+                "generated_at": utc_now(),
+            },
+        )
 
     execution_manifest = {
         "execution_id": execution_id,
@@ -303,8 +328,11 @@ def create_execution_from_campaign(campaign_id: str, overrides: dict | None = No
         "base_case_id": config.get("base_case_id"),
         "base_case_path": config.get("base_case_path"),
         "base_artifacts_read_only": True if (level == "A" and case_bundle) else False,
-        "run_case_id": case_bundle.get("case_id") if case_bundle else config.get("run_case_id"),
+        "run_case_id": case_bundle.get("case_id") if case_bundle else (config.get("run_case_id") or (planned_case_id if level in {"B", "C"} else None)),
         "run_case_path": case_bundle.get("case_rel_path") if case_bundle else config.get("run_case_path"),
+        "planned_case_id": planned_case_id if level in {"B", "C"} and not case_bundle else None,
+        "dry_run": bool(config.get("dry_run", False)),
+        "retention_policy": config.get("retention_policy") or ("original_case_retained" if level == "A" else "profiles_only_after_archive"),
         "stage_statuses": stage_statuses,
         "warnings": warnings,
         "artifacts": profile_result.get("files") or {},
@@ -345,15 +373,21 @@ def create_execution_from_campaign(campaign_id: str, overrides: dict | None = No
         "execution_dir": rel(exec_dir),
         "status": status,
         "source_case_id": case_bundle.get("case_id") if case_bundle else source_case_id,
+        "run_case_id": case_bundle.get("case_id") if case_bundle else (planned_case_id if level in {"B", "C"} else None),
         "warnings": warnings,
         "artifacts": profile_result.get("files") or {},
     }
 
 
-def load_execution(execution_id: str) -> dict | None:
+def load_execution(execution_id: str, campaign_id: str | None = None) -> dict | None:
     if not CAMPAIGNS_ROOT.exists():
         return None
-    for campaign in CAMPAIGNS_ROOT.iterdir():
+    # execution_id (EXEC-0001, EXEC-0002, ...) restarts at 1 per campaign, so it
+    # is only unique within a campaign. When campaign_id is known, scope the
+    # search to it -- otherwise two campaigns sharing the same execution_id
+    # would make this resolve to whichever one the filesystem lists first.
+    candidates = [CAMPAIGNS_ROOT / campaign_id] if campaign_id else CAMPAIGNS_ROOT.iterdir()
+    for campaign in candidates:
         if not campaign.is_dir():
             continue
         for level_dir in campaign.glob("level_*"):

@@ -3083,26 +3083,38 @@ app_core/infrastructure/forensics/evidence_store/repetition_campaigns/<CAMPAIGN_
 
 #### Campaign levels
 
-The module distinguishes three methodological levels:
+The module distinguishes three methodological levels, each bound to an explicit `source_mode` that determines what input is mandatory and what artifact the execution produces:
 
-- **Level A**
-  - reuses an already preserved forensic case in read-only mode
-  - does not modify the original case
+- **Level A** — `source_mode: linked_existing_case`
+  - reuses an already preserved forensic case in **read-only mode**
+  - a `linked source case` is **mandatory**; the campaign cannot be created without it
+  - does not modify the original case, does not execute a new attack, does not acquire new evidence
   - is intended to study **repeatability of the analytical and reconstruction layer** over the same preserved artifacts
-- **Level B**
-  - represents controlled repetition under the same scenario conditions
-  - is intended to study **stability of forensic reconstruction** under equivalent experimental conditions
-- **Level C**
-  - extends Level B with environment redeployment concerns
+- **Level B** — `source_mode: new_incident_execution`
+  - a `linked source case` is **explicitly not required** and, in Guided Mode, is not even shown
+  - requires an `active deployed scenario` (`scenario_id`), an `attack profile`, a `detection policy`, a `trigger policy`, and an `acquisition policy` — each kept as a distinct concept answering a different question: detection policy is *what source/alert is listened to*, trigger policy is *what condition fires acquisition*, acquisition policy is *what evidence gets preserved*
+  - the `attack profile` is selected from the real MITRE ATT&CK-aligned catalog (`app_core/infrastructure/attack/catalog.py`), not a placeholder: the campaign builder shows the actual technique, MITRE ID, script, expected alerts, expected artifacts, rollback requirement, and DFIR escalation expectation for the selected `attack_id`
+  - each execution creates a **new forensic case**; an existing case is never reused as evidence
+  - is intended to study **stability of forensic reconstruction** under equivalent, documented experimental conditions
+- **Level C** — `source_mode: full_redeployment`
+  - same case-independence rule as Level B, plus a `deployment profile` and `scenario profile`
+  - redeploys the scenario and creates a new forensic case per execution
   - is intended to study **platform and environment reproducibility**, not only forensic repeatability
 
-In the current first-phase implementation, the module fully supports **linked-case registration** and isolated execution-profile generation without touching the original evidence. This means the experimentation layer can already:
+`linked_existing_case` and `new_incident_execution`/`full_redeployment` are mutually exclusive by construction: `campaign_service.create_campaign()` rejects a Level A request without a case (`"A linked source case is required for Level A. Select a preserved case before creating the campaign."`) and rejects a Level B/C request without a resolvable `scenario_id` (`"Scenario ID is required for Level B. Select or auto-detect an active deployed scenario before starting execution."`), so the two source models cannot be silently mixed.
 
-- register campaigns
+For Level B/C, an existing case can still be attached, but only as an **optional reference case** (Advanced Mode only): it copies defaults, thresholds, the expected causal model, or comparison-family settings, and is never treated as evidence and never required.
+
+In the current implementation, the module fully supports **linked-case registration**, **scenario-scoped execution without a linked case**, and isolated execution-profile generation without touching the original evidence. This means the experimentation layer can already:
+
+- register campaigns under either source model
 - create independent execution workspaces
 - seal ground-truth context
 - build comparison profiles
-- compare executions
+- compute a design-only `comparison_family_id` and register it in the comparison registry
+- compare executions, both numerically and by comparison family
+
+**Honest scoping note.** Level B and Level C do not yet drive a real "launch attack → wait for detection → create case → acquire → analyze" execution pipeline inside `foc_experimentation` itself; `execution_service.create_execution_from_campaign()` still builds the comparison profile from a `case_bundle`, and `_derive_stage_statuses()` explicitly marks `attack_executed`/`detection_observed`/`acquisition_executed` as `completed_with_degradation` with the reason `"registered from a linked existing case rather than re-executed by foc_experimentation"` whenever `level != A`. The validation, source-model, and registry corrections described below make the module truthfully describe what Level B/C do and do not do today; they do not fabricate a missing orchestration engine.
 
 #### Simple usage guide
 
@@ -3113,15 +3125,21 @@ Use the experimentation module in this order:
    - `Level A` for reanalysis repeatability over an existing preserved case
    - `Level B` for controlled repeated incident execution
    - `Level C` for redeployment-aware reproducibility studies
-3. Link the source case or provide the scenario context
-4. Review the proposed defaults and the pre-flight checklist
-5. Create the campaign
-6. Start the campaign or run the next execution
-7. Wait until the execution generates its scientific profiles, especially:
+3. Provide the source input required for the selected level:
+   - `Level A`: select the preserved `linked source case` (mandatory)
+   - `Level B` / `Level C`: provide or auto-detect the `scenario_id` of an active deployed scenario; a linked case is optional and only available in Advanced Mode as a `reference case`
+4. If `Level B` or `Level C` is selected and the comparison registry already has a comparable result for that scenario, review the `Recommended Comparable Experiment` panel and either:
+   - click `Use Recommended Attack For Comparability` to keep the same attack profile, trigger policy, acquisition profile, and `comparison_family_id`, or
+   - click `Start New Comparison Family` to diverge intentionally and start a new family
+5. Review the proposed defaults and the pre-flight checklist
+6. Create the campaign
+7. Start the campaign or run the next execution
+8. Wait until the execution generates its scientific profiles, especially:
    - `ground_truth_seal.json`
    - `baseline_noise_profile.json` when applicable
    - `forensic_comparison_profile.json`
-8. After at least two executions have generated `forensic_comparison_profile.json`, open `Forensic Reconstruction Comparability View`
+   - `forensic_result_card.json`
+9. After at least two executions have generated `forensic_comparison_profile.json`, open `Forensic Reconstruction Comparability View`
 
 #### Campaign status semantics
 
@@ -3264,6 +3282,8 @@ This produces one of four states:
 - `Not Comparable`
 - `Insufficient Data`
 
+This numeric `status` answers **"did the recovered metrics stay within margin?"**. It is deliberately kept independent from a second, orthogonal axis, `comparison_type`, which answers a different question: **"are these executions even the same experiment by design?"** See *Comparison Registry and Family-Based Grouping* below.
+
 #### Methodological basis
 
 The experimentation module includes a dedicated methodological reference basis rather than decorative bibliography.
@@ -3290,6 +3310,300 @@ The purpose is not citation for its own sake. The purpose is to justify:
 - why read-only linkage to preserved cases matters
 - why threshold-based comparability is used instead of vague similarity claims
 - why uncertainty and degradation remain explicit
+
+#### Scientific memory, lightweight result profiles, and comparison families (2026-06-25)
+
+The experimentation module now treats **scientific memory** as a first-class artifact. The platform does not compare full cases and does not duplicate heavy evidence by default. Instead, it preserves a compact, auditable memory of scenarios, cases, executions, analysis outputs, and comparison-ready results under:
+
+```bash
+app_core/infrastructure/forensics/evidence_store/repetition_campaigns/scientific_memory/
+```
+
+with independent registries for:
+
+- `scenario_registry/`
+- `case_registry/`
+- `execution_registry/`
+- `result_registry/`
+- `analysis_registry/`
+- `retention_registry/`
+- `blueprints/`
+
+This is the operational meaning of the rule:
+
+```text
+We do not compare full cases. We compare lightweight forensic result profiles generated under comparable experimental conditions.
+```
+
+##### Why full cases are not compared
+
+Two scientifically equivalent executions are not expected to be bit-identical. Memory dumps, disk images, PCAPs, timestamps, PIDs, counters, transient buffers, and background traffic naturally drift between executions. Reproducibility is therefore measured as:
+
+- semantic equivalence
+- causal equivalence
+- uncertainty-class stability
+- hypothesis-support stability
+- conclusion-class stability
+
+and **not** as byte-for-byte equality of:
+
+- memory dumps
+- disk images
+- full PCAP payloads
+- the entire `evidence_store`
+
+##### What is stored instead of heavy evidence
+
+Each execution can preserve lightweight comparison artifacts such as:
+
+- `scenario_profile.json`
+- `attack_profile.json`
+- `ground_truth.json`
+- `ground_truth_seal.json`
+- `baseline_noise_profile.json`
+- `detection_trigger_profile.json`
+- `acquisition_profile.json`
+- `preservation_profile.json`
+- `forensic_comparison_profile.json`
+- `forensic_result_card.json`
+- `analysis_repeatability_profile.json` for Level A
+
+The original heavy artifacts remain in the original forensic case directory when they exist. The experimentation module stores:
+
+- normalized summaries
+- hashes
+- references
+- metrics
+- result cards
+- scenario blueprints
+- retention manifests
+
+instead of duplicating dumps, disk images, or PCAPs inside `repetition_campaigns/`.
+
+##### Scientific memory cards and registries
+
+The module now persists four lightweight card families:
+
+- `scenario_result_card.json`
+  - stable scenario identity, topology fingerprint, tool/configuration summaries, supported attacks, blueprint path, and redeployability metadata
+- `case_result_card.json`
+  - case identity, scenario linkage, acquisition/preservation summary, manifest/digest hashes, and retention policy
+- `analysis_result_card.json`
+  - analysis coverage and high-level analysis/causal/uncertainty state
+- `forensic_result_card.json`
+  - the comparison-ready result profile for one execution
+
+The global lightweight historical index is:
+
+```bash
+app_core/infrastructure/forensics/evidence_store/repetition_campaigns/scientific_memory/result_registry/comparison_result_registry.json
+```
+
+Each entry is a `forensic_result_card` and includes, among others:
+
+- `result_card_id`
+- `case_id`
+- `execution_id`
+- `campaign_id`
+- `evaluation_level`
+- `source_type`
+- `scenario_id`
+- `scenario_fingerprint`
+- `topology_fingerprint`
+- `attack_profile_id`
+- `attack_script_sha256`
+- `attack_parameters_hash`
+- `trigger_policy`
+- `acquisition_profile_id`
+- `CPR`
+- `Weighted_CPR`
+- `uncertainty_class`
+- `hypothesis_support`
+- `final_conclusion_class`
+- `scientific_limitations`
+- `comparison_family_id`
+- `comparison_profile_path`
+- `retention_policy`
+- `heavy_artifacts_retained`
+- `heavy_artifacts_location`
+
+##### Scenario registry and Level C blueprint memory
+
+The module also preserves lightweight scenario memory even if the active scenario is later destroyed. It writes:
+
+- `scenario_registry/scenario_registry.json`
+- one `scenario_result_card.json` per `scenario_fingerprint`
+- one `scenario_reconstruction_blueprint.json` per comparable scenario family
+
+The blueprint keeps only what is needed to reconstruct an equivalent scenario for Level C:
+
+- topology definition
+- IT and OT node-role structure
+- network definitions and high-level configuration hashes
+- PLC / SCADA/HMI references when available
+- tool-installation, IDS, SIEM, trigger, acquisition, analysis, and FOC profile identifiers
+- expected alerts
+- expected artifacts
+- expected causal model references
+
+It does **not** preserve heavy evidence.
+
+##### `comparison_family_id` and why it must not depend on results
+
+`comparison_family_id` identifies the **experimental design family**, not the outcome. Its purpose is to answer:
+
+```text
+Are these executions the same experiment by design?
+```
+
+It is therefore computed only from design-time fields such as:
+
+- `scenario_fingerprint`
+- `topology_fingerprint`
+- `attack_profile_id`
+- `attack_script_sha256`
+- `attack_parameters_hash`
+- `expected_causal_edges`
+- `trigger_policy_id`
+- `acquisition_profile_id`
+- `analysis_profile_id`
+- `foc_profile_id`
+
+It explicitly does **not** depend on:
+
+- `CPR`
+- `Weighted CPR`
+- `recovered_edges`
+- `degraded_edges`
+- `missing_edges`
+- `uncertainty result`
+- `hypothesis_support`
+- `final_conclusion_class`
+- `comparability status`
+
+This rule is methodologically mandatory. If `comparison_family_id` changed whenever a result degraded, then variability in the experiment would destroy the family identity that is needed to study variability in the first place.
+
+##### Level A, Level B, and Level C under the lightweight-profile model
+
+- **Level A**
+  - reuses the same preserved case in read-only mode
+  - does not create a new incident or a new forensic case
+  - regenerates only post-preservation products
+  - stores `analysis_repeatability_profile.json` plus a `forensic_result_card.json`
+  - answers: *If the same preserved evidence is analyzed again, do we obtain equivalent forensic reconstruction results?*
+- **Level B**
+  - uses the same deployed scenario
+  - is intended to create a **new forensic case per execution**
+  - the current first-phase implementation can already preserve the experimental design, generate the planned case identity, and register lightweight result profiles; the full automated attack→detection→acquisition→analysis orchestration is still declared as future work and is never faked by the UI
+  - answers: *If the same incident is executed again in the same deployed scenario, do we recover comparable forensic reconstructions?*
+- **Level C**
+  - preserves a scenario reconstruction blueprint
+  - is intended to redeploy the scenario and then behave like Level B
+  - uses `scenario_fingerprint` and `topology_fingerprint` to detect redeployment equivalence or scenario drift
+  - answers: *If the scenario is redeployed from its saved specification, can the platform recover comparable forensic reconstructions again?*
+
+This is why the module uses the formulation:
+
+```text
+Level B creates new forensic cases in the same deployed scenario.
+Level C recreates the scenario and then creates new forensic cases.
+```
+
+##### Recommended Comparable Experiment
+
+When the operator selects Level B or Level C, the module can query:
+
+- `comparison_result_registry.json`
+- `scenario_registry.json`
+- `case_registry.json`
+
+to recommend the attack/configuration that preserves direct comparability with previous results.
+
+The panel `Recommended Comparable Experiment` tells the user, in plain language:
+
+- which previous result card is being matched
+- which scenario fingerprint and comparison family it belongs to
+- which attack profile and MITRE technique should be reused
+- which trigger policy and acquisition profile should be reused
+- why changing these choices creates a new comparison family
+
+Two explicit paths exist:
+
+- `Use Recommended Attack For Comparability`
+  - keeps the same experimental family when possible
+- `Start New Comparison Family`
+  - allows an intentional deviation and preserves it as a new family for future comparisons
+
+##### Direct comparison, exploratory comparison, and scenario drift
+
+The comparability layer now distinguishes:
+
+- **Direct family comparison**
+  - the executions belong to the same `comparison_family_id`
+  - direct forensic comparability is scientifically valid
+- **Exploratory comparison only**
+  - the executions come from different comparison families
+  - they can be inspected together, but should not be presented as direct reproducibility evidence
+- **Platform-level comparison with scenario drift**
+  - Level C redeployment changed the scenario or topology fingerprint enough that the run must be interpreted as drift-aware platform reproducibility, not direct family equivalence
+
+This distinction is separate from the numeric comparability status:
+
+- `Comparable`
+- `Comparable With Degradation`
+- `Not Comparable`
+- `Insufficient Data`
+
+The first answers *"same experiment by design?"* and the second answers *"did the result stay within the allowed margins?"*.
+
+##### Lightweight retention and heavy-evidence cleanup
+
+The module now supports retention preparation around the rule:
+
+```text
+The platform must preserve scientific memory, not duplicate heavy evidence.
+```
+
+Before any future heavy-artifact cleanup, the module verifies that the execution already preserves:
+
+- `forensic_result_card.json`
+- `forensic_comparison_profile.json`
+- `execution_manifest.json`
+- preservation summary
+- original manifest/digest hashes when available
+
+and can generate `retention_manifest.json` plus a retention-registry entry. This records:
+
+- what was retained
+- what was archived or deleted
+- who performed the action
+- why it was done
+- where the original heavy case lived
+- whether future comparisons remain possible after cleanup
+
+The retained comparison logic therefore survives even if the heavy case is later archived or removed, because future comparability uses lightweight result profiles and scientific memory registries rather than duplicated dumps or PCAP equality.
+
+##### Passive scientific-memory synchronization
+
+To avoid invasive changes in the original dashboards, `foc_experimentation` now performs **passive synchronization** when its own API surface is used:
+
+- active scenario files are scanned to refresh lightweight scenario cards and scenario reconstruction blueprints
+- existing preserved cases are scanned to refresh `case_registry`
+- campaign/result generation refreshes scenario, case, execution, analysis, and result registries
+
+This keeps the module modular while still allowing historical scientific memory to outlive the active scenario or the heavy case workspace.
+
+##### Additional experimentation endpoints
+
+In addition to the earlier campaign and comparison endpoints, the module now exposes:
+
+- `POST /api/foc/experimentation/scientific-memory/sync`
+- `GET /api/foc/experimentation/scientific-memory/scenarios`
+- `GET /api/foc/experimentation/scientific-memory/cases`
+- `GET /api/foc/experimentation/scientific-memory/results`
+- `POST /api/foc/experimentation/retention/prepare`
+
+These endpoints keep the experimentation layer self-contained. They do not modify the original FOC, Forensic Lab, Attack Lab, or Node Health execution logic.
 
 #### Scientific interpretation rules enforced by the executive summary
 
@@ -3318,6 +3632,99 @@ The dashboard is designed to stay lightweight:
 When an analyst opens a report from `Reports and Artifacts`, the content is fetched on demand from `GET /api/foc/reports/file`.
 
 This keeps the page usable as an executive decision surface while preserving drill-down access to the real derived or preserved artifacts.
+
+#### Correcciones de claridad y consistencia científica en la UI de Level B (2026-06-25)
+
+Tras la corrección del modelo de fuente del 2026-06-24, una revisión funcional de la UI resultante (`foc_repetition_manager.html`/`.js`) encontró que, aunque el backend ya no exigía un caso enlazado para Level B, varios elementos visuales seguían sugiriendo lo contrario o mezclaban conceptos científicos distintos bajo el mismo valor. Esta iteración corrige doce puntos concretos, todos en la capa de presentación y de metadatos de diseño — **ningún cambio toca el motor de adquisición, análisis o reconstrucción causal**.
+
+**Bug real encontrado y corregido: `trigger_policy_id` y `acquisition_profile_id` se mostraban con el mismo valor.** La causa no era conceptual sino un defecto concreto introducido el 2026-06-24: el *fallback* de visualización en `renderSourceSummary()` usaba literalmente la misma cadena (`"default_kolla_lime_tshark_v1"`) para ambos campos cuando `state.proposal` todavía no los exponía (`build_campaign_proposal()` nunca los devolvía). La corrección tiene dos partes: (1) `build_campaign_proposal()` ahora devuelve los cinco identificadores fijos reales (`detection_policy_id`, `trigger_policy_id`, `acquisition_profile_id`, `analysis_profile_id`, `foc_profile_id`), de modo que la UI muestra el valor configurado real en vez de adivinar un *fallback*; (2) se introduce `detection_policy_id` (`"wazuh_suricata_alert_ingestion_v1"`) como un **cuarto concepto de diseño**, distinto de `trigger_policy_id` (`"highest_severity_alert_v1"`) y de `acquisition_profile_id` (`"default_kolla_lime_tshark_v1"`), porque responden preguntas distintas: qué fuente de detección se escucha, qué condición dispara la adquisición, y qué evidencia se preserva tras el disparo. `detection_policy_id` se añade también como entrada del hash de `comparison_family_id` (`compute_comparison_family_id` pasa de 9 a 10 campos posicionales) y al esquema de `forensic_result_card.json`, manteniendo la misma garantía de que solo participan campos de diseño previos a la ejecución.
+
+**El selector de `attack profile` deja de ser un texto genérico y pasa a ser un dato real.** Antes, Level B mostraba literalmente `Attack profile: Selected automatically per scenario`, sin indicar qué se iba a ejecutar. La corrección añade un nuevo endpoint de solo lectura, `GET /api/foc/experimentation/attack-catalog`, que reexpone el catálogo ATT&CK ya existente y validado (`app_core/infrastructure/attack/catalog.py`, el mismo que usa el Tactical Cyber Operations Dashboard) — no se inventan datos nuevos. El Step 2 del Repetition Manager incorpora un selector real (`attack-profile-select`) que, al elegir un `attack_id`, despliega su `display_name`, `mitre_id`/`mitre_technique`, `tactic`, `script`, `severity`, `detection_engine`, `expected_alerts`, `expected_artifacts`, `rollback_required` y `dfir_escalation` — exactamente el conjunto de campos exigido. El `attack_id` seleccionado se persiste en `campaign_config.json` reemplazando al campo `attack_profile_override` (de nombre más ambiguo y nunca antes resuelto contra un catálogo real).
+
+**`Selected case path` ya no aparece como si fuera evidencia para Level B/C.** Antes, si el operador seleccionaba un caso de referencia opcional, la UI mostraba la misma línea `Selected case path: ...` usada por Level A, lo cual sugería reutilización como evidencia. Ahora, para Level B/C, la misma información se presenta bajo la etiqueta `Scenario context source` junto con el texto explícito: *"Scenario context was inferred from a previous case, but this case will not be reused as evidence. Level B will create a new forensic case for each execution."* Si no hay caso de referencia, la línea se omite por completo en vez de mostrar un *placeholder* confuso.
+
+**El texto de ayuda de `Scenario ID` deja de heredar la redacción de Level A.** El texto genérico ("se extrae del caso enlazado o de artefactos FOC preservados") solo es correcto para Level A. Para Level B/C, el texto ahora es explícito sobre por qué el escenario es obligatorio: *"Scenario ID identifies the active deployed scenario where the new incident execution will run. Level B requires a deployed scenario because each execution launches a new attack, waits for detection, creates a new forensic case, preserves evidence, and generates a new comparison profile."*
+
+**El botón `Use Recommended Attack For Comparability` ya no aparece habilitado sin recomendación.** Antes, cuando el registro de comparación no tenía resultados previos para el escenario, el panel mostraba el mensaje de "sin resultados" pero dejaba ambos botones activos, lo cual sugería que aceptar la recomendación era una opción válida incluso sin datos que recomendar. Ahora el botón se deshabilita explícitamente (`disabled`, con razón visible: *"No previous comparable result exists for this scenario family."*) y el mensaje principal se reescribe a: *"No previous comparable result was found. You can start a new comparison family. Future executions using the same scenario, attack profile, trigger policy, acquisition policy, and FOC profile will be directly comparable with this one."*
+
+**`Register Existing Case As Result Card` se separa del flujo principal de Level B.** Esta acción es válida y útil, pero al aparecer justo bajo el formulario de creación de campaña sugería —de nuevo— que un caso anterior era parte del flujo normal de Level B. Se traslada a una sección propia, retitulada `Comparison Registry Tools` / `Historical Result Registration`, colapsada por defecto dentro de un `<details>`, con el texto: *"Use this tool only to register previous preserved cases as lightweight result cards. This does not link the case as evidence for Level B."*
+
+**Nuevas piezas explicativas, añadidas sin tocar lógica de ejecución:**
+- antes de `Create Campaign`, Level B/C muestra ahora: *"This Level B campaign will not reuse an old forensic case. It will create a new forensic case for each execution after attack detection and forensic acquisition."*
+- en `Review execution plan`, Level B/C muestra el flujo operacional completo de 15 pasos (16 para Level C, que añade el redeployment como primer paso): validar escenario desplegado, capturar ruido base, sellar el ground truth, lanzar el ataque, esperar detección, evaluar severidad, seleccionar trigger, crear caso forense, adquirir, preservar, analizar multicapa, reconstrucción causal y FOC, generar resumen ejecutivo, generar el perfil de comparación, y registrar el `forensic_result_card`.
+
+**Corrección de un defecto de UI sin relación con Level B, encontrado durante la misma revisión: los botones de campaña no se deshabilitaban sin campaña seleccionada.** `applyCampaignActionState()` solo deshabilitaba `Pause`/`Stop` en ausencia de campaña; `Start Campaign` y `Run Next Execution` permanecían visualmente activos (aunque sus *handlers* ya fallaban en silencio por una guarda interna), y la ruta de retorno temprano de `renderSelectedCampaign()` cuando no hay campaña seleccionada nunca llamaba a `applyCampaignActionState()`, dejando el estado de los botones congelado en el de la última campaña vista. La corrección llama explícitamente a `applyCampaignActionState(null, null)` en esa ruta, deshabilita los cuatro botones, y muestra: *"No campaign selected. Create or select a campaign before running executions."* Al crear una campaña, además, se confirma ahora explícitamente con: *"Campaign created successfully. Next action: Run first Level B execution."*
+
+**Verificación realizada:** `python -m py_compile` sobre los seis módulos Python tocados; verificación de balance de llaves/paréntesis del JavaScript modificado; correspondencia 1:1 entre los `id` de DOM referenciados desde JS y los declarados en HTML; arranque real del servidor de desarrollo con llamadas `curl` contra `GET /api/foc/experimentation/attack-catalog`, `POST /api/foc/experimentation/campaigns/proposal` (confirmando que los cinco identificadores fijos ya no colisionan) y `POST /api/foc/experimentation/campaigns/create` con un `attack_id` real del catálogo, seguido de limpieza de los artefactos de prueba generados.
+
+#### Comparison Registry, agrupación por familia de comparación, y corrección del modelo de fuente en Level B/C (2026-06-24)
+
+Esta iteración cierra dos defectos concretos del módulo `foc_experimentation`: (1) la ausencia de una lógica de agrupación científica entre ejecuciones, y (2) una incoherencia de validación en el frontend que presentaba `linked source case` como obligatorio para Level B, contradiciendo el modelo de fuente que el backend ya respetaba.
+
+**Problema metodológico de fondo.** Antes de este cambio, dos ejecuciones podían pertenecer al mismo experimento por diseño (mismo escenario, mismo perfil de ataque, misma política de disparo, misma política de adquisición) y aun así no existir ningún mecanismo que las agrupara como tales. Si esa agrupación se hubiera calculado a partir de los resultados (`CPR`, `Weighted CPR`, `recovered_edges`, `hypothesis_support`, `final_conclusion`), dos ejecuciones científicamente comparables habrían podido terminar en familias distintas solo porque una salió degradada o tuvo menor recuperación causal. Esto habría sido un error metodológico real, no cosmético.
+
+**Nuevo módulo: `app_core/infrastructure/foc_experimentation/comparison_registry.py`.** El identificador de agrupación, `comparison_family_id`, se calcula con una función cuya firma solo acepta campos de diseño experimental previos a la ejecución — sin `**kwargs`, de modo que la fuga de datos de resultado es estructuralmente imposible, no solo una convención de código:
+
+```text
+compute_comparison_family_id(*, scenario_fingerprint, topology_fingerprint,
+    attack_profile_id, attack_script_sha256, attack_parameters_hash,
+    expected_causal_edges, trigger_policy_id, acquisition_profile_id,
+    analysis_profile_id, foc_profile_id) -> "family-<sha256[:16]>"
+```
+
+Estos campos están **explícitamente excluidos** del cálculo del `comparison_family_id`, sin excepción: `CPR`, `Weighted CPR`, `recovered_edges`, `degraded_edges`, `hypothesis_support`, `final_conclusion`, el estado de incertidumbre, y el estado de comparabilidad. `scenario_fingerprint` se deriva de `scenario_id` más la firma ordenada de los `expected_edges` (`compute_scenario_fingerprint`); `attack_parameters_hash` se deriva únicamente del subconjunto de diseño del perfil de ataque (`protocol`, `register`, `expected_value`, `ot_function`, `tool_used`, `tool_version`), excluyendo campos específicos de la ejecución como las marcas de tiempo de inicio/fin del ataque.
+
+Cada ejecución genera ahora un `forensic_result_card.json` (`build_forensic_result_card`), un perfil ligero que registra:
+
+- identidad: `result_card_id`, `execution_id`, `campaign_id`, `level`, `generated_at`
+- campos de diseño/agrupación (los únicos que alimentan el `comparison_family_id`): `scenario_fingerprint`, `topology_fingerprint`, `attack_profile_id`, `attack_script`, `attack_script_sha256`, `attack_parameters_hash`, `expected_causal_edges`, `trigger_policy_id`, `acquisition_profile_id`, `analysis_profile_id`, `foc_profile_id`
+- punteros, nunca copias: `original_case_id`, `original_case_path`, `comparison_profile_path`
+- política de retención explícita: `retention_policy: "lightweight_profile_only"`, `heavy_artifacts_retained: false`, `heavy_artifacts_location` (la ruta del caso original; la evidencia pesada nunca se mueve)
+- una instantánea de resultado (`cpr`, `weighted_cpr`, `global_support_level`, `final_claimability_status`) que es **puramente informativa** y nunca se relee como entrada del `comparison_family_id`
+
+El registro global se persiste en `app_core/infrastructure/forensics/evidence_store/repetition_campaigns/comparison_registry/comparison_result_registry.json` con escritura atómica (`tmp` + `replace`). Durante la verificación funcional se detectó y corrigió un bug real: `append_to_registry` deduplicaba por `result_card_id` (un `uuid4` nuevo en cada llamada), de modo que registrar dos veces el mismo caso con `register_existing_case_as_result_card` producía dos filas distintas para la misma ejecución lógica. La corrección dedupe por `execution_id`.
+
+**Tres nuevos endpoints de solo lectura/escritura controlada** en `app_core/presentation/foc_experimentation_api.py`:
+
+- `GET /api/foc/experimentation/comparison-registry` — lista el registro, filtrable por `scenario_id` o `scenario_fingerprint`
+- `GET /api/foc/experimentation/comparison-registry/recommend` — dado un `scenario_id`, devuelve la familia comparable más reciente junto con el mensaje literal: *"The system found previous comparable results. To compare the next execution with those results, use the same attack profile, trigger policy, acquisition profile, and scenario family."*
+- `POST /api/foc/experimentation/comparison-registry/register-case` — registra retroactivamente un caso preservado existente como `forensic_result_card.json`, reutilizando exactamente el mismo `profile_builder.build_execution_profiles()` que usan las ejecuciones de campaña reales (mismo código, misma garantía de reproducibilidad del `comparison_family_id`), sin copiar evidencia pesada
+
+En el `Forensic Repetition Manager`, cuando se selecciona Level B o C, un panel **Recommended Comparable Experiment** consulta este registro por huella de escenario y expone dos acciones con texto literal exigido:
+
+- **Use Recommended Attack For Comparability** — adopta el `attack_profile_id`, la técnica MITRE, el script de ataque, los parámetros, la política de disparo, la política de adquisición y el `comparison_family_id` recomendados; muestra *"To compare with this previous result, use this attack profile."*
+- **Start New Comparison Family** — diverge intencionadamente; muestra *"This execution will create a new comparison family. It can be compared with future executions using the same scenario, attack profile, trigger policy, acquisition profile, and FOC profile."*
+
+Una acción adicional, **Register Existing Case As Result Card**, permite incorporar retroactivamente un caso ya preservado al registro de comparación sin pasar por una campaña.
+
+**`comparison_type` como eje independiente del `status` numérico.** Siguiendo el mismo patrón de tríada de estados ya usado en `foc_causal_reconstruction/status_model.py` (`execution_status` / `reconstruction_state` / `scientific_confidence`), `comparability_service.compare_executions()` añade una segunda clasificación, `comparison_type`, que responde una pregunta distinta a `status`: no "¿los números coincidieron dentro de margen?", sino "¿estas ejecuciones son, por diseño, el mismo experimento?". Se deriva comparando el `comparison_family_id` de los `forensic_result_card.json` de las ejecuciones seleccionadas:
+
+- `direct_family_comparison` — todas las ejecuciones comparten el mismo `comparison_family_id`
+- `exploratory_comparison` — los `comparison_family_id` difieren y ninguna ejecución es Level C
+- `platform_level_comparison` — los `comparison_family_id` difieren y al menos una ejecución es Level C
+- `insufficient_data` — falta el `forensic_result_card.json` de alguna ejecución seleccionada
+
+Cuando `comparison_type !== "direct_family_comparison"`, la Comparability View muestra el texto de cautela literal exigido: *"The selected executions belong to different comparison families. They can be inspected together, but they should not be used as direct forensic reconstruction comparability evidence unless the difference is explicitly accepted as exploratory or platform-level comparison."* Un `direct_family_comparison` puede seguir siendo `Not Comparable` si los números divergieron, y un `exploratory_comparison` puede seguir siendo `Comparable` numéricamente sin ser válido como evidencia de reproducibilidad — los dos ejes se muestran por separado, nunca fusionados en una sola etiqueta.
+
+**Corrección del modelo de fuente para Level B/C.** El frontend (`foc_repetition_manager.html`/`.js`) mostraba `linked source case` como si fuera obligatorio para todos los niveles, contradiciendo el backend, que nunca lo exigió para B/C. La corrección alinea ambas capas:
+
+- `campaign_preflight()` reemplaza, para Level B, la lista anterior de 7 ítems por los 13 ítems exigidos (`scenario_selected`, `active_scenario_exists`, `required_roles_resolved`, `attack_profile_selected`, `automated_attack_script_available`, `detection_stream_available`, `trigger_policy_configured`, `forensic_auto_acquisition_available`, `case_creation_available`, `acquisition_targets_resolved`, `time_sync_check_available`, `baseline_noise_capture_available`, `output_campaign_directory_can_be_created`), sin evaluar nunca `linked_source_case_selected` ni bloquear por "No linked case". Devuelve además `info_notes` con el mensaje literal: *"No linked source case is required for Level B. A new forensic case will be created for each repeated incident execution."*
+- `create_campaign()` añade guardas explícitas: Level A sin caso vinculado lanza `"A linked source case is required for Level A. Select a preserved case before creating the campaign."`; Level B/C sin `scenario_id` resoluble lanza `"Scenario ID is required for Level B. Select or auto-detect an active deployed scenario before starting execution."`
+- en el formulario, el campo "Linked source case" se reubica dinámicamente: permanece visible y obligatorio en Step 2 para Level A; para Level B/C se traslada al panel de Advanced Mode como **"Optional reference case"**, con el texto *"Optional. This case is only used to copy defaults, thresholds, expected causal model, or comparison-family settings. It is not reused as evidence and is not required for Level B/C."*
+- el título de Step 2 pasa a ser dependiente del nivel (`stepTwoTitle` en `LEVEL_META`): *"Select deployed scenario and incident profile"* para Level B, *"Select deployed scenario and redeployment profile"* para Level C
+- el resumen de campaña y la tarjeta de ejecución dejan de mostrar "Linked base case"/"Open Base Case Dashboard" para B/C; muestran "Source: Active deployed scenario", "New case policy: A new forensic case will be created for every execution after detection-triggered acquisition.", y "Open Generated Case Dashboard" condicionado a que ya exista un `source_case_id` generado (en otro caso: "Generated case: Not created yet.")
+
+**Bug real detectado durante la verificación funcional, no anticipado en el plan inicial.** `execution_service.load_execution(execution_id)` buscaba el identificador de ejecución (`EXEC-0001`, `EXEC-0002`, …) iterando **todas** las campañas bajo `CAMPAIGNS_ROOT`, pero ese identificador solo es único dentro de una campaña — cada campaña reinicia su numeración en `EXEC-0001`. Esto significa que `compare_executions()`, que es precisamente la función que sostiene la nueva clasificación `comparison_type`, podía resolver silenciosamente la ejecución equivocada si dos campañas distintas compartían el mismo `execution_id` (lo cual ocurre virtualmente siempre). Se confirmó el defecto de forma determinista: dos campañas creadas consecutivamente, ambas con `EXEC-0001`, hacían que `load_execution("EXEC-0001")` devolviera siempre la campaña más reciente listada por el sistema de archivos, independientemente de cuál se pidiera. La corrección añade un parámetro opcional `campaign_id` a `load_execution()` que acota la búsqueda a esa campaña cuando se conoce, y `compare_executions()` lo propaga ahora en cada resolución — sin alterar el comportamiento de los demás llamadores, que no pasan `campaign_id` y conservan la búsqueda global previa.
+
+**Verificación funcional realizada (sin servidor, llamadas Python directas, con limpieza posterior de artefactos de prueba):**
+
+- una ejecución de campaña Level A y un registro retroactivo del mismo caso (`register_existing_case_as_result_card`) producen el **mismo** `comparison_family_id`, confirmando que el identificador es reproducible a partir de los campos de diseño exclusivamente
+- forzar manualmente un `comparison_family_id` distinto en un `forensic_result_card.json` produce `comparison_type: "exploratory_comparison"`; dos ejecuciones de la misma familia producen `"direct_family_comparison"`
+- una campaña Level B se crea correctamente sin ningún campo de caso vinculado cuando se provee `scenario_id`; sin `scenario_id` lanza el mensaje exacto exigido
+- una campaña Level A sin caso vinculado lanza el mensaje exacto exigido
+- `python -m py_compile` sobre los seis módulos Python modificados, y verificación de correspondencia 1:1 entre los `id` de DOM referenciados desde JS y los declarados en el HTML, en ambas vistas (`foc_repetition_manager.html`, `foc_reconstruction_comparability.html`)
+
+**Límite de alcance, declarado explícitamente.** Esta iteración no construye un motor de ejecución de ataques real para Level B/C dentro de `foc_experimentation` — ese motor sigue sin existir, tal como se documenta en la sección *Campaign levels* de este mismo módulo. `trigger_policy_id`, `acquisition_profile_id`, `analysis_profile_id` y `foc_profile_id` se representan como constantes de versión fija (`"default_kolla_lime_tshark_v1"`, etc.) en lugar de una configurabilidad inexistente. El valor científico de incluirlos en el hash del `comparison_family_id` es que, el día en que alguno de esos pipelines cambie materialmente, su cadena de versión cambiará y los resultados antiguos y nuevos dejarán de tratarse silenciosamente como comparables.
 
 #### Evidence-Based Hypothesis Support and Forensic Storyline module (2026-06-23)
 

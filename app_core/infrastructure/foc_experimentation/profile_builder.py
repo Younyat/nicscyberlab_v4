@@ -11,6 +11,11 @@ from ..foc_reconstruction.foc_case_analysis import _case_dir_from_entry, get_cas
 from ..foc_reconstruction.foc_paths import relative_path
 from ..foc_reconstruction.foc_sources import utc_now
 from ..foc_causal_reconstruction.service import causal_metrics_payload, causal_status_payload, causal_uncertainty_payload
+from .scientific_memory import (
+    build_analysis_repeatability_profile,
+    build_forensic_result_card,
+    register_scientific_memory,
+)
 
 
 def _json_load(path: Path | None):
@@ -185,6 +190,7 @@ def build_execution_profiles(
     baseline_threshold: float,
     baseline_builder,
     seal_builder,
+    campaign_config: dict | None = None,
     progress_hook=None,
 ) -> dict:
     if not case_bundle:
@@ -258,6 +264,7 @@ def build_execution_profiles(
         if not candidate.is_absolute():
             candidate = Path.cwd() / attack_ref
         source_attack_script = candidate.resolve() if candidate.exists() else None
+    attack_script_sha256 = _sha256_path(source_attack_script)
 
     seal = seal_builder(
         ground_truth_id=f"{scenario_profile['scenario_id']}::{execution_id}",
@@ -416,6 +423,70 @@ def build_execution_profiles(
     if callable(progress_hook):
         progress_hook("comparison_profile", "Generate forensic comparison profile", 88.0, "Writing forensic_comparison_profile.json for later execution-to-execution comparison.")
 
+    from .comparison_registry import append_to_registry
+
+    result_card_path = execution_dir / "forensic_result_card.json"
+    result_card = build_forensic_result_card(
+        execution_id=execution_id,
+        campaign_id=campaign_id,
+        level=level,
+        case_bundle=case_bundle,
+        scenario_profile=scenario_profile,
+        attack_profile=attack_profile,
+        ground_truth_payload=ground_truth_payload,
+        attack_script_sha256=attack_script_sha256,
+        campaign_config=campaign_config or {},
+        comparison_profile=comparison_profile,
+        comparison_profile_path=comparison_path,
+        result_card_path=result_card_path,
+        retention_policy="original_case_retained" if case_bundle else "profiles_only_after_archive",
+        heavy_artifacts_retained=bool(case_bundle),
+    )
+    registry = append_to_registry(result_card)
+    comparable_with = [
+        item.get("result_card_id")
+        for item in registry.get("entries", [])
+        if item.get("comparison_family_id") == result_card.get("comparison_family_id")
+        and item.get("result_card_id") != result_card.get("result_card_id")
+    ]
+    result_card["comparable_with"] = comparable_with
+    _write_json(result_card_path, result_card)
+    append_to_registry(result_card)
+
+    scientific_memory = register_scientific_memory(
+        case_bundle=case_bundle,
+        execution_id=execution_id,
+        campaign_id=campaign_id,
+        level=level,
+        scenario_profile=scenario_profile,
+        attack_profile=attack_profile,
+        ground_truth_payload=ground_truth_payload,
+        comparison_profile=comparison_profile,
+        comparison_profile_path=comparison_path,
+        result_card=result_card,
+        result_card_path=result_card_path,
+        campaign_config=campaign_config or {},
+    )
+
+    repeatability_path = None
+    if str(level).upper() == "A" and case_bundle:
+        repeatability = build_analysis_repeatability_profile(
+            base_case_id=case_bundle.get("case_id"),
+            base_case_path=case_bundle.get("case_rel_path"),
+            execution_id=execution_id,
+            campaign_id=campaign_id,
+            comparison_profile=comparison_profile,
+            result_card_id=result_card["result_card_id"],
+            comparison_profile_path=comparison_path,
+            analysis_profile_id=str((campaign_config or {}).get("analysis_profile_id") or "default_multilayer_analysis_v1"),
+            foc_profile_id=str((campaign_config or {}).get("foc_profile_id") or "default_foc_causal_reconstruction_v1"),
+        )
+        repeatability_path = execution_dir / "analysis_repeatability_profile.json"
+        _write_json(repeatability_path, repeatability)
+
+    if callable(progress_hook):
+        progress_hook("result_card", "Register lightweight comparison result card", 94.0, "Writing forensic_result_card.json and registering it in the cross-campaign comparison registry.")
+
     files = {
         "scenario_profile": relative_path(scenario_profile_path),
         "attack_profile": relative_path(attack_profile_path),
@@ -426,5 +497,18 @@ def build_execution_profiles(
         "acquisition_profile": relative_path(acquisition_path),
         "preservation_profile": relative_path(preservation_path),
         "forensic_comparison_profile": relative_path(comparison_path),
+        "forensic_result_card": relative_path(result_card_path),
+        "scenario_result_card": scientific_memory.get("scenario_card_path"),
+        "case_result_card": scientific_memory.get("case_card_path"),
+        "execution_result_card": scientific_memory.get("execution_card_path"),
+        "analysis_result_card": scientific_memory.get("analysis_card_path"),
+        "scenario_reconstruction_blueprint": scientific_memory.get("blueprint_path"),
+        "analysis_repeatability_profile": relative_path(repeatability_path) if repeatability_path else None,
     }
-    return {"status": "ok", "files": files, "comparison_profile": comparison_profile}
+    return {
+        "status": "ok",
+        "files": files,
+        "comparison_profile": comparison_profile,
+        "result_card": result_card,
+        "scientific_memory": scientific_memory,
+    }

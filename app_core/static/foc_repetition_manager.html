@@ -181,21 +181,41 @@
 
             <div class="glass-soft rounded-[24px] p-5">
               <div class="text-[11px] tracking-[0.24em] uppercase text-slate-400 font-black">Step 2</div>
-              <h3 class="text-xl font-black mt-2">Select source or scenario</h3>
+              <h3 id="step-two-title" class="text-xl font-black mt-2">Select source or scenario</h3>
               <p class="mt-2 text-slate-300">The platform proposes a safe source mode automatically. Level A normally links an existing preserved case. Level B and Level C normally require a scenario context.</p>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
-                <label class="block">
-                  <span class="text-slate-300 font-bold">Linked source case</span>
-                  <details class="helper-details mt-2"><summary class="help-chip">What does this mean?</summary><div class="mt-2 text-slate-400">The preserved case used as input for Level A reanalysis. It is read-only and must not be modified.</div></details>
+              <div id="step-two-source-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
+                <label id="linked-case-field" class="block">
+                  <span id="linked-case-field-label" class="text-slate-300 font-bold">Linked source case</span>
+                  <details class="helper-details mt-2"><summary class="help-chip">What does this mean?</summary><div id="linked-case-field-help" class="mt-2 text-slate-400">The preserved case used as input for Level A reanalysis. It is read-only and must not be modified.</div></details>
                   <select id="source-case-select" name="base_case_id" class="w-full mt-3 rounded-xl bg-slate-950/60 border border-slate-700 px-3 py-2 text-slate-100"><option value="">No linked case</option></select>
                 </label>
                 <label class="block">
                   <span class="text-slate-300 font-bold">Scenario ID</span>
-                  <details class="helper-details mt-2"><summary class="help-chip">What does this mean?</summary><div class="mt-2 text-slate-400">The identifier of the scenario used by the campaign. If possible, this is extracted automatically from the linked case or preserved FOC artifacts.</div></details>
+                  <details class="helper-details mt-2"><summary class="help-chip">What does this mean?</summary><div id="scenario-id-help" class="mt-2 text-slate-400">The identifier of the scenario used by the campaign. If possible, this is extracted automatically from the linked case or preserved FOC artifacts.</div></details>
                   <input id="scenario-id-input" name="scenario_id" class="w-full mt-3 rounded-xl bg-slate-950/60 border border-slate-700 px-3 py-2 text-slate-100" placeholder="scn-...">
                 </label>
               </div>
+              <div id="attack-profile-field" class="mt-5 hidden">
+                <label class="block">
+                  <span class="text-slate-300 font-bold">Attack profile</span>
+                  <details class="helper-details mt-2"><summary class="help-chip">What does this mean?</summary><div class="mt-2 text-slate-400">The MITRE ATT&amp;CK-aligned technique this campaign plans to launch. Selecting it here records exactly which technique, script, and expected evidence the campaign is designed around — not a placeholder.</div></details>
+                  <select id="attack-profile-select" class="w-full mt-3 rounded-xl bg-slate-950/60 border border-slate-700 px-3 py-2 text-slate-100"><option value="">Select an attack profile…</option></select>
+                </label>
+                <div id="attack-profile-detail" class="glass-soft rounded-[20px] p-4 mt-4 text-slate-300"></div>
+              </div>
               <div id="source-summary-panel" class="glass-soft rounded-[20px] p-4 mt-5 text-slate-300"></div>
+            </div>
+
+            <div id="recommended-experiment-panel" class="glass-soft rounded-[24px] p-5 hidden">
+              <div class="text-[11px] tracking-[0.24em] uppercase text-slate-400 font-black">Comparison Registry</div>
+              <h3 class="text-xl font-black mt-2">Recommended Comparable Experiment</h3>
+              <div id="recommended-experiment-content" class="mt-3 text-slate-300"></div>
+              <div class="mt-5 flex gap-3 flex-wrap items-center">
+                <button type="button" id="recommend-use-btn" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Use Recommended Attack For Comparability</button>
+                <button type="button" id="recommend-new-family-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Start New Comparison Family</button>
+              </div>
+              <div id="recommend-use-disabled-reason" class="mt-2 text-xs text-slate-500"></div>
+              <div id="recommended-experiment-choice" class="mt-3 text-slate-300"></div>
             </div>
 
             <div class="glass-soft rounded-[24px] p-5">
@@ -210,7 +230,7 @@
               <div id="guided-defaults-panel" class="glass-soft rounded-[20px] p-4 mt-5 text-slate-300"></div>
 
               <div id="advanced-panel" class="hidden mt-5">
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div id="advanced-panel-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   <label class="block">
                     <span class="text-slate-300 font-bold">Baseline threshold</span>
                     <details class="helper-details mt-2"><summary class="help-chip">What does this mean?</summary><div class="mt-2 text-slate-400">Maximum accepted relative difference in baseline noise between executions. Default value: 0.15.</div></details>
@@ -245,9 +265,11 @@
               <div class="text-[11px] tracking-[0.24em] uppercase text-slate-400 font-black">Step 5</div>
               <h3 class="text-xl font-black mt-2">Create campaign</h3>
               <p class="mt-2 text-slate-300">The module will auto-generate campaign IDs, isolated directories, campaign manifests, methodological basis, execution workspaces, and later forensic comparison profiles for each execution.</p>
+              <div id="pre-create-note" class="mt-4"></div>
               <div class="mt-5 flex gap-3 flex-wrap">
                 <button class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase" type="submit">Create Campaign</button>
               </div>
+              <div id="campaign-create-success" class="mt-4"></div>
             </div>
           </form>
         </section>
@@ -258,6 +280,7 @@
           <div id="rm-campaign-story-panel" class="glass-soft rounded-[24px] p-5 mt-5 text-sm text-slate-300">Select or create a campaign to see its beginner and expert interpretation.</div>
           <div id="campaign-detail" class="glass-soft rounded-[24px] p-5 mt-5 text-sm text-slate-300">Select a campaign to inspect its configuration, execution list, and job activity.</div>
           <div class="mt-4 text-sm text-slate-400">This action creates the next isolated execution workspace for the selected campaign. The exact stages depend on the evaluation level.</div>
+          <div id="campaign-action-note" class="mt-3 text-sm"></div>
           <div class="flex gap-3 flex-wrap mt-5">
             <button id="campaign-start-btn" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Start Campaign</button>
             <button id="campaign-pause-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Pause</button>
@@ -275,6 +298,26 @@
         </section>
 
         <section class="glass rounded-[28px] p-6">
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Comparison Registry Tools</div>
+          <h2 class="text-2xl font-black mt-2">Historical Result Registration</h2>
+          <p class="mt-3 text-sm text-slate-300">Use this tool only to register previous preserved cases as lightweight result cards in the comparison registry. This does not link the case as evidence for Level B or Level C, and it is not part of creating a campaign.</p>
+          <details id="register-case-details" class="helper-details mt-4">
+            <summary class="help-chip">Register Existing Case As Result Card</summary>
+            <div class="mt-4">
+              <p class="text-sm text-slate-300">Retroactively register a preserved case as a lightweight forensic result card in the comparison registry, without copying any heavy evidence. This computes its <span class="mono">comparison_family_id</span> from experimental design fields only.</p>
+              <div class="mt-5 flex gap-3 flex-wrap items-end">
+                <label class="block">
+                  <span class="text-slate-300 font-bold">Case ID</span>
+                  <select id="register-case-select" class="w-full mt-2 rounded-xl bg-slate-950/60 border border-slate-700 px-3 py-2 text-slate-100"><option value="">Select a case…</option></select>
+                </label>
+                <button type="button" id="register-case-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Register Existing Case As Result Card</button>
+              </div>
+              <div id="register-case-result" class="mt-5 text-sm text-slate-300"></div>
+            </div>
+          </details>
+        </section>
+
+        <section class="glass rounded-[28px] p-6">
           <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Background Jobs</div>
           <h2 class="text-2xl font-black mt-2">Job Status</h2>
           <div id="job-panel" class="glass-soft rounded-[24px] p-5 mt-5 text-sm text-slate-300">No active background job. Campaign execution runs as background jobs. When a campaign or execution is started, this panel will show the active stage, job ID, progress, logs and errors.</div>
@@ -284,6 +327,6 @@
   </div>
   <script src="/js/theme-switcher.js"></script>
   <script>window.NicsThemeSwitcher.mount('#theme-switcher-mount');</script>
-  <script src="/js/foc_repetition_manager.js?v=20260624-foc-experimentation-6"></script>
+  <script src="/js/foc_repetition_manager.js?v=20260625-foc-experimentation-9"></script>
 </body>
 </html>
