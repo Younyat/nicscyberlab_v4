@@ -110,6 +110,8 @@
   function comparisonTypeLabel(value) {
     const labels = {
       direct_family_comparison: "Direct family comparison",
+      direct_level_a_repeatability_comparison: "Direct Level A repeatability comparison",
+      direct_level_a_repeatability_family_metadata_incomplete: "Direct Level A repeatability comparison, family metadata incomplete",
       exploratory_comparison_only: "Exploratory comparison only",
       platform_level_comparison: "Platform-level comparison",
       platform_level_comparison_with_scenario_drift: "Platform-level comparison with scenario drift",
@@ -120,9 +122,13 @@
 
   function comparisonTypeClass(value) {
     const normalized = String(value || "insufficient_data");
-    if (normalized === "direct_family_comparison") return "text-cyan-300";
+    if (["direct_family_comparison", "direct_level_a_repeatability_comparison", "direct_level_a_repeatability_family_metadata_incomplete"].includes(normalized)) return "text-cyan-300";
     if (normalized === "exploratory_comparison_only" || normalized === "platform_level_comparison" || normalized === "platform_level_comparison_with_scenario_drift") return "text-amber-300";
     return "text-slate-300";
+  }
+
+  function isDirectComparisonType(value) {
+    return ["direct_family_comparison", "direct_level_a_repeatability_comparison", "direct_level_a_repeatability_family_metadata_incomplete"].includes(String(value || ""));
   }
 
   function selectedCampaign() {
@@ -354,6 +360,7 @@
       }
       let interpretation = "This limitation remains scientifically relevant and should be inspected before drawing stronger conclusions.";
       if (/degraded edges/i.test(item.reason)) interpretation = "The causal degradation is consistent across executions. This supports repeatability but limits the scientific strength of the case.";
+      if (/ground truth/i.test(item.reason) && /reused|reconstructed/i.test(item.reason)) interpretation = "Level A does not generate a new pre-attack ground truth seal. The ground truth context is reused or reconstructed from the preserved case.";
       if (/attack path are not aligned/i.test(item.reason)) interpretation = "The acquisition trigger is host/FIM-oriented while the reconstructed path is OT/Modbus-oriented.";
       if (/integrity remains partial/i.test(item.reason)) interpretation = "The comparison can proceed, but scientific confidence must remain limited.";
       return { ...item, classification, interpretation };
@@ -372,6 +379,8 @@
   function comparisonTypeNarrative(result) {
     const comparisonType = String(result?.comparison_type || "insufficient_data");
     if (comparisonType === "direct_family_comparison") return "The selected executions belong to the same comparison family. Direct forensic comparability is scientifically valid under the configured thresholds.";
+    if (comparisonType === "direct_level_a_repeatability_comparison") return "The selected executions reanalyze the same preserved case under the same Level A analysis configuration. This is a direct Level A repeatability comparison.";
+    if (comparisonType === "direct_level_a_repeatability_family_metadata_incomplete") return "The selected executions reanalyze the same preserved case under the same Level A analysis configuration. The comparison is scientifically valid, but comparison_family_id should still be generated and stored consistently in the lightweight registry.";
     if (comparisonType === "exploratory_comparison_only") return "The selected executions belong to different comparison families. This is an exploratory comparison only, not direct reproducibility evidence.";
     if (comparisonType === "platform_level_comparison_with_scenario_drift") return "The selected executions include Level C redeployment outputs with scenario drift. This supports platform-level interpretation, not direct family equivalence.";
     if (comparisonType === "platform_level_comparison") return "The selected executions include Level C redeployment outputs under a compatible scenario family. This supports platform-level reproducibility interpretation.";
@@ -399,7 +408,9 @@
     const level = String(campaign.level || "A").toUpperCase();
     let story = "";
     if (String(result.status) === "Comparable With Degradation") {
-      story = `The selected executions are comparable at Level ${esc(level)}. ${infoTip("cpr")} and ${infoTip("weighted_cpr")} remained within the allowed margins, which indicates stable analytical behavior for the chosen repetition level. The result is still marked as ${infoTip("comparable_status", "Comparable With Degradation", "Comparable With Degradation")} because the compared executions preserve scientific limitations such as degraded causal edges, trigger and attack-path mismatch, partial integrity, or other inherited evidence constraints. This is not a comparison failure. It means the pipeline is stable, but the underlying case remains scientifically limited.`;
+      story = level === "A"
+        ? `The selected executions are comparable at Level A. ${infoTip("cpr")} and ${infoTip("weighted_cpr")} did not vary across the selected executions, which indicates repeatable analytical behavior over the same preserved evidence. The result is still marked as ${infoTip("comparable_status", "Comparable With Degradation", "Comparable With Degradation")} because the compared executions preserve inherited scientific limitations such as degraded causal edges, trigger and attack-path mismatch, partial integrity, or other evidence constraints from the base case. This is not a comparison failure. It means the pipeline is stable, but the underlying case remains scientifically limited.`
+        : `The selected executions are comparable at Level ${esc(level)}. ${infoTip("cpr")} and ${infoTip("weighted_cpr")} remained within the allowed margins, which indicates stable analytical behavior for the chosen repetition level. The result is still marked as ${infoTip("comparable_status", "Comparable With Degradation", "Comparable With Degradation")} because the compared executions preserve scientific limitations such as degraded causal edges, trigger and attack-path mismatch, partial integrity, or other inherited evidence constraints. This is not a comparison failure. It means the pipeline is stable, but the underlying case remains scientifically limited.`;
     } else if (String(result.status) === "Comparable") {
       story = `The selected executions are comparable at Level ${esc(level)}. ${infoTip("cpr")} and ${infoTip("weighted_cpr")} remained within the configured margins. This means the repeated executions produced stable forensic reconstructions under the selected criteria.`;
     } else if (String(result.status) === "Not Comparable") {
@@ -514,7 +525,7 @@
         <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">${infoTip("max_delta_cpr", "Max |ΔCPR|", summary.max_abs_cpr_difference ?? "n/a")}</div><div class="font-black mt-2">${infoTip("max_delta_cpr", summary.max_abs_cpr_difference ?? "n/a", summary.max_abs_cpr_difference ?? "n/a")}</div></div>
         <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">${infoTip("max_delta_wcpr", "Max |ΔWCPR|", summary.max_abs_weighted_cpr_difference ?? "n/a")}</div><div class="font-black mt-2">${infoTip("max_delta_wcpr", summary.max_abs_weighted_cpr_difference ?? "n/a", summary.max_abs_weighted_cpr_difference ?? "n/a")}</div></div>
       </div>
-      ${comparisonType !== "direct_family_comparison" ? `
+      ${!isDirectComparisonType(comparisonType) ? `
         <div class="mt-5 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-amber-200">
           The selected executions belong to different comparison families. They can be inspected together, but they should not be used as direct forensic reconstruction comparability evidence unless the difference is explicitly accepted as exploratory or platform-level comparison.
         </div>

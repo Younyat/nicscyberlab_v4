@@ -1,16 +1,15 @@
 {
-  "generated_at": "2026-06-23T15:39:38.272068+00:00",
+  "generated_at": "2026-06-26T16:56:13.210580+00:00",
   "cases": [
     {
-      "case_id": "case-63ceb018",
-      "source_case_name": "CASE-20260610-140733",
-      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733",
-      "artifacts_count": 129,
-      "manifest_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/manifest.json",
-      "pipeline_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/metadata/pipeline_events.jsonl",
-      "custody_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260610-140733/chain_of_custody.log",
+      "case_id": "case-1a8add06",
+      "source_case_name": "CASE-20260625-152324",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260625-152324",
+      "artifacts_count": 105,
+      "manifest_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260625-152324/manifest.json",
+      "pipeline_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260625-152324/metadata/pipeline_events.jsonl",
+      "custody_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260625-152324/chain_of_custody.log",
       "target_node_ids": [
-        "node-4e09b076",
         "node-c800d431",
         "node-e1ac03b8",
         "node-f9ca9bfc"
@@ -18,13 +17,27 @@
       "target_instance_ids": [
         "inst-16583180",
         "inst-8c0c86c9",
-        "inst-995d7668",
         "inst-a495cfe7"
       ],
-      "trigger_alert_id": "alr-c655a115",
+      "trigger_alert_id": "alr-354bfee3",
       "trigger_type": "alert",
       "trigger_selection_score": 460,
       "trigger_selection_reason": "confirmed_correlation,target_node_match,target_instance_match,ot_write_signal,forensics_recommended"
+    },
+    {
+      "case_id": "case-09eb8a8f",
+      "source_case_name": "CASE-NETCTX-TEST-20260626-volatile-first",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-NETCTX-TEST-20260626-volatile-first",
+      "artifacts_count": 21,
+      "manifest_path": "app_core/infrastructure/forensics/evidence_store/CASE-NETCTX-TEST-20260626-volatile-first/manifest.json",
+      "pipeline_path": "app_core/infrastructure/forensics/evidence_store/CASE-NETCTX-TEST-20260626-volatile-first/metadata/pipeline_events.jsonl",
+      "custody_path": "app_core/infrastructure/forensics/evidence_store/CASE-NETCTX-TEST-20260626-volatile-first/chain_of_custody.log",
+      "target_node_ids": [],
+      "target_instance_ids": [],
+      "trigger_alert_id": "alr-354bfee3",
+      "trigger_type": "alert",
+      "trigger_selection_score": 370,
+      "trigger_selection_reason": "confirmed_correlation,ot_write_signal,forensics_recommended"
     }
   ]
 }

@@ -9,6 +9,7 @@ from collections import Counter
 from pathlib import Path
 
 from .foc_case_analysis import (
+    ANALYSIS_PHASES,
     _case_dir_from_entry,
     analysis_visual_summary,
     get_case_entry,
@@ -18,9 +19,10 @@ from .foc_case_analysis import (
     run_time_sync,
 )
 from .foc_config import GENERATED_FILES
-from .foc_manifest_manager import read_generated_json
+from .foc_manifest_manager import read_generated_json, regenerate_foc
 from .foc_paths import relative_path
 from .foc_sources import utc_now
+from .foc_bootstrap import bootstrap_existing_context
 from ..foc_causal_reconstruction.service import (
     causal_graph_payload,
     causal_metrics_payload,
@@ -51,6 +53,23 @@ _EDGE_REQ_LABELS = {
     "chain_of_custody": "chain of custody",
     "forensic_analysis_report": "forensic analysis report",
     "analysis_visual_summary": "analysis visual summary",
+}
+
+_ANALYSIS_TRACE_LAYOUT = {
+    "preflight_validation": ("multilayer_forensic_analysis", "multilayer_preflight", "Multilayer analysis preflight", "multilayer"),
+    "evidence_inventory": ("verify_preserved_evidence", "verify_evidence_inventory", "Preserved evidence inventory", "verification"),
+    "integrity_custody_validation": ("verify_preserved_evidence", "verify_chain_of_custody", "Chain of custody verification", "verification"),
+    "temporal_validation": ("run_multilayer_analysis", "time_synchronization_and_timestamp_quality_assessment", "Time synchronization and timestamp quality assessment", "time_sync"),
+    "network_analysis": ("run_multilayer_analysis", "network_analysis", "Network analysis", "network"),
+    "memory_analysis": ("run_multilayer_analysis", "memory_analysis", "Memory analysis", "memory"),
+    "disk_analysis": ("run_multilayer_analysis", "disk_analysis", "Disk analysis", "disk"),
+    "ot_export_analysis": ("run_multilayer_analysis", "ot_and_industrial_artifacts_analysis", "OT and industrial artifacts analysis", "ot"),
+    "alerts_detection_analysis": ("run_multilayer_analysis", "alerts_analysis", "Alerts analysis", "alerts"),
+    "pipeline_custody_analysis": ("run_multilayer_analysis", "pipeline_and_custody_analysis", "Pipeline and custody analysis", "pipeline_custody"),
+    "unified_forensic_timeline": ("run_multilayer_analysis", "unified_timeline_generation", "Unified timeline generation", "timeline"),
+    "cross_layer_findings": ("run_multilayer_analysis", "cross_layer_findings_generation", "Cross-layer findings generation", "cross_layer"),
+    "forensic_analysis_report_generation": ("run_multilayer_analysis", "multilayer_analysis_finalization", "Multilayer analysis finalization", "multilayer"),
+    "foc_readiness_update": ("regenerate_foc_context", "regenerate_foc_context", "Regenerate FOC context", "foc"),
 }
 
 
@@ -136,6 +155,174 @@ def _duration_seconds(started_at, finished_at) -> float | None:
     if start is None or end is None or end < start:
         return None
     return round(end - start, 3)
+
+
+def _duration_ms(started_at, finished_at) -> int | None:
+    duration = _duration_seconds(started_at, finished_at)
+    if duration is None:
+        return None
+    return int(round(duration * 1000))
+
+
+def _listify_artifacts(value) -> list[str]:
+    if isinstance(value, list):
+        return [str(item) for item in value if item]
+    if isinstance(value, dict):
+        return [str(item) for item in value.values() if item]
+    if value:
+        return [str(value)]
+    return []
+
+
+def _count_items(value) -> int | None:
+    if isinstance(value, list):
+        return len(value)
+    if isinstance(value, dict):
+        total = 0
+        saw = False
+        for item in value.values():
+            nested = _count_items(item)
+            if nested is not None:
+                total += nested
+                saw = True
+        return total if saw else len(value)
+    return None
+
+
+def _findings_generated_count(payload: dict | None) -> int | None:
+    findings = (payload or {}).get("findings")
+    if findings is None:
+        return None
+    if isinstance(findings, dict):
+        for key in ("findings", "results", "files", "entries", "events"):
+            if key in findings:
+                nested = _count_items(findings.get(key))
+                if nested is not None:
+                    return nested
+        nested = _count_items(findings)
+        return nested
+    return _count_items(findings)
+
+
+def _normalize_trace_status(status: str | None) -> str:
+    raw = str(status or "unknown").strip().lower()
+    if raw in {"completed", "running", "queued"}:
+        return raw
+    if raw.startswith("partial"):
+        return "partial"
+    if raw in {"completed_with_degradation", "degraded"}:
+        return "degraded"
+    if raw.startswith("blocked"):
+        return "blocked"
+    if raw.startswith("skipped"):
+        return "skipped"
+    if raw.startswith("failed"):
+        return "failed"
+    if raw in {"pending", "not_started", "ready_to_run"}:
+        return "queued"
+    return raw or "unknown"
+
+
+def _upsert_phase_trace(
+    job: dict,
+    case_dir: Path,
+    *,
+    case_id: str,
+    phase_id: str,
+    parent_phase_id: str | None,
+    phase_label: str,
+    layer: str,
+    status: str,
+    started_at=None,
+    finished_at=None,
+    input_artifacts_used=None,
+    output_artifacts_generated=None,
+    artifacts_processed_count=None,
+    findings_generated_count=None,
+    warnings=None,
+    blockers=None,
+    scientific_limitation_reason=None,
+    detail=None,
+) -> None:
+    trace = list(job.get("phase_trace") or [])
+    existing = next((item for item in trace if str(item.get("phase_id")) == str(phase_id)), None)
+    if not existing:
+        existing = {
+            "case_id": case_id,
+            "phase_id": phase_id,
+            "parent_phase_id": parent_phase_id,
+            "phase_label": phase_label,
+            "layer": layer,
+        }
+        trace.append(existing)
+    existing.update(
+        {
+            "case_id": case_id,
+            "phase_id": phase_id,
+            "parent_phase_id": parent_phase_id,
+            "phase_label": phase_label,
+            "layer": layer,
+            "status": _normalize_trace_status(status),
+            "utc_start_time": started_at or existing.get("utc_start_time"),
+            "utc_end_time": finished_at,
+            "duration_ms": _duration_ms(started_at or existing.get("utc_start_time"), finished_at) if finished_at else existing.get("duration_ms"),
+            "input_artifacts_used": list(dict.fromkeys(_listify_artifacts(input_artifacts_used) or existing.get("input_artifacts_used") or [])),
+            "output_artifacts_generated": list(dict.fromkeys(_listify_artifacts(output_artifacts_generated) or existing.get("output_artifacts_generated") or [])),
+            "number_of_artifacts_processed": artifacts_processed_count if artifacts_processed_count is not None else existing.get("number_of_artifacts_processed"),
+            "number_of_findings_generated": findings_generated_count if findings_generated_count is not None else existing.get("number_of_findings_generated"),
+            "warnings": list(dict.fromkeys([str(item) for item in (warnings or existing.get("warnings") or []) if item])),
+            "blockers": list(dict.fromkeys([str(item) for item in (blockers or existing.get("blockers") or []) if item])),
+            "scientific_limitation_reason": scientific_limitation_reason or existing.get("scientific_limitation_reason"),
+            "detail": detail or existing.get("detail"),
+            "updated_at": utc_now(),
+        }
+    )
+    _set_job(job, case_dir, phase_trace=trace)
+
+
+def _sync_multilayer_phase_trace(job: dict, case_dir: Path, case_id: str, analysis_status: dict) -> None:
+    phases = (analysis_status or {}).get("phases") or {}
+    for phase_key, _, _ in ANALYSIS_PHASES:
+        if phase_key == "temporal_validation":
+            continue
+        phase_payload = phases.get(phase_key) or {}
+        phase_status = str(phase_payload.get("status") or "").strip()
+        if not phase_status:
+            continue
+        parent_phase_id, phase_id, phase_label, layer = _ANALYSIS_TRACE_LAYOUT.get(
+            phase_key,
+            ("run_multilayer_analysis", phase_key, phase_key.replace("_", " ").title(), "multilayer"),
+        )
+        output_path = phase_payload.get("output_path")
+        output_payload = _json_load((Path(__file__).resolve().parents[3] / output_path).resolve()) if output_path else None
+        warnings = []
+        blockers = []
+        limitations = list((phase_payload.get("limitations") or []))
+        errors = list((phase_payload.get("errors") or []))
+        if _normalize_trace_status(phase_status) == "failed":
+            blockers.extend(errors or limitations)
+        elif _normalize_trace_status(phase_status) in {"blocked", "partial", "degraded"}:
+            warnings.extend(limitations or errors)
+        _upsert_phase_trace(
+            job,
+            case_dir,
+            case_id=case_id,
+            phase_id=phase_id,
+            parent_phase_id=parent_phase_id,
+            phase_label=phase_label,
+            layer=layer,
+            status=phase_status,
+            started_at=phase_payload.get("started_at"),
+            finished_at=phase_payload.get("finished_at"),
+            input_artifacts_used=(output_payload or {}).get("input_artifacts") or [],
+            output_artifacts_generated=[output_path] if output_path else [],
+            artifacts_processed_count=_count_items((output_payload or {}).get("input_artifacts")) or _count_items((output_payload or {}).get("related_outputs")),
+            findings_generated_count=_findings_generated_count(output_payload),
+            warnings=warnings,
+            blockers=blockers,
+            scientific_limitation_reason=(limitations or [None])[0],
+            detail=(output_payload or {}).get("summary") or phase_payload.get("label"),
+        )
 
 
 def _artifact_paths(case_dir: Path) -> dict[str, Path]:
@@ -1339,8 +1526,11 @@ def _new_job(case_id: str, case_dir: Path, job_type: str, title: str) -> dict:
         "started_at": None,
         "finished_at": None,
         "current_phase": "queued",
+        "current_phase_label": "Queued",
+        "current_phase_detail": "Waiting to start the full evidence lifecycle pipeline.",
         "progress_percent": 0,
         "phases": [],
+        "phase_trace": [],
         "warnings": [],
         "errors": [],
         "generated_artifacts": [],
@@ -1369,6 +1559,8 @@ def _update_phase(job: dict, case_dir: Path, phase_name: str, status: str, **ext
     phase.update({"status": status})
     phase.update(extra)
     job["current_phase"] = phase_name
+    job["current_phase_label"] = extra.get("label") or phase.get("label") or phase_name.replace("_", " ").title()
+    job["current_phase_detail"] = extra.get("detail") or phase.get("summary") or phase.get("error_message") or job.get("current_phase_detail")
     _set_job(job, case_dir, phases=phases)
 
 
@@ -1445,67 +1637,391 @@ def start_summary_job(case_id: str) -> dict:
     return job
 
 
+def _verify_preserved_evidence(case_dir: Path) -> dict:
+    manifest_path = case_dir / "manifest.json"
+    custody_path = case_dir / "chain_of_custody.log"
+    pipeline_path = case_dir / "metadata" / "pipeline_events.jsonl"
+    available = [relative_path(path) for path in (manifest_path, custody_path, pipeline_path) if path.exists()]
+    blockers: list[str] = []
+    warnings: list[str] = []
+    if not manifest_path.exists():
+        blockers.append("manifest.json is missing")
+    if not custody_path.exists():
+        warnings.append("chain_of_custody.log is missing")
+    status = "completed"
+    if blockers:
+        status = "blocked"
+    elif warnings:
+        status = "partial"
+    return {
+        "status": status,
+        "detail": "Preserved evidence references were validated before running the full lifecycle." if status == "completed" else "Preserved evidence is readable but one or more verification artifacts are incomplete." if status == "partial" else "Required preserved evidence artifacts are missing.",
+        "input_artifacts": available,
+        "output_artifacts": [],
+        "artifacts_processed_count": len(available),
+        "findings_generated_count": 0,
+        "warnings": warnings,
+        "blockers": blockers,
+        "scientific_limitation_reason": blockers[0] if blockers else (warnings[0] if warnings else None),
+    }
+
+
 def _run_full_worker(job: dict, case_dir: Path, force_analysis: bool, strict: bool, degraded_ok: bool) -> None:
     case_id = job["case_id"]
     generated_artifacts: list[str] = []
     warnings: list[str] = []
     errors: list[str] = []
     try:
-        _set_job(job, case_dir, status="running", started_at=utc_now(), current_phase="measure_clock_offset", progress_percent=5)
+        _set_job(job, case_dir, status="running", started_at=utc_now(), current_phase="resolve_preserved_case", current_phase_label="Resolve preserved case", current_phase_detail=f"Preparing full evidence lifecycle execution for preserved case {case_id}.", progress_percent=2)
+        _upsert_phase_trace(
+            job,
+            case_dir,
+            case_id=case_id,
+            phase_id="resolve_preserved_case",
+            parent_phase_id=None,
+            phase_label="Resolve preserved case",
+            layer="orchestration",
+            status="completed",
+            started_at=job.get("started_at") or utc_now(),
+            finished_at=utc_now(),
+            output_artifacts_generated=[relative_path(case_dir)],
+            artifacts_processed_count=1,
+            findings_generated_count=0,
+            detail=f"Resolved preserved case {case_id} at {relative_path(case_dir)}.",
+        )
 
-        _update_phase(job, case_dir, "measure_clock_offset", "running", started_at=utc_now())
-        run_time_sync(case_id, fix_time=False, maintenance_override=False)
-        time_sync_status = _wait_for_terminal(case_id, load_time_sync_status, {"running"}, {"completed", "failed", "blocked_policy"})
-        if str(time_sync_status.get("status")) == "failed":
-            warnings.append(str(time_sync_status.get("reason") or "Clock-offset measurement failed."))
-            _update_phase(job, case_dir, "measure_clock_offset", "partial", finished_at=utc_now(), summary=time_sync_status.get("reason"))
-        else:
-            _update_phase(
-                job,
-                case_dir,
-                "measure_clock_offset",
-                "completed",
-                finished_at=utc_now(),
-                artifact_path=((time_sync_status.get("output_paths") or {}).get("json")) or relative_path(case_dir / "metadata" / "time_sync.json"),
-            )
-            if ((time_sync_status.get("output_paths") or {}).get("json")):
-                generated_artifacts.append((time_sync_status.get("output_paths") or {}).get("json"))
-        _set_job(job, case_dir, progress_percent=20, current_phase="run_multilayer_analysis", warnings=warnings)
+        _set_job(job, case_dir, progress_percent=8, current_phase="verify_preserved_evidence", current_phase_label="Verify preserved evidence", current_phase_detail="Checking manifest, custody, and preserved evidence references.")
+        _update_phase(job, case_dir, "verify_preserved_evidence", "running", started_at=utc_now(), label="Verify preserved evidence", detail="Checking manifest, custody, and preserved evidence references.")
+        verify_result = _verify_preserved_evidence(case_dir)
+        _upsert_phase_trace(
+            job,
+            case_dir,
+            case_id=case_id,
+            phase_id="verify_preserved_evidence",
+            parent_phase_id=None,
+            phase_label="Verify preserved evidence",
+            layer="verification",
+            status=verify_result.get("status"),
+            started_at=job.get("updated_at") or utc_now(),
+            finished_at=utc_now(),
+            input_artifacts_used=verify_result.get("input_artifacts"),
+            output_artifacts_generated=verify_result.get("output_artifacts"),
+            artifacts_processed_count=verify_result.get("artifacts_processed_count"),
+            findings_generated_count=verify_result.get("findings_generated_count"),
+            warnings=verify_result.get("warnings"),
+            blockers=verify_result.get("blockers"),
+            scientific_limitation_reason=verify_result.get("scientific_limitation_reason"),
+            detail=verify_result.get("detail"),
+        )
+        _update_phase(job, case_dir, "verify_preserved_evidence", verify_result.get("status"), finished_at=utc_now(), label="Verify preserved evidence", detail=verify_result.get("detail"))
+        if verify_result.get("status") == "blocked":
+            errors.extend(list(verify_result.get("blockers") or ["Required preserved evidence artifacts are missing."]))
+            _set_job(job, case_dir, status="failed", finished_at=utc_now(), current_phase="failed", current_phase_label="Verify preserved evidence", current_phase_detail=verify_result.get("detail"), progress_percent=100, errors=errors, warnings=warnings)
+            return
+        warnings.extend(list(verify_result.get("warnings") or []))
 
-        _update_phase(job, case_dir, "run_multilayer_analysis", "running", started_at=utc_now())
+        _set_job(job, case_dir, progress_percent=14, current_phase="run_multilayer_analysis", current_phase_label="Run multilayer forensic analysis", current_phase_detail="Running the preserved-case forensic analysis layers.")
+        _update_phase(job, case_dir, "run_multilayer_analysis", "running", started_at=utc_now(), label="Run multilayer forensic analysis", detail="Running the preserved-case forensic analysis layers.")
+        _upsert_phase_trace(
+            job,
+            case_dir,
+            case_id=case_id,
+            phase_id="run_multilayer_analysis",
+            parent_phase_id=None,
+            phase_label="Run multilayer forensic analysis",
+            layer="multilayer",
+            status="running",
+            started_at=utc_now(),
+            input_artifacts_used=list(verify_result.get("input_artifacts") or []),
+            detail="The multilayer forensic analysis pipeline has started.",
+        )
         run_analysis(case_id, force=force_analysis)
-        analysis_status = _wait_for_terminal(case_id, load_analysis_status, {"running"}, {"completed", "partial", "failed"})
-        if str(analysis_status.get("status")) == "failed":
+        analysis_status = load_analysis_status(case_id)
+        deadline = time.time() + 7200
+        while time.time() < deadline:
+            analysis_status = load_analysis_status(case_id)
+            _sync_multilayer_phase_trace(job, case_dir, case_id, analysis_status)
+            current_state = str((analysis_status or {}).get("status") or "").lower()
+            if current_state in {"completed", "partial", "failed"}:
+                break
+            time.sleep(_POLL_SECONDS)
+        if str(analysis_status.get("status") or "").lower() == "failed":
             reason = "; ".join(str(item) for item in (analysis_status.get("errors") or []) if item) or "Multilayer analysis failed."
             errors.append(reason)
-            _update_phase(job, case_dir, "run_multilayer_analysis", "failed", finished_at=utc_now(), error_message=reason, artifact_path=analysis_status.get("forensic_analysis_report_path"))
-            _set_job(job, case_dir, status="failed", finished_at=utc_now(), current_phase="failed", progress_percent=100, errors=errors, warnings=warnings)
+            _upsert_phase_trace(
+                job,
+                case_dir,
+                case_id=case_id,
+                phase_id="run_multilayer_analysis",
+                parent_phase_id=None,
+                phase_label="Run multilayer forensic analysis",
+                layer="multilayer",
+                status="failed",
+                finished_at=utc_now(),
+                output_artifacts_generated=[analysis_status.get("forensic_analysis_report_path")] if analysis_status.get("forensic_analysis_report_path") else [],
+                blockers=[reason],
+                scientific_limitation_reason=reason,
+                detail=reason,
+            )
+            _update_phase(job, case_dir, "run_multilayer_analysis", "failed", finished_at=utc_now(), label="Run multilayer forensic analysis", detail=reason, artifact_path=analysis_status.get("forensic_analysis_report_path"))
+            _set_job(job, case_dir, status="failed", finished_at=utc_now(), current_phase="failed", current_phase_label="Run multilayer forensic analysis", current_phase_detail=reason, progress_percent=100, errors=errors, warnings=warnings, phase_trace=job.get("phase_trace"))
             return
+        analysis_final_status = str(analysis_status.get("status") or "completed")
         if analysis_status.get("forensic_analysis_report_path"):
             generated_artifacts.append(analysis_status.get("forensic_analysis_report_path"))
-        _update_phase(job, case_dir, "run_multilayer_analysis", analysis_status.get("status") or "completed", finished_at=utc_now(), artifact_path=analysis_status.get("forensic_analysis_report_path"))
-        _set_job(job, case_dir, progress_percent=55, current_phase="run_causal_reconstruction", warnings=warnings)
+        if analysis_final_status == "partial":
+            warnings.extend([str(item.get("message") or item) for item in (analysis_status.get("warnings") or []) if item])
+        _upsert_phase_trace(
+            job,
+            case_dir,
+            case_id=case_id,
+            phase_id="run_multilayer_analysis",
+            parent_phase_id=None,
+            phase_label="Run multilayer forensic analysis",
+            layer="multilayer",
+            status="degraded" if analysis_final_status == "partial" else "completed",
+            finished_at=utc_now(),
+            output_artifacts_generated=[analysis_status.get("forensic_analysis_report_path")] if analysis_status.get("forensic_analysis_report_path") else [],
+            artifacts_processed_count=len([item for item in ((analysis_status.get("output_files") or [])) if item]),
+            findings_generated_count=None,
+            warnings=[str(item.get("message") or item) for item in (analysis_status.get("warnings") or []) if item],
+            scientific_limitation_reason=(
+                str(((analysis_status.get("warnings") or [{}])[0]).get("message"))
+                if analysis_status.get("warnings")
+                else None
+            ),
+            detail="Multilayer analysis finalization completed.",
+        )
+        _update_phase(job, case_dir, "run_multilayer_analysis", analysis_final_status, finished_at=utc_now(), label="Run multilayer forensic analysis", detail="Multilayer analysis finalization completed.", artifact_path=analysis_status.get("forensic_analysis_report_path"))
 
-        _update_phase(job, case_dir, "run_causal_reconstruction", "running", started_at=utc_now())
-        run_causal_reconstruction(case_id=case_id, case_path=case_dir, strict=strict, degraded_ok=degraded_ok)
-        causal_status = _wait_for_terminal(case_id, lambda cid: summarize_case_causal_state(cid, case_dir, analysis_status=analysis_status), {"running"}, {"completed", "completed_with_degradation", "failed", "blocked_missing_ground_truth", "blocked_missing_analysis", "ready_to_run"})
-        causal_state = str(causal_status.get("status") or causal_status.get("state") or "")
-        if causal_state in {"failed", "blocked_missing_ground_truth", "blocked_missing_analysis"}:
-            errors.append(str(causal_status.get("reason") or "Causal reconstruction failed or was blocked."))
-            _update_phase(job, case_dir, "run_causal_reconstruction", "failed", finished_at=utc_now(), error_message=causal_status.get("reason"))
+        _set_job(job, case_dir, progress_percent=52, current_phase="bootstrap_foc", current_phase_label="Bootstrap FOC", current_phase_detail="Bootstrapping FOC context from preserved artifacts.")
+        _update_phase(job, case_dir, "bootstrap_foc", "running", started_at=utc_now(), label="Bootstrap FOC", detail="Bootstrapping FOC context from preserved artifacts.")
+        bootstrap_result = bootstrap_existing_context(force=False)
+        _upsert_phase_trace(
+            job,
+            case_dir,
+            case_id=case_id,
+            phase_id="bootstrap_foc",
+            parent_phase_id=None,
+            phase_label="Bootstrap FOC",
+            layer="foc",
+            status="completed",
+            started_at=job.get("updated_at") or utc_now(),
+            finished_at=utc_now(),
+            output_artifacts_generated=[],
+            findings_generated_count=0,
+            detail=f"FOC bootstrap finished with status {bootstrap_result.get('status') or 'completed'}.",
+        )
+        _update_phase(job, case_dir, "bootstrap_foc", "completed", finished_at=utc_now(), label="Bootstrap FOC", detail=f"FOC bootstrap finished with status {bootstrap_result.get('status') or 'completed'}.")
+
+        _set_job(job, case_dir, progress_percent=58, current_phase="regenerate_foc_context", current_phase_label="Regenerate FOC context", current_phase_detail="Refreshing generated FOC context artifacts.")
+        _update_phase(job, case_dir, "regenerate_foc_context", "running", started_at=utc_now(), label="Regenerate FOC context", detail="Refreshing generated FOC context artifacts.")
+        regenerate_manifest = regenerate_foc()
+        _upsert_phase_trace(
+            job,
+            case_dir,
+            case_id=case_id,
+            phase_id="regenerate_foc_context",
+            parent_phase_id=None,
+            phase_label="Regenerate FOC context",
+            layer="foc",
+            status="completed",
+            started_at=job.get("updated_at") or utc_now(),
+            finished_at=utc_now(),
+            output_artifacts_generated=[str(value) for value in (regenerate_manifest or {}).values() if isinstance(value, str) and value.endswith((".json", ".md", ".csv"))][:8],
+            detail="FOC context artifacts were regenerated.",
+        )
+        _update_phase(job, case_dir, "regenerate_foc_context", "completed", finished_at=utc_now(), label="Regenerate FOC context", detail="FOC context artifacts were regenerated.")
+
+        _set_job(job, case_dir, progress_percent=64, current_phase="time_sync_and_timestamp_quality", current_phase_label="Time synchronization and timestamp quality assessment", current_phase_detail="Measuring clock offset and timestamp quality inputs.")
+        _update_phase(job, case_dir, "time_sync_and_timestamp_quality", "running", started_at=utc_now(), label="Time synchronization and timestamp quality assessment", detail="Measuring clock offset and timestamp quality inputs.")
+        run_time_sync(case_id, fix_time=False, maintenance_override=False)
+        time_sync_status = _wait_for_terminal(case_id, load_time_sync_status, {"running"}, {"completed", "failed", "blocked_policy"})
+        time_sync_trace_status = "completed"
+        time_sync_blockers = []
+        time_sync_warnings = []
+        if str(time_sync_status.get("status")) == "failed":
+            time_sync_trace_status = "partial"
+            time_sync_warnings.append(str(time_sync_status.get("reason") or "Clock-offset measurement failed."))
+            warnings.extend(time_sync_warnings)
+        elif str(time_sync_status.get("status")) == "blocked_policy":
+            time_sync_trace_status = "blocked"
+            time_sync_blockers.append(str(time_sync_status.get("reason") or "Time synchronization assessment was blocked by policy."))
+            warnings.extend(time_sync_blockers)
         else:
-            if causal_state == "completed_with_degradation":
-                warnings.append(str(causal_status.get("reason") or "Causal reconstruction completed with degradation."))
-            _update_phase(job, case_dir, "run_causal_reconstruction", causal_state or "completed", finished_at=utc_now(), artifact_path=((causal_status.get("output_paths") or {}).get("causal_graph")))
-            for value in (causal_status.get("output_paths") or {}).values():
-                if value:
-                    generated_artifacts.append(value)
+            output_json = ((time_sync_status.get("output_paths") or {}).get("json")) or relative_path(case_dir / "metadata" / "time_sync.json")
+            if output_json:
+                generated_artifacts.append(output_json)
+        _upsert_phase_trace(
+            job,
+            case_dir,
+            case_id=case_id,
+            phase_id="time_synchronization_and_timestamp_quality_assessment",
+            parent_phase_id=None,
+            phase_label="Time synchronization and timestamp quality assessment",
+            layer="time_sync",
+            status=time_sync_trace_status,
+            started_at=job.get("updated_at") or utc_now(),
+            finished_at=utc_now(),
+            output_artifacts_generated=[((time_sync_status.get("output_paths") or {}).get("json"))] if ((time_sync_status.get("output_paths") or {}).get("json")) else [],
+            warnings=time_sync_warnings,
+            blockers=time_sync_blockers,
+            scientific_limitation_reason=(time_sync_warnings or time_sync_blockers or [None])[0],
+            detail=str(time_sync_status.get("reason") or "Time synchronization and timestamp quality assessment completed."),
+        )
+        _update_phase(job, case_dir, "time_sync_and_timestamp_quality", time_sync_trace_status, finished_at=utc_now(), label="Time synchronization and timestamp quality assessment", detail=str(time_sync_status.get("reason") or "Time synchronization and timestamp quality assessment completed."), artifact_path=((time_sync_status.get("output_paths") or {}).get("json")))
 
-        _set_job(job, case_dir, progress_percent=80, current_phase="generate_executive_summary", warnings=warnings, errors=errors)
-        _update_phase(job, case_dir, "generate_executive_summary", "running", started_at=utc_now())
+        _set_job(job, case_dir, progress_percent=72, current_phase="run_causal_reconstruction", current_phase_label="Run causal reconstruction", current_phase_detail="Running causal reconstruction after multilayer outputs and time assessment.")
+        analysis_gate = str(analysis_status.get("status") or "").lower()
+        if analysis_gate not in {"completed", "partial"}:
+            blocker_reason = "Causal reconstruction is blocked because multilayer forensic analysis did not produce usable outputs."
+            warnings.append(blocker_reason)
+            _upsert_phase_trace(
+                job,
+                case_dir,
+                case_id=case_id,
+                phase_id="run_causal_reconstruction",
+                parent_phase_id=None,
+                phase_label="Run causal reconstruction",
+                layer="causal",
+                status="blocked",
+                started_at=utc_now(),
+                finished_at=utc_now(),
+                blockers=[blocker_reason],
+                scientific_limitation_reason=blocker_reason,
+                detail=blocker_reason,
+            )
+            _update_phase(job, case_dir, "run_causal_reconstruction", "blocked", finished_at=utc_now(), label="Run causal reconstruction", detail=blocker_reason)
+        else:
+            _update_phase(job, case_dir, "run_causal_reconstruction", "running", started_at=utc_now(), label="Run causal reconstruction", detail="Launching causal reconstruction with the refreshed FOC context.")
+            run_causal_reconstruction(case_id=case_id, case_path=case_dir, strict=strict, degraded_ok=degraded_ok)
+            causal_status = _wait_for_terminal(case_id, lambda cid: summarize_case_causal_state(cid, case_dir, analysis_status=analysis_status), {"running"}, {"completed", "completed_with_degradation", "failed", "blocked_missing_ground_truth", "blocked_missing_analysis", "ready_to_run"})
+            causal_state = str(causal_status.get("status") or causal_status.get("state") or "")
+            if causal_state in {"blocked_missing_ground_truth", "blocked_missing_analysis"}:
+                blocker_reason = str(causal_status.get("reason") or "Causal reconstruction was blocked by missing required inputs.")
+                warnings.append(blocker_reason)
+                _upsert_phase_trace(
+                    job,
+                    case_dir,
+                    case_id=case_id,
+                    phase_id="run_causal_reconstruction",
+                    parent_phase_id=None,
+                    phase_label="Run causal reconstruction",
+                    layer="causal",
+                    status="blocked",
+                    started_at=job.get("updated_at") or utc_now(),
+                    finished_at=utc_now(),
+                    blockers=[blocker_reason],
+                    scientific_limitation_reason=blocker_reason,
+                    detail=blocker_reason,
+                )
+                _update_phase(job, case_dir, "run_causal_reconstruction", "blocked", finished_at=utc_now(), label="Run causal reconstruction", detail=blocker_reason)
+            elif causal_state == "failed":
+                error_reason = str(causal_status.get("reason") or "Causal reconstruction failed.")
+                errors.append(error_reason)
+                _upsert_phase_trace(
+                    job,
+                    case_dir,
+                    case_id=case_id,
+                    phase_id="run_causal_reconstruction",
+                    parent_phase_id=None,
+                    phase_label="Run causal reconstruction",
+                    layer="causal",
+                    status="failed",
+                    started_at=job.get("updated_at") or utc_now(),
+                    finished_at=utc_now(),
+                    blockers=[error_reason],
+                    scientific_limitation_reason=error_reason,
+                    detail=error_reason,
+                )
+                _update_phase(job, case_dir, "run_causal_reconstruction", "failed", finished_at=utc_now(), label="Run causal reconstruction", detail=error_reason)
+            else:
+                trace_status = "degraded" if causal_state == "completed_with_degradation" else "completed"
+                reason = str(causal_status.get("reason") or "Causal reconstruction completed.")
+                if trace_status == "degraded":
+                    warnings.append(reason)
+                _upsert_phase_trace(
+                    job,
+                    case_dir,
+                    case_id=case_id,
+                    phase_id="run_causal_reconstruction",
+                    parent_phase_id=None,
+                    phase_label="Run causal reconstruction",
+                    layer="causal",
+                    status=trace_status,
+                    started_at=job.get("updated_at") or utc_now(),
+                    finished_at=utc_now(),
+                    output_artifacts_generated=list((causal_status.get("output_paths") or {}).values()),
+                    findings_generated_count=int(causal_status.get("recovered_edges") or 0) if causal_status.get("recovered_edges") is not None else None,
+                    warnings=[reason] if trace_status == "degraded" else [],
+                    scientific_limitation_reason=reason if trace_status == "degraded" else None,
+                    detail=reason,
+                )
+                _update_phase(job, case_dir, "run_causal_reconstruction", trace_status, finished_at=utc_now(), label="Run causal reconstruction", detail=reason, artifact_path=((causal_status.get("output_paths") or {}).get("causal_graph")))
+                for value in (causal_status.get("output_paths") or {}).values():
+                    if value:
+                        generated_artifacts.append(value)
+
+        _set_job(job, case_dir, progress_percent=86, current_phase="run_evidence_based_hypothesis_support", current_phase_label="Run evidence-based hypothesis support", current_phase_detail="Generating normalized evidence-support and claimability outputs.")
+        _update_phase(job, case_dir, "run_evidence_based_hypothesis_support", "running", started_at=utc_now(), label="Run evidence-based hypothesis support", detail="Generating normalized evidence-support and claimability outputs.")
+        from .evidence_support.service import build_evidence_support  # local import to avoid circular import
+        support_result = build_evidence_support(case_id)
+        _upsert_phase_trace(
+            job,
+            case_dir,
+            case_id=case_id,
+            phase_id="run_evidence_based_hypothesis_support",
+            parent_phase_id=None,
+            phase_label="Run evidence-based hypothesis support",
+            layer="hypothesis_support",
+            status="completed",
+            started_at=job.get("updated_at") or utc_now(),
+            finished_at=utc_now(),
+            output_artifacts_generated=[
+                support_result.get("atoms_path"),
+                support_result.get("evidence_triage_report_path"),
+                support_result.get("cross_layer_support_matrix_path"),
+                support_result.get("hypothesis_support_report_path"),
+                support_result.get("forensic_storyline_path"),
+                support_result.get("claimability_report_path"),
+                support_result.get("counter_evidence_report_path"),
+            ],
+            findings_generated_count=support_result.get("total_atoms"),
+            detail=f"Hypothesis support generated with global support level {support_result.get('global_support_level') or 'unknown'}.",
+        )
+        _update_phase(job, case_dir, "run_evidence_based_hypothesis_support", "completed", finished_at=utc_now(), label="Run evidence-based hypothesis support", detail=f"Hypothesis support generated with global support level {support_result.get('global_support_level') or 'unknown'}.", artifact_path=support_result.get("hypothesis_support_report_path"))
+        for value in (
+            "atoms_path",
+            "evidence_triage_report_path",
+            "cross_layer_support_matrix_path",
+            "hypothesis_support_report_path",
+            "forensic_storyline_path",
+            "claimability_report_path",
+            "counter_evidence_report_path",
+        ):
+            if support_result.get(value):
+                generated_artifacts.append(support_result.get(value))
+
+        _set_job(job, case_dir, progress_percent=94, current_phase="generate_executive_summary", current_phase_label="Generate executive summary and lifecycle dashboard snapshot", current_phase_detail="Writing the executive evidence lifecycle summary snapshot.")
+        _update_phase(job, case_dir, "generate_executive_summary", "running", started_at=utc_now(), label="Generate executive summary and lifecycle dashboard snapshot", detail="Writing the executive evidence lifecycle summary snapshot.")
         payload = generate_evidence_lifecycle_summary(case_id)
         generated_artifacts.append(payload.get("summary_path"))
-        _update_phase(job, case_dir, "generate_executive_summary", "completed", finished_at=utc_now(), artifact_path=payload.get("summary_path"))
+        _upsert_phase_trace(
+            job,
+            case_dir,
+            case_id=case_id,
+            phase_id="generate_executive_summary_and_lifecycle_dashboard_snapshot",
+            parent_phase_id=None,
+            phase_label="Generate executive summary and lifecycle dashboard snapshot",
+            layer="executive_summary",
+            status="completed",
+            started_at=job.get("updated_at") or utc_now(),
+            finished_at=utc_now(),
+            output_artifacts_generated=[payload.get("summary_path")],
+            findings_generated_count=1,
+            detail="Executive summary and lifecycle dashboard snapshot generated.",
+        )
+        _update_phase(job, case_dir, "generate_executive_summary", "completed", finished_at=utc_now(), label="Generate executive summary and lifecycle dashboard snapshot", detail="Executive summary and lifecycle dashboard snapshot generated.", artifact_path=payload.get("summary_path"))
 
         final_status = "completed_with_degradation" if warnings else "completed"
         if errors:
@@ -1520,6 +2036,7 @@ def _run_full_worker(job: dict, case_dir: Path, force_analysis: bool, strict: bo
             warnings=list(dict.fromkeys(warnings)),
             errors=list(dict.fromkeys(errors)),
             generated_artifacts=list(dict.fromkeys([item for item in generated_artifacts if item])),
+            phase_trace=job.get("phase_trace"),
         )
     except Exception as exc:
         _set_job(job, case_dir, status="failed", finished_at=utc_now(), current_phase="failed", progress_percent=100, errors=[str(exc)])

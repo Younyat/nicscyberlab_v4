@@ -17,6 +17,7 @@ from .config import (
     campaign_methodological_basis_path,
     rel,
 )
+from .dry_run_orchestrator import start_dry_run_execution_job
 from .execution_service import aggregate_campaign_state, create_execution_from_campaign
 from .job_runner import append_phase, get_job, list_jobs, new_job, start_job, update_job
 from .methodological_basis import load_methodological_basis
@@ -89,17 +90,28 @@ def _latest_job_summary(campaign_id: str) -> dict | None:
     if latest_path is None:
         return None
     payload = _json_load(latest_path) or {}
+    phase_statuses = list(payload.get("phase_statuses") or [])
+    last_phase = phase_statuses[-1] if phase_statuses else {}
+    normalized_status = str(payload.get("status") or "").lower()
+    current_phase = payload.get("current_phase")
+    current_phase_label = payload.get("current_phase_label")
+    current_phase_detail = payload.get("current_phase_detail")
+    if normalized_status in {"completed", "completed_with_degradation", "failed", "cancelled"} and last_phase:
+        current_phase = last_phase.get("phase_key") or current_phase or normalized_status
+        current_phase_label = last_phase.get("phase_label") or current_phase_label or str(normalized_status).replace("_", " ").title()
+        current_phase_detail = last_phase.get("detail") or current_phase_detail
     return {
         "job_id": payload.get("job_id"),
         "status": payload.get("status"),
         "started_at": payload.get("started_at") or payload.get("requested_at"),
         "finished_at": payload.get("finished_at"),
-        "current_phase": payload.get("current_phase"),
-        "current_phase_label": payload.get("current_phase_label"),
-        "current_phase_detail": payload.get("current_phase_detail"),
+        "current_phase": current_phase,
+        "current_phase_label": current_phase_label,
+        "current_phase_detail": current_phase_detail,
         "progress_percent": payload.get("progress_percent"),
         "last_error": ((payload.get("errors") or [{}])[0] or {}).get("message") if payload.get("errors") else None,
         "job_path": rel(latest_path),
+        "phase_statuses": phase_statuses,
     }
 
 
@@ -139,6 +151,9 @@ def create_campaign(payload: dict) -> dict:
         raise ValueError("A linked source case is required for Level A. Select a preserved case before creating the campaign.")
     if level in {"B", "C"} and (not scenario_id or scenario_id == "not_available"):
         raise ValueError(f"Scenario ID is required for Level {level}. Select or auto-detect an active deployed scenario before starting execution.")
+    attack_id = str(payload.get("attack_id") or payload.get("attack_profile_override") or "").strip()
+    if level in {"B", "C"} and not attack_id:
+        raise ValueError(f"Attack profile is required for executable Level {level} campaigns. Select an attack profile before creating executable repetitions.")
     campaign_id = _new_campaign_id()
     root = campaign_dir(campaign_id)
     for name in ["jobs", "logs", "comparisons", "level_A", "level_B", "level_C"]:
@@ -204,7 +219,7 @@ def create_campaign(payload: dict) -> dict:
         # campaign. This records the planned attack profile; it is not yet
         # consumed by an automated attack-launch pipeline for Level B/C,
         # which does not exist in foc_experimentation today.
-        "attack_id": payload.get("attack_id") or payload.get("attack_profile_override"),
+        "attack_id": attack_id or None,
     }
     _write_json(campaign_manifest_path(campaign_id), manifest)
     _write_json(campaign_config_path(campaign_id), config)
@@ -260,7 +275,7 @@ def build_campaign_proposal(case_id: str | None = None, level: str | None = None
         resolved_scenario_name = active_hint.get("scenario_name") or resolved_scenario_name
     default_name = {
         "A": f"Level A Reanalysis — {case_id or 'linked_case'}",
-        "B": f"Level B T0831 Repetition — {resolved_scenario_id}",
+        "B": f"Level B Repetition — {resolved_scenario_id}",
         "C": f"Level C Full Redeployment — {resolved_scenario_name if resolved_scenario_name != 'not_available' else resolved_scenario_id}",
     }.get(normalized_level, f"Level {normalized_level} Campaign")
     return {
@@ -373,14 +388,21 @@ def campaign_preflight(payload: dict) -> dict:
         add_item("output_campaign_directory_can_be_created", True, "The module needs an isolated campaign workspace.", "Check filesystem permissions if campaign creation fails.", True, "output campaign directory can be created")
     elif level == "B":
         scenario_ok = bool(scenario_id and scenario_id != "not_available")
+        attack_ok = bool(str(payload.get("attack_id") or payload.get("attack_profile_override") or "").strip())
         # No linked source case is required for Level B. A new forensic case
         # will be created for each repeated incident execution -- this
         # checklist intentionally never asks for one.
         add_item("scenario_selected", scenario_ok, "Level B needs a declared scenario context.", "Provide a scenario ID or select a scenario-linked source.", False)
         add_item("active_scenario_exists", scenario_ok, "The deployed scenario must actually exist before launching a repeated incident.", "Deploy or select an active scenario before starting execution.", False)
         add_item("required_roles_resolved", True, "Attacker/victim/monitor roles must resolve to real nodes.", "Verify instance roles in the IT scenario editor if resolution fails.", True)
-        add_item("attack_profile_selected", True, "Repeated incident executions require an explicit attack profile.", "Override the attack profile in Advanced Mode if needed.", True)
-        add_item("automated_attack_script_available", True, "Controlled repetition depends on an executable attack path.", "Ensure the attack profile can be resolved before running heavy executions.", True)
+        add_item(
+            "attack_profile_selected",
+            attack_ok,
+            "Level B repeats a controlled incident. The attack profile defines what incident will be launched and what result family the execution can belong to.",
+            "Select an attack profile manually, use a recommended comparable attack if available, or start a new comparison family and choose the attack profile.",
+            False,
+        )
+        add_item("automated_attack_script_available", attack_ok, "Controlled repetition depends on an executable attack path.", "Ensure the attack profile can be resolved before running heavy executions.", True)
         add_item("detection_stream_available", True, "Level B waits for a real detection before acquisition.", "Confirm the detection/alerting stream is reachable.", True)
         add_item("trigger_policy_configured", True, "The acquisition trigger policy must be declared before execution.", "Override the trigger policy in Advanced Mode if needed.", True)
         add_item("forensic_auto_acquisition_available", True, "The repeated run must preserve evidence automatically once triggered.", "Confirm auto-acquisition is reachable before heavy execution.", True)
@@ -390,11 +412,12 @@ def campaign_preflight(payload: dict) -> dict:
         add_item("baseline_noise_capture_available", True, "Level B comparability uses baseline noise as a warning boundary.", "Keep baseline capture enabled.", True)
         add_item("output_campaign_directory_can_be_created", True, "The module needs an isolated campaign workspace.", "Check filesystem permissions if campaign creation fails.", True)
     else:
+        attack_ok = bool(str(payload.get("attack_id") or payload.get("attack_profile_override") or "").strip())
         add_item("deployment_profile_selected", False, "Level C needs a deployment and environment validation profile.", "Provide deployment-aware configuration before running Level C.", False, "deployment profile selected")
         add_item("scenario_deployment_available", bool(scenario_id and scenario_id != "not_available"), "Level C requires a deployable scenario context.", "Provide a scenario ID and deployment profile.", False, "scenario deployment available")
         add_item("tool_installation_validation_available", True, "Level C comparability depends on environment validation reports.", "Use validation placeholders or future deployment-aware execution.", True, "tool installation validation available")
         add_item("ids_siem_configuration_profile_available", True, "Sensor configuration changes affect reproducibility interpretation.", "Generate configuration validation reports for Level C runs.", True, "IDS/SIEM configuration profile available")
-        add_item("attack_profile_selected", True, "The repeated incident must still be explicitly defined.", "Override attack profile in Advanced Mode if needed.", True, "attack profile selected")
+        add_item("attack_profile_selected", attack_ok, "The repeated incident must still be explicitly defined.", "Select an attack profile before creating an executable Level C campaign.", False, "attack profile selected")
         add_item("acquisition_profile_selected", True, "The environment-level repetition still needs forensic acquisition logic.", "Override acquisition profile in Advanced Mode if needed.", True, "acquisition profile selected")
         add_item("output_campaign_directory_can_be_created", True, "The module needs an isolated campaign workspace.", "Check filesystem permissions if campaign creation fails.", True, "output campaign directory can be created")
 
@@ -427,47 +450,7 @@ def update_campaign_state(campaign_id: str, state: str) -> dict:
 
 
 def start_campaign_job(campaign_id: str, overrides: dict | None = None) -> dict:
-    overrides = overrides or {}
-    manifest = _json_load(campaign_manifest_path(campaign_id)) or {}
-    if not manifest:
-        raise FileNotFoundError(f"campaign_not_found:{campaign_id}")
-    running = _running_job_for_campaign(campaign_id)
-    if running:
-        return running
-    job = new_job(
-        job_type="campaign_run_next",
-        title=f"Run next execution for {campaign_id}",
-        job_path=campaign_dir(campaign_id) / "jobs" / f"job-{uuid.uuid4().hex[:8]}.json",
-        meta={"campaign_id": campaign_id, "level": manifest.get("level")},
-    )
-
-    def runner(job_id: str, job_path: Path):
-        append_phase(job_id, job_path, phase_key="campaign_start", phase_label="Start campaign execution", status="running", progress_percent=4.0, detail="Launching the next execution inside the selected campaign.")
-        progress_hook = lambda key, label, percent, detail=None: append_phase(
-            job_id,
-            job_path,
-            phase_key=key,
-            phase_label=label,
-            status="running",
-            progress_percent=percent,
-            detail=detail,
-        )
-        result = create_execution_from_campaign(campaign_id, overrides={**overrides, "_progress_hook": progress_hook})
-        append_phase(job_id, job_path, phase_key="finalize", phase_label="Finalize execution job", status="completed", progress_percent=100.0, detail="Execution workspace and derived scientific profiles were registered.")
-        update_job(
-            job_id,
-            job_path,
-            current_phase="completed",
-            current_phase_label="Completed",
-            current_phase_detail="Execution workspace and derived scientific profiles were registered.",
-            progress_percent=100.0,
-            status="completed" if result.get("status") == "completed" else "completed_with_degradation",
-            finished_at=utc_now(),
-            generated_artifacts=list((result.get("artifacts") or {}).values()),
-            meta={**(job.get("meta") or {}), **result},
-        )
-
-    return start_job(job, runner)
+    return start_dry_run_execution_job(campaign_id, overrides=overrides or {})
 
 
 def start_campaign(campaign_id: str, overrides: dict | None = None) -> dict:

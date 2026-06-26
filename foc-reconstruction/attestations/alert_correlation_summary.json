@@ -1,21 +1,21 @@
 {
-  "generated_at": "2026-06-23T15:39:38.296116+00:00",
+  "generated_at": "2026-06-26T16:56:13.210759+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
-  "total_correlation_records": 71261,
-  "total_alerts": 68554,
-  "relevant_alerts": 45064,
-  "correlated_alerts": 18468,
-  "confirmed_correlations": 18468,
+  "total_correlation_records": 4641,
+  "total_alerts": 1119,
+  "relevant_alerts": 126,
+  "correlated_alerts": 1770,
+  "confirmed_correlations": 1770,
   "weak_correlations": 0,
-  "unresolved_alerts": 52774,
+  "unresolved_alerts": 2832,
   "noise_alerts": 0,
   "false_positive_candidates": 0,
   "missing_expected_alerts_total": 39,
   "bucket_counts": {
-    "correlated": 18468,
-    "uncorrelated": 52774,
-    "noise": 23490,
+    "correlated": 1770,
+    "uncorrelated": 2832,
+    "noise": 993,
     "false_positive_candidate": 0,
     "missing_expected_alert": 39,
     "weak_candidate": 0,
@@ -24,146 +24,86 @@
   },
   "top_signatures": [
     {
-      "label": "NICS CyberLab ICS RAW Modbus function 03 read holding registers burst",
-      "count": 14364
+      "label": "Jun 25 15:37:16 plc-instance sshd[2787405]: Invalid user debian from 10.0.2.1 port 53846",
+      "count": 2832
     },
     {
       "label": "NICS CyberLab ICS Modbus write multiple registers",
-      "count": 14364
-    },
-    {
-      "label": "NICS CyberLab ICS RAW Modbus function 01 read coils burst",
-      "count": 14022
-    },
-    {
-      "label": "/etc/suricata/suricata.yaml",
-      "count": 7224
-    },
-    {
-      "label": "NICS CyberLab ICS RAW Modbus function 03 read holding registers",
-      "count": 5472
-    },
-    {
-      "label": "NICS CyberLab ICS Modbus write single register",
-      "count": 4104
-    },
-    {
-      "label": "/etc/suricata/suricata.yaml.nics-modbus-backup-20260614185438",
-      "count": 1824
-    },
-    {
-      "label": "/etc/suricata/suricata.yaml.nics-modbus-backup-20260614190525",
-      "count": 1824
-    },
-    {
-      "label": "/etc/suricata/suricata.yaml.nics-modbus-backup-20260614203742",
-      "count": 1824
-    },
-    {
-      "label": "/etc/suricata/suricata.yaml.nics-modbus-backup-20260614210325",
-      "count": 1824
+      "count": 1770
     }
   ],
   "top_rule_ids": [
     {
-      "label": "86601",
-      "count": 52326
-    },
-    {
-      "label": "554",
-      "count": 9632
-    },
-    {
-      "label": "550",
-      "count": 8964
-    },
-    {
       "label": "5710",
-      "count": 320
+      "count": 2832
+    },
+    {
+      "label": "86601",
+      "count": 1770
     }
   ],
   "top_nodes": [
     {
-      "label": "node-e1ac03b8",
-      "count": 37678
-    },
-    {
       "label": "node-f9ca9bfc",
-      "count": 32376
-    },
-    {
-      "label": "node-c800d431",
-      "count": 1188
+      "count": 4602
     }
   ],
   "severity_distribution": [
     {
-      "label": "HIGH",
-      "count": 33843
-    },
-    {
       "label": "LOW",
-      "count": 23736
+      "count": 993
     },
     {
       "label": "MEDIUM",
-      "count": 10975
+      "count": 96
+    },
+    {
+      "label": "HIGH",
+      "count": 30
     }
   ],
   "alerts_by_node": [
     {
       "label": "node-c800d431",
-      "count": 16746
-    },
-    {
-      "label": "node-e1ac03b8",
-      "count": 16245
+      "count": 894
     },
     {
       "label": "node-f9ca9bfc",
-      "count": 12828
+      "count": 177
+    },
+    {
+      "label": "node-e1ac03b8",
+      "count": 48
     }
   ],
   "alerts_by_mitre_technique": [
     {
-      "label": "T0802",
-      "count": 348
-    },
-    {
-      "label": "T0861",
-      "count": 348
-    },
-    {
       "label": "T1692.001",
-      "count": 324
+      "count": 30
     },
     {
       "label": "T0836",
-      "count": 324
-    },
-    {
-      "label": "T0877",
-      "count": 246
+      "count": 30
     }
   ],
   "alerts_by_original_sensor": [
     {
-      "label": "wazuh",
-      "count": 44494
+      "label": "suricata",
+      "count": 1023
     },
     {
-      "label": "suricata",
-      "count": 24060
+      "label": "wazuh",
+      "count": 96
     }
   ],
   "alerts_by_collector": [
     {
       "label": "wazuh",
-      "count": 68554
+      "count": 1119
     }
   ],
-  "unique_confirmed_attack_pairs": 3,
-  "unique_correlation_candidates": 53,
+  "unique_confirmed_attack_pairs": 1,
+  "unique_correlation_candidates": 27,
   "confirmed_attack_ids": 1,
   "weak_attack_ids": 0,
   "observable_attack_ids": 1,
@@ -491,228 +431,228 @@
   ],
   "uncorrelated_alert_samples": [
     {
-      "alert_id": "alr-3850971b",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-9cecfda9",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "node-c800d431",
       "instance_id": "inst-16583180",
       "status": "noise"
     },
     {
-      "alert_id": "alr-8c44dce6",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-3e01f69e",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "node-c800d431",
       "instance_id": "inst-16583180",
       "status": "noise"
     },
     {
-      "alert_id": "alr-1973810b",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-bf92900f",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "node-c800d431",
       "instance_id": "inst-16583180",
       "status": "noise"
     },
     {
-      "alert_id": "alr-bc6899db",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-a8e97d01",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "node-c800d431",
       "instance_id": "inst-16583180",
       "status": "noise"
     },
     {
-      "alert_id": "alr-0ccf1f7b",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-4ed00080",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "node-c800d431",
       "instance_id": "inst-16583180",
       "status": "noise"
     },
     {
-      "alert_id": "alr-5c7460b8",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-914069e0",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "node-c800d431",
       "instance_id": "inst-16583180",
       "status": "noise"
     },
     {
-      "alert_id": "alr-33ede393",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-b10f5488",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "node-c800d431",
       "instance_id": "inst-16583180",
       "status": "noise"
     },
     {
-      "alert_id": "alr-124703ce",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-4fb1a66b",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "node-c800d431",
       "instance_id": "inst-16583180",
       "status": "noise"
     },
     {
-      "alert_id": "alr-50e63331",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-aee26b95",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "node-c800d431",
       "instance_id": "inst-16583180",
       "status": "noise"
     },
     {
-      "alert_id": "alr-ef598b5d",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-b1e673c8",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "node-c800d431",
       "instance_id": "inst-16583180",
       "status": "noise"
     },
     {
-      "alert_id": "alr-87e29d15",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-c0eea207",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "node-c800d431",
       "instance_id": "inst-16583180",
       "status": "noise"
     },
     {
-      "alert_id": "alr-7f916709",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-0e13597a",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "node-c800d431",
       "instance_id": "inst-16583180",
       "status": "noise"
     },
     {
-      "alert_id": "alr-19fa25cb",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-76af3eae",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "node-c800d431",
       "instance_id": "inst-16583180",
       "status": "noise"
     },
     {
-      "alert_id": "alr-4ac8b8b7",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-07f8e7a5",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "node-c800d431",
       "instance_id": "inst-16583180",
       "status": "noise"
     },
     {
-      "alert_id": "alr-96ae203f",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-08b8eb8e",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "node-c800d431",
       "instance_id": "inst-16583180",
       "status": "noise"
     },
     {
-      "alert_id": "alr-ec72123d",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-df594f2d",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "node-c800d431",
       "instance_id": "inst-16583180",
       "status": "noise"
     },
     {
-      "alert_id": "alr-9b7d72f1",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-a13dc705",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "node-c800d431",
       "instance_id": "inst-16583180",
       "status": "noise"
     },
     {
-      "alert_id": "alr-73aed039",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-58cd4d30",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "node-c800d431",
       "instance_id": "inst-16583180",
       "status": "noise"
     },
     {
-      "alert_id": "alr-9166f405",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-832b2db9",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "node-c800d431",
       "instance_id": "inst-16583180",
       "status": "noise"
     },
     {
-      "alert_id": "alr-58126ecf",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-3911c0b0",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "node-c800d431",
       "instance_id": "inst-16583180",
       "status": "noise"
     },
     {
-      "alert_id": "alr-2d42d8f7",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-695380e0",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "node-c800d431",
       "instance_id": "inst-16583180",
       "status": "noise"
     },
     {
-      "alert_id": "alr-260534bb",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-cb6d78d9",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "node-c800d431",
       "instance_id": "inst-16583180",
       "status": "noise"
     },
     {
-      "alert_id": "alr-669a3618",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-d6ea5232",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "node-c800d431",
       "instance_id": "inst-16583180",
       "status": "noise"
     },
     {
-      "alert_id": "alr-6166b393",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-f1def3a7",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "node-c800d431",
       "instance_id": "inst-16583180",
       "status": "noise"
     },
     {
-      "alert_id": "alr-5d14b712",
-      "signature": "/etc/shadow_backup",
-      "rule_id": "550",
-      "severity": "HIGH",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "alert_id": "alr-a5b0f8d2",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
+      "node_id": "node-f9ca9bfc",
+      "instance_id": "inst-8c0c86c9",
       "status": "noise"
     }
   ]

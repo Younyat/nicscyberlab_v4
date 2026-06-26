@@ -113,6 +113,38 @@
   const byId = (id) => document.getElementById(id);
   const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
   const truthy = (value) => !!value && value !== "not_available";
+  const ANALYSIS_PHASE_META = {
+    preflight_validation: { label: "Multilayer analysis preflight", layer: "multilayer" },
+    evidence_inventory: { label: "Preserved evidence inventory", layer: "verification" },
+    integrity_custody_validation: { label: "Chain of custody verification", layer: "verification" },
+    temporal_validation: { label: "Time synchronization and timestamp quality assessment", layer: "time_sync" },
+    network_analysis: { label: "Network analysis", layer: "network" },
+    memory_analysis: { label: "Memory analysis", layer: "memory" },
+    disk_analysis: { label: "Disk analysis", layer: "disk" },
+    ot_export_analysis: { label: "OT and industrial artifacts analysis", layer: "ot" },
+    alerts_detection_analysis: { label: "Alerts analysis", layer: "alerts" },
+    pipeline_custody_analysis: { label: "Pipeline and custody analysis", layer: "pipeline_custody" },
+    unified_forensic_timeline: { label: "Unified timeline generation", layer: "timeline" },
+    cross_layer_findings: { label: "Cross-layer findings generation", layer: "cross_layer" },
+    forensic_analysis_report_generation: { label: "Multilayer analysis finalization", layer: "multilayer" },
+    foc_readiness_update: { label: "FOC readiness update", layer: "foc" },
+  };
+  const ANALYSIS_PHASE_ORDER = [
+    "preflight_validation",
+    "evidence_inventory",
+    "integrity_custody_validation",
+    "temporal_validation",
+    "network_analysis",
+    "memory_analysis",
+    "disk_analysis",
+    "ot_export_analysis",
+    "alerts_detection_analysis",
+    "pipeline_custody_analysis",
+    "unified_forensic_timeline",
+    "cross_layer_findings",
+    "forensic_analysis_report_generation",
+    "foc_readiness_update",
+  ];
   const PARAM_HELP = {
     cpr: {
       label: "CPR",
@@ -186,7 +218,7 @@
   async function getJson(url, options) {
     const res = await fetch(url, options);
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || `${res.status} ${res.statusText}`);
+    if (!res.ok) throw new Error(data.message || data.error || `${res.status} ${res.statusText}`);
     return data;
   }
 
@@ -194,6 +226,216 @@
     return String(value || "unknown")
       .replace(/_/g, " ")
       .replace(/\b\w/g, (ch) => ch.toUpperCase());
+  }
+
+  function isTerminalJobStatus(status) {
+    return ["completed", "completed_with_degradation", "completed_with_failures", "failed", "cancelled", "stopped", "blocked_before_attack", "failed_detection"].includes(String(status || "").toLowerCase());
+  }
+
+  function formatDetail(value) {
+    if (value == null) return "";
+    if (typeof value === "string") return value;
+    if (typeof value === "object") {
+      if (value.message && value.phase) return `${value.phase}: ${value.message}`;
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return String(value);
+      }
+    }
+    return String(value);
+  }
+
+  function isRunningLikeStatus(status) {
+    return ["queued", "running"].includes(String(status || "").toLowerCase());
+  }
+
+  function analysisPhaseLabel(phaseKey) {
+    return ANALYSIS_PHASE_META[phaseKey]?.label || titleCaseStatus(phaseKey || "analysis");
+  }
+
+  function analysisPhaseLayer(phaseKey) {
+    return ANALYSIS_PHASE_META[phaseKey]?.layer || "analysis";
+  }
+
+  function mapAnalysisProgressToLifecycle(progressPercent) {
+    if (progressPercent == null || Number.isNaN(Number(progressPercent))) return null;
+    return Math.min(88, Math.max(74, Math.round((74 + (Number(progressPercent) * 0.14)) * 10) / 10));
+  }
+
+  function mapLifecycleProgressToWrapper(progressPercent) {
+    if (progressPercent == null || Number.isNaN(Number(progressPercent))) return null;
+    return Math.min(88, Math.max(74, Math.round((74 + (Number(progressPercent) * 0.14)) * 10) / 10));
+  }
+
+  function orderedAnalysisPhaseEntries(phases) {
+    const map = phases || {};
+    return ANALYSIS_PHASE_ORDER
+      .filter((phaseKey) => map[phaseKey])
+      .map((phaseKey) => [phaseKey, map[phaseKey]]);
+  }
+
+  function buildAnalysisTraceFromStatus(analysis) {
+    const phases = analysis?.phases || {};
+    return orderedAnalysisPhaseEntries(phases).map(([phaseId, payload]) => ({
+      case_id: analysis.case_id || null,
+      phase_id: `analysis_${phaseId}`,
+      parent_phase_id: "run_multilayer_analysis",
+      phase_label: analysisPhaseLabel(phaseId),
+      layer: analysisPhaseLayer(phaseId),
+      status: payload?.status || "unknown",
+      utc_start_time: payload?.started_at || null,
+      utc_end_time: payload?.finished_at || null,
+      duration_ms: null,
+      input_artifacts_used: [],
+      output_artifacts_generated: payload?.output_path ? [payload.output_path] : [],
+      number_of_artifacts_processed: null,
+      number_of_findings_generated: null,
+      warnings: payload?.limitations || [],
+      blockers: payload?.errors || [],
+      scientific_limitation_reason: (payload?.limitations || [])[0] || null,
+      detail: payload?.errors?.[0] || payload?.limitations?.[0] || `${analysisPhaseLabel(phaseId)} is ${titleCaseStatus(payload?.status || "pending").toLowerCase()}.`,
+    }));
+  }
+
+  function analysisPhaseQueueReason(entries, index) {
+    if (index <= 0) return "Queued. This phase has not started yet.";
+    const prev = entries[index - 1];
+    return `Queued. This phase will start only after ${analysisPhaseLabel(prev?.[0])} completes.`;
+  }
+
+  function mergeLifecycleTrace(baseTrace, analysis) {
+    const trace = Array.isArray(baseTrace) ? [...baseTrace] : [];
+    const existing = new Set(trace.map((item) => String(item.phase_id || "")));
+    if (analysis?.phases && !existing.has("run_full_evidence_lifecycle")) {
+      trace.push({
+        case_id: analysis.case_id || null,
+        phase_id: "run_full_evidence_lifecycle",
+        parent_phase_id: null,
+        phase_label: "Run Full Evidence Lifecycle",
+        layer: "lifecycle",
+        status: analysis.status || "running",
+        utc_start_time: analysis.started_at || null,
+        utc_end_time: analysis.finished_at || null,
+        duration_ms: null,
+        input_artifacts_used: [],
+        output_artifacts_generated: [],
+        number_of_artifacts_processed: null,
+        number_of_findings_generated: null,
+        warnings: analysis.warnings || [],
+        blockers: analysis.errors || [],
+        scientific_limitation_reason: null,
+        detail: "Running the preserved-case lifecycle from the Repetition Manager.",
+      });
+      existing.add("run_full_evidence_lifecycle");
+    }
+    if (analysis?.phases && !existing.has("run_multilayer_analysis")) {
+      trace.push({
+        case_id: analysis.case_id || null,
+        phase_id: "run_multilayer_analysis",
+        parent_phase_id: "run_full_evidence_lifecycle",
+        phase_label: "Run multilayer forensic analysis",
+        layer: "multilayer",
+        status: analysis.status || "running",
+        utc_start_time: analysis.started_at || null,
+        utc_end_time: analysis.finished_at || null,
+        duration_ms: null,
+        input_artifacts_used: [],
+        output_artifacts_generated: analysis.output_files || [],
+        number_of_artifacts_processed: null,
+        number_of_findings_generated: null,
+        warnings: analysis.warnings || [],
+        blockers: analysis.errors || [],
+        scientific_limitation_reason: null,
+        detail: "Executing the same multilayer forensic analysis backend used by the reconstruction dashboards.",
+      });
+      existing.add("run_multilayer_analysis");
+    }
+    buildAnalysisTraceFromStatus(analysis).forEach((item) => {
+      if (!existing.has(String(item.phase_id))) trace.push(item);
+    });
+    return trace;
+  }
+
+  async function loadLifecycleJob(jobId) {
+    if (!jobId) return null;
+    try {
+      return await getJson(`/api/foc/lifecycle/job-status?job_id=${encodeURIComponent(jobId)}`);
+    } catch {
+      return null;
+    }
+  }
+
+  async function loadLiveAnalysisStatus(caseId) {
+    if (!caseId) return null;
+    try {
+      return await getJson(`/api/foc/cases/${encodeURIComponent(caseId)}/analysis-status`);
+    } catch {
+      return null;
+    }
+  }
+
+  async function hydrateExperimentationJob(payload) {
+    const lifecycleJobId = payload.lifecycle_job_id || (payload.meta || {}).lifecycle_job_id || null;
+    const lifecycle = await loadLifecycleJob(lifecycleJobId);
+    const caseId = lifecycle?.case_id
+      || payload.reference_case_id
+      || payload.source_case_id
+      || (payload.meta || {}).reference_case_id
+      || (payload.meta || {}).source_case_id
+      || null;
+    const analysis = await loadLiveAnalysisStatus(caseId);
+    const lifecycleActive = isRunningLikeStatus(lifecycle?.status);
+    const analysisActive = String(analysis?.status || "").toLowerCase() === "running";
+    const continuePolling = !isTerminalJobStatus(payload.status) || lifecycleActive || analysisActive;
+    const nestedTrace = mergeLifecycleTrace(lifecycle?.phase_trace || payload.lifecycle_phase_trace || payload.phase_trace || [], analysis);
+    const display = {
+      ...payload,
+      live_lifecycle_status: lifecycle,
+      live_analysis_status: analysis,
+      lifecycle_phase_trace: nestedTrace,
+    };
+    if (lifecycleActive || analysisActive) {
+      const livePhaseLabel = analysisActive
+        ? analysisPhaseLabel(analysis.current_phase)
+        : (lifecycle?.current_phase_label || titleCaseStatus(lifecycle?.current_phase || "running"));
+      const livePhaseDetail = analysisActive
+        ? `The full evidence lifecycle is still running. Current multilayer phase: ${analysisPhaseLabel(analysis.current_phase)}.${analysis.progress_percent != null ? ` Multilayer analysis progress: ${analysis.progress_percent}%.` : ""}`
+        : formatDetail(lifecycle?.current_phase_detail) || "The full evidence lifecycle is still running.";
+      display.status = "running";
+      display.finished_at = null;
+      display.last_error = null;
+      display.current_phase = analysisActive ? String(analysis.current_phase || "run_multilayer_analysis") : (lifecycle?.current_phase || payload.current_phase || "running");
+      display.current_phase_label = `Run Full Evidence Lifecycle · ${livePhaseLabel}`;
+      display.current_phase_detail = livePhaseDetail;
+      display.progress_percent = mapLifecycleProgressToWrapper(lifecycle?.progress_percent) ?? mapAnalysisProgressToLifecycle(analysis?.progress_percent) ?? payload.progress_percent;
+      if (isTerminalJobStatus(payload.status)) {
+        display.live_recovery_note = "The experimentation wrapper reached a terminal state, but the underlying lifecycle or multilayer analysis is still active. Live child progress is shown below until the scientific backend really finishes.";
+      }
+    }
+    return { payload: display, continuePolling };
+  }
+
+  function currentAttackProfile() {
+    const attackId = String(byId("attack-profile-select")?.value || "").trim();
+    return state.attackCatalog.find((item) => item.attack_id === attackId) || null;
+  }
+
+  function builderRequiresAttack(level) {
+    return ["B", "C"].includes(String(level || currentLevel()).toUpperCase());
+  }
+
+  function builderHasAttackSelection(level) {
+    if (!builderRequiresAttack(level)) return true;
+    return !!(currentAttackProfile() || state.recommendedFamily?.attack_profile_id);
+  }
+
+  function builderCreateBlockedReason() {
+    const level = currentLevel();
+    if (builderRequiresAttack(level) && !builderHasAttackSelection(level)) {
+      return `This Level ${level} campaign is not ready because no attack profile has been selected. Select an attack profile or start a new comparison family before creating executable repetitions.`;
+    }
+    return "";
   }
 
   function statusClass(status) {
@@ -276,6 +518,113 @@
     if (normalized === "partial") return "Partial";
     if (normalized === "insufficient_data") return "Insufficient Data";
     return titleCaseStatus(normalized || "unknown");
+  }
+
+  function updateCampaignNameFromSelection() {
+    const nameNode = byId("campaign-name-input");
+    if (!nameNode || state.dirtyFields.has("campaign-name-input")) return;
+    const level = currentLevel();
+    const scenarioId = currentScenarioId() || state.proposal?.scenario_id || "not_available";
+    const attack = currentAttackProfile();
+    if (level === "A") {
+      const caseId = currentSourceCaseId() || state.proposal?.linked_source_case || "preserved_case";
+      nameNode.value = `Level A Reanalysis — ${caseId}`;
+      return;
+    }
+    if (level === "B") {
+      nameNode.value = attack?.mitre_id
+        ? `Level B ${attack.mitre_id} Repetition — ${scenarioId}`
+        : `Level B Repetition — ${scenarioId}`;
+      return;
+    }
+    if (level === "C") {
+      nameNode.value = attack?.mitre_id
+        ? `Level C ${attack.mitre_id} Redeployment — ${scenarioId}`
+        : `Level C Full Redeployment — ${scenarioId}`;
+    }
+  }
+
+  function renderBuilderSelectedCampaignNote() {
+    const root = byId("builder-selected-separation-note");
+    if (!root) return;
+    const selected = state.selectedCampaignDetail?.campaign || selectedCampaign();
+    const builderLevel = currentLevel();
+    if (!selected) {
+      root.innerHTML = "";
+      return;
+    }
+    const selectedLevel = String(selected.level || "A").toUpperCase();
+    if (builderLevel !== selectedLevel) {
+      root.innerHTML = `You are configuring a new ${esc(LEVEL_META[builderLevel]?.long || `Level ${builderLevel}`)} campaign. The selected campaign below is an existing ${esc(LEVEL_META[selectedLevel]?.long || `Level ${selectedLevel}`)} campaign and is independent from the builder state.`;
+      return;
+    }
+    root.innerHTML = `The builder above defines a new ${esc(LEVEL_META[builderLevel]?.long || `Level ${builderLevel}`)} campaign. The detail below shows the currently selected saved campaign and its registered executions.`;
+  }
+
+  function currentScenarioActionCampaign() {
+    const selected = state.selectedCampaignDetail?.campaign || selectedCampaign();
+    if (selected && String(selected.level || "").toUpperCase() === "C") return selected;
+    return null;
+  }
+
+  function normalizeCampaignLimitation(text, level) {
+    const raw = String(text || "");
+    if (/ground_truth_sealed -> ground truth seal was reconstructed/i.test(raw) || /ground truth is reused rather than freshly sealed/i.test(raw)) {
+      return {
+        reason: "Ground truth context reused or reconstructed from preserved case artifacts",
+        classification: level === "A" ? "expected Level A limitation" : "scientific limitation",
+        interpretation: "Level A does not execute a new attack and therefore cannot generate a new pre-attack ground truth seal. The ground truth context is reused or reconstructed from the preserved case.",
+      };
+    }
+    if (/causal_reconstruction_generated -> .*causal edge is degraded/i.test(raw) || /degraded edges/i.test(raw)) {
+      return {
+        reason: "Causal reconstruction contains degraded edges",
+        classification: level === "A" ? "inherited from base case or stable across Level A reanalysis" : "stable scientific limitation",
+        interpretation: "The degradation is stable across reanalysis and limits scientific strength, but does not indicate analysis instability.",
+      };
+    }
+    if (/trigger.*aligned/i.test(raw)) {
+      return {
+        reason: "Trigger and reconstructed attack path are not aligned",
+        classification: level === "A" ? "inherited from base case" : "trigger-alignment limitation",
+        interpretation: "The acquisition trigger is host/FIM-oriented while the reconstructed path is OT/Modbus-oriented.",
+      };
+    }
+    if (/integrity/i.test(raw) && /partial/i.test(raw)) {
+      return {
+        reason: "Case-wide integrity remains partial",
+        classification: level === "A" ? "inherited from base case" : "integrity limitation",
+        interpretation: "The comparison can proceed, but scientific confidence must remain limited.",
+      };
+    }
+    if (/execution completed with scientific degradation/i.test(raw)) {
+      return {
+        reason: "Execution completed with scientific degradation",
+        classification: "execution summary status",
+        interpretation: "The execution produced usable outputs, but one or more scientific limitations remain visible.",
+      };
+    }
+    return {
+      reason: raw.includes(": ") ? raw.split(": ").slice(1).join(": ") : raw,
+      classification: "scientific limitation",
+      interpretation: "This limitation remains scientifically relevant and should be inspected before drawing stronger conclusions.",
+    };
+  }
+
+  function groupCampaignScientificLimitations(limitations, level, executionCount) {
+    const groups = new Map();
+    for (const raw of limitations || []) {
+      const parts = String(raw || "").split(": ");
+      const executionId = parts.length > 1 ? parts[0] : "unknown";
+      const normalized = normalizeCampaignLimitation(raw, level);
+      const entry = groups.get(normalized.reason) || { ...normalized, executions: [] };
+      if (!entry.executions.includes(executionId)) entry.executions.push(executionId);
+      groups.set(normalized.reason, entry);
+    }
+    return [...groups.values()].map((item) => ({
+      ...item,
+      affectedLabel: `${item.executions.length} / ${executionCount || item.executions.length}`,
+    }));
   }
 
   function stageNarrative(status, context) {
@@ -564,14 +913,135 @@
       return;
     }
     const execs = detail?.executions || [];
-    const profilesAvailable = execs.filter((item) => item.artifacts?.forensic_comparison_profile).length;
+    const executionDetails = detail?.executionDetails || [];
+    const profilesAvailable = executionDetails.length
+      ? executionDetails.filter((item) => hasComparisonProfile(item)).length
+      : execs.filter((item) => item.artifacts?.forensic_comparison_profile).length;
     const level = String(campaign.level || "A").toUpperCase();
     root.innerHTML = `
       <div class="font-black text-cyan-300">Beginner Summary</div>
-      <div class="mt-3">This campaign is creating controlled executions for ${esc(LEVEL_META[level].long)}. Right now it has ${execs.length} execution(s), and ${profilesAvailable} of them already have a forensic comparison profile. This view is preparing the comparison material, not judging comparability yet.</div>
+      <div class="mt-3">This campaign has ${execs.length} execution(s), and ${profilesAvailable} of them have forensic comparison profiles available for comparability analysis. This view is preparing the comparison material for ${esc(LEVEL_META[level].long)} and does not judge comparability by itself.</div>
       <div class="mt-4 font-black text-cyan-300">Expert Summary</div>
       <div class="mt-3">Campaign <span class="mono">${esc(campaign.campaign_id)}</span> is scoped to ${esc(LEVEL_META[level].long)} with source mode <span class="mono">${esc(sourceModeLabel(campaign.source_mode || LEVEL_META[level].sourceMode))}</span>. The current objective is to generate stable execution workspaces, manifests, seals, noise profiles when applicable, and <span class="mono">forensic_comparison_profile.json</span> for later execution-to-execution evaluation.</div>
     `;
+  }
+
+  function renderCampaignResourceActions(campaign, executionDetails) {
+    const root = byId("campaign-resource-actions");
+    if (!root) return;
+    const level = String(campaign?.level || "").toUpperCase();
+    if (!campaign || !["B", "C"].includes(level)) {
+      root.classList.add("hidden");
+      root.innerHTML = "";
+      return;
+    }
+    const generatedCases = (executionDetails || []).filter((item) => executionCleanupState(item).canDelete);
+    root.classList.remove("hidden");
+    root.innerHTML = `
+      <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Resource Release</div>
+      <h3 class="text-xl font-black mt-2">Generated Case Cleanup</h3>
+      <div class="mt-3 text-slate-300">Because only one heavy forensic case may be kept at a time, this module can delete heavy generated-case artifacts while preserving scientific comparison memory.</div>
+      <div class="mt-3 text-slate-400">Deleting a generated case must delete only heavy artifacts, not scientific comparison memory.</div>
+      <div class="mt-4 text-sm ${generatedCases.length ? "text-cyan-300" : "text-amber-300"}">${generatedCases.length ? `${generatedCases.length} generated case(s) are currently eligible for cleanup actions in the execution registry below.` : "No generated heavy case is currently available for cleanup in this campaign."}</div>
+      ${generatedCases.length ? `
+        <div class="space-y-3 mt-4">
+          ${generatedCases.map((item) => `
+            <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="font-black">Execution <span class="mono">${esc(item.execution_id)}</span></div>
+                  <div class="text-slate-400 mt-2">Generated case: <span class="mono">${esc(item.run_case_id || "not_available")}</span></div>
+                </div>
+                <button type="button" class="btn-danger rounded-2xl px-4 py-3 text-xs font-extrabold tracking-[0.16em] uppercase generated-case-cleanup-btn" data-campaign-id="${esc(campaign.campaign_id)}" data-execution-id="${esc(item.execution_id)}" data-case-id="${esc(item.run_case_id || "")}" data-origin="campaign-panel">Delete Generated Case Artifacts</button>
+              </div>
+              <div id="cleanup-status-${esc(item.execution_id)}-campaign-panel" class="mt-3 text-sm text-slate-300"></div>
+            </div>
+          `).join("")}
+        </div>
+      ` : ""}
+    `;
+    bindGeneratedCaseCleanupButtons();
+  }
+
+  function renderScenarioRedeploymentActions() {
+    const root = byId("scenario-redeployment-actions");
+    if (!root) return;
+    const builderLevel = currentLevel();
+    const selected = currentScenarioActionCampaign();
+    const visible = builderLevel === "C" || !!selected;
+    if (!visible) {
+      root.classList.add("hidden");
+      root.innerHTML = "";
+      return;
+    }
+    const scenarioId = (selected && (selected.scenario_id || state.selectedCampaignDetail?.config?.scenario_id)) || currentScenarioId() || state.proposal?.scenario_id || "not_available";
+    root.classList.remove("hidden");
+    root.innerHTML = `
+      <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Scenario Redeployment Actions</div>
+      <h3 class="text-xl font-black mt-2">Destroy Full Scenario For Level C Redeployment</h3>
+      <div class="mt-3 text-slate-300">This action destroys the active IT/OT scenario before a Level C redeployment. It does not delete scientific comparison memory, scenario cards, result cards, comparison profiles, registries, or reconstruction blueprints.</div>
+      <div class="mt-3 text-slate-400">Destroying a scenario must not delete the scientific memory needed to compare scenarios, cases, executions, or results.</div>
+      <div class="mt-4"><span class="font-black">Scenario context:</span> <span class="mono">${esc(scenarioId)}</span></div>
+      <div class="mt-5 flex gap-3 flex-wrap items-center">
+        <button type="button" id="destroy-scenario-btn" class="btn-danger rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Destroy Full Scenario For Level C Redeployment</button>
+      </div>
+      <div id="destroy-scenario-result" class="mt-4 text-sm text-slate-300"></div>
+    `;
+    byId("destroy-scenario-btn")?.addEventListener("click", () => validateAndPromptScenarioDestroy(scenarioId, selected?.campaign_id || state.selectedCampaignId || null));
+  }
+
+  function executionCleanupState(item) {
+    const level = String(item?.level || "").toUpperCase();
+    if (!["B", "C"].includes(level)) {
+      return { visible: false, canDelete: false, label: "Not applicable", reason: "Level A does not generate a new heavy forensic case." };
+    }
+    if (item?.cleanup_status === "completed" || item?.heavy_artifacts_retained === false) {
+      return {
+        visible: true,
+        canDelete: false,
+        label: "Already cleaned up",
+        reason: "Heavy generated-case artifacts were already deleted or archived. Lightweight scientific comparison memory remains preserved.",
+      };
+    }
+    if (item?.dry_run || !item?.run_case_id || String(item.run_case_id).startsWith("CASE-PLANNED-") || !item?.run_case_path) {
+      return {
+        visible: true,
+        canDelete: false,
+        label: "Not created yet",
+        reason: "No heavy generated case exists yet for this execution.",
+      };
+    }
+    return {
+      visible: true,
+      canDelete: true,
+      label: item.run_case_id,
+      reason: "A generated heavy forensic case exists and can be cleaned up after validating that lightweight scientific memory is complete.",
+    };
+  }
+
+  function renderValidationList(checks) {
+    const items = Array.isArray(checks) ? checks : [];
+    if (!items.length) return '<div class="text-slate-400">No validation checklist is available.</div>';
+    return `
+      <div class="space-y-3 mt-4">
+        ${items.map((item) => `
+          <div class="rounded-2xl border ${item.status === "ok" ? "border-cyan-500/30 bg-cyan-500/5" : "border-amber-500/30 bg-amber-500/5"} p-4">
+            <div class="flex items-start justify-between gap-3">
+              <div class="font-black">${esc(titleCaseStatus(item.key || item.requirement || "requirement"))}</div>
+              <div class="text-xs uppercase tracking-[0.16em] ${statusClass(item.status)}">${esc(titleCaseStatus(item.status || "unknown"))}</div>
+            </div>
+            <div class="mt-3"><span class="font-black">Why it matters:</span> ${esc(item.why_it_matters || "No explanation available.")}</div>
+            <div class="mt-2"><span class="font-black">How to fix it:</span> ${esc(item.how_to_fix || "No fix guidance available.")}</div>
+            <div class="mt-2"><span class="font-black">Can be auto-generated:</span> ${item.can_be_auto_generated ? "yes" : "no"}</div>
+          </div>
+        `).join("")}
+      </div>
+    `;
+  }
+
+  function setInlineActionResult(nodeId, html) {
+    const node = byId(nodeId);
+    if (node) node.innerHTML = html;
   }
 
   function renderCampaigns() {
@@ -760,6 +1230,7 @@
     renderCampaignStoryPanel();
     renderRecommendedExperiment();
     renderPreCreateNote();
+    renderScenarioRedeploymentActions();
   }
 
   function syncScenarioIdHelp() {
@@ -877,6 +1348,7 @@
     syncRecommendUseButtonState();
     if (!payload.has_recommendation) {
       content.innerHTML = `<div class="text-slate-300">No previous comparable result was found. You can start a new comparison family. Future executions using the same scenario, attack profile, trigger policy, acquisition policy, and FOC profile will be directly comparable with this one.</div>`;
+      state.recommendedFamily = null;
       return;
     }
     const rec = payload.recommended;
@@ -904,7 +1376,7 @@
   }
 
   function bindRecommendedExperimentButtons() {
-    byId("recommend-use-btn")?.addEventListener("click", () => {
+    byId("recommend-use-btn")?.addEventListener("click", async () => {
       const rec = state.lastRecommendation?.recommended;
       const choiceNode = byId("recommended-experiment-choice");
       if (!rec) {
@@ -917,12 +1389,15 @@
         select.value = rec.attack_profile_id;
         renderAttackProfileDetail();
       }
+      updateCampaignNameFromSelection();
+      await refreshProposalAndPreflight({ force: false });
       if (choiceNode) choiceNode.innerHTML = '<div class="text-cyan-300">To compare with this previous result, use this attack profile.</div>';
     });
-    byId("recommend-new-family-btn")?.addEventListener("click", () => {
+    byId("recommend-new-family-btn")?.addEventListener("click", async () => {
       state.recommendedFamily = null;
       const choiceNode = byId("recommended-experiment-choice");
       if (choiceNode) choiceNode.innerHTML = '<div class="text-slate-300">This execution will create a new comparison family. It can be compared with future executions using the same scenario, attack profile, trigger policy, acquisition profile, and FOC profile.</div>';
+      await refreshProposalAndPreflight({ force: false });
     });
   }
 
@@ -1017,6 +1492,11 @@
     const note = byId("pre-create-note");
     if (!note) return;
     const level = currentLevel();
+    const blockedReason = builderCreateBlockedReason();
+    if (blockedReason) {
+      note.innerHTML = `<div class="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-amber-200">${esc(blockedReason)}</div>`;
+      return;
+    }
     if (level === "A") {
       note.innerHTML = "";
       return;
@@ -1062,7 +1542,20 @@
         `).join("")}
       </div>
     `;
+    applyBuilderCreateState();
     renderStoryline();
+  }
+
+  function applyBuilderCreateState() {
+    const btn = byId("campaign-create-btn");
+    if (!btn) return;
+    const blockedReason = builderCreateBlockedReason();
+    const disabled = !!blockedReason;
+    btn.disabled = disabled;
+    btn.classList.toggle("opacity-50", disabled);
+    btn.classList.toggle("cursor-not-allowed", disabled);
+    btn.title = blockedReason;
+    renderPreCreateNote();
   }
 
   async function loadProposal(options) {
@@ -1100,6 +1593,9 @@
     renderSourceSummary();
     renderGuidedDefaults();
     renderExecutionPlan();
+    updateCampaignNameFromSelection();
+    renderBuilderSelectedCampaignNote();
+    applyBuilderCreateState();
   }
 
   function buildFormPayload() {
@@ -1161,6 +1657,9 @@
       execRoot.innerHTML = "No campaign selected.";
       execNote.textContent = "";
       applyCampaignActionState(null, null);
+      renderCampaignResourceActions(null, []);
+      renderScenarioRedeploymentActions();
+      renderBuilderSelectedCampaignNote();
       if (!state.activeJobId) renderJob(null);
       return;
     }
@@ -1177,6 +1676,7 @@
     const meta = LEVEL_META[level] || LEVEL_META.A;
     const sourceMode = campaign.source_mode || meta.sourceMode;
     const executionDetails = await Promise.all(execs.map((item) => getExecutionDetail(item.execution_id).catch(() => null)));
+    state.selectedCampaignDetail.executionDetails = executionDetails.filter(Boolean);
     const comparableCount = executionDetails.filter((item) => hasComparisonProfile(item)).length;
     const runningJob = payload.running_job || null;
     const scenarioId = cfg.scenario_id || campaign.scenario_id || "not_available";
@@ -1252,14 +1752,25 @@
         ${scientificLimitations.length ? `
           <div>
             <div class="font-black text-amber-300">Scientific limitations</div>
-            <ul class="mt-2 list-disc pl-5 text-slate-300 space-y-1">${scientificLimitations.slice(0, 8).map((item) => `<li>${esc(item)}</li>`).join("")}</ul>
-            ${scientificLimitations.length > 8 ? `<div class="text-xs text-slate-500 mt-2">Showing 8 of ${esc(scientificLimitations.length)} recorded scientific limitations.</div>` : ""}
+            <div class="mt-3 space-y-3">
+              ${groupCampaignScientificLimitations(scientificLimitations, level, execs.length).map((item) => `
+                <div class="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
+                  <div class="font-black">${esc(item.reason)}</div>
+                  <div class="text-slate-400 mt-1">Affected executions: ${esc(item.affectedLabel)}</div>
+                  <div class="text-slate-400 mt-1">Classification: ${esc(item.classification)}</div>
+                  <div class="text-slate-300 mt-1">Interpretation: ${esc(item.interpretation)}</div>
+                </div>
+              `).join("")}
+            </div>
           </div>
         ` : ""}
       </div>
     `;
 
-    applyCampaignActionState(campaign, runningJob);
+    renderCampaignResourceActions(campaign, executionDetails.filter(Boolean));
+    renderScenarioRedeploymentActions();
+
+    applyCampaignActionState(campaign, runningJob, cfg);
 
     if (!execs.length) {
       execNote.innerHTML = "No executions registered for this campaign. Run the first execution to generate an execution workspace.";
@@ -1280,29 +1791,49 @@
     }
     renderCampaignStoryPanel();
     renderStoryline();
+    renderBuilderSelectedCampaignNote();
   }
 
-  function applyCampaignActionState(campaign, runningJob) {
+  function applyCampaignActionState(campaign, runningJob, cfg) {
     const busy = !!runningJob || !!state.activeJobId;
     const noCampaign = !campaign;
+    const level = String(campaign?.level || cfg?.level || "").toUpperCase();
+    const isLevelB = level === "B";
+    const attackId = cfg?.attack_id || campaign?.attack_id || null;
     const startBtn = byId("campaign-start-btn");
     const runNextBtn = byId("campaign-run-next-btn");
+    const runRealBtn = byId("campaign-run-real-btn");
     const pauseBtn = byId("campaign-pause-btn");
     const stopBtn = byId("campaign-stop-btn");
     const note = byId("campaign-action-note");
+    const dryRunBanner = byId("level-b-dry-run-banner");
     if (startBtn) {
       startBtn.disabled = busy || noCampaign;
       startBtn.classList.toggle("opacity-50", busy || noCampaign);
       startBtn.classList.toggle("cursor-not-allowed", busy || noCampaign);
-      startBtn.textContent = busy ? "Campaign Running" : "Start Campaign";
-      startBtn.title = busy ? "A campaign job is already running for this workspace." : (noCampaign ? "Select or create a campaign first." : "");
+      startBtn.textContent = busy ? "Campaign Running" : "Start Selected Campaign";
+      startBtn.title = isLevelB
+        ? "Start Selected Campaign always runs dry-run executions for Level B. It never chains real attacks unattended."
+        : (busy ? "A campaign job is already running for this workspace." : (noCampaign ? "Select or create a campaign first." : ""));
     }
     if (runNextBtn) {
       runNextBtn.disabled = busy || noCampaign;
       runNextBtn.classList.toggle("opacity-50", busy || noCampaign);
       runNextBtn.classList.toggle("cursor-not-allowed", busy || noCampaign);
-      runNextBtn.textContent = busy ? "Execution In Progress" : "Run Next Execution";
+      runNextBtn.textContent = busy ? "Execution In Progress" : "Run Dry-Run Execution";
       runNextBtn.title = busy ? "Wait until the current experimentation job finishes." : (noCampaign ? "Select or create a campaign first." : "");
+    }
+    if (runRealBtn) {
+      runRealBtn.classList.toggle("hidden", !isLevelB);
+      const noAttack = isLevelB && !attackId;
+      const blocked = busy || noCampaign || !isLevelB || noAttack;
+      runRealBtn.disabled = blocked;
+      runRealBtn.classList.toggle("opacity-50", blocked);
+      runRealBtn.classList.toggle("cursor-not-allowed", blocked);
+      runRealBtn.textContent = busy ? "Execution In Progress" : "Run Real Level B Execution";
+      runRealBtn.title = busy
+        ? "Wait until the current experimentation job finishes."
+        : (noCampaign ? "Select or create a campaign first." : (noAttack ? "Select an attack profile for this campaign before running a real execution." : "This launches a real attack, waits for a real alert, and creates a new forensic case. A confirmation step will ask you to type OK."));
     }
     if (pauseBtn) {
       pauseBtn.disabled = noCampaign;
@@ -1319,12 +1850,21 @@
         ? '<span class="text-amber-300">No campaign selected. Create or select a campaign before running executions.</span>'
         : "";
     }
+    if (dryRunBanner) {
+      dryRunBanner.classList.toggle("hidden", noCampaign || level === "A");
+      if (!noCampaign && level !== "A") {
+        dryRunBanner.innerHTML = isLevelB
+          ? "<span class=\"font-black text-amber-300\">Run Dry-Run Execution:</span> This reuses existing scientific functions over a preserved reference case or the active preserved case: Bootstrap FOC, Regenerate Reconstruction, Run Causal Reconstruction, and Run Full Evidence Lifecycle. It does not launch a real attack, wait for a real alert, create a heavy forensic case, or execute real acquisition. Use <span class=\"font-black\">Run Real Level B Execution</span> for a real controlled incident execution."
+          : "<span class=\"font-black text-amber-300\">Run Dry-Run Execution:</span> This reuses existing scientific functions over a preserved reference case or the active preserved case: Bootstrap FOC, Regenerate Reconstruction, Run Causal Reconstruction, and Run Full Evidence Lifecycle. It does not launch a real attack, wait for a real alert, create a heavy forensic case, or execute real acquisition.";
+      }
+    }
   }
 
   function renderExecutionCard(item, comparableCount) {
     const level = String(item.level || "A").toUpperCase();
     const meta = LEVEL_META[level] || LEVEL_META.A;
     const profileAvailable = hasComparisonProfile(item);
+    const cleanupState = executionCleanupState(item);
     const sealState = level === "A"
       ? (item.artifacts?.ground_truth_seal ? "Reused from base case or reconstructed from preserved artifacts." : "Missing")
       : (item.artifacts?.ground_truth_seal ? "Available" : "Missing");
@@ -1332,8 +1872,13 @@
       ? "Not applicable for Level A"
       : (item.artifacts?.baseline_noise_profile ? "Available" : "Missing");
     const sourceCase = item.source_case_id || item.base_case_id || item.run_case_id || "not_available";
-    const generatedCase = item.run_case_id || item.planned_case_id || "not_created_yet";
-    const generatedCaseLabel = item.run_case_id ? "Generated case" : (item.planned_case_id ? "Planned case" : "Generated case");
+    const generatedCase = cleanupState.canDelete
+      ? (item.run_case_id || "not_available")
+      : (cleanupState.label === "Already cleaned up" ? "cleaned_up" : (item.planned_case_id || "not_created_yet"));
+    const caseFieldLabel = level === "A"
+      ? (item.base_case_id || item.source_case_id ? "Reanalyzed preserved case" : "Base case")
+      : (item.run_case_id ? "Generated case" : (item.planned_case_id ? "Planned case" : "Generated case"));
+    const caseFieldValue = level === "A" ? sourceCase : generatedCase;
     const retentionPolicy = item.retention_policy || (level === "A" ? "original_case_retained" : "profiles_only_after_archive");
     return `
       <div class="glass-soft rounded-2xl p-4 space-y-4">
@@ -1353,18 +1898,21 @@
         <div><span class="font-black">Status explanation:</span> ${esc(statusExplanation(item.status, "execution"))}</div>
         <div><span class="font-black">Baseline noise:</span> ${esc(baselineState)}</div>
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          <div><span class="font-black">${esc(generatedCaseLabel)}:</span> <span class="mono">${esc(generatedCase)}</span></div>
-          <div><span class="font-black">Retention policy:</span> ${esc(retentionPolicy)}</div>
-          <div><span class="font-black">Dry-run:</span> ${item.dry_run ? "yes" : "no"}</div>
-        </div>
-        ${item.warnings?.length ? `<div class="text-amber-300"><span class="font-black">Warnings:</span> ${esc(item.warnings.join(" | "))}</div>` : ""}
-        ${level !== "A" && item.dry_run ? `<div class="text-slate-400">This Level ${esc(level)} execution currently preserves the experimental design, planned case ID, and normalized profiles as a dry-run scaffold. It does not yet prove that a heavy case was acquired.</div>` : ""}
-        <div class="flex gap-3 flex-wrap">
+        <div><span class="font-black">${esc(caseFieldLabel)}:</span> <span class="mono">${esc(caseFieldValue)}</span></div>
+        <div><span class="font-black">Retention policy:</span> ${esc(retentionPolicy)}</div>
+        <div><span class="font-black">Dry-run:</span> ${item.dry_run ? "yes" : "no"}</div>
+      </div>
+      ${cleanupState.visible ? `<div class="text-slate-400"><span class="font-black">Cleanup state:</span> ${esc(cleanupState.reason)}</div>` : ""}
+      ${item.warnings?.length ? `<div class="text-amber-300"><span class="font-black">Warnings:</span> ${esc(item.warnings.join(" | "))}</div>` : ""}
+      ${level !== "A" && item.dry_run ? `<div class="text-slate-400">This Level ${esc(level)} execution currently preserves the experimental design, planned case ID, and normalized profiles as a dry-run scaffold. It does not yet prove that a heavy case was acquired.</div>` : ""}
+      <div class="flex gap-3 flex-wrap">
           ${level === "A" || (item.run_case_id && truthy(item.run_case_id)) ? `<a class="text-cyan-300 underline" href="/foc_scientific_evidence_lifecycle.html?case_id=${encodeURIComponent(level === "A" ? sourceCase : item.run_case_id)}">${esc(meta.dashboardActionLabel)}</a>` : ""}
           <button type="button" class="text-cyan-300 underline execution-workspace-btn" data-execution-id="${esc(item.execution_id)}">Open Execution Workspace</button>
           <button type="button" class="text-cyan-300 underline execution-profile-btn" data-execution-id="${esc(item.execution_id)}" ${profileAvailable ? "" : "disabled"}>Open Comparison Profile</button>
           <button type="button" class="text-cyan-300 underline execution-compare-btn ${comparableCount >= 2 && profileAvailable ? "" : "opacity-50 cursor-not-allowed"}" data-execution-id="${esc(item.execution_id)}" ${comparableCount >= 2 && profileAvailable ? "" : "disabled"}>Compare with other executions</button>
+          ${cleanupState.visible ? `<button type="button" class="text-amber-300 underline generated-case-cleanup-btn ${cleanupState.canDelete ? "" : "opacity-50 cursor-not-allowed"}" data-campaign-id="${esc(item.campaign_id || "")}" data-execution-id="${esc(item.execution_id)}" data-case-id="${esc(item.run_case_id || "")}" data-origin="execution-card" ${cleanupState.canDelete ? "" : "disabled"}>Delete Generated Case Artifacts</button>` : ""}
         </div>
+        ${cleanupState.visible ? `<div id="cleanup-status-${esc(item.execution_id)}-execution-card" class="text-sm text-slate-300"></div>` : ""}
       </div>
     `;
   }
@@ -1403,9 +1951,26 @@
         window.location.href = `/foc_reconstruction_comparability.html?campaign_id=${encodeURIComponent(campaignId)}&execution_id=${encodeURIComponent(executionId)}`;
       });
     });
+    bindGeneratedCaseCleanupButtons();
   }
 
-  function openOverlay(title, html) {
+  function bindGeneratedCaseCleanupButtons() {
+    document.querySelectorAll(".generated-case-cleanup-btn").forEach((btn) => {
+      if (btn.dataset.boundCleanup === "true") return;
+      btn.dataset.boundCleanup = "true";
+      btn.addEventListener("click", () => {
+        if (btn.disabled) return;
+        validateAndPromptCaseCleanup(
+          btn.dataset.executionId,
+          btn.dataset.campaignId || null,
+          btn.dataset.caseId || null,
+          btn.dataset.origin || "execution-card",
+        );
+      });
+    });
+  }
+
+  function openInteractiveOverlay(title, html, onReady) {
     let root = byId("foc-experimentation-overlay");
     if (!root) {
       root = document.createElement("div");
@@ -1433,6 +1998,190 @@
     }
     byId("foc-experimentation-overlay-title").textContent = title;
     byId("foc-experimentation-overlay-body").innerHTML = html;
+    if (typeof onReady === "function") onReady(root);
+    return root;
+  }
+
+  function openOverlay(title, html) {
+    openInteractiveOverlay(title, html);
+  }
+
+  function originStatusNodeId(origin, executionId) {
+    return origin === "campaign-panel"
+      ? `cleanup-status-${executionId}-campaign-panel`
+      : `cleanup-status-${executionId}-execution-card`;
+  }
+
+  function openOkConfirmDialog({ title, bodyIntro, bodyHtml, confirmLabel, onConfirm }) {
+    openInteractiveOverlay(title, `
+      <div class="space-y-4 text-sm text-slate-300">
+        <div>${bodyIntro}</div>
+        ${bodyHtml || ""}
+        <div class="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-amber-200">
+          Type <span class="mono">OK</span> to confirm. If you close this modal or type a different value, nothing will be deleted or destroyed.
+        </div>
+        <label class="block">
+          <span class="font-black">Confirmation</span>
+          <input id="confirm-ok-input" class="w-full mt-3 rounded-xl bg-slate-950/60 border border-slate-700 px-3 py-2 text-slate-100" placeholder="Type OK">
+        </label>
+        <div class="flex gap-3 flex-wrap">
+          <button type="button" id="confirm-ok-submit" class="btn-danger rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase opacity-50 cursor-not-allowed" disabled>${esc(confirmLabel)}</button>
+          <button type="button" id="confirm-ok-cancel" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Cancel</button>
+        </div>
+        <div id="confirm-ok-result" class="text-sm text-slate-300"></div>
+      </div>
+    `, () => {
+      const input = byId("confirm-ok-input");
+      const submit = byId("confirm-ok-submit");
+      const cancel = byId("confirm-ok-cancel");
+      const overlay = byId("foc-experimentation-overlay");
+      const sync = () => {
+        const enabled = String(input?.value || "") === "OK";
+        submit.disabled = !enabled;
+        submit.classList.toggle("opacity-50", !enabled);
+        submit.classList.toggle("cursor-not-allowed", !enabled);
+      };
+      input?.addEventListener("input", sync);
+      cancel?.addEventListener("click", () => overlay?.remove());
+      submit?.addEventListener("click", async () => {
+        if (submit.disabled || typeof onConfirm !== "function") return;
+        const resultNode = byId("confirm-ok-result");
+        submit.disabled = true;
+        submit.classList.add("opacity-50", "cursor-not-allowed");
+        if (resultNode) resultNode.innerHTML = '<div class="text-slate-400">Executing action…</div>';
+        await onConfirm(resultNode, overlay, submit);
+      });
+      sync();
+    });
+  }
+
+  async function validateAndPromptCaseCleanup(executionId, campaignId, caseId, origin) {
+    const statusNodeId = originStatusNodeId(origin, executionId);
+    setInlineActionResult(statusNodeId, '<div class="text-slate-400">Validating cleanup requirements…</div>');
+    let validation;
+    try {
+      validation = await getJson("/api/foc/experimentation/case-cleanup/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          campaign_id: campaignId,
+          execution_id: executionId,
+          case_id: caseId,
+          action_type: "delete_case_directory",
+        }),
+      });
+    } catch (err) {
+      setInlineActionResult(statusNodeId, `<div class="text-red-300">${esc(err.message)}</div>`);
+      return;
+    }
+    if (!validation.ready) {
+      setInlineActionResult(statusNodeId, `<div class="text-amber-300">${esc(validation.message || "Cleanup validation failed.")}</div>`);
+      openOverlay("Generated Case Cleanup Validation", `
+        <div class="space-y-4 text-sm text-slate-300">
+          <div>${esc(validation.message || "Cleanup validation failed.")}</div>
+          ${renderValidationList(validation.checks)}
+        </div>
+      `);
+      return;
+    }
+    openOkConfirmDialog({
+      title: `Delete Generated Case Artifacts · ${executionId}`,
+      bodyIntro: "This action will delete or archive heavy forensic artifacts for the generated case. Lightweight scientific comparison data will be preserved. Future comparisons will use result cards, comparison profiles, summaries, hashes, and registry entries, not full memory dumps, disk images, or PCAP equality.",
+      bodyHtml: `
+        <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+          <div><span class="font-black">Execution:</span> <span class="mono">${esc(executionId)}</span></div>
+          <div class="mt-2"><span class="font-black">Generated case:</span> <span class="mono">${esc(validation.case_id || caseId || "not_available")}</span></div>
+          <div class="mt-2"><span class="font-black">Action type:</span> delete heavy case directory artifacts</div>
+        </div>
+        ${renderValidationList(validation.checks)}
+      `,
+      confirmLabel: "Delete Generated Case Artifacts",
+      onConfirm: async (resultNode, overlay) => {
+        try {
+          const payload = await getJson("/api/foc/experimentation/case-cleanup/delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              campaign_id: campaignId,
+              execution_id: executionId,
+              case_id: validation.case_id || caseId,
+              action_type: "delete_case_directory",
+              confirmation: "OK",
+            }),
+          });
+          if (resultNode) resultNode.innerHTML = `<div class="text-cyan-300">${esc(payload.message || "Cleanup completed.")}</div>`;
+          setInlineActionResult(statusNodeId, `<div class="text-cyan-300">${esc(payload.message || "Cleanup completed.")}</div>`);
+          await loadCampaigns();
+          setTimeout(() => overlay?.remove(), 600);
+        } catch (err) {
+          if (resultNode) resultNode.innerHTML = `<div class="text-red-300">${esc(err.message)}</div>`;
+        }
+      },
+    });
+  }
+
+  async function validateAndPromptScenarioDestroy(scenarioId, campaignId) {
+    const resultNodeId = "destroy-scenario-result";
+    setInlineActionResult(resultNodeId, '<div class="text-slate-400">Validating scenario destruction requirements…</div>');
+    let validation;
+    try {
+      validation = await getJson("/api/foc/experimentation/scenario-destruction/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          scenario_id: scenarioId,
+          campaign_id: campaignId,
+          action_type: "destroy_full_scenario",
+        }),
+      });
+    } catch (err) {
+      setInlineActionResult(resultNodeId, `<div class="text-red-300">${esc(err.message)}</div>`);
+      return;
+    }
+    if (!validation.ready) {
+      setInlineActionResult(resultNodeId, `<div class="text-amber-300">${esc(validation.message || "Scenario destruction validation failed.")}</div>`);
+      openOverlay("Scenario Destruction Validation", `
+        <div class="space-y-4 text-sm text-slate-300">
+          <div>${esc(validation.message || "Scenario destruction validation failed.")}</div>
+          ${renderValidationList(validation.checks)}
+        </div>
+      `);
+      return;
+    }
+    openOkConfirmDialog({
+      title: "Destroy Full Scenario For Level C Redeployment",
+      bodyIntro: "You are about to destroy the active IT/OT scenario for Level C redeployment. This will remove active scenario resources but will not delete scientific comparison memory, scenario registry entries, result cards, comparison profiles, or reconstruction blueprints. Type OK to confirm.",
+      bodyHtml: `
+        <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+          <div><span class="font-black">Scenario:</span> <span class="mono">${esc(validation.scenario_id || scenarioId || "not_available")}</span></div>
+          <div class="mt-2"><span class="font-black">Scenario fingerprint:</span> <span class="mono">${esc(validation.scenario_fingerprint || "not_available")}</span></div>
+          <div class="mt-2"><span class="font-black">Blueprint:</span> <span class="mono">${esc(validation.blueprint_path || "not_available")}</span></div>
+        </div>
+        ${renderValidationList(validation.checks)}
+      `,
+      confirmLabel: "Destroy Full Scenario",
+      onConfirm: async (resultNode, overlay) => {
+        try {
+          const payload = await getJson("/api/foc/experimentation/scenario-destruction/destroy", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              scenario_id: validation.scenario_id || scenarioId,
+              campaign_id: campaignId,
+              action_type: "destroy_full_scenario",
+              confirmation: "OK",
+            }),
+          });
+          if (resultNode) resultNode.innerHTML = `<div class="text-cyan-300">${esc(payload.message || "Scenario destruction completed.")}</div>`;
+          setInlineActionResult(resultNodeId, `<div class="text-cyan-300">${esc(payload.message || "Scenario destruction completed.")}</div>`);
+          await loadCampaigns();
+          await refreshProposalAndPreflight({ force: false });
+          setTimeout(() => overlay?.remove(), 600);
+        } catch (err) {
+          if (resultNode) resultNode.innerHTML = `<div class="text-red-300">${esc(err.message)}</div>`;
+        }
+      },
+    });
   }
 
   async function loadHealth() {
@@ -1442,6 +2191,7 @@
   }
 
   async function loadCampaigns() {
+    state.executionCache.clear();
     const payload = await getJson("/api/foc/experimentation/campaigns");
     state.campaigns = payload.campaigns || [];
     if (!state.selectedCampaignId && state.campaigns.length) state.selectedCampaignId = state.campaigns[0].campaign_id;
@@ -1517,6 +2267,7 @@
   function renderJob(payload) {
     const root = byId("job-panel");
     if (!root) return;
+    renderFloatingJobToast(payload);
     if (!payload) {
       root.innerHTML = `
         <div class="font-black">No active background job.</div>
@@ -1525,16 +2276,25 @@
       return;
     }
     const isSummary = !!payload.summary_mode;
-    const phaseLabel = payload.current_phase_label || titleCaseStatus(payload.current_phase || "queued");
-    const phaseDetail = payload.current_phase_detail || "No additional execution detail is currently available.";
     const phaseStatuses = payload.phase_statuses || [];
+    const lastPhase = phaseStatuses.length ? phaseStatuses[phaseStatuses.length - 1] : null;
+    const terminal = isTerminalJobStatus(payload.status);
+    const nestedTrace = payload.lifecycle_phase_trace || payload.phase_trace || [];
+    const phaseLabel = terminal
+      ? (lastPhase?.phase_label || payload.current_phase_label || titleCaseStatus(payload.current_phase || "completed"))
+      : (payload.current_phase_label || titleCaseStatus(payload.current_phase || "queued"));
+    const phaseDetail = terminal
+      ? formatDetail(lastPhase?.detail || payload.current_phase_detail || "The job has already completed.")
+      : formatDetail(payload.current_phase_detail || "No additional execution detail is currently available.");
+    const phaseHeading = terminal ? "Last phase" : "Current phase";
     root.innerHTML = `
       <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">${isSummary ? "Last job" : "Job ID"}</div><div class="font-black mt-2 mono">${esc(payload.job_id || "not_available")}</div></div>
         <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Status</div><div class="font-black mt-2 ${statusClass(payload.status)}">${esc(titleCaseStatus(payload.status || "unknown"))}</div></div>
-        <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Current phase</div><div class="font-black mt-2">${esc(phaseLabel)}</div></div>
+        <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">${esc(phaseHeading)}</div><div class="font-black mt-2">${esc(phaseLabel)}</div></div>
         <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Progress</div><div class="font-black mt-2">${esc(payload.progress_percent ?? "not_available")}${payload.progress_percent != null ? "%" : ""}</div></div>
       </div>
+      ${payload.live_recovery_note ? `<div class="mt-4 rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-4 text-cyan-200">${esc(payload.live_recovery_note)}</div>` : ""}
       <div class="mt-4"><span class="font-black">Exact activity now:</span> ${esc(phaseDetail)}</div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
         <div><span class="font-black">Started at:</span> ${esc(payload.started_at || payload.requested_at || "not_available")}</div>
@@ -1550,30 +2310,152 @@
                   <div class="font-black">${esc(item.phase_label || item.phase_key)}</div>
                   <div class="text-xs uppercase tracking-[0.16em] ${statusClass(item.status)}">${esc(titleCaseStatus(item.status || "running"))}</div>
                 </div>
-                <div class="text-slate-400 mt-2">${esc(item.detail || "No detail available.")}</div>
+                <div class="text-slate-400 mt-2">${esc(formatDetail(item.detail || "No detail available."))}</div>
                 <div class="text-xs text-slate-500 mt-2">${esc(item.progress_percent)}% · ${esc(item.updated_at || "not_available")}</div>
               </div>
             `).join("")}
           </div>
         </div>
       ` : ""}
-      ${payload.last_error ? `<div class="mt-4 text-red-300"><span class="font-black">Last error:</span> ${esc(payload.last_error)}</div>` : ""}
+      ${payload.live_analysis_status?.phases ? `
+        <div class="mt-5">
+          <div class="font-black">Live multilayer execution order</div>
+          <div class="text-slate-400 mt-2">These layers run in sequence, not in parallel. Only one layer should be actively running at a time; the rest remain queued until their turn.</div>
+          <div class="space-y-3 mt-3">
+            ${orderedAnalysisPhaseEntries(payload.live_analysis_status.phases || {}).map(([phaseKey, phase], index, entries) => {
+              const phaseStatus = String(phase?.status || "pending").toLowerCase();
+              const detail = phaseStatus === "pending"
+                ? analysisPhaseQueueReason(entries, index)
+                : (phase?.errors?.[0] || phase?.limitations?.[0] || `${analysisPhaseLabel(phaseKey)} is ${titleCaseStatus(phase?.status || "pending").toLowerCase()}.`);
+              const timing = phaseStatus === "pending"
+                ? "not_started · queued"
+                : `${phase?.started_at || "not_started"} · ${phase?.finished_at || (phaseStatus === "running" ? "running" : "not_finished")}`;
+              return `
+              <div class="rounded-2xl border border-slate-800/80 bg-slate-950/35 p-3">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="font-black">${index + 1}. ${esc(analysisPhaseLabel(phaseKey))}</div>
+                  <div class="text-xs uppercase tracking-[0.16em] ${statusClass(phase?.status)}">${esc(titleCaseStatus(phase?.status || "pending"))}</div>
+                </div>
+                <div class="text-slate-400 mt-2">${esc(formatDetail(detail))}</div>
+                <div class="text-xs text-slate-500 mt-2">${esc(timing)}</div>
+              </div>
+            `;
+            }).join("")}
+          </div>
+        </div>
+      ` : ""}
+      ${nestedTrace.length ? `
+        <div class="mt-5">
+          <div class="font-black">Full Evidence Lifecycle nested trace</div>
+          <div class="space-y-2 mt-3">
+            ${renderNestedLifecycleTrace(nestedTrace)}
+          </div>
+        </div>
+      ` : ""}
+      ${payload.last_error ? `<div class="mt-4 text-red-300"><span class="font-black">Last error:</span> ${esc(formatDetail(payload.last_error))}</div>` : ""}
       ${(payload.generated_artifacts || []).length ? `<div class="mt-4"><span class="font-black">Generated artifacts:</span><div class="mt-2 space-y-1">${payload.generated_artifacts.map((item) => `<div class="mono text-slate-400">${esc(item)}</div>`).join("")}</div></div>` : ""}
       ${(payload.errors || []).length ? `<div class="mt-4 text-red-300"><span class="font-black">Errors:</span><div class="mt-2 space-y-1">${payload.errors.map((item) => `<div>${esc(item.message || JSON.stringify(item))}</div>`).join("")}</div></div>` : ""}
+    `;
+  }
+
+  function renderNestedLifecycleTrace(trace) {
+    const byParent = new Map();
+    const roots = [];
+    (trace || []).forEach((item) => {
+      const key = item.parent_phase_id || "__root__";
+      if (!byParent.has(key)) byParent.set(key, []);
+      byParent.get(key).push(item);
+      if (!item.parent_phase_id) roots.push(item);
+    });
+    const renderNode = (item, depth = 0) => {
+      const children = byParent.get(item.phase_id) || [];
+      const margin = depth * 18;
+      const warnings = item.warnings || [];
+      const blockers = item.blockers || [];
+      return `
+        <div class="rounded-2xl border border-slate-800/80 bg-slate-950/35 p-3" style="margin-left:${margin}px">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="font-black">${esc(item.phase_label || item.phase_id || "phase")}</div>
+          <div class="text-[11px] uppercase tracking-[0.16em] text-slate-500 mt-1">${esc(item.layer || "lifecycle")}</div>
+            </div>
+            <div class="text-xs uppercase tracking-[0.16em] ${statusClass(item.status)}">${esc(titleCaseStatus(item.status || "unknown"))}</div>
+          </div>
+          <div class="text-slate-300 mt-2">${esc(formatDetail(item.detail || "No detail available."))}</div>
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2 mt-3 text-xs text-slate-400">
+            <div><span class="font-black text-slate-300">Started:</span> ${esc(item.utc_start_time || "not_available")}</div>
+            <div><span class="font-black text-slate-300">Finished:</span> ${esc(item.utc_end_time || "not_available")}</div>
+            <div><span class="font-black text-slate-300">Duration:</span> ${item.duration_ms != null ? `${esc(item.duration_ms)} ms` : "not_available"}</div>
+            <div><span class="font-black text-slate-300">Artifacts / findings:</span> ${esc(item.number_of_artifacts_processed ?? "n/a")} / ${esc(item.number_of_findings_generated ?? "n/a")}</div>
+          </div>
+          ${(item.input_artifacts_used || []).length ? `<div class="mt-3 text-xs"><span class="font-black text-slate-300">Input artifacts:</span><div class="mt-1 space-y-1">${item.input_artifacts_used.map((v) => `<div class="mono text-slate-500">${esc(v)}</div>`).join("")}</div></div>` : ""}
+          ${(item.output_artifacts_generated || []).length ? `<div class="mt-3 text-xs"><span class="font-black text-slate-300">Output artifacts:</span><div class="mt-1 space-y-1">${item.output_artifacts_generated.map((v) => `<div class="mono text-slate-500">${esc(v)}</div>`).join("")}</div></div>` : ""}
+          ${warnings.length ? `<div class="mt-3 text-amber-300 text-xs"><span class="font-black">Warnings:</span><div class="mt-1 space-y-1">${warnings.map((v) => `<div>${esc(v)}</div>`).join("")}</div></div>` : ""}
+          ${blockers.length ? `<div class="mt-3 text-red-300 text-xs"><span class="font-black">Blockers:</span><div class="mt-1 space-y-1">${blockers.map((v) => `<div>${esc(v)}</div>`).join("")}</div></div>` : ""}
+          ${item.scientific_limitation_reason ? `<div class="mt-3 text-xs text-amber-200"><span class="font-black">Scientific limitation:</span> ${esc(item.scientific_limitation_reason)}</div>` : ""}
+        </div>
+        ${children.map((child) => renderNode(child, depth + 1)).join("")}
+      `;
+    };
+    return roots.map((item) => renderNode(item)).join("");
+  }
+
+  function renderFloatingJobToast(payload) {
+    const existing = byId("foc-exp-job-toast");
+    const visible = payload && !payload.summary_mode && !isTerminalJobStatus(payload.status);
+    if (!visible) {
+      if (existing) existing.remove();
+      return;
+    }
+    const phaseStatuses = payload.phase_statuses || [];
+    const lastPhase = phaseStatuses.length ? phaseStatuses[phaseStatuses.length - 1] : null;
+    const phaseLabel = payload.current_phase_label || lastPhase?.phase_label || titleCaseStatus(payload.current_phase || "running");
+    const phaseDetail = formatDetail(payload.current_phase_detail || lastPhase?.detail || "Experimentation job running.");
+    const progress = payload.progress_percent != null ? `${payload.progress_percent}%` : "running";
+    const root = existing || document.createElement("button");
+    if (!existing) {
+      root.id = "foc-exp-job-toast";
+      root.type = "button";
+      root.setAttribute("aria-label", "Open background job status");
+      root.style.position = "fixed";
+      root.style.right = "20px";
+      root.style.bottom = "20px";
+      root.style.zIndex = "999";
+      root.style.maxWidth = "360px";
+      root.style.padding = "14px 16px";
+      root.style.borderRadius = "18px";
+      root.style.border = "1px solid rgba(148,163,184,.22)";
+      root.style.background = "rgba(8,15,28,.72)";
+      root.style.backdropFilter = "blur(14px)";
+      root.style.color = "#e2e8f0";
+      root.style.boxShadow = "0 12px 30px rgba(2,6,23,.32)";
+      root.style.textAlign = "left";
+      root.style.cursor = "pointer";
+      root.addEventListener("click", () => {
+        byId("job-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      document.body.appendChild(root);
+    }
+    root.innerHTML = `
+      <div style="font-size:11px;letter-spacing:.22em;text-transform:uppercase;font-weight:900;color:#67e8f9;">Background execution</div>
+      <div style="margin-top:6px;font-weight:900;">${esc(phaseLabel)} · ${esc(progress)}</div>
+      <div style="margin-top:6px;font-size:12px;color:#cbd5e1;">${esc(phaseDetail)}</div>
     `;
   }
 
   async function pollJob() {
     if (!state.activeJobId) return;
     try {
-      const payload = await getJson(`/api/foc/experimentation/jobs/${encodeURIComponent(state.activeJobId)}`);
+      const rawPayload = await getJson(`/api/foc/experimentation/jobs/${encodeURIComponent(state.activeJobId)}`);
+      const hydrated = await hydrateExperimentationJob(rawPayload);
+      const payload = hydrated.payload;
       renderJob(payload);
       saveActiveJob({
         job_id: payload.job_id,
         campaign_id: (payload.meta || {}).campaign_id || null,
         title: payload.title || "",
       });
-      if (["completed", "completed_with_degradation", "failed", "cancelled"].includes(String(payload.status))) {
+      if (!hydrated.continuePolling) {
         state.activeJobId = null;
         clearInterval(state.pollTimer);
         state.pollTimer = null;
@@ -1597,12 +2479,17 @@
 
   async function createCampaignFromForm(event) {
     event.preventDefault();
+    const blockedReason = builderCreateBlockedReason();
+    const successNode = byId("campaign-create-success");
+    if (blockedReason) {
+      if (successNode) successNode.innerHTML = `<div class="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-amber-200">${esc(blockedReason)}</div>`;
+      return;
+    }
     const payload = buildFormPayload();
     if (state.preflight && !state.preflight.ready) {
       const proceed = window.confirm("Pre-flight validation still shows missing requirements. Create the campaign anyway as a scaffolded experimental container?");
       if (!proceed) return;
     }
-    const successNode = byId("campaign-create-success");
     let res;
     try {
       res = await getJson("/api/foc/experimentation/campaigns/create", {
@@ -1617,6 +2504,7 @@
     state.selectedCampaignId = res.campaign.campaign_id;
     state.dirtyFields.clear();
     await loadCampaigns();
+    renderBuilderSelectedCampaignNote();
     if (successNode) {
       const level = String(res.campaign.level || "A").toUpperCase();
       successNode.innerHTML = `
@@ -1649,8 +2537,43 @@
     trackJob(res.job_id);
   }
 
+  function runRealLevelBExecution() {
+    const campaign = selectedCampaign();
+    if (!campaign) return;
+    const cfg = state.selectedCampaignDetail?.config || {};
+    openOkConfirmDialog({
+      title: `Run Real Level B Execution · ${campaign.campaign_id}`,
+      bodyIntro: "Level B is not only a campaign metadata generator. It must orchestrate a real controlled incident execution: arm DFIR auto, launch the selected attack, wait for detection, create a new case, acquire evidence, analyze it, and register comparable results. This will launch a real attack against real lab infrastructure, wait for a real alert, and create a new forensic case. It does not reuse or modify any previous case.",
+      bodyHtml: `
+        <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+          <div><span class="font-black">Campaign:</span> <span class="mono">${esc(campaign.campaign_id)}</span></div>
+          <div class="mt-2"><span class="font-black">Scenario:</span> <span class="mono">${esc(cfg.scenario_id || campaign.scenario_id || "not_available")}</span></div>
+          <div class="mt-2"><span class="font-black">Attack profile:</span> <span class="mono">${esc(cfg.attack_id || "not_available")}</span></div>
+        </div>
+        <div class="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-amber-200">
+          If no alert matching this attack's detection criteria is observed within the configured timeout, the execution is marked <span class="mono">failed_detection</span> and no forensic case is created. It is never marked successful without a real detection and real acquisition.
+        </div>
+      `,
+      confirmLabel: "Run Real Level B Execution",
+      onConfirm: async (resultNode, overlay) => {
+        try {
+          const res = await getJson(`/api/foc/experimentation/campaigns/${encodeURIComponent(campaign.campaign_id)}/run-real`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ confirmation: "OK" }),
+          });
+          if (resultNode) resultNode.innerHTML = `<div class="text-cyan-300">Real Level B execution started. Job ID: <span class="mono">${esc(res.job_id || "not_available")}</span></div>`;
+          trackJob(res.job_id);
+          setTimeout(() => overlay?.remove(), 900);
+        } catch (err) {
+          if (resultNode) resultNode.innerHTML = `<div class="text-red-300">${esc(err.message)}</div>`;
+        }
+      },
+    });
+  }
+
   function bindFieldListeners() {
-    ["source-case-select", "scenario-id-input", "campaign-name-input", "repetitions-input", "notes-input", "baseline-threshold-input", "delta-wcpr-input", "baseline-window-input", "description-input"].forEach((id) => {
+    ["source-case-select", "scenario-id-input", "campaign-name-input", "repetitions-input", "notes-input", "baseline-threshold-input", "delta-wcpr-input", "baseline-window-input", "description-input", "attack-profile-select"].forEach((id) => {
       const node = byId(id);
       if (!node) return;
       node.addEventListener("input", markFieldDirty);
@@ -1659,7 +2582,12 @@
         if (id === "source-case-select") {
           state.currentCaseId = currentSourceCaseId();
         }
-        if (id === "source-case-select" || id === "scenario-id-input") {
+        if (id === "attack-profile-select") {
+          renderAttackProfileDetail();
+          if (!state.lastRecommendation?.has_recommendation) state.recommendedFamily = null;
+          updateCampaignNameFromSelection();
+          await refreshProposalAndPreflight({ force: false });
+        } else if (id === "source-case-select" || id === "scenario-id-input") {
           await refreshProposalAndPreflight({ force: false });
         } else {
           const preflight = await getJson("/api/foc/experimentation/campaigns/preflight", {
@@ -1670,6 +2598,7 @@
           renderPreflight(preflight);
           renderSourceSummary();
           renderExecutionPlan();
+          applyBuilderCreateState();
         }
       });
     });
@@ -1704,8 +2633,8 @@
     byId("campaign-pause-btn")?.addEventListener("click", () => changeCampaignState("pause"));
     byId("campaign-stop-btn")?.addEventListener("click", () => changeCampaignState("stop"));
     byId("campaign-run-next-btn")?.addEventListener("click", runNextExecution);
+    byId("campaign-run-real-btn")?.addEventListener("click", runRealLevelBExecution);
     byId("register-case-btn")?.addEventListener("click", registerExistingCaseAsResultCard);
-    byId("attack-profile-select")?.addEventListener("change", renderAttackProfileDetail);
     bindRecommendedExperimentButtons();
     bindFieldListeners();
     renderModeButtons();

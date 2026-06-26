@@ -6,6 +6,7 @@ from ..foc_reconstruction.foc_paths import project_path, relative_path
 
 CAMPAIGNS_ROOT = project_path("app_core", "infrastructure", "forensics", "evidence_store", "repetition_campaigns")
 EVIDENCE_STORE_ROOT = project_path("app_core", "infrastructure", "forensics", "evidence_store")
+ARCHIVED_CASES_ROOT = EVIDENCE_STORE_ROOT / "_archived_heavy_cases"
 METHODOLOGICAL_BASIS_FILE = project_path("app_core", "infrastructure", "foc_experimentation", "methodological_basis.json")
 SCIENTIFIC_MEMORY_ROOT = CAMPAIGNS_ROOT / "scientific_memory"
 SCENARIO_REGISTRY_DIR = SCIENTIFIC_MEMORY_ROOT / "scenario_registry"

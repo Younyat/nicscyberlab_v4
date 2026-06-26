@@ -57,7 +57,43 @@ def _result_card_path(execution: dict) -> Path | None:
     return candidate if candidate.is_file() else None
 
 
+def _same(values: list[str]) -> bool:
+    normalized = [str(item or "not_available") for item in values]
+    return len(set(normalized)) == 1
+
+
+def _classify_level_a_repeatability(cards: list[dict], executions: list[dict]) -> str | None:
+    if not cards or any(not isinstance(card, dict) for card in cards):
+        return None
+    if any(str(execution.get("level") or "").upper() != "A" for execution in executions):
+        return None
+    source_types = [
+        str(card.get("source_type") or ("reanalysis_of_existing_case" if str(execution.get("level") or "").upper() == "A" else ""))
+        for card, execution in zip(cards, executions)
+    ]
+    if any(source_type != "reanalysis_of_existing_case" for source_type in source_types):
+        return None
+    base_case_ids = [
+        card.get("original_case_id")
+        or card.get("case_id")
+        or execution.get("base_case_id")
+        or execution.get("source_case_id")
+        or execution.get("run_case_id")
+        for card, execution in zip(cards, executions)
+    ]
+    analysis_profiles = [card.get("analysis_profile_id") for card in cards]
+    foc_profiles = [card.get("foc_profile_id") for card in cards]
+    campaign_ids = [execution.get("campaign_id") for execution in executions]
+    if not (_same(base_case_ids) and _same(analysis_profiles) and _same(foc_profiles) and _same(campaign_ids)):
+        return None
+    family_ids = [card.get("comparison_family_id") for card in cards if card.get("comparison_family_id")]
+    if len(family_ids) == len(cards) and _same(family_ids):
+        return "direct_level_a_repeatability_comparison"
+    return "direct_level_a_repeatability_family_metadata_incomplete"
+
+
 def _classify_comparison_type(executions: list[dict]) -> str:
+    cards: list[dict] = []
     family_ids = []
     scenario_fingerprints = []
     topology_fingerprints = []
@@ -65,14 +101,19 @@ def _classify_comparison_type(executions: list[dict]) -> str:
     for execution in executions:
         card_path = _result_card_path(execution)
         card = _json_load(card_path)
-        if not isinstance(card, dict) or not card.get("comparison_family_id"):
+        if not isinstance(card, dict):
             return "insufficient_data"
-        family_ids.append(card["comparison_family_id"])
+        cards.append(card)
+        if card.get("comparison_family_id"):
+            family_ids.append(card["comparison_family_id"])
         scenario_fingerprints.append(str(card.get("scenario_fingerprint") or "not_available"))
         topology_fingerprints.append(str(card.get("topology_fingerprint") or "not_available"))
         if str(execution.get("level") or "").upper() == "C":
             any_level_c = True
-    if len(set(family_ids)) == 1:
+    level_a_type = _classify_level_a_repeatability(cards, executions)
+    if level_a_type:
+        return level_a_type
+    if family_ids and len(family_ids) == len(cards) and len(set(family_ids)) == 1:
         return "direct_family_comparison"
     if any_level_c:
         if len(set(scenario_fingerprints)) > 1 or len(set(topology_fingerprints)) > 1:
@@ -217,9 +258,10 @@ def compare_executions(execution_ids: list[str], *, campaign_id: str | None = No
         "generated_at": utc_now(),
         "status": status,
         "comparison_type": comparison_type,
-        "direct_comparison_valid": comparison_type == "direct_family_comparison",
+        "direct_comparison_valid": comparison_type in {"direct_family_comparison", "direct_level_a_repeatability_comparison", "direct_level_a_repeatability_family_metadata_incomplete"},
         "exploratory_only": comparison_type == "exploratory_comparison_only",
         "scenario_drift": comparison_type == "platform_level_comparison_with_scenario_drift",
+        "family_metadata_incomplete": comparison_type == "direct_level_a_repeatability_family_metadata_incomplete",
         "execution_ids": execution_ids,
         "reference_execution_id": reference_execution["execution_id"],
         "delta_cpr_allowed": delta_cpr_allowed,

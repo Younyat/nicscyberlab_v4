@@ -336,6 +336,8 @@ def create_execution_from_campaign(campaign_id: str, overrides: dict | None = No
         "stage_statuses": stage_statuses,
         "warnings": warnings,
         "artifacts": profile_result.get("files") or {},
+        "comparison_family_id": ((profile_result.get("result_card") or {}).get("comparison_family_id")),
+        "scientific_limitations": list(((profile_result.get("result_card") or {}).get("scientific_limitations")) or []),
     }
     _write_json(exec_dir / "execution_manifest.json", execution_manifest)
     _write_json(exec_dir / "job_status.json", {"status": status, "updated_at": utc_now(), "current_phase": "execution_registered"})
@@ -379,6 +381,106 @@ def create_execution_from_campaign(campaign_id: str, overrides: dict | None = No
     }
 
 
+def attach_real_case_to_execution(
+    campaign_id: str,
+    execution_id: str,
+    *,
+    case_id: str,
+    attack_record_override: dict | None = None,
+    stage_overrides: dict | None = None,
+    progress_hook=None,
+) -> dict:
+    """
+    Upgrades an already-created execution workspace (the one
+    create_execution_from_campaign produces as the dry-run scaffold) with a
+    real, freshly-acquired and analyzed case, once the Level B real-execution
+    orchestrator (level_b_orchestrator.py) has finished arming DFIR auto,
+    launching the attack, waiting for detection, creating the case, and
+    acquiring evidence. This intentionally does NOT call
+    create_execution_from_campaign again -- that would mint a new EXEC-NNNN
+    index. It reuses the same execution_id and overwrites its profiles with
+    the real case_bundle.
+
+    stage_overrides lets the caller mark stages that genuinely happened for
+    real this time (e.g. attack_executed, detection_observed) as "completed"
+    instead of the "completed_with_degradation" label _derive_stage_statuses
+    uses for the linked-existing-case path, where those stages were inferred
+    rather than executed by foc_experimentation.
+    """
+    manifest, config = _load_campaign(campaign_id)
+    if not manifest:
+        raise FileNotFoundError(f"campaign_not_found:{campaign_id}")
+    level = str(config.get("level") or manifest.get("level") or "B").upper()
+    exec_dir = execution_dir(campaign_id, level, execution_id)
+    if not exec_dir.is_dir():
+        raise FileNotFoundError(f"execution_not_found:{execution_id}")
+
+    case_bundle = load_case_bundle(case_id=case_id)
+    if not case_bundle:
+        raise ValueError(f"case_not_found:{case_id}")
+    if attack_record_override:
+        case_bundle["attack_record"] = attack_record_override
+
+    baseline_threshold = float(config.get("baseline_noise_threshold") or 0.15)
+    baseline_window_seconds = int(config.get("baseline_window_seconds") or 60)
+
+    profile_result = build_execution_profiles(
+        execution_id=execution_id,
+        campaign_id=campaign_id,
+        level=level,
+        execution_dir=exec_dir,
+        case_bundle=case_bundle,
+        baseline_noise_enabled=True,
+        baseline_window_seconds=baseline_window_seconds,
+        baseline_threshold=baseline_threshold,
+        baseline_builder=build_baseline_noise_profile,
+        seal_builder=build_ground_truth_seal,
+        campaign_config=config,
+        progress_hook=progress_hook,
+    )
+
+    stage_statuses = _derive_stage_statuses(level, case_bundle, profile_result.get("files") or {})
+    for key, override in (stage_overrides or {}).items():
+        _mark_stage(stage_statuses, key, override.get("status", "completed"), override.get("reason", ""), override.get("artifact_path"))
+
+    existing = _json_load(exec_dir / "execution_manifest.json") or {}
+    status = "completed_with_degradation" if any(str((record or {}).get("status")) == "completed_with_degradation" for record in stage_statuses.values()) else "completed"
+    execution_manifest = {
+        **existing,
+        "status": status,
+        "updated_at": utc_now(),
+        "source_case_id": case_bundle.get("case_id"),
+        "source_case_path": case_bundle.get("case_rel_path"),
+        "run_case_id": case_bundle.get("case_id"),
+        "run_case_path": case_bundle.get("case_rel_path"),
+        "planned_case_id": None,
+        "dry_run": False,
+        "stage_statuses": stage_statuses,
+        "artifacts": profile_result.get("files") or {},
+        "comparison_family_id": ((profile_result.get("result_card") or {}).get("comparison_family_id")),
+        "scientific_limitations": list(((profile_result.get("result_card") or {}).get("scientific_limitations")) or []),
+    }
+    _write_json(exec_dir / "execution_manifest.json", execution_manifest)
+    _write_json(exec_dir / "execution_log.json", {
+        "events": list((_json_load(exec_dir / "execution_log.json") or {}).get("events") or [])
+        + [{"ts": utc_now(), "event": "real_case_attached", "detail": f"execution upgraded with real case {case_bundle.get('case_id')}"}]
+    })
+
+    manifest["current_execution_id"] = execution_id
+    _write_json(campaign_manifest_path(campaign_id), manifest)
+    aggregate_campaign_state(campaign_id, manifest)
+
+    return {
+        "campaign_id": campaign_id,
+        "execution_id": execution_id,
+        "case_id": case_bundle.get("case_id"),
+        "case_path": case_bundle.get("case_rel_path"),
+        "status": status,
+        "artifacts": profile_result.get("files") or {},
+        "comparison_family_id": execution_manifest.get("comparison_family_id"),
+    }
+
+
 def load_execution(execution_id: str, campaign_id: str | None = None) -> dict | None:
     if not CAMPAIGNS_ROOT.exists():
         return None
@@ -394,6 +496,14 @@ def load_execution(execution_id: str, campaign_id: str | None = None) -> dict | 
             candidate = level_dir / execution_id / "execution_manifest.json"
             if candidate.is_file():
                 payload = _json_load(candidate) or {}
+                if not payload.get("comparison_family_id"):
+                    result_card_rel = ((payload.get("artifacts") or {}).get("forensic_result_card"))
+                    if result_card_rel:
+                        result_card = _json_load(Path(result_card_rel))
+                        if isinstance(result_card, dict):
+                            payload["comparison_family_id"] = result_card.get("comparison_family_id")
+                            if not payload.get("scientific_limitations"):
+                                payload["scientific_limitations"] = list(result_card.get("scientific_limitations") or [])
                 payload["execution_path"] = rel(candidate.parent)
                 payload["execution_abs_path"] = str(candidate.parent.resolve())
                 return payload

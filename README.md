@@ -1513,11 +1513,58 @@ When an incident requires forensic analysis, network traffic can be preserved as
 
 This makes it possible to reconstruct network activity before, during, and after the incident. As a result, network evidence becomes part of the same structured case context as disk and memory artifacts, improving traceability, contextual reconstruction, and forensic analysis.
 
+The current automatic DFIR workflow now treats the rolling capture directory as a continuous observational buffer rather than as a blocking pre-acquisition copy step. The rolling source remains:
+
+- `app_core/infrastructure/ics_traffic/captures/full_scenario_captures`
+
+When a case is created automatically, the platform records the case creation time, acquisition start time, trigger time when available, and the intended network context window. It then prioritizes volatile evidence and performs:
+
+`case creation -> acquisition profile initialization -> memory acquisition first -> network context import from rolling PCAPs -> disk acquisition -> analysis and reconstruction`
+
+This means memory acquisition is no longer delayed by case-level PCAP preservation when continuous rolling capture already exists.
+
+Only the PCAP segments that overlap the case window are imported into the case. The selection rule is:
+
+`pcap_start <= case_window_end and pcap_end >= case_window_start`
+
+The importer writes:
+
+- `CASE_ID/network/traffic_preserved/network_context_manifest.json`
+
+and records:
+
+- source capture root
+- selected PCAPs
+- original path
+- case-local path
+- interface
+- segment start time
+- segment end time
+- preservation mode
+- size
+- SHA-256 hash
+- import time
+- integrity status
+
+If a rolling PCAP segment still appears to be open and actively written by `tcpdump`, it is not preserved as final evidence yet. Instead, it is recorded as a pending segment inside the manifest and can be imported later after rotation closes safely.
+
+The automatic workflow no longer relies on "latest case" resolution for case-bound network preservation. It passes the explicit `case_id` and `case_dir` so the imported network context is attached to the correct forensic case.
+
+The preferred preservation mode order is:
+
+- `reflink` if supported
+- `hardlink` if source and destination share the same filesystem
+- `copy` with `rsync` fallback otherwise
+
+Regardless of the preservation mode, every preserved segment used as evidence is hashed and represented in the manifest.
+
 ![Live Traffic Analyzer](Images_readme/forensic_live_traffic_analyzer.png)
 
 ### Why it matters
 
 This design separates operational traffic acquisition from forensic preservation while allowing both to work together. It supports continuous observability, user-driven inspection, and stronger case reconstruction through the integration of traffic, disk, and memory artifacts within a unified investigative context.
+
+It also improves forensic volatility handling. RAM is the most volatile source, so the platform now prioritizes memory preservation first while still retaining a strong network context from the continuous rolling capture buffer. FOC Reconstruction and FOC Causal Reconstruction continue consuming normalized preserved case artifacts; they are not turned into acquisition modules.
 
 ### Volatility 3 memory analysis and Linux symbol workflow
 
@@ -3114,7 +3161,83 @@ In the current implementation, the module fully supports **linked-case registrat
 - compute a design-only `comparison_family_id` and register it in the comparison registry
 - compare executions, both numerically and by comparison family
 
-**Honest scoping note.** Level B and Level C do not yet drive a real "launch attack → wait for detection → create case → acquire → analyze" execution pipeline inside `foc_experimentation` itself; `execution_service.create_execution_from_campaign()` still builds the comparison profile from a `case_bundle`, and `_derive_stage_statuses()` explicitly marks `attack_executed`/`detection_observed`/`acquisition_executed` as `completed_with_degradation` with the reason `"registered from a linked existing case rather than re-executed by foc_experimentation"` whenever `level != A`. The validation, source-model, and registry corrections described below make the module truthfully describe what Level B/C do and do not do today; they do not fabricate a missing orchestration engine.
+**Execution-mode note.** `foc_experimentation` now exposes two distinct Level B paths:
+
+- **Run Dry-Run Execution**
+  - does **not** launch a real attack
+  - does **not** wait for a real detection
+  - does **not** create a heavy forensic case
+  - does **not** perform real acquisition
+  - instead, it reuses the existing backend scientific chain over a preserved reference case or the currently active preserved case:
+    - `Bootstrap FOC`
+    - `Regenerate Reconstruction`
+    - `Run Causal Reconstruction`
+    - `Run Full Evidence Lifecycle`
+  - only after those backend functions complete does it register the new dry-run execution workspace and its lightweight profiles
+
+- **Run Real Level B Execution**
+  - arms DFIR auto-acquisition
+  - launches the selected real attack
+  - waits for a real matching detection
+  - creates a new real forensic case
+  - initializes the `volatile_first_with_continuous_network_context` acquisition profile
+  - acquires memory first
+  - imports overlapping network context segments from the rolling capture buffer without blocking RAM acquisition
+  - acquires disk after memory has been sealed
+  - runs the real lifecycle chain
+  - registers the resulting execution and result card
+
+#### Volatile-first acquisition and continuous network context
+
+The real Level B path and the automatic DFIR orchestration now follow a volatile-first acquisition strategy:
+
+`case creation -> acquisition profile initialization -> memory acquisition first -> network context import from rolling PCAPs -> disk acquisition -> analysis and reconstruction`
+
+This strategy preserves the existing continuous capture design and does not replace it. The rolling PCAP store remains active and unchanged at:
+
+- `app_core/infrastructure/ics_traffic/captures/full_scenario_captures`
+
+The difference is that case-level network preservation no longer blocks RAM acquisition. While memory acquisition is running, the backend may inspect or index the rolling PCAP directory, but it does not wait for a full PCAP copy before preserving volatile memory.
+
+After RAM acquisition completes, the platform imports only the PCAP segments that overlap the case window and writes:
+
+- `CASE_ID/network/traffic_preserved/full_scenario_captures/`
+- `CASE_ID/network/traffic_preserved/network_context_manifest.json`
+
+It also updates:
+
+- `CASE_ID/metadata/acquisition_profile.json`
+- `CASE_ID/metadata/pipeline_events.jsonl`
+- `CASE_ID/chain_of_custody.log`
+- `CASE_ID/analysis/00_inventory/evidence_inventory.json`
+- `CASE_ID/analysis/01_integrity_custody/integrity_custody_report.json`
+
+The acquisition profile now records at least:
+
+- `case_created_utc`
+- `acquisition_started_utc`
+- `memory_started_utc`
+- `memory_completed_utc`
+- `network_context_import_started_utc`
+- `network_context_import_completed_utc`
+- `disk_started_utc`
+- `trigger_time_utc` when available
+- `network_context_window`
+- `source_capture_root`
+- `selection_policy`
+- `open_segment_policy`
+- `memory_priority_policy`
+
+Open PCAP segments are handled safely. If a segment overlaps the case window but is still being written, the importer records it as pending instead of treating it as final preserved evidence. This preserves correctness without losing the network context model.
+
+The scientific rule remains the same across the experimentation module:
+
+- full heavy PCAP histories are not copied blindly
+- only case-relevant overlapping segments are preserved
+- the preserved case stores lightweight manifests, hashes, timing, and linkage metadata
+- later comparison and reconstruction rely on normalized case artifacts, not on whole-day raw PCAP duplication
+
+**Honest scoping note.** Level C still does **not** execute a full real redeployment-and-attack pipeline inside `foc_experimentation` itself. Its current implementation preserves the redeployment model, scientific memory, blueprint validation, and controlled scenario-destruction logic, but it does not yet perform a full automatic "destroy → redeploy → attack → detect → acquire → analyze" orchestration equivalent to the Level B real-execution path.
 
 #### Simple usage guide
 
@@ -3134,6 +3257,8 @@ Use the experimentation module in this order:
 5. Review the proposed defaults and the pre-flight checklist
 6. Create the campaign
 7. Start the campaign or run the next execution
+   - for Level B, `Run Dry-Run Execution` now replays the scientific backend chain over a preserved case without launching a real incident
+   - for a real incident in Level B, use `Run Real Level B Execution` instead
 8. Wait until the execution generates its scientific profiles, especially:
    - `ground_truth_seal.json`
    - `baseline_noise_profile.json` when applicable
@@ -3564,12 +3689,19 @@ The module now supports retention preparation around the rule:
 The platform must preserve scientific memory, not duplicate heavy evidence.
 ```
 
-Before any future heavy-artifact cleanup, the module verifies that the execution already preserves:
+Before deleting or archiving heavy generated-case artifacts, the module verifies that the execution already preserves:
 
 - `forensic_result_card.json`
 - `forensic_comparison_profile.json`
+- `case_result_card.json`
 - `execution_manifest.json`
 - preservation summary
+- chain-of-custody summary
+- analysis summary
+- causal metrics
+- uncertainty summary
+- hypothesis-support summary
+- final conclusion class
 - original manifest/digest hashes when available
 
 and can generate `retention_manifest.json` plus a retention-registry entry. This records:
@@ -3582,6 +3714,36 @@ and can generate `retention_manifest.json` plus a retention-registry entry. This
 - whether future comparisons remain possible after cleanup
 
 The retained comparison logic therefore survives even if the heavy case is later archived or removed, because future comparability uses lightweight result profiles and scientific memory registries rather than duplicated dumps or PCAP equality.
+
+The UI now exposes this policy directly through:
+
+- `Delete Generated Case Artifacts`
+  - visible only for Level B / Level C executions that actually generated a heavy case
+  - requires typing exactly `OK`
+  - preserves comparison memory and only removes or archives heavy runtime artifacts
+
+##### Level C scenario destruction
+
+Because the platform may need to keep only one active scenario at a time, the module now also exposes a controlled Level C action:
+
+- `Destroy Full Scenario For Level C Redeployment`
+  - visible only in Level C context
+  - requires typing exactly `OK`
+  - validates that lightweight scenario memory already exists before destruction
+  - preserves:
+    - `scenario_registry.json`
+    - `scenario_result_card.json`
+    - `scenario_reconstruction_blueprint.json`
+    - result cards
+    - comparison profiles
+    - campaign and execution manifests
+  - generates `scenario_destruction_manifest.json`
+
+This follows the rule:
+
+```text
+Destroying a scenario must not delete the scientific memory needed to compare scenarios, cases, executions, or results.
+```
 
 ##### Passive scientific-memory synchronization
 
@@ -3602,6 +3764,10 @@ In addition to the earlier campaign and comparison endpoints, the module now exp
 - `GET /api/foc/experimentation/scientific-memory/cases`
 - `GET /api/foc/experimentation/scientific-memory/results`
 - `POST /api/foc/experimentation/retention/prepare`
+- `POST /api/foc/experimentation/case-cleanup/validate`
+- `POST /api/foc/experimentation/case-cleanup/delete`
+- `POST /api/foc/experimentation/scenario-destruction/validate`
+- `POST /api/foc/experimentation/scenario-destruction/destroy`
 
 These endpoints keep the experimentation layer self-contained. They do not modify the original FOC, Forensic Lab, Attack Lab, or Node Health execution logic.
 

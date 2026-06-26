@@ -1995,23 +1995,19 @@ def _launch_ieee_eval_tables_async(case_dir: str, run_id: str = "R1") -> dict:
 
 
 
-@forensics_bp.route("/api/forensics/acquire/disk_kolla", methods=["POST"])
-def api_forensics_acquire_disk():
-    data = request.get_json(force=True, silent=True) or {}
-    case_dir = data.get("case_dir")
-    vm_id = data.get("vm_id")
-    container_name = data.get("container_name", "nova_libvirt")
-    run_id = (data.get("run_id") or "R1").strip()
-    alert_ts_utc = (data.get("alert_ts_utc") or "").strip()
-
+def acquire_disk(case_dir: str, vm_id: str, container_name: str = "nova_libvirt", *, run_id: str = "R1", alert_ts_utc: str = "") -> dict:
+    """
+    Pure (Flask-free) disk acquisition, callable from background orchestrators
+    (e.g. the Level B real-execution job) as well as from the HTTP route below.
+    Returns the same fields the route returns as JSON, plus "ok": bool.
+    """
     if not _is_safe_case_dir(case_dir):
-        return jsonify({"error": "case_dir inválido"}), 400
+        return {"ok": False, "result": "error", "error": "case_dir inválido"}
     if not vm_id:
-        return jsonify({"error": "vm_id requerido"}), 400
+        return {"ok": False, "result": "error", "error": "vm_id requerido"}
 
-    _get_or_set_alert_ts(case_dir, run_id=run_id, provided_alert_ts_utc=alert_ts_utc)
-
-  
+    run_id = (run_id or "R1").strip() or "R1"
+    _get_or_set_alert_ts(case_dir, run_id=run_id, provided_alert_ts_utc=(alert_ts_utc or "").strip())
 
     _append_custody_entry(
         case_dir,
@@ -2074,15 +2070,35 @@ def api_forensics_acquire_disk():
 
     _register_custody_artifact(case_dir)
     _write_case_digest(case_dir, run_id=run_id)
-    
-    return jsonify({
+
+    return {
+        "ok": rc == 0,
         "result": "ok" if rc == 0 else "error",
         "exit_code": rc,
         "stdout": out,
         "stderr": err,
         "disk_raw": disk_rel,
-        "sha256": sha_value
-    }), 200 if rc == 0 else 500
+        "sha256": sha_value,
+    }
+
+
+@forensics_bp.route("/api/forensics/acquire/disk_kolla", methods=["POST"])
+def api_forensics_acquire_disk():
+    data = request.get_json(force=True, silent=True) or {}
+    case_dir = data.get("case_dir")
+    vm_id = data.get("vm_id")
+    container_name = data.get("container_name", "nova_libvirt")
+    run_id = (data.get("run_id") or "R1").strip()
+    alert_ts_utc = (data.get("alert_ts_utc") or "").strip()
+
+    if not _is_safe_case_dir(case_dir):
+        return jsonify({"error": "case_dir inválido"}), 400
+    if not vm_id:
+        return jsonify({"error": "vm_id requerido"}), 400
+
+    out = acquire_disk(case_dir, vm_id, container_name, run_id=run_id, alert_ts_utc=alert_ts_utc)
+    status = 200 if out.get("ok") else 500
+    return jsonify({k: v for k, v in out.items() if k != "ok"}), status
 
 
 
@@ -2503,25 +2519,22 @@ def api_vol3_symbols_generate_stream():
 
 
 
-@forensics_bp.route("/api/forensics/acquire/memory_lime", methods=["POST"])
-def api_forensics_acquire_memory():
-    data = request.get_json(force=True, silent=True) or {}
-    case_dir = data.get("case_dir")
-    vm_id = data.get("vm_id")
-    vm_ip = data.get("vm_ip")
-    ssh_user = data.get("ssh_user", "debian")
-    ssh_key = data.get("ssh_key", "")
-    mode = data.get("mode", "build")
-    run_id = (data.get("run_id") or "R1").strip()
-    alert_ts_utc = (data.get("alert_ts_utc") or "").strip()
-
+def acquire_memory(case_dir: str, vm_id: str, vm_ip: str, ssh_key: str, *, ssh_user: str = "debian", mode: str = "build", run_id: str = "R1", alert_ts_utc: str = "") -> dict:
+    """
+    Pure (Flask-free) memory acquisition (LiME over SSH), callable from
+    background orchestrators (e.g. the Level B real-execution job) as well as
+    from the HTTP route below. Returns the same fields the route returns as
+    JSON, plus "ok": bool.
+    """
     if not _is_safe_case_dir(case_dir):
-        return jsonify({"error": "case_dir inválido"}), 400
+        return {"ok": False, "result": "error", "error": "case_dir inválido"}
     if not vm_id or not vm_ip:
-        return jsonify({"error": "vm_id y vm_ip requeridos"}), 400
+        return {"ok": False, "result": "error", "error": "vm_id y vm_ip requeridos"}
     if not ssh_key:
-        return jsonify({"error": "ssh_key requerido (path en el servidor)"}), 400
+        return {"ok": False, "result": "error", "error": "ssh_key requerido (path en el servidor)"}
 
+    run_id = (run_id or "R1").strip() or "R1"
+    alert_ts_utc = (alert_ts_utc or "").strip()
     _get_or_set_alert_ts(case_dir, run_id=run_id, provided_alert_ts_utc=alert_ts_utc)
 
     _append_custody_entry(
@@ -2639,7 +2652,8 @@ def api_forensics_acquire_memory():
     _register_custody_artifact(case_dir)
     _write_case_digest(case_dir, run_id=run_id)
 
-    return jsonify({
+    return {
+        "ok": rc == 0,
         "result": "ok" if rc == 0 else "error",
         "exit_code": rc,
         "stdout": out,
@@ -2647,8 +2661,32 @@ def api_forensics_acquire_memory():
         "mem_dump": mem_rel,
         "sha256": sha_value,
         "ssh_user_used": ssh_user,
-        "attempted_users": attempted_users
-    }), 200 if rc == 0 else 500
+        "attempted_users": attempted_users,
+    }
+
+
+@forensics_bp.route("/api/forensics/acquire/memory_lime", methods=["POST"])
+def api_forensics_acquire_memory():
+    data = request.get_json(force=True, silent=True) or {}
+    case_dir = data.get("case_dir")
+    vm_id = data.get("vm_id")
+    vm_ip = data.get("vm_ip")
+    ssh_user = data.get("ssh_user", "debian")
+    ssh_key = data.get("ssh_key", "")
+    mode = data.get("mode", "build")
+    run_id = (data.get("run_id") or "R1").strip()
+    alert_ts_utc = (data.get("alert_ts_utc") or "").strip()
+
+    if not _is_safe_case_dir(case_dir):
+        return jsonify({"error": "case_dir inválido"}), 400
+    if not vm_id or not vm_ip:
+        return jsonify({"error": "vm_id y vm_ip requeridos"}), 400
+    if not ssh_key:
+        return jsonify({"error": "ssh_key requerido (path en el servidor)"}), 400
+
+    out = acquire_memory(case_dir, vm_id, vm_ip, ssh_key, ssh_user=ssh_user, mode=mode, run_id=run_id, alert_ts_utc=alert_ts_utc)
+    status = 200 if out.get("ok") else 500
+    return jsonify({k: v for k, v in out.items() if k != "ok"}), status
 
 
 @forensics_bp.route("/api/forensics/acquire/memory_lime/stream", methods=["GET"])
@@ -3601,6 +3639,11 @@ def _register_custody_artifact(case_dir: str) -> None:
 
 
 from app_core.infrastructure.ics_traffic.traffic_api import capture_packets_fixed_duration
+from app_core.infrastructure.forensics.network_context_importer import (
+    import_continuous_network_context,
+    initialize_volatile_first_acquisition,
+    update_acquisition_profile,
+)
 def _resolve_dfir_targets_from_openstack(names_lower: list) -> list:
     conn = None
     try:
@@ -3704,23 +3747,20 @@ def api_dfir_orchestrator_trigger():
     _register_custody_artifact(case_dir)
     _write_case_digest(case_dir, run_id=run_id)
 
-    results = {"traffic": [], "memory": [], "disk": []}
+    initialize_volatile_first_acquisition(
+        case_dir,
+        run_id=run_id,
+        case_created_utc=_utc_now_iso(),
+        acquisition_started_utc=_utc_now_iso(),
+        trigger_time_utc=alert_ts,
+        pre_context_seconds=max(int(traffic_seconds or 0), 120),
+        post_context_seconds=max(int(traffic_seconds or 0), 120),
+    )
 
-    # 1) Traffic 20s per VM
-    for t in targets_ok:
-        vm_id = t["vm_id"]
-        role = t["role"]
+    results = {"traffic": [], "network_context": None, "memory": [], "disk": []}
 
-        _append_case_event(case_dir, "dfir_step_start", run_id=run_id, meta={"step": "traffic", "vm_id": vm_id, "role": role})
-        try:
-            r = capture_packets_fixed_duration(vm_id, ["modbus", "tcp", "udp"], traffic_seconds, case_dir=case_dir, run_id=run_id)
-            results["traffic"].append(r)
-            _append_case_event(case_dir, "dfir_step_done", run_id=run_id, meta={"step": "traffic", "vm_id": vm_id, "role": role, "result": r.get("result")})
-        except Exception as e:
-            _append_case_event(case_dir, "dfir_step_failed", run_id=run_id, meta={"step": "traffic", "vm_id": vm_id, "role": role, "reason": str(e)})
-            return jsonify({"error": "traffic_failed", "vm_id": vm_id, "reason": str(e)}), 500
-
-    # 2) Memory LiME per VM
+    # 1) Memory LiME per VM
+    update_acquisition_profile(case_dir, run_id=run_id, merge_fields={"memory_started_utc": _utc_now_iso()})
     for t in targets_ok:
         vm_id = t["vm_id"]
         vm_ip = t["vm_ip"]
@@ -3728,7 +3768,6 @@ def api_dfir_orchestrator_trigger():
         ssh_user = _dfir_ssh_user_for_role(role)
 
         _append_case_event(case_dir, "dfir_step_start", run_id=run_id, meta={"step": "memory", "vm_id": vm_id, "vm_ip": vm_ip, "role": role})
-
         # Reutiliza tu función POST existente a nivel interno llamando directamente al script
         # para no depender del servidor HTTP en loopback
         payload = {
@@ -3757,15 +3796,33 @@ def api_dfir_orchestrator_trigger():
         except Exception:
             results["memory"].append({"result": "ok", "vm_id": vm_id})
 
+        update_acquisition_profile(case_dir, run_id=run_id, merge_fields={"memory_completed_utc": _utc_now_iso()})
         _append_case_event(case_dir, "dfir_step_done", run_id=run_id, meta={"step": "memory", "vm_id": vm_id, "role": role})
 
+    # 2) Network context import from the continuous rolling capture buffer.
+    _append_case_event(case_dir, "dfir_step_start", run_id=run_id, meta={"step": "network_context_import", "source": "full_scenario_captures"})
+    try:
+        network_result = import_continuous_network_context(
+            case_dir,
+            run_id=run_id,
+            trigger_time_utc=alert_ts,
+            pre_context_seconds=max(int(traffic_seconds or 0), 120),
+            post_context_seconds=max(int(traffic_seconds or 0), 120),
+        )
+        results["network_context"] = network_result
+        results["traffic"] = [network_result]
+        _append_case_event(case_dir, "dfir_step_done", run_id=run_id, meta={"step": "network_context_import", "preserved_segments": network_result.get("preserved_segments"), "pending_segments": network_result.get("pending_segments")})
+    except Exception as e:
+        _append_case_event(case_dir, "dfir_step_failed", run_id=run_id, meta={"step": "network_context_import", "reason": str(e)})
+        return jsonify({"error": "network_context_import_failed", "reason": str(e)}), 500
+
     # 3) Disk RAW per VM
+    update_acquisition_profile(case_dir, run_id=run_id, merge_fields={"disk_started_utc": _utc_now_iso()})
     for t in targets_ok:
         vm_id = t["vm_id"]
         role = t["role"]
 
         _append_case_event(case_dir, "dfir_step_start", run_id=run_id, meta={"step": "disk", "vm_id": vm_id, "role": role})
-
         payload = {
             "case_dir": case_dir,
             "vm_id": vm_id,
@@ -3971,26 +4028,18 @@ def api_dfir_orchestrator_auto_stream():
                     "memory_mode": mem_mode,
                     "disk_container": container_name,
                 })
+                initialize_volatile_first_acquisition(
+                    case_dir,
+                    run_id=run_id,
+                    case_created_utc=_utc_now_iso(),
+                    acquisition_started_utc=_utc_now_iso(),
+                    trigger_time_utc=alert_ts,
+                    pre_context_seconds=max(int(traffic_seconds or 0), 120),
+                    post_context_seconds=max(int(traffic_seconds or 0), 120),
+                )
 
-                # 4) TRAFFIC
-                for t in targets_ok:
-                    vm_id = t["vm_id"]
-                    role = t["role"]
-                    yield emit(f"[STEP] traffic start role={role} seconds={traffic_seconds}")
-
-                    r = capture_packets_fixed_duration(
-                        vm_id, ["modbus", "tcp", "udp"], traffic_seconds,
-                        case_dir=case_dir, run_id=run_id
-                    )
-                    if (r or {}).get("result") != "ok":
-                        yield emit(f"[ERROR] traffic failed role={role}")
-                        payload = {"result": "error", "exit_code": 2, "case_dir": case_dir, "reason": "traffic_failed", "role": role}
-                        yield f"event: done\ndata: {json.dumps(payload)}\n\n"
-                        return
-
-                    yield emit(f"[STEP] traffic done role={role} pcap_rel={(r or {}).get('pcap_rel')}")
-
-                # 5) MEMORY (POST interno) + DEBUG COMPLETO (sin eliminar nada)
+                # 4) MEMORY (POST interno) + DEBUG COMPLETO (sin eliminar nada)
+                update_acquisition_profile(case_dir, run_id=run_id, merge_fields={"memory_started_utc": _utc_now_iso()})
                 for t in targets_ok:
                     vm_id = t["vm_id"]
                     vm_ip = t["vm_ip"]
@@ -3998,7 +4047,6 @@ def api_dfir_orchestrator_auto_stream():
                     ssh_user = _dfir_ssh_user_for_role(role)
 
                     yield emit(f"[STEP] memory start role={role} ip={vm_ip} user={ssh_user} mode={mem_mode}")
-
                     payload_mem = {
                         "case_dir": case_dir,
                         "vm_id": vm_id,
@@ -4067,7 +4115,7 @@ def api_dfir_orchestrator_auto_stream():
 
                         payload = {
                             "result": "error",
-                            "exit_code": 3,
+                            "exit_code": 2,
                             "case_dir": case_dir,
                             "reason": "memory_failed",
                             "role": role,
@@ -4077,15 +4125,33 @@ def api_dfir_orchestrator_auto_stream():
                         yield f"event: done\ndata: {json.dumps(payload)}\n\n"
                         return
 
+                    update_acquisition_profile(case_dir, run_id=run_id, merge_fields={"memory_completed_utc": _utc_now_iso()})
                     yield emit(f"[STEP] memory done role={role} mem_dump={(j or {}).get('mem_dump')}")
 
+                # 5) NETWORK CONTEXT IMPORT
+                yield emit("[STEP] network_context_import start source=full_scenario_captures")
+                try:
+                    network_result = import_continuous_network_context(
+                        case_dir,
+                        run_id=run_id,
+                        trigger_time_utc=alert_ts,
+                        pre_context_seconds=max(int(traffic_seconds or 0), 120),
+                        post_context_seconds=max(int(traffic_seconds or 0), 120),
+                    )
+                    yield emit(f"[STEP] network_context_import done preserved={network_result.get('preserved_segments')} pending={network_result.get('pending_segments')}")
+                except Exception as exc:
+                    yield emit(f"[ERROR] network_context_import failed reason={exc}")
+                    payload = {"result": "error", "exit_code": 3, "case_dir": case_dir, "reason": "network_context_import_failed", "details": str(exc)}
+                    yield f"event: done\ndata: {json.dumps(payload)}\n\n"
+                    return
+
                 # 6) DISK (POST interno)
+                update_acquisition_profile(case_dir, run_id=run_id, merge_fields={"disk_started_utc": _utc_now_iso()})
                 for t in targets_ok:
                     vm_id = t["vm_id"]
                     role = t["role"]
 
                     yield emit(f"[STEP] disk start role={role} container={container_name}")
-
                     payload_disk = {
                         "case_dir": case_dir,
                         "vm_id": vm_id,
@@ -4193,5 +4259,3 @@ def api_dfir_orchestrator_auto_stream():
         mimetype="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "keep-alive"},
     )
-
-

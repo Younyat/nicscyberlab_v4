@@ -389,18 +389,22 @@ def build_forensic_result_card(
     analysis_profile_id = str(campaign_config.get("analysis_profile_id") or "default_multilayer_analysis_v1")
     foc_profile_id = str(campaign_config.get("foc_profile_id") or "default_foc_causal_reconstruction_v1")
 
-    comparison_family_id = campaign_config.get("requested_comparison_family_id") or compute_comparison_family_id(
-        scenario_fingerprint=scenario_fingerprint,
-        topology_fingerprint=topology_fingerprint,
-        attack_profile_id=attack_profile_id,
-        attack_script_sha256=attack_script_sha256,
-        attack_parameters_hash=attack_parameters_hash,
-        expected_causal_edges=expected_causal_edges,
-        trigger_policy_id=trigger_policy_id,
-        acquisition_profile_id=acquisition_profile_id,
-        analysis_profile_id=analysis_profile_id,
-        foc_profile_id=foc_profile_id,
-    )
+    if str(level).upper() == "A":
+        base_case_id = (case_bundle or {}).get("case_id") or "not_available"
+        comparison_family_id = campaign_config.get("requested_comparison_family_id") or f"family-{_short_hash('level_a_repeatability', base_case_id, scenario_fingerprint, attack_profile_id, acquisition_profile_id, analysis_profile_id, foc_profile_id, expected_causal_edges)[:16]}"
+    else:
+        comparison_family_id = campaign_config.get("requested_comparison_family_id") or compute_comparison_family_id(
+            scenario_fingerprint=scenario_fingerprint,
+            topology_fingerprint=topology_fingerprint,
+            attack_profile_id=attack_profile_id,
+            attack_script_sha256=attack_script_sha256,
+            attack_parameters_hash=attack_parameters_hash,
+            expected_causal_edges=expected_causal_edges,
+            trigger_policy_id=trigger_policy_id,
+            acquisition_profile_id=acquisition_profile_id,
+            analysis_profile_id=analysis_profile_id,
+            foc_profile_id=foc_profile_id,
+        )
 
     original_case_path = (case_bundle or {}).get("case_path")
     original_case_rel = (case_bundle or {}).get("case_rel_path")

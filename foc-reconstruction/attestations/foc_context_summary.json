@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-23T15:39:38.296116+00:00",
+  "generated_at": "2026-06-26T16:56:13.210759+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
   "answers": {
@@ -20,19 +20,19 @@
       "source": "tools_bom.json"
     },
     "attacks_executed": {
-      "value": 96,
+      "value": 98,
       "source": "attack_attestation.json"
     },
     "detection_rules_active": {
-      "value": 1243,
+      "value": 5,
       "source": "detection_attestation.json"
     },
     "alerts_generated": {
-      "value": 68554,
+      "value": 1119,
       "source": "alerts_normalized.json"
     },
     "attack_alert_correlations": {
-      "value": 71261,
+      "value": 4641,
       "source": "alert_correlation_summary.json"
     },
     "forensic_interventions": {
@@ -40,15 +40,15 @@
       "source": "forensic_intervention.json"
     },
     "forensic_cases": {
-      "value": 1,
+      "value": 2,
       "source": "case_manifest_link.json"
     },
     "primary_evidence_items": {
-      "value": 20,
+      "value": 12,
       "source": "acquisition_profile.json"
     },
     "analysis_outputs": {
-      "value": 258,
+      "value": 264,
       "source": "forensic_analysis_manifest.json"
     },
     "causal_reconstruction_ready": {
@@ -61,6 +61,7 @@
         "detection_attestation",
         "alerts_normalized",
         "alert_correlation",
+        "acquisition_profile",
         "forensic_intervention",
         "case_manifest_link"
       ],
@@ -88,6 +89,7 @@
       "detection_attestation",
       "alerts_normalized",
       "alert_correlation",
+      "acquisition_profile",
       "forensic_intervention",
       "case_manifest_link"
     ]

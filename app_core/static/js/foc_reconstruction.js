@@ -10,6 +10,11 @@ const FOC = {
   artifacts: null,
   cases: null,
   attack_attestation: null,
+  detection_attestation: null,
+  forensic_intervention: null,
+  case_manifest_link: null,
+  alert_correlation_summary: null,
+  readiness_report: null,
   stream: null,
   loadTimer: null,
   loadInFlight: false,
@@ -381,9 +386,17 @@ function buildModelRows() {
   const failedTools = (FOC.tools?.nodes || []).reduce((sum, node) => sum + (node.failed_tools || []).length, 0);
   const attackEvents = timelineCount("attack_execution");
   const detectionEvents = timelineCount(["detection_alert", "triage_result"]);
-  const caseCount = (FOC.cases?.cases || []).length;
+  const cases = FOC.cases?.cases || [];
+  const caseCount = cases.length;
   const custodyCount = artifactCount("custody_log");
   const analysisCount = artifactCount(["vol3_output_dir", "tsk_output_dir"]);
+  const indexedAnalysisOutputs = Number(status?.artifact_summary?.analysis_outputs || 0);
+  const analysisComponentScore = Number(status?.components?.analysis_outputs || 0);
+  const analyzedCases = cases.filter((entry) => {
+    const normalized = String(entry?.analysis_status || "").toLowerCase();
+    return ["completed", "partial"].includes(normalized);
+  }).length;
+  const analysisAvailable = analysisCount > 0 || indexedAnalysisOutputs > 0 || analysisComponentScore > 0 || analyzedCases > 0;
   const acquisitionCount = artifactCount(["network_pcap", "disk_image", "memory_dump", "industrial_capture", "ir_input", "ir_snapshot"]);
   const preservationCount = artifactCount(["network_pcap", "disk_image", "memory_dump", "custody_log", "time_sync", "case_digest", "ir_input", "ir_snapshot", "fsr_eval"]);
   const relSummary = status.relationship_summary || {};
@@ -463,19 +476,21 @@ function buildModelRows() {
   rows.push({
     component: "Forensic Analysis Report",
     meaning: "The technical results produced by disk, memory, or related forensic analysis workflows.",
-    status: analysisCount > 0 ? (evidenceAnalysisLinks > 0 ? "available" : "partial") : "not completed",
-    evidence: analysisCount > 0 ? "Volatility and TSK output directories" : "none",
-    next: analysisCount > 0 ? (evidenceAnalysisLinks > 0 ? "none" : "link analysis outputs to evidence and cases") : "run memory or disk analysis",
-    detail: analysisCount > 0 ? `${analysisCount} forensic analysis outputs indexed.` : "No forensic analysis has been executed yet.",
+    status: analysisAvailable ? (evidenceAnalysisLinks > 0 || analysisComponentScore > 0 ? "available" : "partial") : "not completed",
+    evidence: analysisAvailable ? "Case analysis outputs, visual summaries, and preserved-case forensic analysis artifacts" : "none",
+    next: analysisAvailable ? (evidenceAnalysisLinks > 0 || analysisComponentScore > 0 ? "none" : "link analysis outputs to evidence and cases") : "run memory or disk analysis",
+    detail: analysisAvailable
+      ? `${indexedAnalysisOutputs || analysisCount || "Some"} forensic analysis outputs indexed across ${analyzedCases || 1} analyzed case(s).`
+      : "No forensic analysis has been executed yet.",
   });
 
   rows.push({
     component: "Semantic Observation Report",
     meaning: "The high-level interpretation of what occurred across the scenario, detections, evidence, and analysis results.",
-    status: analysisCount === 0 ? "not generated" : "unresolved",
+    status: analysisAvailable ? "unresolved" : "not generated",
     evidence: "none",
-    next: analysisCount === 0 ? "generate after forensic analysis is available" : "produce a higher-level interpretation report from analysis outputs",
-    detail: analysisCount === 0 ? "No semantic interpretation is expected before forensic analysis exists." : "Analysis outputs exist, but no semantic observation report is indexed yet.",
+    next: analysisAvailable ? "produce a higher-level interpretation report from analysis outputs" : "generate after forensic analysis is available",
+    detail: analysisAvailable ? "Analysis outputs exist, but no semantic observation report is indexed yet." : "No semantic interpretation is expected before forensic analysis exists.",
   });
 
   return rows;
@@ -509,6 +524,138 @@ function buildMaturityStates(modelRows) {
   };
 }
 
+function analysisAvailableGlobal() {
+  const components = FOC.status?.components || {};
+  const artifactSummary = FOC.status?.artifact_summary || {};
+  const indexedCases = FOC.cases?.cases || [];
+  const liveStatuses = Object.values(FOC.caseAnalysisStatuses || {});
+  const completedStates = new Set(["completed", "partial", "completed_with_degradation"]);
+  return Number(components.analysis_outputs || 0) > 0
+    || Number(artifactSummary.analysis_outputs || 0) > 0
+    || indexedCases.some(entry => completedStates.has(String(entry.analysis_status || "").toLowerCase()))
+    || liveStatuses.some(entry => completedStates.has(String(entry.status || "").toLowerCase()));
+}
+
+function semanticAvailableGlobal() {
+  const semantic = String(FOC.status?.maturity?.semantic || "").toLowerCase();
+  return ["available", "complete", "completed", "present", "generated"].includes(semantic);
+}
+
+function causalReadyGlobal() {
+  const rr = FOC.readiness_report || {};
+  return rr.causal_reconstruction_ready === true || rr.readiness?.causal_reconstruction_ready === true;
+}
+
+function scientificConclusionReadiness() {
+  if (!analysisAvailableGlobal()) return "not_ready";
+  if (!causalReadyGlobal() && !semanticAvailableGlobal()) return "partial";
+  if (!causalReadyGlobal()) return "limited";
+  if (!semanticAvailableGlobal()) return "partial";
+  return "strong";
+}
+
+function _readinessSection(key) {
+  return (FOC.readiness_report?.sections || {})[key] || {};
+}
+
+function _blockerActionMeta(key) {
+  const mapping = {
+    attack_attestation: {
+      label: "Attack attestation remains partial",
+      requiredArtifact: "attack_attestation.json",
+      recommendedAction: "Refresh attack attestation from preserved attack results and then regenerate reconstruction.",
+      backendAction: "POST /api/foc/regenerate",
+    },
+    detection_attestation: {
+      label: "Detection attestation remains partial",
+      requiredArtifact: "detection_attestation.json",
+      recommendedAction: "Rebuild detection attestation from alerts, triage and timeline correlation sources.",
+      backendAction: "POST /api/foc/regenerate",
+    },
+    alerts_normalized: {
+      label: "Normalized alert context remains incomplete",
+      requiredArtifact: "alerts_normalized.json",
+      recommendedAction: "Regenerate normalized alert context before causal replay.",
+      backendAction: "POST /api/foc/regenerate",
+    },
+    alert_correlation: {
+      label: "Attack-to-alert correlation remains weak",
+      requiredArtifact: "alert_correlation_summary.json",
+      recommendedAction: "Rebuild alert correlation so the trigger and attack path are explicitly linked.",
+      backendAction: "POST /api/foc/regenerate",
+    },
+    forensic_intervention: {
+      label: "Forensic intervention linkage remains partial",
+      requiredArtifact: "forensic_intervention.json",
+      recommendedAction: "Regenerate intervention context so the selected trigger, acquisition action and case creation are explicitly connected.",
+      backendAction: "POST /api/foc/regenerate",
+    },
+    case_manifest_link: {
+      label: "Alert-to-evidence linkage remains weak",
+      requiredArtifact: "case_manifest_link.json",
+      recommendedAction: "Rebuild the case-manifest linkage so triggering alert -> forensic intervention -> case -> manifest -> custody is explicit.",
+      backendAction: "POST /api/foc/regenerate",
+    },
+    semantic_observation_report: {
+      label: "Semantic observation report is missing",
+      requiredArtifact: "semantic_observation_report.json",
+      recommendedAction: "Generate a higher-level semantic observation report from scenario, attack, detection, evidence and analysis outputs before causal interpretation.",
+      backendAction: "POST /api/foc/regenerate, then POST /api/foc/causal/run",
+    },
+  };
+  return mapping[key] || {
+    label: key.replaceAll("_", " "),
+    requiredArtifact: `${key}.json`,
+    recommendedAction: "Regenerate reconstruction context and then rerun the blocked causal stage.",
+    backendAction: "POST /api/foc/regenerate",
+  };
+}
+
+function _blockerCurrentEvidence(key) {
+  if (key === "attack_attestation") {
+    const executions = FOC.attack_attestation?.attested_executions || [];
+    return executions.length
+      ? `${executions.length} attested execution(s) indexed, but command-exit status or process-effect evidence remains partial.`
+      : "No attested attack execution is currently indexed.";
+  }
+  if (key === "detection_attestation") {
+    const det = FOC.detection_attestation || {};
+    const resolved = det.resolved_alerts || 0;
+    const confirmed = det.confirmed_attack_correlation || 0;
+    return resolved || confirmed
+      ? `${resolved} resolved alert(s) and ${confirmed} confirmed attack-correlation alert(s) are indexed, but the attestation quality remains partial.`
+      : "No strong detection attestation evidence is currently indexed.";
+  }
+  if (key === "alerts_normalized") {
+    const total = FOC.alert_correlation_summary?.total_alerts || 0;
+    return total ? `${total} alert record(s) are indexed, but normalized causal inputs remain incomplete.` : "No normalized alert context is currently indexed.";
+  }
+  if (key === "alert_correlation") {
+    const summary = FOC.alert_correlation_summary || {};
+    return summary.confirmed_correlations
+      ? `${summary.confirmed_correlations} confirmed correlation(s) across ${summary.unique_confirmed_attack_pairs || 0} unique attack pair(s) are available, but causal precision remains weak.`
+      : "No confirmed attack-alert correlation is currently indexed.";
+  }
+  if (key === "forensic_intervention") {
+    const intervention = (FOC.forensic_intervention?.interventions || [])[0] || {};
+    return intervention.case_id
+      ? `Generated case ${intervention.case_id} exists, but trigger-to-intervention linkage remains partial.`
+      : "No generated forensic intervention case is currently linked.";
+  }
+  if (key === "case_manifest_link") {
+    const link = FOC.case_manifest_link || {};
+    return link.case_id
+      ? `${link.linked_artifacts || 0} linked artifact(s) and ${link.custody_entries || 0} custody entr${(link.custody_entries || 0) === 1 ? "y" : "ies"} are indexed for ${link.case_id}.`
+      : "No explicit case-manifest linkage is currently indexed.";
+  }
+  if (key === "semantic_observation_report") {
+    return analysisAvailableGlobal()
+      ? "Forensic analysis outputs are available, but no semantic observation layer is indexed yet."
+      : "Forensic analysis outputs are still missing, so semantic interpretation cannot start.";
+  }
+  return "Current evidence is partial or unresolved for this prerequisite.";
+}
+
 async function loadAll(force = false) {
   if (FOC.loadInFlight) {
     FOC.pendingReload = true;
@@ -529,18 +676,22 @@ async function loadAll(force = false) {
     FOC.artifacts = payload?.artifacts || null;
     FOC.cases = payload?.cases || null;
     FOC.triggerSelectionModel = null;
-    const [casesRes, readinessRes, detectionRes, interventionRes, attackAttRes] = await Promise.allSettled([
+    const [casesRes, readinessRes, detectionRes, interventionRes, attackAttRes, caseLinkRes, correlationRes] = await Promise.allSettled([
       fetchJson(`${API}/cases`),
       fetchJson(`${API}/readiness-report`),
       fetchJson(`${API}/detection-attestation`),
       fetchJson(`${API}/forensic-intervention`),
       fetchJson(`${API}/attack-attestation`),
+      fetchJson(`${API}/case-manifest-link`),
+      fetchJson(`${API}/alert-correlation-summary`),
     ]);
     FOC.cases = casesRes.status === "fulfilled" ? casesRes.value : FOC.cases;
     FOC.readiness_report = readinessRes.status === "fulfilled" ? readinessRes.value : null;
     FOC.detection_attestation = detectionRes.status === "fulfilled" ? detectionRes.value : null;
     FOC.forensic_intervention = interventionRes.status === "fulfilled" ? interventionRes.value : null;
     FOC.attack_attestation = attackAttRes.status === "fulfilled" ? attackAttRes.value : null;
+    FOC.case_manifest_link = caseLinkRes.status === "fulfilled" ? caseLinkRes.value : null;
+    FOC.alert_correlation_summary = correlationRes.status === "fulfilled" ? correlationRes.value : null;
     renderAll();
     FOC.firstLoadCompleted = true;
   } finally {
@@ -555,14 +706,28 @@ async function loadAll(force = false) {
 
 function renderOverview() {
   const status = FOC.status || {};
+  const scientificReadiness = scientificConclusionReadiness();
+  const causalReadiness = causalReadyGlobal() ? "ready" : "blocked";
+  const semanticReadiness = semanticAvailableGlobal() ? "available" : "not generated";
   byId("ov-status").className = `text-2xl font-black mt-3 ${statusClass(status.status)}`;
   byId("ov-status").textContent = status.status || "not_initialized";
-  byId("ov-completeness").textContent = `Completeness: ${status.completeness || "unknown"}`;
+  byId("ov-completeness").textContent = `Structural/evidential readiness: ${status.completeness || "unknown"}`;
   byId("ov-scenario-id").textContent = status.scenario_id || "unknown";
   byId("ov-scenario-name").textContent = status.scenario_name || "unknown";
   byId("ov-score").textContent = String(status.reproducibility_score ?? 0);
   byId("ov-updated").textContent = `Updated: ${status.last_update || "unknown"}`;
   byId("score-bar").style.width = `${Math.max(0, Math.min(100, Number(status.reproducibility_score || 0)))}%`;
+  byId("ov-score-note").textContent = "This score measures availability and consistency of FOC structural, evidential, custody and analysis components. It does not by itself prove causal reconstruction completeness.";
+  byId("scientific-state-note").innerHTML = `
+    <div class="font-black">The FOC structural and evidential layers are available, but causal reconstruction is not yet complete.</div>
+    <div class="mt-2">A high FOC readiness score does not mean that the causal explanation is fully reconstructable.</div>
+    <div class="mt-3 flex flex-wrap gap-2">
+      ${tag("FOC structural/evidential readiness", status.status || "unknown", statusClass(status.status))}
+      ${tag("Causal reconstruction readiness", causalReadiness, statusClass(causalReadiness))}
+      ${tag("Semantic interpretation", semanticReadiness, statusClass(semanticReadiness))}
+      ${tag("Scientific conclusion readiness", scientificReadiness, statusClass(scientificReadiness))}
+    </div>
+  `;
 
   const components = status.components || {};
   byId("score-breakdown").innerHTML = [
@@ -591,15 +756,17 @@ function renderOverview() {
     tag("Evidential", status.maturity?.evidential || "unknown", statusClass(status.maturity?.evidential)),
     tag("Forensic", status.maturity?.forensic || "unknown", statusClass(status.maturity?.forensic)),
     tag("Semantic", status.maturity?.semantic || "unknown", statusClass(status.maturity?.semantic)),
+    tag("Causal readiness", causalReadiness, statusClass(causalReadiness)),
+    tag("Scientific confidence", scientificReadiness, statusClass(scientificReadiness)),
   ].join("");
 }
 
 function renderModel() {
   const rows = buildModelRows();
   const maturity = buildMaturityStates(rows);
-  const noForensicsYet = rows
-    .filter(row => ["Acquisition Manifest", "Preservation Manifest", "Chain of Custody", "Forensic Analysis Report", "Semantic Observation Report"].includes(row.component))
-    .every(row => row.status === "not generated yet");
+  const analysisAvailable = analysisAvailableGlobal();
+  const causalReady = causalReadyGlobal();
+  const semanticAvailable = semanticAvailableGlobal();
 
   byId("maturity-summary").innerHTML = [
     tag("Structural reconstruction", maturity.structural, statusClass(maturity.structural)),
@@ -609,9 +776,15 @@ function renderModel() {
     tag("Semantic reconstruction", maturity.semantic, statusClass(maturity.semantic)),
   ].join("");
 
-  byId("model-phase-note").innerHTML = noForensicsYet
-    ? "No forensic acquisition has been executed yet. These sections will be populated after network, memory, disk, or industrial evidence is acquired and preserved."
-    : "The reconstruction model contains a mixture of available, partial, unresolved, or pending phases. Use the status column and the next-step guidance to improve reproducibility.";
+  if (!analysisAvailable) {
+    byId("model-phase-note").innerHTML = "No forensic acquisition or preserved-case analysis has been indexed yet. These sections will become stronger after network, memory, disk, or industrial evidence is acquired, preserved and analyzed.";
+  } else if (!causalReady) {
+    byId("model-phase-note").innerHTML = "Forensic analysis outputs are available, but causal reconstruction remains blocked because some causal, semantic, or attestation requirements are still partial or unresolved.";
+  } else if (!semanticAvailable) {
+    byId("model-phase-note").innerHTML = "Structural, evidential and forensic layers are available, but the semantic interpretation layer is still missing or not indexed yet.";
+  } else {
+    byId("model-phase-note").innerHTML = "The reconstruction model contains a mixture of available, partial, unresolved, or pending phases. Use the status column and the next-step guidance to improve reproducibility.";
+  }
 
   byId("model-table").innerHTML = rows.map(row => `
     <tr class="border-t border-slate-700/50">
@@ -1570,7 +1743,7 @@ function renderNetworkGraph() {
         y: positions.get(node.node_id).y,
         label: `ATT x${stats.attacks.total}`,
         subtitle: topTechnique ? topTechnique[0] : "technique mix",
-        foot: `${stats.attacks.success} success / ${stats.attacks.failed} failed`,
+        foot: `${stats.attacks.success} exec ok / ${stats.attacks.failed} exit-failed`,
         color: GRAPH_LAYER_META.attack.color,
         shape: "rect",
         layer: "attack",
@@ -1581,9 +1754,10 @@ function renderNetworkGraph() {
         title: `${node.name || node.node_id} attack surface`,
         lines: [
           `<strong>Total attack executions:</strong> ${esc(stats.attacks.total)}`,
-          `<strong>Successful:</strong> ${esc(stats.attacks.success)}`,
-          `<strong>Failed:</strong> ${esc(stats.attacks.failed)}`,
+          `<strong>Command exit ok:</strong> ${esc(stats.attacks.success)}`,
+          `<strong>Command exit failed:</strong> ${esc(stats.attacks.failed)}`,
           `<strong>Technique distribution:</strong> ${esc(topMapEntries(stats.attacks.byTechnique, 4).map(([key, value]) => `${key} x${value}`).join(", ") || "not_available")}`,
+          `<strong>Interpretation:</strong> command-exit failure does not by itself mean no traffic, no detection, or no OT process effect evidence was observed.`,
         ],
       });
       graphEdgePayload.set(`edge-attack-${node.node_id}`, {
@@ -2196,9 +2370,13 @@ function renderCases() {
     </div>
   `;
   if (note) {
-    note.innerHTML = cases.length
-      ? "Preserved evidence is available. Run multilayer forensic analysis on demand to generate a validated forensic report from preserved evidence."
-      : "No preserved forensic case is currently indexed in FOC.";
+    if (!cases.length) {
+      note.innerHTML = "No preserved forensic case is currently indexed in FOC.";
+    } else if (analysisAvailableGlobal()) {
+      note.innerHTML = "Preserved evidence and forensic analysis outputs are available. The current scientific gap is no longer raw analysis generation, but the semantic and causal linkage required for stronger reconstruction confidence.";
+    } else {
+      note.innerHTML = "Preserved evidence is available. Run multilayer forensic analysis on demand to generate a validated forensic report from preserved evidence.";
+    }
   }
   const casesHtml = cases.map(entry => {
     const analysisStatus = FOC.caseAnalysisStatuses[entry.case_id] || null;
@@ -2231,7 +2409,7 @@ function renderCases() {
           <div class="glass rounded-2xl p-3">
             <div class="text-xs uppercase tracking-[0.2em] text-slate-400 font-black">Forensic analysis</div>
             <div class="mt-2 ${statusClass(currentAnalysisState)} font-black uppercase tracking-[0.12em] text-xs">${esc(currentAnalysisState)}</div>
-            <div class="mt-2 text-xs text-slate-300">${esc(currentAnalysisState === "completed" ? "Analysis outputs are available for this case." : "Preserved evidence is available, but no forensic analysis has been executed yet.")}</div>
+            <div class="mt-2 text-xs text-slate-300">${esc(currentAnalysisState === "completed" ? "Analysis outputs are available for this case." : currentAnalysisState === "partial" ? "Analysis outputs are partially available for this case." : "Preserved evidence is available, but forensic analysis outputs are not indexed yet for this case.")}</div>
           </div>
           <div class="glass rounded-2xl p-3">
             <div class="text-xs uppercase tracking-[0.2em] text-slate-400 font-black">Available layers</div>
@@ -3607,7 +3785,7 @@ function renderAnalysisModal(status, extras = {}) {
     } else if (status.status === "failed") {
       subtitle.textContent = `Forensic analysis failed at phase: ${status.current_phase || "unknown"}. Open debug details to inspect the exact command, stderr and expected output.`;
     } else {
-      subtitle.textContent = "Preserved evidence is available, but no forensic analysis has been executed yet. Run multilayer forensic analysis to unlock the Forensic Analysis Report.";
+      subtitle.textContent = "Preserved evidence is available, but forensic analysis outputs are not indexed yet. Run multilayer forensic analysis to unlock the Forensic Analysis Report.";
     }
   }
 
@@ -3979,9 +4157,27 @@ function renderTriggerSelection() {
   const container = byId("trigger-panel");
   const candidatesEl = byId("trigger-candidates");
   const qualityEl = byId("trigger-quality");
+  const alertEvidenceEl = byId("alert-evidence-quality");
   if (!container || !candidatesEl || !qualityEl) return;
 
   const model = _buildTriggerSelectionModel();
+  const link = FOC.case_manifest_link || {};
+  const intervention = (FOC.forensic_intervention?.interventions || [])[0] || {};
+  const alertEvidenceScore = FOC.status?.components?.alert_evidence_links ?? "not_available";
+  const lowLinkReason = _blockerActionMeta("case_manifest_link").recommendedAction;
+  const reasonBits = [];
+  if ((intervention.trigger_selection_score || model.selectionScore || 0) < 180) {
+    reasonBits.push("the selected trigger was not a high-confidence OT-focused trigger");
+  }
+  if (!(link.linked_artifacts > 0)) {
+    reasonBits.push("explicit manifest artifact links from the selected trigger to preserved evidence are still weak");
+  }
+  if (!(link.custody_entries > 0)) {
+    reasonBits.push("chain-of-custody linkage is not yet strong enough for a high alert-to-evidence score");
+  }
+  if (!reasonBits.length) {
+    reasonBits.push("the selected trigger, intervention and manifest linkage are present, but the current weighting still treats this case as only partially traceable");
+  }
 
   container.innerHTML = `
     <div class="mono text-sm text-slate-300">
@@ -4014,39 +4210,73 @@ function renderTriggerSelection() {
   const quality = _triggerQualityLabel(model);
   qualityEl.textContent = `Trigger quality: ${quality}`;
   qualityEl.className = `tag rounded-full px-3 py-2 text-[11px] font-black tracking-[0.2em] uppercase ${statusClass(quality)}`;
+  if (alertEvidenceEl) {
+    alertEvidenceEl.innerHTML = `
+      <div class="text-xs uppercase tracking-[0.2em] text-slate-400 font-black">Alert-to-Evidence Link Quality</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 text-sm text-slate-300">
+        <div><strong>selected trigger alert:</strong> ${esc(intervention.triggering_alert_id || model.selectedAlertId)}</div>
+        <div><strong>generated case:</strong> ${esc(intervention.case_id || link.case_id || "not_available")}</div>
+        <div><strong>preserved artifacts linked to that alert:</strong> ${esc(link.linked_artifacts || 0)}</div>
+        <div><strong>acquisition profile:</strong> ${esc(intervention.acquisition_profile || "not_available")}</div>
+        <div><strong>chain of custody entries:</strong> ${esc(link.custody_entries || 0)}</div>
+        <div><strong>alert→evidence score:</strong> ${esc(alertEvidenceScore)} / 10</div>
+        <div><strong>manifest path:</strong> ${esc(link.manifest_path || "not_available")}</div>
+        <div><strong>custody path:</strong> ${esc(link.chain_of_custody_path || "not_available")}</div>
+      </div>
+      <div class="mt-3"><strong>Why this score is low:</strong> ${esc(reasonBits.join("; "))}.</div>
+      <div class="mt-2"><strong>Recommended action:</strong> ${esc(lowLinkReason)}</div>
+    `;
+  }
 }
 
 function renderBlockers() {
   const panel = byId("gaps-panel");
   const summary = byId("gaps-summary");
   if (!FOC.readiness_report) return;
-  const blockers = FOC.readiness_report.missing_prerequisites || FOC.readiness_report.readiness?.missing_prerequisites || [];
+  const blockers = [...(FOC.readiness_report.missing_prerequisites || FOC.readiness_report.readiness?.missing_prerequisites || [])];
   const sections = FOC.readiness_report.sections || {};
   const manifestDerived = FOC.manifest?.derived_context || {};
+  const analysisAvailable = analysisAvailableGlobal();
+  if (analysisAvailable && !semanticAvailableGlobal()) {
+    blockers.unshift("semantic_observation_report");
+  }
 
   const items = (blockers || []).map(key => {
     const sec = sections[key] || {};
-    const status = sec.overall_status || "unknown";
+    const status = sec.overall_status || (key === "semantic_observation_report" ? "unresolved" : "unknown");
     const missing = _formatMissingList(sec);
-    const reason = sec.overall_status || "partial";
-    const source_expected = manifestDerived[key] || key + ".json";
+    const meta = _blockerActionMeta(key);
+    const reason = sec.status_note || sec.reason || sec.overall_status || "partial";
+    const source_expected = manifestDerived[key] || meta.requiredArtifact || (key + ".json");
     const resolvable_locally = String(status || "").toLowerCase() !== "missing";
     return `
       <div class="glass-soft rounded-2xl p-4">
         <div class="flex items-center justify-between">
-          <div class="font-black">${esc(key)}</div>
+          <div class="font-black">${esc(meta.label)}</div>
           <div class="text-xs uppercase tracking-[0.12em] font-black ${statusClass(status)}">${esc(status)}</div>
         </div>
-        <div class="text-sm text-slate-300 mt-2"><strong>missing:</strong> ${esc(missing)}</div>
-        <div class="text-sm text-slate-300 mt-1"><strong>reason:</strong> ${esc(reason)}</div>
-        <div class="text-sm text-slate-300 mt-1"><strong>expected_source:</strong> ${esc(source_expected)}</div>
-        <div class="text-sm text-slate-300 mt-1"><strong>resolvable_locally:</strong> ${esc(resolvable_locally ? "yes" : "no")}</div>
+        <div class="text-sm text-slate-300 mt-2"><strong>blocker name:</strong> ${esc(key)}</div>
+        <div class="text-sm text-slate-300 mt-1"><strong>required artifact:</strong> ${esc(source_expected)}</div>
+        <div class="text-sm text-slate-300 mt-1"><strong>current evidence available:</strong> ${esc(_blockerCurrentEvidence(key))}</div>
+        <div class="text-sm text-slate-300 mt-1"><strong>missing or weak fields:</strong> ${esc(missing)}</div>
+        <div class="text-sm text-slate-300 mt-1"><strong>why causal is blocked:</strong> ${esc(reason)}</div>
+        <div class="text-sm text-slate-300 mt-1"><strong>recommended action:</strong> ${esc(meta.recommendedAction)}</div>
+        <div class="text-sm text-slate-300 mt-1"><strong>backend action:</strong> ${esc(meta.backendAction)}</div>
+        <div class="text-sm text-slate-300 mt-1"><strong>resolvable locally:</strong> ${esc(resolvable_locally ? "yes" : "no")}</div>
       </div>
     `;
   });
 
-  if (panel) panel.innerHTML = items.join("") || `<div class="text-sm text-slate-400">No blockers listed.</div>`;
-  if (summary) summary.textContent = `${blockers.length} unresolved`; 
+  if (panel) {
+    panel.innerHTML = `
+      <div class="glass-soft rounded-2xl p-4">
+        <div class="font-black">Why causal reconstruction is still blocked</div>
+        <div class="text-sm text-slate-300 mt-2">Forensic analysis outputs are already available, but causal replay still depends on semantic interpretation and stronger attack, detection and alert-to-evidence linkage.</div>
+      </div>
+      ${items.join("") || `<div class="text-sm text-slate-400">No blockers listed.</div>`}
+    `;
+  }
+  if (summary) summary.textContent = `${blockers.length} actionable blocker(s)`; 
 }
 
 function renderDetectionAttestationSummary() {
@@ -4077,6 +4307,9 @@ function renderForensicInterventionSummary() {
   if (!panel) return;
   const fi = FOC.forensic_intervention || {};
   const intervention = (fi.interventions || [])[0] || null;
+  const attackSample = (FOC.attack_attestation?.attested_executions || [])[0] || {};
+  const attackInterpretation = attackSample.execution_interpretation?.status_note || "not_available";
+  const detectionSeen = FOC.triggerSelectionModel?.selectedAlertId && FOC.triggerSelectionModel.selectedAlertId !== "no-id" ? "yes" : "no";
   let commands = "not_available";
   let reason = "commands not preserved in current sources";
   if (intervention && Array.isArray(intervention.commands_executed) && intervention.commands_executed.length > 0) {
@@ -4088,6 +4321,11 @@ function renderForensicInterventionSummary() {
     <div class="text-sm text-slate-300">
       <div><strong>case_id:</strong> ${esc(intervention?.case_id || "not_available")}</div>
       <div><strong>trigger:</strong> ${esc(intervention?.trigger || "not_available")}</div>
+      <div><strong>triggering_alert_id:</strong> ${esc(intervention?.triggering_alert_id || "not_available")}</div>
+      <div><strong>triggering_alert_severity:</strong> ${esc(intervention?.triggering_alert_severity || "not_available")}</div>
+      <div><strong>attack execution status:</strong> ${esc(attackSample.execution_status || "not_available")}</div>
+      <div><strong>detection generated:</strong> ${esc(detectionSeen)}</div>
+      <div><strong>process effect confirmation:</strong> ${esc(attackInterpretation)}</div>
       <div><strong>commands_executed:</strong> ${commands}</div>
       <div class="text-xs text-slate-400 mt-2"><strong>reason:</strong> ${esc(reason)}</div>
     </div>
@@ -4102,7 +4340,10 @@ function renderCausalNotReady() {
   if (!ready) {
     const missing = rr.missing_prerequisites || (rr.readiness && rr.readiness.missing_prerequisites) || [];
     const list = (missing || []).map(m => `<div class="text-sm text-slate-300">- ${esc(m)}</div>`).join("");
-    note.innerHTML = `Causal reconstruction is not ready because some attestations remain partial and no forensic analysis has been executed yet.<div class="mt-3">${list}</div>`;
+    const baseMessage = analysisAvailableGlobal()
+      ? "Forensic analysis outputs are available, but causal reconstruction requires additional semantic and evidential linkage outputs."
+      : "Causal reconstruction is not ready because preserved-case analysis outputs are still missing.";
+    note.innerHTML = `${baseMessage}<div class="mt-3">${list}</div>`;
   }
 }
 

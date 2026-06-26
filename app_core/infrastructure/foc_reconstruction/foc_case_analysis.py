@@ -59,6 +59,7 @@ _ANALYSIS_STATE_LOCK = threading.Lock()
 _RUNNING_ANALYSES: dict[str, threading.Thread] = {}
 _TIME_SYNC_STATE_LOCK = threading.Lock()
 _RUNNING_TIME_SYNC: dict[str, threading.Thread] = {}
+_ORPHAN_ACTIVITY_GRACE_SECONDS = 180
 
 
 def _json_load(path: Path) -> dict | list | None:
@@ -1067,6 +1068,7 @@ def load_analysis_status(case_id: str) -> dict:
     payload["available_layers"] = inventory["layers"]
     payload["inventory_summary"] = inventory["artifact_type_counts"]
     payload["evidence_available"] = inventory["artifacts_total"] > 0
+    payload = _recover_orphaned_analysis_status(case_dir, payload)
     return payload
 
 
@@ -1081,6 +1083,90 @@ def _write_status(case_dir: Path, status: dict) -> None:
         _refresh_analysis_visual_summary(case_dir, status)
     except Exception:
         logger.warning("Failed to refresh analysis visual summary for %s", case_dir, exc_info=True)
+
+
+def _recover_orphaned_analysis_status(case_dir: Path, status: dict) -> dict:
+    current_status = str(status.get("status") or "").lower()
+    latest_activity_ts, latest_activity_path = _latest_analysis_activity(case_dir)
+    now_ts = time.time()
+    inferred_phase = _infer_phase_from_activity(case_dir, latest_activity_path)
+
+    orphan_reason_prefix = "Analysis state was left in running mode at phase"
+    if current_status == "failed":
+        errors = list(status.get("errors") or [])
+        last_error = str(((errors[-1] or {}).get("message")) if errors and isinstance(errors[-1], dict) else "")
+        finished_ts = _parse_ts(status.get("finished_at"))
+        if last_error.startswith(orphan_reason_prefix) and latest_activity_ts and (finished_ts is None or latest_activity_ts > finished_ts) and (now_ts - latest_activity_ts) <= _ORPHAN_ACTIVITY_GRACE_SECONDS:
+            status["status"] = "running"
+            status["finished_at"] = None
+            status["current_phase"] = inferred_phase or str((errors[-1] or {}).get("phase") or status.get("current_phase") or "unknown")
+            if inferred_phase and inferred_phase in (status.get("phases") or {}):
+                phase = (status.get("phases") or {}).get(inferred_phase) or {}
+                if str(phase.get("status") or "").lower().startswith("failed"):
+                    phase["status"] = "running"
+                    phase.pop("finished_at", None)
+                    (status.get("phases") or {})[inferred_phase] = phase
+            _write_status(case_dir, status)
+            return status
+
+    if current_status != "running":
+        return status
+    case_id = str(status.get("case_id") or "")
+    with _ANALYSIS_STATE_LOCK:
+        thread = _RUNNING_ANALYSES.get(case_id)
+    if thread and thread.is_alive():
+        return status
+
+    if latest_activity_ts and (now_ts - latest_activity_ts) <= _ORPHAN_ACTIVITY_GRACE_SECONDS:
+        if inferred_phase:
+            status["current_phase"] = inferred_phase
+        return status
+
+    phase_map = dict(status.get("phases") or {})
+    phase_states = [str((item or {}).get("status") or "").lower() for item in phase_map.values()]
+    all_terminal = bool(phase_states) and all(
+        state == "completed"
+        or state.startswith("partial")
+        or state.startswith("failed")
+        or state.startswith("skipped")
+        for state in phase_states
+    )
+    if all_terminal:
+        report_exists = (_analysis_dir(case_dir) / "forensic_analysis_report.json").is_file()
+        if any(state.startswith("failed") or state.startswith("partial") for state in phase_states):
+            status["status"] = "partial" if report_exists else "failed"
+        else:
+            status["status"] = "completed"
+        status["finished_at"] = status.get("finished_at") or utc_now()
+        status["current_phase"] = None
+        _write_status(case_dir, status)
+        return status
+
+    current_phase = str(status.get("current_phase") or "").strip()
+    reason = (
+        f"Analysis state was left in running mode at phase {current_phase or 'unknown'}, "
+        "but no live analysis worker exists anymore. The analysis was likely interrupted "
+        "by a process restart or unexpected termination before the phase could finish."
+    )
+    status["status"] = "failed"
+    status["finished_at"] = status.get("finished_at") or utc_now()
+    status["current_phase"] = None
+    status.setdefault("errors", [])
+    already_present = any(str((item or {}).get("message") or "") == reason for item in status["errors"] if isinstance(item, dict))
+    if not already_present:
+        status["errors"].append({"phase": current_phase or "unknown", "message": reason})
+    if current_phase and current_phase in (status.get("phases") or {}):
+        phase = (status.get("phases") or {}).get(current_phase) or {}
+        phase_status = str(phase.get("status") or "").lower()
+        if phase_status == "running":
+            phase["status"] = "failed"
+            phase["finished_at"] = status["finished_at"]
+            phase.setdefault("errors", [])
+            if reason not in [str(item) for item in (phase.get("errors") or [])]:
+                phase["errors"] = list(phase.get("errors") or []) + [reason]
+            (status.get("phases") or {})[current_phase] = phase
+    _write_status(case_dir, status)
+    return status
 
 
 def _init_status(case_entry: dict, force: bool = False) -> dict:
@@ -1146,6 +1232,62 @@ def _record_phase_transition(case_dir: Path, status: dict, phase_key: str, phase
 
 def _analysis_cancel_path(case_dir: Path) -> Path:
     return _analysis_dir(case_dir) / "analysis_cancel.request"
+
+
+def _latest_analysis_activity(case_dir: Path) -> tuple[float, Path | None]:
+    analysis_dir = _analysis_dir(case_dir)
+    latest_ts = 0.0
+    latest_path: Path | None = None
+    if not analysis_dir.is_dir():
+        return latest_ts, latest_path
+    ignore_names = {"analysis_status.json", "analysis_visual_summary.json"}
+    for path in analysis_dir.rglob("*"):
+        if not path.is_file():
+            continue
+        if path.name in ignore_names:
+            continue
+        try:
+            ts = float(path.stat().st_mtime)
+        except Exception:
+            continue
+        if ts > latest_ts:
+            latest_ts = ts
+            latest_path = path
+    return latest_ts, latest_path
+
+
+def _infer_phase_from_activity(case_dir: Path, activity_path: Path | None) -> str | None:
+    if activity_path is None:
+        return None
+    try:
+        rel_path = activity_path.relative_to(_analysis_dir(case_dir)).as_posix()
+    except Exception:
+        rel_path = str(activity_path)
+    phase_prefixes = {
+        "preflight_validation": "preflight_validation",
+        "evidence_inventory": "00_inventory/",
+        "integrity_custody_validation": "01_integrity_custody/",
+        "temporal_validation": "02_time_validation/",
+        "network_analysis": "03_network/",
+        "memory_analysis": "04_memory/",
+        "disk_analysis": "05_disk/",
+        "ot_export_analysis": "06_ot/",
+        "alerts_detection_analysis": "07_alerts/",
+        "pipeline_custody_analysis": "08_pipeline_custody/",
+        "unified_forensic_timeline": "09_timeline/",
+        "cross_layer_findings": "10_findings/",
+        "forensic_analysis_report_generation": "forensic_analysis_report",
+        "foc_readiness_update": "foc_readiness_update",
+    }
+    for phase_key, prefix in phase_prefixes.items():
+        if prefix in rel_path:
+            return phase_key
+    if rel_path.startswith("logs/"):
+        stem = activity_path.name
+        for phase_key, _, _ in ANALYSIS_PHASES:
+            if stem.startswith(phase_key):
+                return phase_key
+    return None
 
 
 def _run_command(command: list[str], cwd: Path, stdout_path: Path, stderr_path: Path) -> tuple[int, str | None]:

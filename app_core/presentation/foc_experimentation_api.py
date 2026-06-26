@@ -35,10 +35,19 @@ from app_core.infrastructure.foc_experimentation.config import (
 )
 from app_core.infrastructure.foc_experimentation.execution_service import execution_artifacts, load_execution, regenerate_execution_profile
 from app_core.infrastructure.foc_experimentation.job_runner import get_job
+from app_core.infrastructure.foc_experimentation.level_b_orchestrator import start_real_level_b_execution_job
 from app_core.infrastructure.foc_experimentation.methodological_basis import load_methodological_basis
 from app_core.infrastructure.foc_experimentation.scientific_memory import load_registry as load_memory_registry
 from app_core.infrastructure.foc_experimentation.scientific_memory_sync import sync_scientific_memory
-from app_core.infrastructure.foc_experimentation.retention_service import prepare_retention_cleanup
+from app_core.infrastructure.foc_experimentation.retention_service import (
+    delete_generated_case_artifacts,
+    prepare_retention_cleanup,
+    validate_case_cleanup,
+)
+from app_core.infrastructure.foc_experimentation.scenario_destruction_service import (
+    destroy_full_scenario,
+    validate_scenario_destruction,
+)
 from app_core.infrastructure.attack.catalog import get_attack_catalog
 from app_core.infrastructure.foc_reconstruction.foc_case_analysis import cases_with_analysis_state
 from app_core.infrastructure.foc_reconstruction.foc_paths import relative_path
@@ -142,6 +151,23 @@ def api_foc_experimentation_campaign_run_next(campaign_id: str):
         job = start_campaign_job(campaign_id, overrides=body)
     except FileNotFoundError:
         return jsonify({"error": "campaign_not_found", "campaign_id": campaign_id}), 404
+    return jsonify(job), 202
+
+
+@experimentation_bp.route("/api/foc/experimentation/campaigns/<campaign_id>/run-real", methods=["POST"])
+def api_foc_experimentation_campaign_run_real(campaign_id: str):
+    body = request.get_json(silent=True) or {}
+    try:
+        job = start_real_level_b_execution_job(
+            campaign_id,
+            confirmation=str(body.get("confirmation") or ""),
+            detection_timeout_seconds=body.get("detection_timeout_seconds"),
+            overrides=body,
+        )
+    except FileNotFoundError:
+        return jsonify({"error": "campaign_not_found", "campaign_id": campaign_id}), 404
+    if job.get("error"):
+        return jsonify(job), 400
     return jsonify(job), 202
 
 
@@ -333,6 +359,64 @@ def api_foc_experimentation_retention_prepare():
         action=str(body.get("action") or "archive_metadata_only"),
         apply_changes=bool(body.get("apply_changes")),
         confirm_delete=bool(body.get("confirm_delete")),
+    )
+    if payload.get("error"):
+        return jsonify(payload), 400
+    return jsonify(payload), 200
+
+
+@experimentation_bp.route("/api/foc/experimentation/case-cleanup/validate", methods=["POST"])
+def api_foc_experimentation_case_cleanup_validate():
+    body = request.get_json(silent=True) or {}
+    payload = validate_case_cleanup(
+        str(body.get("execution_id") or "").strip(),
+        campaign_id=str(body.get("campaign_id") or "").strip() or None,
+        case_id=str(body.get("case_id") or "").strip() or None,
+        action_type=str(body.get("action_type") or "delete_case_directory").strip(),
+    )
+    if payload.get("error"):
+        return jsonify(payload), 400
+    return jsonify(payload), 200
+
+
+@experimentation_bp.route("/api/foc/experimentation/case-cleanup/delete", methods=["POST"])
+def api_foc_experimentation_case_cleanup_delete():
+    body = request.get_json(silent=True) or {}
+    payload = delete_generated_case_artifacts(
+        str(body.get("execution_id") or "").strip(),
+        campaign_id=str(body.get("campaign_id") or "").strip() or None,
+        case_id=str(body.get("case_id") or "").strip() or None,
+        action_type=str(body.get("action_type") or "delete_case_directory").strip(),
+        confirmation=str(body.get("confirmation") or ""),
+        operator="foc_experimentation_ui",
+    )
+    if payload.get("error"):
+        return jsonify(payload), 400
+    return jsonify(payload), 200
+
+
+@experimentation_bp.route("/api/foc/experimentation/scenario-destruction/validate", methods=["POST"])
+def api_foc_experimentation_scenario_destruction_validate():
+    body = request.get_json(silent=True) or {}
+    payload = validate_scenario_destruction(
+        scenario_id=str(body.get("scenario_id") or "").strip() or None,
+        campaign_id=str(body.get("campaign_id") or "").strip() or None,
+        action_type=str(body.get("action_type") or "destroy_full_scenario").strip(),
+    )
+    if payload.get("error"):
+        return jsonify(payload), 400
+    return jsonify(payload), 200
+
+
+@experimentation_bp.route("/api/foc/experimentation/scenario-destruction/destroy", methods=["POST"])
+def api_foc_experimentation_scenario_destruction_destroy():
+    body = request.get_json(silent=True) or {}
+    payload = destroy_full_scenario(
+        scenario_id=str(body.get("scenario_id") or "").strip() or None,
+        campaign_id=str(body.get("campaign_id") or "").strip() or None,
+        action_type=str(body.get("action_type") or "destroy_full_scenario").strip(),
+        confirmation=str(body.get("confirmation") or ""),
+        operator="foc_experimentation_ui",
     )
     if payload.get("error"):
         return jsonify(payload), 400

@@ -163,9 +163,9 @@
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
           <div class="glass-soft rounded-3xl p-5">
-            <div class="text-xs uppercase tracking-[0.25em] text-slate-400 font-black">FOC Status</div>
+            <div class="text-xs uppercase tracking-[0.25em] text-slate-400 font-black">FOC Structural / Evidential Status</div>
             <div id="ov-status" class="text-2xl font-black mt-3">Not initialized</div>
-            <div id="ov-completeness" class="text-sm mt-2 text-slate-300">Completeness: unknown</div>
+            <div id="ov-completeness" class="text-sm mt-2 text-slate-300">Structural/evidential readiness: unknown</div>
           </div>
           <div class="glass-soft rounded-3xl p-5">
             <div class="text-xs uppercase tracking-[0.25em] text-slate-400 font-black">Scenario</div>
@@ -173,9 +173,10 @@
             <div id="ov-scenario-name" class="text-sm mt-2 text-slate-300">unknown</div>
           </div>
           <div class="glass-soft rounded-3xl p-5">
-            <div class="text-xs uppercase tracking-[0.25em] text-slate-400 font-black">Reproducibility Score</div>
+            <div class="text-xs uppercase tracking-[0.25em] text-slate-400 font-black">FOC Readiness Score</div>
             <div id="ov-score" class="text-4xl font-black mt-3">0</div>
             <div id="ov-updated" class="text-sm mt-2 text-slate-300">Updated: unknown</div>
+            <div id="ov-score-note" class="text-xs mt-3 text-slate-400">This score measures structural, evidential, custody and analysis readiness. It does not by itself prove causal reconstruction completeness.</div>
           </div>
         </div>
         <div class="mt-5">
@@ -184,6 +185,7 @@
           </div>
           <div id="score-breakdown" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 mt-4 text-xs"></div>
         </div>
+        <div id="scientific-state-note" class="glass-soft rounded-2xl p-4 mt-5 text-sm text-slate-300"></div>
       </div>
 
       <div class="glass rounded-[28px] p-6 xl:col-span-4">
@@ -251,6 +253,7 @@
           <div id="trigger-candidates" class="text-sm mt-3 text-slate-300">No data</div>
         </div>
       </div>
+      <div id="alert-evidence-quality" class="glass-soft rounded-2xl p-4 mt-4 text-sm text-slate-300">No alert-to-evidence quality summary loaded.</div>
     </section>
 
     <section class="glass rounded-[28px] p-6 mb-6">
@@ -464,7 +467,7 @@
             <h3 class="text-xl font-black mt-2">Preserved Artifacts and Forensic Cases</h3>
           </div>
         </div>
-        <div id="cases-summary-note" class="glass-soft rounded-2xl p-4 mt-5 text-sm text-slate-300">Preserved evidence is available, but no forensic analysis has been executed yet.</div>
+        <div id="cases-summary-note" class="glass-soft rounded-2xl p-4 mt-5 text-sm text-slate-300">Preserved evidence is available. Analysis, semantic interpretation and causal readiness will be summarized here.</div>
         <div id="forensic-intervention-summary" class="glass-soft rounded-2xl p-4 mt-4 text-sm text-slate-300">No forensic intervention summary loaded.</div>
         <div id="cases-panel" class="scroll-panel mt-5 space-y-4"></div>
       </div>
@@ -501,7 +504,7 @@
         <div>
           <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Multilayer Forensic Analysis</div>
           <h2 id="analysis-modal-title" class="text-2xl font-black mt-2">Case analysis</h2>
-          <p id="analysis-modal-subtitle" class="text-sm text-slate-300 mt-3">Preserved evidence is available, but no forensic analysis has been executed yet.</p>
+          <p id="analysis-modal-subtitle" class="text-sm text-slate-300 mt-3">Preserved evidence is available. This panel shows the real multilayer forensic analysis status for the selected case.</p>
         </div>
         <button id="analysis-modal-close" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Close</button>
       </div>

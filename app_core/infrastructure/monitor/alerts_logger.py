@@ -1,9 +1,11 @@
 import os
 import json
+import select
+import subprocess
 import uuid
 import time
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 
 # Carpeta de salida (FORensics), aunque el módulo viva en MONITOR
@@ -385,3 +387,148 @@ def _read_active_case_dir() -> Optional[str]:
         return p if os.path.isdir(p) else None
     except Exception:
         return None
+
+
+DEFAULT_MONITOR_SCRIPT_PATH = os.path.abspath("app_core/infrastructure/monitor/scripts/monitor_ataques.sh")
+DEFAULT_MONITOR_SSH_KEY_PATH = os.path.expanduser("~/.ssh/my_key")
+
+
+def _normalize_nics_alert(ev: Dict[str, Any], case_dir: Optional[str] = None) -> Dict[str, Any]:
+    normalized = {
+        "event_id": ev.get("event_id"),
+        "ts_utc": ev.get("ts_utc"),
+        "source": ev.get("source", "wazuh"),
+        "alert_type": ev.get("alert_type", "unknown"),
+        "protocol": ev.get("protocol", "unknown"),
+        "rule_id": ev.get("rule_id"),
+        "rule_level": ev.get("rule_level"),
+        "description": ev.get("description"),
+        "signature": ev.get("signature"),
+        "src": ev.get("src", {}),
+        "dst": ev.get("dst", {}),
+        "agent": ev.get("agent"),
+        "raw": ev.get("raw", ev),
+    }
+    if case_dir:
+        normalized["case_dir"] = case_dir
+    return normalized
+
+
+def run_monitor_session(
+    monitor_ip: str,
+    ssh_user: str = "ubuntu",
+    ssh_key: Optional[str] = None,
+    *,
+    on_alert: Optional[Callable[[Dict[str, Any]], bool]] = None,
+    stop_after_seconds: Optional[float] = 600,
+    case_dir: Optional[str] = None,
+    script_path: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Blocking, Flask-free counterpart to the /live_wazuh_stream SSE route in
+    app_core.infrastructure.monitor.ssh_launcher. Spawns the same SSH monitor
+    script, parses the same NICS_ALERT_JSON tagged lines, and logs every alert
+    through this module's AlertsLogger -- but instead of streaming to a browser,
+    it runs for up to stop_after_seconds (or until on_alert(out) returns True)
+    and then terminates the subprocess itself, since this path has no SSE
+    client to close the connection for it.
+
+    on_alert receives the same dict shape returned by AlertsLogger.log_event
+    ({"primary", "triage", "case_rel", "session_id"}) for every observed alert,
+    and should return True to stop waiting (a match was found).
+    """
+    script_path = script_path or DEFAULT_MONITOR_SCRIPT_PATH
+    ssh_key = ssh_key or DEFAULT_MONITOR_SSH_KEY_PATH
+
+    if not monitor_ip:
+        return {"status": "error", "reason": "monitor_ip is required", "observed_alerts": []}
+    if not os.path.isfile(script_path):
+        return {"status": "error", "reason": f"monitor script not found: {script_path}", "observed_alerts": []}
+
+    logger_instance = AlertsLogger()
+    cmd = ["bash", script_path, monitor_ip, ssh_user, ssh_key]
+
+    try:
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            universal_newlines=True,
+        )
+    except Exception as exc:
+        return {"status": "error", "reason": str(exc), "observed_alerts": []}
+
+    matched_alert: Optional[Dict[str, Any]] = None
+    observed_alerts: list[Dict[str, Any]] = []
+    start = time.time()
+
+    try:
+        while True:
+            if stop_after_seconds is not None:
+                remaining = stop_after_seconds - (time.time() - start)
+                if remaining <= 0:
+                    break
+            else:
+                remaining = None
+
+            poll_timeout = min(remaining, 1.0) if remaining is not None else 1.0
+            ready, _, _ = select.select([process.stdout], [], [], poll_timeout)
+
+            if not ready:
+                if process.poll() is not None:
+                    break
+                continue
+
+            raw_line = process.stdout.readline()
+            if not raw_line:
+                if process.poll() is not None:
+                    break
+                continue
+
+            raw_line = raw_line.rstrip()
+            if not (raw_line.startswith("{") and "\"__tag\":\"NICS_ALERT_JSON\"" in raw_line):
+                continue
+
+            try:
+                ev = json.loads(raw_line)
+            except Exception:
+                continue
+            if ev.get("__tag") != "NICS_ALERT_JSON":
+                continue
+
+            normalized = _normalize_nics_alert(ev, case_dir=case_dir)
+            out = logger_instance.log_event(normalized)
+
+            if case_dir and not out.get("case_rel"):
+                try:
+                    ev_id = (out.get("primary") or {}).get("event_id") or normalized.get("event_id")
+                    if ev_id:
+                        rel = attach_alert_to_case(case_dir, ev_id)
+                        if rel:
+                            out["case_rel"] = rel
+                except Exception:
+                    pass
+
+            observed_alerts.append(out)
+            if on_alert is not None and on_alert(out):
+                matched_alert = out
+                break
+    finally:
+        try:
+            process.terminate()
+            process.wait(timeout=5)
+        except Exception:
+            try:
+                process.kill()
+            except Exception:
+                pass
+
+    return {
+        "status": "matched" if matched_alert is not None else "timeout",
+        "matched_alert": matched_alert,
+        "observed_alerts": observed_alerts,
+        "session_id": logger_instance.session_id,
+        "elapsed_seconds": time.time() - start,
+    }
