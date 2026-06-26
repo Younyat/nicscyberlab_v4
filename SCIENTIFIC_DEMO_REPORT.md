@@ -2,6 +2,53 @@
 
 This document is a reviewer-facing scientific demo report built from a real preserved forensic case already present in the platform workspace. It is not a generic user manual. Every claim below is tied to preserved artifacts, generated reports, or lightweight repetition/comparison outputs that can be inspected locally.
 
+The report should be read as the story of one preserved incident moving through four scientific questions:
+
+1. What was preserved?
+2. What was actually analyzable?
+3. How much of the expected causal story could be recovered?
+4. If the same preserved case is reanalyzed again, do the conclusions remain comparable?
+
+The reader should therefore not treat the numbers below as isolated dashboard values. They function like an analytical panel in a laboratory report: each metric has a name, a role, an interpretation range, and a case-specific meaning.
+
+## How to read this report
+
+This report uses four recurring interpretation classes:
+
+- `strong`: the preserved and analyzed evidence supports the claim clearly
+- `moderate`: the claim is supported, but with explicit caveats or incomplete linkage
+- `limited`: the evidence is useful, but one or more requirements for stronger scientific confidence remain unresolved
+- `missing / unsupported`: the platform cannot defend that claim from the currently preserved artifacts
+
+This report also distinguishes five different evidence states:
+
+- `preserved`: the artifact exists in the case
+- `analyzed`: the artifact was processed by a forensic layer
+- `confirmed`: the claim is directly supported by preserved and analyzed evidence
+- `inferred`: the claim is plausible from available evidence, but not fully direct
+- `degraded`: the claim is usable but scientifically weakened by missing linkage, missing timestamps, missing semantic context, or partial integrity
+
+## Nomenclature and glossary
+
+The following abbreviations and technical terms appear repeatedly in the report.
+
+| Term | Meaning | Why it matters |
+|---|---|---|
+| `FOC` | Forensic Observational Context | The structural/evidential model that links scenario, tools, sources, preserved artifacts, and reconstruction prerequisites. |
+| `BOM` | Bill of Materials | A normalized inventory of deployed scenario elements or installed tools. |
+| `CPR` | Causal Path Recoverability | Ratio of fully recovered expected causal edges over total expected causal edges. |
+| `Weighted CPR` or `WCPR` | Weighted Causal Path Recoverability | Same idea as CPR, but edge weights matter, so more important expected relations influence the score more strongly. |
+| `Expected causal edge` | One expected relation in the ground-truth causal model | Example: attack execution should lead to unauthorized Modbus write. |
+| `Recovered edge` | Expected causal relation fully supported | Strongest edge state. |
+| `Degraded edge` | Expected causal relation partially supported | The edge exists conceptually, but timestamp, linkage, or evidence quality is not strong enough for full recovery. |
+| `Missing edge` | Expected causal relation not supported by required evidence | Important because it marks a true gap in the reconstructed causal story. |
+| `Ambiguous edge` | A relation with unresolved competing interpretations | Not present in this case, but relevant in the model. |
+| `Hypothesis support` | Structured evaluation of whether the main case hypothesis is supported | Keeps conclusions explicit and falsifiable. |
+| `Semantic reconstruction` | High-level interpretation layer built on top of lower-level evidence | Important because strong evidence processing does not automatically produce a semantic explanation. |
+| `Comparison family` | Experimental family used to group directly comparable executions | Prevents invalid comparison across unrelated designs. |
+| `Level A` | Reanalysis repeatability over the same preserved case | Used here to study analytical stability, not new incident execution. |
+| `Direct Level A repeatability comparison` | Comparison between reanalyses of the same preserved case under the same configuration | This is the valid comparison mode used in the demo. |
+
 ## Objective of the demo
 
 The objective of this demo is to show what NICS CyberLab currently provides as a forensic reconstruction framework under explicit experimental conditions, using:
@@ -77,6 +124,17 @@ This report uses the scientific outputs consumed by:
 4. `FOC Reconstruction Comparability View`
 5. `Attacks`
 
+## Narrative thread of the case
+
+The scientific story told by this case is the following:
+
+1. A controlled OT-oriented scenario produced an incident aligned with `T0831 Manipulation of Control`.
+2. The platform preserved network, OT, memory, disk, custody, and timing artifacts in one forensic case.
+3. The multilayer analysis completed successfully and extracted useful evidence from all expected layers.
+4. The platform then attempted to reconstruct the expected causal chain from attack to preserved forensic evidence.
+5. It recovered part of that chain clearly, part of it only with degradation, and part of it not at all.
+6. Finally, the same preserved case was reanalyzed multiple times in Level A mode to test whether the analytical outcome remained stable.
+
 ## Evidence preserved
 
 The case manifest declares `83` artifacts. The evidence inventory confirms the presence of all main layers required for a multilayer forensic study.
@@ -118,6 +176,10 @@ Representative preserved evidence paths:
 
 The FOC Reconstruction dashboard contributes the structural and evidential reconstruction context for one execution. It does not by itself prove full causal completeness.
 
+Read this section as the answer to the question:
+
+> Is the platform structurally ready to explain the case, and how much of the expected causal story can it really defend from evidence?
+
 ### Structural/evidential FOC state
 
 The current FOC dashboard status for `scn-b83dbbfb` is:
@@ -154,6 +216,43 @@ Scientific interpretation:
 - alert-to-evidence linkage is weak
 - a high FOC readiness score does not mean that the causal explanation is complete
 
+### How to interpret the readiness score
+
+`FOC readiness score` is not the same thing as full scientific reconstruction quality.
+
+Interpretation guide:
+
+| Score range | Interpretation |
+|---|---|
+| `90-100` | Structural/evidential readiness is strong; most prerequisites exist and are internally consistent. |
+| `70-89` | Operationally useful, but several structural/evidential prerequisites remain partial. |
+| `40-69` | Partial readiness; the scenario can be inspected, but scientific reconstruction is fragile. |
+| `< 40` | Weak readiness; reconstruction claims would be hard to defend. |
+
+This case:
+
+- Observed value: `96.42`
+- Interpretation: `strong structural/evidential readiness`
+- Meaning in context: the platform has enough scenario, tool, timeline, source, custody, and analysis context to attempt causal reconstruction seriously
+- Important caveat: this score does **not** prove that the causal chain itself is complete
+
+### Causal reconstruction panel as an analytical profile
+
+The most important causal metrics should be read together, not one by one.
+
+| Metric | Value | Interpretation range | Meaning in this case |
+|---|---:|---|---|
+| Expected causal edges | `8` | Not a quality score; this is the size of the expected causal model | The ground-truth model expects eight major causal relations for this incident. |
+| Recovered causal edges | `4` | `0-2` weak, `3-5` partial, `6-8` strong for this case size | Half of the expected causal chain is fully defended by preserved evidence. |
+| Degraded causal edges | `2` | Lower is better; degraded means usable but scientifically weakened | Two relations exist, but timestamp or linkage quality prevents full recovery. |
+| Missing causal edges | `2` | Lower is better; missing means unsupported by required evidence | Two expected relations cannot currently be defended from the preserved artifacts. |
+| Ambiguous causal edges | `0` | Lower is better | No edge is in a competing-interpretation state; the problem is absence/degradation, not ambiguity. |
+| CPR | `0.5` | `0-0.25` weak, `0.25-0.5` limited, `0.5-0.75` partial/moderate, `0.75-1.0` strong | Exactly half of the expected causal relations were fully recovered. |
+| Weighted CPR | `0.4863` | Same broad logic as CPR, but weighted by edge importance | The most important recovered edges do not compensate for the missing intervention/evidence linkage. |
+| Recoverability label | `partially_recoverable` | categorical | The platform can reconstruct a usable but incomplete causal explanation. |
+| Reconstruction confidence | `0.6844` | `<0.5` weak, `0.5-0.75` partial, `>0.75` strong | The reconstruction is scientifically defensible, but not close to a fully robust causal account. |
+| Scientific confidence | `limited` | categorical | The case remains useful, but the conclusions must be presented with explicit caveats. |
+
 ### Causal reconstruction results for the selected case
 
 Case-level causal reconstruction outputs are present and completed with degradation:
@@ -168,6 +267,12 @@ Case-level causal reconstruction outputs are present and completed with degradat
 - Recoverability label: `partially_recoverable`
 - Reconstruction confidence: `0.6844`
 - Scientific confidence: `limited`
+
+Short reading:
+
+- this is **not** a failed reconstruction
+- this is **not** a complete reconstruction either
+- the scientifically correct reading is: `partial causal recovery with explicit degradation`
 
 Recovered relations:
 
@@ -192,6 +297,12 @@ Why the degraded/missing edges matter:
 - the expected forensic intervention selector could not be matched strongly enough
 - alert-to-evidence linkage remains weaker than custody-to-evidence linkage
 
+Narrative reading:
+
+- the platform can follow the story from attack execution to OT write, from OT write to observed network activity, and from preserved evidence to multilayer analysis
+- the story becomes weaker exactly where the case must bridge detection, alerts, intervention, and explicit evidence activation
+- in reviewer terms: the case is strongest on preserved artifacts and weakest on intervention linkage
+
 ### Reconstruction uncertainty
 
 The uncertainty report shows:
@@ -211,6 +322,17 @@ Scientific interpretation:
 - however, synchronized clocks do not guarantee that all relevant forensic artifacts expose usable timestamps for causal ordering
 - causal temporal confidence is limited because timestamp availability is partial, not because the environment clocks were drifting
 
+### How to interpret uncertainty values
+
+| Metric | Value | Interpretation range | Meaning in this case |
+|---|---:|---|---|
+| Worst measured node offset | `0.07 ms` | `<1 ms` very strong clock synchronization, `1-10 ms` acceptable, `>10 ms` potentially concerning | Host clocks are not the problem in this case. |
+| Uncertainty window | `~2.0 s` | Lower is better | The timing model is usable, but not precise enough to guarantee all causal orderings. |
+| Evidence timestamp availability | `partial` | categorical | Some artifacts needed for temporal ordering do not expose sufficiently usable timestamps. |
+| Evidence timestamp resolvability | `full` | categorical | When timestamps exist, they can be normalized correctly. |
+| Causal temporal ordering confidence | `limited` | categorical | The main problem is timestamp availability, not normalization failure. |
+| Case-wide integrity ratio | `0.9277` | `>0.95` strong, `0.85-0.95` partial but usable, `<0.85` weak | The case is broadly intact, but not perfect enough to claim full integrity closure. |
+
 ### Hypothesis support
 
 The evidence support layer evaluates hypothesis `H1`:
@@ -227,6 +349,16 @@ Result:
 - missing required evidence atoms: `3`
 - final claimability status: `the hypothesis can receive moderate support, not absolute causality`
 
+Interpretation guide:
+
+| Metric | Value | Interpretation range | Meaning in this case |
+|---|---:|---|---|
+| Supporting evidence atoms | `12` | Higher is better | There is a substantial body of evidence actively supporting the main hypothesis. |
+| Partially supporting evidence atoms | `8` | Moderate values indicate a mixed-but-usable case | A significant part of the case helps the hypothesis, but only with caveats. |
+| Contradictory evidence atoms | `3` | Lower is better | The hypothesis is not contradiction-free. |
+| Missing required evidence atoms | `3` | Lower is better | Some required support for stronger claims is absent. |
+| Global support level | `moderate_support` | `weak`, `moderate`, `strong` | The case supports the main OT-attack hypothesis, but not strongly enough for absolute language. |
+
 ### Final scientific interpretation from reconstruction
 
 What the reconstruction dashboard contributes scientifically:
@@ -241,6 +373,10 @@ What the reconstruction dashboard contributes scientifically:
 
 The evidence lifecycle dashboard contributes the full path from preserved evidence to analyzed outputs and final scientific conclusion.
 
+Read this section as the answer to the question:
+
+> Did the platform only preserve the incident, or did it carry that incident all the way into a usable forensic evidence lifecycle?
+
 ### Preservation and integrity/custody state
 
 - Evidence lifecycle status: `preserved_and_analyzed`
@@ -254,6 +390,15 @@ Important limitation:
 
 - the three memory dumps and the three large final raw disk images are not rehashed again during integrity validation to avoid excessive latency
 - their manifest-preserved hashes are trusted unless direct validation is feasible
+
+Interpretation guide:
+
+| Metric | Value | Interpretation range | Meaning in this case |
+|---|---:|---|---|
+| Evidence items declared | `83` | Descriptive count | The case is materially rich enough for a multilayer study. |
+| Custody events | `25` | Descriptive count | The handling history is not empty or synthetic. |
+| Missing artifacts | `0` | `0` ideal | No declared artifact is missing from the preserved case set. |
+| Hash-validated artifacts | `77` | Higher is better, but context matters | Most artifacts were rechecked directly. The remaining large binaries are trusted through preserved manifest hashes. |
 
 ### Acquisition trigger and alert evidence
 
@@ -279,6 +424,12 @@ Scientific interpretation:
 - the selected forensic trigger is not an ideal OT-specific trigger
 - the case therefore supports preserved acquisition and later analysis, but with a weaker alert-to-evidence chain than the custody and analysis layers
 
+Narrative reading:
+
+- the platform heard many things
+- it preserved the case successfully
+- but the specific alert that opened the forensic door is not the strongest OT-native witness in the room
+
 ### Network evidence
 
 Network analysis status: `completed`
@@ -293,6 +444,16 @@ Cross-layer finding produced by the platform:
 > Preserved PCAP evidence and OT exports both indicate Modbus activity for this case.
 
 This is enough to support observed Modbus activity, but not enough to claim full packet-level register/value precision for all causal statements.
+
+Interpretation guide:
+
+| Metric | Value | Interpretation range | Meaning in this case |
+|---|---:|---|---|
+| PCAPs analyzed | `3` | Descriptive count | Network evidence exists across multiple preserved captures. |
+| Total frames in main Modbus-heavy capture | `5411` | Descriptive count | There is substantial observable network activity, not just a tiny trace. |
+| Modbus frames in same capture | `5411` | Descriptive count | The main network capture is entirely relevant to Modbus-level review. |
+
+This supports a strong claim of `Modbus activity observed`, but only a partial claim of `packet-level Modbus semantics fully confirmed`.
 
 ### Memory evidence
 
@@ -314,6 +475,14 @@ Each dump completed the same Volatility 3 plugin set:
 
 Memory therefore contributes useful host-level and process-level evidence and is not a failed or placeholder layer in this case.
 
+Interpretation guide:
+
+| Metric | Value | Interpretation range | Meaning in this case |
+|---|---:|---|---|
+| Memory dumps analyzed | `3 / 3` | Full coverage is best | All preserved memory dumps were opened and processed successfully. |
+| Memory layer usefulness | `useful` | categorical | Memory is contributing real forensic value, not just stored data. |
+| Compatible symbols available | `yes` | critical prerequisite | Volatility analysis was not blocked by missing symbol resolution. |
+
 ### Disk evidence
 
 Disk analysis status: `completed`
@@ -332,6 +501,13 @@ Produced outputs include:
 
 Disk evidence therefore contributes real post-acquisition forensic outputs, not only preserved raw images.
 
+Interpretation guide:
+
+| Metric | Value | Interpretation range | Meaning in this case |
+|---|---:|---|---|
+| Disk images analyzed | `6` | Descriptive count | Disk analysis covers both final and backing images, not just one simplified artifact. |
+| Disk analysis status | `completed` | categorical | Disk evidence was actually processed, not merely preserved. |
+
 ### OT evidence
 
 OT export analysis status: `completed`
@@ -345,6 +521,14 @@ Scientific interpretation:
 
 - OT exports support that OT state was preserved and parsed
 - they do not fully confirm register/value causality at the packet-precision level needed for stronger causal claims
+
+Interpretation guide:
+
+| Metric | Value | Interpretation range | Meaning in this case |
+|---|---:|---|---|
+| OT export files analyzed | `3` | Descriptive count | OT evidence exists across multiple preserved exports. |
+| OT records observed | `80`, `74`, `0` | Context-dependent | Two OT sources are informative; one source did not contribute records. |
+| Function codes observed | `3`, `1` | Descriptive | OT state is visible, but not as a full write-confirmation chain. |
 
 ### Timeline and cross-layer evidence
 
@@ -361,6 +545,15 @@ The multilayer analysis summary further reports:
 - layers failed: `0`
 - layers skipped: `0`
 
+Interpretation guide:
+
+| Metric | Value | Interpretation range | Meaning in this case |
+|---|---:|---|---|
+| Timeline findings | `228` | Descriptive count | The timeline layer is populated enough to support chronological review. |
+| Cross-layer findings | `1` | Descriptive count | Cross-layer synthesis exists, but remains conservative rather than verbose. |
+| Layers completed | `15 / 15` | Full technical coverage | The analysis pipeline ran end-to-end without failed layers. |
+| Layers with useful output | `15 / 15` | Full usefulness | This is a strong technical result, but still separate from causal completeness. |
+
 ### Final scientific interpretation from lifecycle
 
 What the lifecycle dashboard contributes scientifically:
@@ -373,6 +566,10 @@ What the lifecycle dashboard contributes scientifically:
 ## Repetition results
 
 For the repetition demo, lightweight Level A reanalysis was used instead of heavy Level B re-execution. This is methodologically appropriate for showing analysis repeatability over the same preserved evidence.
+
+Read this section as the answer to the question:
+
+> If we ask the platform to re-read the same preserved case, does it tell the same forensic story again?
 
 Selected campaign:
 
@@ -417,6 +614,25 @@ Scientific interpretation:
 - it also did not introduce random analytical drift
 - the analytical outputs remained stable across repeated reanalysis of the same preserved evidence
 
+### How to interpret repetition metrics
+
+The key idea is not “did the case become perfect on rerun?” but “did the analytical result remain stable?”
+
+In this campaign:
+
+- same source case
+- same comparison family
+- same CPR
+- same Weighted CPR
+- same support class
+- same limitation profile
+
+That pattern should be interpreted as:
+
+- `stable analytical behavior`
+- `repeatable degradation`
+- `no evidence of analytical drift across these repetitions`
+
 ## Comparison results
 
 Selected comparison:
@@ -441,6 +657,16 @@ Compared metrics:
 - Max |ΔWCPR|: `0.0`
 - Max support-rank shift: `0`
 
+### How to interpret the comparison panel
+
+| Metric | Value | Interpretation range | Meaning in this case |
+|---|---:|---|---|
+| Delta CPR allowed | `0.125` | Smaller threshold means stricter equivalence | The comparison uses a strict tolerance tied to the size of the causal model. |
+| Delta Weighted CPR allowed | `0.10` | Smaller threshold means stricter equivalence | Important weighted changes would have failed comparability. |
+| Max \|ΔCPR\| | `0.0` | `0` ideal | No repeatability drift was observed in raw causal recovery ratio. |
+| Max \|ΔWCPR\| | `0.0` | `0` ideal | No drift was observed in weighted causal recovery either. |
+| Max support-rank shift | `0` | `0` ideal | The hypothesis support class remained stable. |
+
 Stable evidence and reconstruction layers across the compared repetitions:
 
 - preserved case reference
@@ -462,6 +688,13 @@ Scientific interpretation:
 - in this specific pair, the normalized comparison outputs are numerically stable
 - the result is degraded because the base case itself is scientifically limited
 - this is therefore evidence of analytical repeatability with inherited limitations, not a technical failure
+
+Narrative reading:
+
+- the platform retold the same forensic story twice
+- it did not suddenly discover new strong causality
+- it did not lose its previous support either
+- what remained weak stayed weak in the same way, which is exactly what a repeatability check should reveal
 
 ## Attack profiles implemented
 
@@ -560,6 +793,14 @@ What weakens the case scientifically is not the absence of preserved evidence in
 - partial packet-level confirmation of Modbus register/value precision
 - semantic reconstruction not yet generated
 
+This is the central storyline of the case:
+
+- the platform preserved the incident well
+- the platform analyzed the incident deeply
+- the platform reconstructed the incident partially
+- the platform repeated the analysis consistently
+- the platform did **not** hide where the explanation becomes scientifically weaker
+
 ## What the project proves
 
 Based on this real case and its repetitions, the project currently proves:
@@ -624,6 +865,10 @@ The project should not currently claim:
 The scientifically honest claim is narrower and stronger:
 
 > The platform is a reproducible forensic reconstruction framework under explicit experimental conditions, with measurable evidence lifecycle outputs, repeatable Level A reanalysis, and traceable cross-execution comparison, while keeping uncertainty, degradation, and unsupported claims visible.
+
+If a reviewer asks for the single-sentence reading of the whole report, it is this:
+
+> The case is evidentially strong, analytically complete, causally partial, semantically incomplete, and repeatably stable under Level A reanalysis.
 
 ## Appendix
 
