@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-26T16:56:13.210759+00:00",
+  "generated_at": "2026-06-26T22:12:59.669351+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
   "causal_reconstruction_ready": false,
@@ -277,64 +277,64 @@
       ]
     },
     "alerts_normalized": {
-      "record_count": 1119,
+      "record_count": 1305,
       "minimum_expected_records": 1,
       "overall_status": "partial",
       "fields": {
         "timestamp": {
           "path": "timestamp",
           "status": "ok",
-          "present_records": 1119,
-          "applicable_records": 1119,
+          "present_records": 1305,
+          "applicable_records": 1305,
           "coverage_ratio": 1.0,
           "missing_samples": []
         },
         "detector": {
           "path": "detector",
           "status": "ok",
-          "present_records": 1119,
-          "applicable_records": 1119,
+          "present_records": 1305,
+          "applicable_records": 1305,
           "coverage_ratio": 1.0,
           "missing_samples": []
         },
         "rule_id": {
           "path": "rule_id",
           "status": "ok",
-          "present_records": 1119,
-          "applicable_records": 1119,
+          "present_records": 1305,
+          "applicable_records": 1305,
           "coverage_ratio": 1.0,
           "missing_samples": []
         },
         "severity": {
           "path": "severity",
           "status": "ok",
-          "present_records": 1119,
-          "applicable_records": 1119,
+          "present_records": 1305,
+          "applicable_records": 1305,
           "coverage_ratio": 1.0,
           "missing_samples": []
         },
         "origin": {
           "path": "origin.ip",
           "status": "ok",
-          "present_records": 1119,
-          "applicable_records": 1119,
+          "present_records": 1305,
+          "applicable_records": 1305,
           "coverage_ratio": 1.0,
           "missing_samples": []
         },
         "destination": {
           "path": "destination.ip",
           "status": "ok",
-          "present_records": 1119,
-          "applicable_records": 1119,
+          "present_records": 1305,
+          "applicable_records": 1305,
           "coverage_ratio": 1.0,
           "missing_samples": []
         },
         "protocol": {
           "path": "protocol",
           "status": "partial",
-          "present_records": 1023,
-          "applicable_records": 1119,
-          "coverage_ratio": 0.9142,
+          "present_records": 1209,
+          "applicable_records": 1305,
+          "coverage_ratio": 0.9264,
           "missing_samples": [
             "alr-5b800ff6",
             "alr-4464a7ea",
@@ -353,8 +353,8 @@
         "normalized_message": {
           "path": "normalized_message",
           "status": "ok",
-          "present_records": 1119,
-          "applicable_records": 1119,
+          "present_records": 1305,
+          "applicable_records": 1305,
           "coverage_ratio": 1.0,
           "missing_samples": []
         }
