@@ -1,0 +1,15 @@
+{"ts": "2026-06-27T10:29:36.426968+00:00", "event": "resolved_reference_case", "case_id": "case-1a8add06", "execution_id": "EXEC-0009", "report_output_path": "app_core/infrastructure/forensics/scientific_reports/level_a_repetitions/case-1a8add06/EXEC-0009"}
+{"ts": "2026-06-27T10:29:36.431253+00:00", "event": "validated_manifest_and_custody", "manifest_present": true, "custody_present": true, "warnings": []}
+{"ts": "2026-06-27T10:29:36.434619+00:00", "event": "validated_level_a_scope", "notes": ["Same preserved case reused in read-only mode.", "No new attack execution was launched by this report workflow.", "No Level B or Level C orchestration was invoked."]}
+{"ts": "2026-06-27T10:29:36.461362+00:00", "event": "analysis_ready", "analysis_status": "completed", "report_status": "completed"}
+{"ts": "2026-06-27T10:29:36.467849+00:00", "event": "network_loaded", "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260625-152324/analysis/03_network/network_findings.json", "status": "completed"}
+{"ts": "2026-06-27T10:29:36.472933+00:00", "event": "memory_loaded", "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260625-152324/analysis/04_memory/memory_findings.json", "status": "completed"}
+{"ts": "2026-06-27T10:29:36.478646+00:00", "event": "disk_loaded", "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260625-152324/analysis/05_disk/disk_findings.json", "status": "completed"}
+{"ts": "2026-06-27T10:29:36.483859+00:00", "event": "ot_loaded", "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260625-152324/analysis/06_ot/ot_findings.json", "status": "completed"}
+{"ts": "2026-06-27T10:29:36.489050+00:00", "event": "alerts_loaded", "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260625-152324/analysis/07_alerts/alert_findings.json", "status": "completed"}
+{"ts": "2026-06-27T10:29:36.634382+00:00", "event": "timeline_loaded", "timeline_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260625-152324/analysis/09_timeline/unified_forensic_timeline.json", "timeline_status": "completed"}
+{"ts": "2026-06-27T10:29:36.668649+00:00", "event": "causal_ready", "causal_status": "completed_with_degradation", "recovered_edges": 4, "missing_edges": 2}
+{"ts": "2026-06-27T10:29:39.169617+00:00", "event": "hypothesis_support_ready", "support_level": "moderate_support", "interpretation": "the hypothesis can receive moderate support, not absolute causality."}
+{"ts": "2026-06-27T10:29:39.185903+00:00", "event": "comparison_ready", "status": "Comparable With Degradation", "comparison_type": "direct_level_a_repeatability_comparison", "compared_execution_ids": ["EXEC-0008", "EXEC-0009"]}
+{"ts": "2026-06-27T10:29:39.237594+00:00", "event": "claim_map_built", "claim_count": 9, "source_count": 27}
+{"ts": "2026-06-27T10:29:39.255765+00:00", "event": "markdown_rendered", "length": 16362}

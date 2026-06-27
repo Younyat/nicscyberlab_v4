@@ -107,6 +107,7 @@
     attackCatalog: [],
     lastRecommendation: null,
     justCreatedCampaignId: null,
+    levelAReportOverlayJobId: null,
   };
   const ACTIVE_JOB_STORAGE_KEY = "nics-foc-experimentation-active-job";
 
@@ -248,6 +249,10 @@
 
   function isRunningLikeStatus(status) {
     return ["queued", "running"].includes(String(status || "").toLowerCase());
+  }
+
+  function isLevelAReportJob(payload) {
+    return String(payload?.job_type || "").toLowerCase() === "level_a_scientific_report";
   }
 
   function analysisPhaseLabel(phaseKey) {
@@ -1802,6 +1807,7 @@
     const attackId = cfg?.attack_id || campaign?.attack_id || null;
     const startBtn = byId("campaign-start-btn");
     const runNextBtn = byId("campaign-run-next-btn");
+    const levelAReportBtn = byId("campaign-level-a-report-btn");
     const runRealBtn = byId("campaign-run-real-btn");
     const pauseBtn = byId("campaign-pause-btn");
     const stopBtn = byId("campaign-stop-btn");
@@ -1822,6 +1828,17 @@
       runNextBtn.classList.toggle("cursor-not-allowed", busy || noCampaign);
       runNextBtn.textContent = busy ? "Execution In Progress" : "Run Dry-Run Execution";
       runNextBtn.title = busy ? "Wait until the current experimentation job finishes." : (noCampaign ? "Select or create a campaign first." : "");
+    }
+    if (levelAReportBtn) {
+      const blocked = busy || noCampaign || level !== "A";
+      levelAReportBtn.classList.toggle("hidden", level !== "A");
+      levelAReportBtn.disabled = blocked;
+      levelAReportBtn.classList.toggle("opacity-50", blocked);
+      levelAReportBtn.classList.toggle("cursor-not-allowed", blocked);
+      levelAReportBtn.textContent = busy ? "Report Generation In Progress" : "Generate Level A Scientific Report";
+      levelAReportBtn.title = busy
+        ? "Wait until the current experimentation job finishes."
+        : (noCampaign ? "Select or create a campaign first." : "Generate a dedicated auditable scientific report for a new Level A repetition over the preserved case.");
     }
     if (runRealBtn) {
       runRealBtn.classList.toggle("hidden", !isLevelB);
@@ -1880,6 +1897,7 @@
       : (item.run_case_id ? "Generated case" : (item.planned_case_id ? "Planned case" : "Generated case"));
     const caseFieldValue = level === "A" ? sourceCase : generatedCase;
     const retentionPolicy = item.retention_policy || (level === "A" ? "original_case_retained" : "profiles_only_after_archive");
+    const latestLevelAReport = item.scientific_reports?.latest_level_a || item.scientific_reports?.latest_level_a_report || null;
     return `
       <div class="glass-soft rounded-2xl p-4 space-y-4">
         <div class="flex items-start justify-between gap-3">
@@ -1909,6 +1927,7 @@
           ${level === "A" || (item.run_case_id && truthy(item.run_case_id)) ? `<a class="text-cyan-300 underline" href="/foc_scientific_evidence_lifecycle.html?case_id=${encodeURIComponent(level === "A" ? sourceCase : item.run_case_id)}">${esc(meta.dashboardActionLabel)}</a>` : ""}
           <button type="button" class="text-cyan-300 underline execution-workspace-btn" data-execution-id="${esc(item.execution_id)}">Open Execution Workspace</button>
           <button type="button" class="text-cyan-300 underline execution-profile-btn" data-execution-id="${esc(item.execution_id)}" ${profileAvailable ? "" : "disabled"}>Open Comparison Profile</button>
+          ${level === "A" && latestLevelAReport ? `<button type="button" class="text-cyan-300 underline execution-level-a-report-btn" data-execution-id="${esc(item.execution_id)}">Open Level A Scientific Report</button>` : ""}
           <button type="button" class="text-cyan-300 underline execution-compare-btn ${comparableCount >= 2 && profileAvailable ? "" : "opacity-50 cursor-not-allowed"}" data-execution-id="${esc(item.execution_id)}" ${comparableCount >= 2 && profileAvailable ? "" : "disabled"}>Compare with other executions</button>
           ${cleanupState.visible ? `<button type="button" class="text-amber-300 underline generated-case-cleanup-btn ${cleanupState.canDelete ? "" : "opacity-50 cursor-not-allowed"}" data-campaign-id="${esc(item.campaign_id || "")}" data-execution-id="${esc(item.execution_id)}" data-case-id="${esc(item.run_case_id || "")}" data-origin="execution-card" ${cleanupState.canDelete ? "" : "disabled"}>Delete Generated Case Artifacts</button>` : ""}
         </div>
@@ -1943,6 +1962,9 @@
         const payload = await getJson(`/api/foc/experimentation/comparability/profile/${encodeURIComponent(executionId)}`);
         openOverlay(`Forensic Comparison Profile · ${executionId}`, `<pre class="whitespace-pre-wrap break-words text-xs text-slate-200 mono">${esc(JSON.stringify(payload, null, 2))}</pre>`);
       });
+    });
+    document.querySelectorAll(".execution-level-a-report-btn").forEach((btn) => {
+      btn.addEventListener("click", () => openLevelAReport(btn.dataset.executionId));
     });
     document.querySelectorAll(".execution-compare-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -2004,6 +2026,107 @@
 
   function openOverlay(title, html) {
     openInteractiveOverlay(title, html);
+  }
+
+  function ensureLevelAReportOverlay() {
+    let root = byId("foc-level-a-report-overlay");
+    if (root) return root;
+    root = document.createElement("div");
+    root.id = "foc-level-a-report-overlay";
+    root.className = "fixed inset-0 z-[1200] bg-slate-950/55 backdrop-blur-sm p-4 md:p-8";
+    root.innerHTML = `
+      <div class="mx-auto max-w-3xl h-full flex items-center justify-center">
+        <div class="glass rounded-[30px] p-6 w-full shadow-2xl border border-cyan-500/20">
+          <div class="text-center">
+            <div class="text-[11px] tracking-[0.28em] uppercase text-cyan-300 font-black">Level A Scientific Report</div>
+            <h2 class="text-2xl font-black mt-3">Scientific Report Generation</h2>
+          </div>
+          <div id="foc-level-a-report-overlay-body" class="mt-6"></div>
+          <div class="mt-6 flex items-center justify-center gap-3 flex-wrap">
+            <button id="foc-level-a-report-open-btn" type="button" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase hidden">Open Report</button>
+            <button id="foc-level-a-report-close-btn" type="button" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase hidden">Close</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(root);
+    byId("foc-level-a-report-close-btn")?.addEventListener("click", () => {
+      state.levelAReportOverlayJobId = null;
+      root.remove();
+    });
+    return root;
+  }
+
+  function renderLevelAReportOverlay(payload) {
+    const root = byId("foc-level-a-report-overlay");
+    if (!root) return;
+    const body = byId("foc-level-a-report-overlay-body");
+    const closeBtn = byId("foc-level-a-report-close-btn");
+    const openBtn = byId("foc-level-a-report-open-btn");
+    if (!body || !closeBtn || !openBtn) return;
+    if (!payload || !isLevelAReportJob(payload) || state.levelAReportOverlayJobId !== payload.job_id) {
+      return;
+    }
+    const terminal = isTerminalJobStatus(payload.status);
+    const phaseStatuses = payload.phase_statuses || [];
+    const lastPhase = phaseStatuses.length ? phaseStatuses[phaseStatuses.length - 1] : null;
+    const phaseLabel = payload.current_phase_label || lastPhase?.phase_label || titleCaseStatus(payload.current_phase || "queued");
+    const phaseDetail = formatDetail(payload.current_phase_detail || lastPhase?.detail || "No scientific detail available.");
+    const warnings = payload.warnings || [];
+    body.innerHTML = `
+      <div class="space-y-5 text-sm text-slate-200">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+            <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Current phase</div>
+            <div class="font-black mt-2">${esc(phaseLabel)}</div>
+          </div>
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+            <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Current phase status</div>
+            <div class="font-black mt-2 ${statusClass(payload.status)}">${esc(titleCaseStatus(payload.status || "running"))}</div>
+          </div>
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+            <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Exact progress</div>
+            <div class="font-black mt-2">${esc(payload.progress_percent ?? "not_available")}${payload.progress_percent != null ? "%" : ""}</div>
+          </div>
+        </div>
+        <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+          <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Detailed message</div>
+          <div class="mt-2">${esc(phaseDetail)}</div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+            <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Current case ID</div>
+            <div class="font-black mt-2 mono">${esc(payload.current_case_id || "not_available")}</div>
+          </div>
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+            <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Repetition / execution ID</div>
+            <div class="font-black mt-2 mono">${esc(payload.current_execution_id || "not_available")}</div>
+          </div>
+        </div>
+        <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+          <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Report output path</div>
+          <div class="font-black mt-2 mono break-all">${esc(payload.report_output_path || "not_available")}</div>
+        </div>
+        ${warnings.length ? `
+          <div class="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-amber-200">
+            <div class="font-black">Warnings or degraded states</div>
+            <div class="mt-2 space-y-1">${warnings.map((item) => `<div>${esc(item)}</div>`).join("")}</div>
+          </div>
+        ` : ""}
+        <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+          <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Final status</div>
+          <div class="font-black mt-2 ${statusClass(payload.status)}">${esc(titleCaseStatus(payload.status || "running"))}</div>
+        </div>
+      </div>
+    `;
+    closeBtn.classList.toggle("hidden", !terminal);
+    openBtn.classList.toggle("hidden", !terminal || !(payload.current_execution_id || payload.level_a_report?.execution_id));
+    openBtn.onclick = () => openLevelAReport(payload.current_execution_id || payload.level_a_report?.execution_id);
+  }
+
+  function openLevelAReportProgressOverlay(jobId) {
+    state.levelAReportOverlayJobId = jobId;
+    ensureLevelAReportOverlay();
   }
 
   function originStatusNodeId(origin, executionId) {
@@ -2268,6 +2391,9 @@
     const root = byId("job-panel");
     if (!root) return;
     renderFloatingJobToast(payload);
+    if (payload && isLevelAReportJob(payload) && state.levelAReportOverlayJobId === payload.job_id) {
+      renderLevelAReportOverlay(payload);
+    }
     if (!payload) {
       root.innerHTML = `
         <div class="font-black">No active background job.</div>
@@ -2449,6 +2575,9 @@
       const rawPayload = await getJson(`/api/foc/experimentation/jobs/${encodeURIComponent(state.activeJobId)}`);
       const hydrated = await hydrateExperimentationJob(rawPayload);
       const payload = hydrated.payload;
+      if (isLevelAReportJob(payload) && !state.levelAReportOverlayJobId) {
+        openLevelAReportProgressOverlay(payload.job_id);
+      }
       renderJob(payload);
       saveActiveJob({
         job_id: payload.job_id,
@@ -2535,6 +2664,50 @@
       body: JSON.stringify({}),
     });
     trackJob(res.job_id);
+  }
+
+  async function generateLevelAScientificReport() {
+    const campaign = selectedCampaign();
+    if (!campaign) return;
+    const level = String(campaign.level || state.selectedCampaignDetail?.config?.level || "A").toUpperCase();
+    if (level !== "A") return;
+    const res = await getJson("/api/foc/repetitions/level-a/report/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ campaign_id: campaign.campaign_id }),
+    });
+    openLevelAReportProgressOverlay(res.job_id);
+    trackJob(res.job_id);
+  }
+
+  async function openLevelAReport(executionId) {
+    if (!executionId) return;
+    const payload = await getJson(`/api/foc/repetitions/level-a/report/open/${encodeURIComponent(executionId)}`);
+    openOverlay(
+      `Level A Scientific Report · ${executionId}`,
+      `
+        <div class="space-y-4">
+          <div class="text-sm text-slate-300">
+            <div><span class="font-black">Case ID:</span> <span class="mono">${esc(payload.case_id || "not_available")}</span></div>
+            <div class="mt-2"><span class="font-black">Report path:</span> <span class="mono break-all">${esc(payload.report_path || payload.report_output_path || "not_available")}</span></div>
+            <div class="mt-2"><span class="font-black">Generated at:</span> ${esc(payload.generated_at || "not_available")}</div>
+            <div class="mt-2"><span class="font-black">Status:</span> ${esc(titleCaseStatus(payload.status || "unknown"))}</div>
+          </div>
+          <details class="helper-details" open>
+            <summary class="help-chip">Scientific Markdown Report</summary>
+            <pre class="whitespace-pre-wrap break-words text-xs text-slate-200 mono mt-4">${esc(payload.report_markdown || "Report markdown not available.")}</pre>
+          </details>
+          <details class="helper-details">
+            <summary class="help-chip">Evidence-To-Claim Map</summary>
+            <pre class="whitespace-pre-wrap break-words text-xs text-slate-200 mono mt-4">${esc(JSON.stringify(payload.evidence_to_claim_map || {}, null, 2))}</pre>
+          </details>
+          <details class="helper-details">
+            <summary class="help-chip">Source Files Index</summary>
+            <pre class="whitespace-pre-wrap break-words text-xs text-slate-200 mono mt-4">${esc(JSON.stringify(payload.source_files_index || {}, null, 2))}</pre>
+          </details>
+        </div>
+      `
+    );
   }
 
   function runRealLevelBExecution() {
@@ -2633,6 +2806,7 @@
     byId("campaign-pause-btn")?.addEventListener("click", () => changeCampaignState("pause"));
     byId("campaign-stop-btn")?.addEventListener("click", () => changeCampaignState("stop"));
     byId("campaign-run-next-btn")?.addEventListener("click", runNextExecution);
+    byId("campaign-level-a-report-btn")?.addEventListener("click", generateLevelAScientificReport);
     byId("campaign-run-real-btn")?.addEventListener("click", runRealLevelBExecution);
     byId("register-case-btn")?.addEventListener("click", registerExistingCaseAsResultCard);
     bindRecommendedExperimentButtons();

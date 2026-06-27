@@ -36,6 +36,11 @@ from app_core.infrastructure.foc_experimentation.config import (
 from app_core.infrastructure.foc_experimentation.execution_service import execution_artifacts, load_execution, regenerate_execution_profile
 from app_core.infrastructure.foc_experimentation.job_runner import get_job
 from app_core.infrastructure.foc_experimentation.level_b_orchestrator import start_real_level_b_execution_job
+from app_core.infrastructure.foc_experimentation.level_a_scientific_report_service import (
+    get_latest_level_a_report,
+    open_level_a_report,
+    start_level_a_scientific_report_job,
+)
 from app_core.infrastructure.foc_experimentation.methodological_basis import load_methodological_basis
 from app_core.infrastructure.foc_experimentation.scientific_memory import load_registry as load_memory_registry
 from app_core.infrastructure.foc_experimentation.scientific_memory_sync import sync_scientific_memory
@@ -257,6 +262,48 @@ def api_foc_experimentation_job_status(job_id: str):
     payload = get_job(job_id)
     if not payload:
         return jsonify({"error": "job_not_found", "job_id": job_id}), 404
+    return jsonify(payload), 200
+
+
+@experimentation_bp.route("/api/foc/repetitions/level-a/report/generate", methods=["POST"])
+def api_foc_level_a_report_generate():
+    body = request.get_json(silent=True) or {}
+    campaign_id = str(body.get("campaign_id") or "").strip()
+    if not campaign_id:
+        return jsonify({"error": "campaign_id_required"}), 400
+    try:
+        job = start_level_a_scientific_report_job(campaign_id)
+    except FileNotFoundError:
+        return jsonify({"error": "campaign_not_found", "campaign_id": campaign_id}), 404
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "campaign_id": campaign_id}), 400
+    return jsonify(job), 202
+
+
+@experimentation_bp.route("/api/foc/repetitions/level-a/report/jobs/<job_id>", methods=["GET"])
+def api_foc_level_a_report_job(job_id: str):
+    payload = get_job(job_id)
+    if not payload:
+        return jsonify({"error": "job_not_found", "job_id": job_id}), 404
+    return jsonify(payload), 200
+
+
+@experimentation_bp.route("/api/foc/repetitions/level-a/report/latest", methods=["GET"])
+def api_foc_level_a_report_latest():
+    case_id = str(request.args.get("case_id") or "").strip()
+    if not case_id:
+        return jsonify({"error": "case_id_required"}), 400
+    payload = get_latest_level_a_report(case_id)
+    if not payload:
+        return jsonify({"error": "report_not_found", "case_id": case_id}), 404
+    return jsonify(payload), 200
+
+
+@experimentation_bp.route("/api/foc/repetitions/level-a/report/open/<execution_id>", methods=["GET"])
+def api_foc_level_a_report_open(execution_id: str):
+    payload = open_level_a_report(execution_id)
+    if not payload:
+        return jsonify({"error": "report_not_found", "execution_id": execution_id}), 404
     return jsonify(payload), 200
 
 

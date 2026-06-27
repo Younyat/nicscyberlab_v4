@@ -292,6 +292,7 @@
           <div id="campaign-resource-actions" class="glass-soft rounded-[24px] p-5 mt-5 text-sm text-slate-300 hidden"></div>
           <div id="scenario-redeployment-actions" class="glass-soft rounded-[24px] p-5 mt-5 text-sm text-slate-300 hidden"></div>
           <div class="mt-4 text-sm text-slate-400">This action creates the next isolated execution workspace for the selected campaign. The exact stages depend on the evaluation level.</div>
+          <div class="mt-3 text-sm text-slate-400">Generate Level A Scientific Report runs a dedicated read-only scientific audit workflow over the preserved base case, creates a new Level A execution workspace, checks repeatability against previous Level A executions, and writes an auditable report bundle with source index and evidence-to-claim map.</div>
           <div id="campaign-action-note" class="mt-3 text-sm"></div>
           <div id="level-b-dry-run-banner" class="hidden mt-3 rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4 text-sm text-slate-300"></div>
           <div class="flex gap-3 flex-wrap mt-5">
@@ -299,6 +300,7 @@
             <button id="campaign-pause-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Pause Selected Campaign</button>
             <button id="campaign-stop-btn" class="btn-danger rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Stop Selected Campaign</button>
             <button id="campaign-run-next-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Run Dry-Run Execution</button>
+            <button id="campaign-level-a-report-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase hidden">Generate Level A Scientific Report</button>
             <button id="campaign-run-real-btn" class="btn-danger rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase hidden">Run Real Level B Execution</button>
           </div>
           <div class="mt-4 text-sm text-slate-400">Run Dry-Run Execution reuses the existing scientific backend chain over a preserved reference case or the active preserved case: it bootstraps FOC, regenerates reconstruction, runs causal reconstruction, runs the full evidence lifecycle, and then registers the next isolated execution workspace from those refreshed outputs. It does not launch a real attack, wait for a real alert, create a heavy forensic case, or execute real acquisition. Run Real Level B Execution arms DFIR auto-acquisition, launches the selected attack, waits for a real detection, creates a new forensic case, acquires evidence, analyzes it, and registers comparable results — one execution at a time, never through Start Selected Campaign.</div>
@@ -341,6 +343,6 @@
   </div>
   <script src="/js/theme-switcher.js"></script>
   <script>window.NicsThemeSwitcher.mount('#theme-switcher-mount');</script>
-  <script src="/js/foc_repetition_manager.js?v=20260625-foc-experimentation-14"></script>
+  <script src="/js/foc_repetition_manager.js?v=20260627-foc-experimentation-15"></script>
 </body>
 </html>

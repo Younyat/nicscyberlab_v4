@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-06-26T22:33:42.450210+00:00",
+  "generated_at": "2026-06-27T12:58:24.516120+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
   "total_correlation_records": 4641,
-  "total_alerts": 1320,
-  "relevant_alerts": 126,
+  "total_alerts": 3061,
+  "relevant_alerts": 1438,
   "correlated_alerts": 1770,
   "confirmed_correlations": 1770,
   "weak_correlations": 0,
@@ -15,7 +15,7 @@
   "bucket_counts": {
     "correlated": 1770,
     "uncorrelated": 2832,
-    "noise": 1194,
+    "noise": 1623,
     "false_positive_candidate": 0,
     "missing_expected_alert": 39,
     "weak_candidate": 0,
@@ -51,29 +51,29 @@
   "severity_distribution": [
     {
       "label": "LOW",
-      "count": 1194
-    },
-    {
-      "label": "MEDIUM",
-      "count": 96
+      "count": 1623
     },
     {
       "label": "HIGH",
-      "count": 30
+      "count": 1150
+    },
+    {
+      "label": "MEDIUM",
+      "count": 288
     }
   ],
   "alerts_by_node": [
     {
       "label": "node-c800d431",
-      "count": 1095
+      "count": 1524
+    },
+    {
+      "label": "node-e1ac03b8",
+      "count": 864
     },
     {
       "label": "node-f9ca9bfc",
       "count": 177
-    },
-    {
-      "label": "node-e1ac03b8",
-      "count": 48
     }
   ],
   "alerts_by_mitre_technique": [
@@ -89,17 +89,17 @@
   "alerts_by_original_sensor": [
     {
       "label": "suricata",
-      "count": 1224
+      "count": 1653
     },
     {
       "label": "wazuh",
-      "count": 96
+      "count": 1408
     }
   ],
   "alerts_by_collector": [
     {
       "label": "wazuh",
-      "count": 1320
+      "count": 3061
     }
   ],
   "unique_confirmed_attack_pairs": 1,
