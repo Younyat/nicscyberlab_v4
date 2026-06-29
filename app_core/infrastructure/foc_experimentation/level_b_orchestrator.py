@@ -206,16 +206,36 @@ def _build_alert_matcher(attack: dict):
         for item in (attack.get("expected_alerts") or [])
         if str(item).strip()
     }
+    attack_mitre = str(attack.get("mitre_id") or "").strip().upper()
 
     def matcher(out: dict) -> bool:
         triage = out.get("triage") or {}
         primary = out.get("primary") or {}
         if triage.get("severity") not in {"HIGH", "CRITICAL"} or not triage.get("recommend_forensics"):
             return False
-        if not expected_alert_tokens:
+        raw = primary.get("raw") or {}
+        raw_data = raw.get("data") or {}
+        raw_alert = raw_data.get("alert") or {}
+        haystack = " ".join(
+            [
+                str(primary.get("signature") or ""),
+                str(primary.get("alert_type") or ""),
+                str(primary.get("description") or ""),
+                str(primary.get("rule_id") or ""),
+                str(raw_alert.get("signature") or ""),
+                str(raw_alert.get("signature_id") or ""),
+                json.dumps(raw_alert.get("metadata") or {}, ensure_ascii=False),
+            ]
+        ).lower()
+        if expected_alert_tokens and any(token in haystack for token in expected_alert_tokens):
             return True
-        haystack = f"{primary.get('signature') or ''} {primary.get('alert_type') or ''} {primary.get('description') or ''}".lower()
-        return any(token in haystack for token in expected_alert_tokens)
+        raw_mitre = raw.get("mitre_mapping")
+        if attack_mitre and (
+            (isinstance(raw_mitre, str) and attack_mitre in raw_mitre.upper())
+            or (isinstance(raw_mitre, list) and any(attack_mitre in str(item or "").upper() for item in raw_mitre))
+        ):
+            return True
+        return "modbus" in haystack and any(token in haystack for token in ["write", "register", "control"])
 
     return matcher
 

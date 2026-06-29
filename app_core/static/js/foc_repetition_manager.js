@@ -108,6 +108,7 @@
     lastRecommendation: null,
     justCreatedCampaignId: null,
     levelAReportOverlayJobId: null,
+    levelBOverlayJobId: null,
   };
   const ACTIVE_JOB_STORAGE_KEY = "nics-foc-experimentation-active-job";
 
@@ -253,6 +254,27 @@
 
   function isLevelAReportJob(payload) {
     return String(payload?.job_type || "").toLowerCase() === "level_a_scientific_report";
+  }
+
+  function isLevelBRepetitionJob(payload) {
+    return String(payload?.job_type || "").toLowerCase() === "level_b_repetitions";
+  }
+
+  function getBrowserDfirMode() {
+    try {
+      return (localStorage.getItem("nics_dfir_auto") || "0") === "1" ? "on" : "off";
+    } catch {
+      return "unknown";
+    }
+  }
+
+  function setBrowserDfirModeOn() {
+    try {
+      localStorage.setItem("nics_dfir_auto", "1");
+      return "on";
+    } catch {
+      return "unknown";
+    }
   }
 
   function analysisPhaseLabel(phaseKey) {
@@ -1748,6 +1770,7 @@
           <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Dry-run default</div><div class="font-black mt-2">${cfg.dry_run ? "yes" : "no"}</div></div>
           <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Requested comparison family</div><div class="font-black mt-2 mono">${esc(cfg.requested_comparison_family_id || "new family unless recommendation is applied")}</div></div>
         </div>
+        ${level === "B" ? renderLatestLevelBReportSection(campaign) : ""}
         ${technicalFailures.length ? `
           <div>
             <div class="font-black text-red-300">Technical failures</div>
@@ -1774,6 +1797,9 @@
 
     renderCampaignResourceActions(campaign, executionDetails.filter(Boolean));
     renderScenarioRedeploymentActions();
+    root.querySelectorAll("[data-open-level-b-report]").forEach((btn) => {
+      btn.addEventListener("click", () => openLevelBReport(btn.dataset.openLevelBReport));
+    });
 
     applyCampaignActionState(campaign, runningJob, cfg);
 
@@ -1808,7 +1834,11 @@
     const startBtn = byId("campaign-start-btn");
     const runNextBtn = byId("campaign-run-next-btn");
     const levelAReportBtn = byId("campaign-level-a-report-btn");
+    const paperLevelABtn = byId("campaign-paper-level-a-btn");
+    const paperLevelBBtn = byId("campaign-paper-level-b-btn");
+    const paperLevelCBtn = byId("campaign-paper-level-c-btn");
     const runRealBtn = byId("campaign-run-real-btn");
+    const runBatchBtn = byId("campaign-run-level-b-repetitions-btn");
     const pauseBtn = byId("campaign-pause-btn");
     const stopBtn = byId("campaign-stop-btn");
     const note = byId("campaign-action-note");
@@ -1817,7 +1847,7 @@
       startBtn.disabled = busy || noCampaign;
       startBtn.classList.toggle("opacity-50", busy || noCampaign);
       startBtn.classList.toggle("cursor-not-allowed", busy || noCampaign);
-      startBtn.textContent = busy ? "Campaign Running" : "Start Selected Campaign";
+      startBtn.textContent = busy ? "Campaign Queue Busy" : "Queue Selected Campaign";
       startBtn.title = isLevelB
         ? "Start Selected Campaign always runs dry-run executions for Level B. It never chains real attacks unattended."
         : (busy ? "A campaign job is already running for this workspace." : (noCampaign ? "Select or create a campaign first." : ""));
@@ -1826,7 +1856,7 @@
       runNextBtn.disabled = busy || noCampaign;
       runNextBtn.classList.toggle("opacity-50", busy || noCampaign);
       runNextBtn.classList.toggle("cursor-not-allowed", busy || noCampaign);
-      runNextBtn.textContent = busy ? "Execution In Progress" : "Run Dry-Run Execution";
+      runNextBtn.textContent = busy ? "Dry-Run In Progress" : "Run Next Dry-Run Execution";
       runNextBtn.title = busy ? "Wait until the current experimentation job finishes." : (noCampaign ? "Select or create a campaign first." : "");
     }
     if (levelAReportBtn) {
@@ -1835,10 +1865,43 @@
       levelAReportBtn.disabled = blocked;
       levelAReportBtn.classList.toggle("opacity-50", blocked);
       levelAReportBtn.classList.toggle("cursor-not-allowed", blocked);
-      levelAReportBtn.textContent = busy ? "Report Generation In Progress" : "Generate Level A Scientific Report";
+      levelAReportBtn.textContent = busy ? "Consolidated Report In Progress" : "Generate Consolidated Level A Report";
       levelAReportBtn.title = busy
         ? "Wait until the current experimentation job finishes."
-        : (noCampaign ? "Select or create a campaign first." : "Generate a dedicated auditable scientific report for a new Level A repetition over the preserved case.");
+        : (noCampaign ? "Select or create a campaign first." : "Run the same Level A dry-run execution path several times over the preserved case, then generate one consolidated auditable scientific report from those fresh repetitions.");
+    }
+    if (paperLevelABtn) {
+      const blocked = busy || noCampaign || level !== "A";
+      paperLevelABtn.classList.toggle("hidden", level !== "A");
+      paperLevelABtn.disabled = blocked;
+      paperLevelABtn.classList.toggle("opacity-50", blocked);
+      paperLevelABtn.classList.toggle("cursor-not-allowed", blocked);
+      paperLevelABtn.textContent = busy ? "Paper Evidence In Progress" : "Generate Level A Paper Evidence Report";
+      paperLevelABtn.title = busy
+        ? "Wait until the current experimentation job finishes."
+        : (noCampaign ? "Select or create a campaign first." : "Run the current Level A read-only scientific workflow, then package the resulting metrics, limitations, table registry, and reviewer-facing interpretation for the paper.");
+    }
+    if (paperLevelBBtn) {
+      const blocked = busy || noCampaign || level !== "B";
+      paperLevelBBtn.classList.toggle("hidden", level !== "B");
+      paperLevelBBtn.disabled = blocked;
+      paperLevelBBtn.classList.toggle("opacity-50", blocked);
+      paperLevelBBtn.classList.toggle("cursor-not-allowed", blocked);
+      paperLevelBBtn.textContent = busy ? "Paper Evidence In Progress" : "Generate Level B Paper Evidence Report";
+      paperLevelBBtn.title = busy
+        ? "Wait until the current experimentation job finishes."
+        : (noCampaign ? "Select or create a campaign first." : "Prepare the Level B paper evidence package and its table registry. Runtime Level B paper metrics remain explicitly unsupported until the dedicated paper-grade execution path is completed.");
+    }
+    if (paperLevelCBtn) {
+      const blocked = busy || noCampaign || level !== "C";
+      paperLevelCBtn.classList.toggle("hidden", level !== "C");
+      paperLevelCBtn.disabled = blocked;
+      paperLevelCBtn.classList.toggle("opacity-50", blocked);
+      paperLevelCBtn.classList.toggle("cursor-not-allowed", blocked);
+      paperLevelCBtn.textContent = busy ? "Paper Evidence In Progress" : "Generate Level C Paper Evidence Report";
+      paperLevelCBtn.title = busy
+        ? "Wait until the current experimentation job finishes."
+        : (noCampaign ? "Select or create a campaign first." : "Prepare the Level C paper evidence package and record the current redeployment evidence gap explicitly.");
     }
     if (runRealBtn) {
       runRealBtn.classList.toggle("hidden", !isLevelB);
@@ -1851,6 +1914,18 @@
       runRealBtn.title = busy
         ? "Wait until the current experimentation job finishes."
         : (noCampaign ? "Select or create a campaign first." : (noAttack ? "Select an attack profile for this campaign before running a real execution." : "This launches a real attack, waits for a real alert, and creates a new forensic case. A confirmation step will ask you to type OK."));
+    }
+    if (runBatchBtn) {
+      runBatchBtn.classList.toggle("hidden", !isLevelB);
+      const noAttack = isLevelB && !attackId;
+      const blocked = busy || noCampaign || !isLevelB || noAttack;
+      runBatchBtn.disabled = blocked;
+      runBatchBtn.classList.toggle("opacity-50", blocked);
+      runBatchBtn.classList.toggle("cursor-not-allowed", blocked);
+      runBatchBtn.textContent = busy ? "Batch In Progress" : "Run Level B Repetitions";
+      runBatchBtn.title = busy
+        ? "Wait until the current experimentation job finishes."
+        : (noCampaign ? "Select or create a campaign first." : (noAttack ? "Select an attack profile for this campaign before running the configured Level B repetitions." : "Run the configured Level B repetitions with optional cleanup, one new case per execution, and nested Level A comparability reports."));
     }
     if (pauseBtn) {
       pauseBtn.disabled = noCampaign;
@@ -1927,7 +2002,7 @@
           ${level === "A" || (item.run_case_id && truthy(item.run_case_id)) ? `<a class="text-cyan-300 underline" href="/foc_scientific_evidence_lifecycle.html?case_id=${encodeURIComponent(level === "A" ? sourceCase : item.run_case_id)}">${esc(meta.dashboardActionLabel)}</a>` : ""}
           <button type="button" class="text-cyan-300 underline execution-workspace-btn" data-execution-id="${esc(item.execution_id)}">Open Execution Workspace</button>
           <button type="button" class="text-cyan-300 underline execution-profile-btn" data-execution-id="${esc(item.execution_id)}" ${profileAvailable ? "" : "disabled"}>Open Comparison Profile</button>
-          ${level === "A" && latestLevelAReport ? `<button type="button" class="text-cyan-300 underline execution-level-a-report-btn" data-execution-id="${esc(item.execution_id)}">Open Level A Scientific Report</button>` : ""}
+          ${level === "A" && latestLevelAReport ? `<button type="button" class="text-cyan-300 underline execution-level-a-report-btn" data-execution-id="${esc(item.execution_id)}" data-campaign-id="${esc(item.campaign_id || "")}">Open Level A Scientific Report</button>` : ""}
           <button type="button" class="text-cyan-300 underline execution-compare-btn ${comparableCount >= 2 && profileAvailable ? "" : "opacity-50 cursor-not-allowed"}" data-execution-id="${esc(item.execution_id)}" ${comparableCount >= 2 && profileAvailable ? "" : "disabled"}>Compare with other executions</button>
           ${cleanupState.visible ? `<button type="button" class="text-amber-300 underline generated-case-cleanup-btn ${cleanupState.canDelete ? "" : "opacity-50 cursor-not-allowed"}" data-campaign-id="${esc(item.campaign_id || "")}" data-execution-id="${esc(item.execution_id)}" data-case-id="${esc(item.run_case_id || "")}" data-origin="execution-card" ${cleanupState.canDelete ? "" : "disabled"}>Delete Generated Case Artifacts</button>` : ""}
         </div>
@@ -1964,7 +2039,7 @@
       });
     });
     document.querySelectorAll(".execution-level-a-report-btn").forEach((btn) => {
-      btn.addEventListener("click", () => openLevelAReport(btn.dataset.executionId));
+      btn.addEventListener("click", () => openLevelAReport(btn.dataset.executionId, btn.dataset.campaignId || campaignId || null));
     });
     document.querySelectorAll(".execution-compare-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -2043,13 +2118,25 @@
           </div>
           <div id="foc-level-a-report-overlay-body" class="mt-6"></div>
           <div class="mt-6 flex items-center justify-center gap-3 flex-wrap">
+            <button id="foc-level-a-report-stop-btn" type="button" class="btn-danger rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Stop Current Job</button>
+            <button id="foc-level-a-report-force-stop-btn" type="button" class="btn-danger rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Force Stop</button>
             <button id="foc-level-a-report-open-btn" type="button" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase hidden">Open Report</button>
-            <button id="foc-level-a-report-close-btn" type="button" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase hidden">Close</button>
+            <button id="foc-level-a-report-close-btn" type="button" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Close Window</button>
           </div>
         </div>
       </div>
     `;
     document.body.appendChild(root);
+    byId("foc-level-a-report-stop-btn")?.addEventListener("click", async () => {
+      const jobId = state.levelAReportOverlayJobId;
+      if (!jobId) return;
+      await cancelExperimentationJob(jobId, "Level A scientific report generation");
+    });
+    byId("foc-level-a-report-force-stop-btn")?.addEventListener("click", async () => {
+      const jobId = state.levelAReportOverlayJobId;
+      if (!jobId) return;
+      await confirmForceStopExperimentationJob(jobId, "Level A scientific report generation");
+    });
     byId("foc-level-a-report-close-btn")?.addEventListener("click", () => {
       state.levelAReportOverlayJobId = null;
       root.remove();
@@ -2063,7 +2150,9 @@
     const body = byId("foc-level-a-report-overlay-body");
     const closeBtn = byId("foc-level-a-report-close-btn");
     const openBtn = byId("foc-level-a-report-open-btn");
-    if (!body || !closeBtn || !openBtn) return;
+    const stopBtn = byId("foc-level-a-report-stop-btn");
+    const forceStopBtn = byId("foc-level-a-report-force-stop-btn");
+    if (!body || !closeBtn || !openBtn || !stopBtn || !forceStopBtn) return;
     if (!payload || !isLevelAReportJob(payload) || state.levelAReportOverlayJobId !== payload.job_id) {
       return;
     }
@@ -2119,14 +2208,356 @@
         </div>
       </div>
     `;
-    closeBtn.classList.toggle("hidden", !terminal);
-    openBtn.classList.toggle("hidden", !terminal || !(payload.current_execution_id || payload.level_a_report?.execution_id));
-    openBtn.onclick = () => openLevelAReport(payload.current_execution_id || payload.level_a_report?.execution_id);
+    stopBtn.classList.toggle("hidden", terminal);
+    stopBtn.disabled = String(payload.status || "").toLowerCase() === "cancel_requested";
+    stopBtn.classList.toggle("opacity-50", stopBtn.disabled);
+    stopBtn.classList.toggle("cursor-not-allowed", stopBtn.disabled);
+    forceStopBtn.classList.toggle("hidden", terminal);
+    forceStopBtn.disabled = ["stopped", "force_stop_requested"].includes(String(payload.status || "").toLowerCase());
+    forceStopBtn.classList.toggle("opacity-50", forceStopBtn.disabled);
+    forceStopBtn.classList.toggle("cursor-not-allowed", forceStopBtn.disabled);
+    const reportExecutionId = payload.level_a_report?.execution_id || null;
+    const reportCampaignId = payload.level_a_report?.campaign_id || payload.meta?.campaign_id || null;
+    openBtn.classList.toggle("hidden", !terminal || !reportExecutionId || !payload.level_a_report?.report_markdown_path);
+    openBtn.onclick = () => openLevelAReport(reportExecutionId, reportCampaignId);
   }
 
   function openLevelAReportProgressOverlay(jobId) {
     state.levelAReportOverlayJobId = jobId;
     ensureLevelAReportOverlay();
+  }
+
+  function ensureLevelBOverlay() {
+    let root = byId("foc-level-b-overlay");
+    if (root) return root;
+    root = document.createElement("div");
+    root.id = "foc-level-b-overlay";
+    root.className = "fixed inset-0 z-[1200] bg-slate-950/55 backdrop-blur-sm p-4 md:p-8";
+    root.innerHTML = `
+      <div class="mx-auto max-w-4xl h-full flex items-center justify-center">
+        <div class="glass rounded-[30px] p-6 w-full shadow-2xl border border-red-500/20">
+          <div class="text-center">
+            <div class="text-[11px] tracking-[0.28em] uppercase text-red-300 font-black">Level B Repetitions</div>
+            <h2 class="text-2xl font-black mt-3">Independent Incident Batch Progress</h2>
+          </div>
+          <div id="foc-level-b-overlay-body" class="mt-6"></div>
+          <div class="mt-6 flex items-center justify-center gap-3 flex-wrap">
+            <button id="foc-level-b-stop-btn" type="button" class="btn-danger rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Stop Current Job</button>
+            <button id="foc-level-b-force-stop-btn" type="button" class="btn-danger rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Force Stop</button>
+            <button id="foc-level-b-cleanup-btn" type="button" class="btn-danger rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Force Stop And Clean Batch</button>
+            <button id="foc-level-b-open-report-btn" type="button" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase hidden">Open Report</button>
+            <button id="foc-level-b-close-btn" type="button" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Close Window</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(root);
+    byId("foc-level-b-stop-btn")?.addEventListener("click", async () => {
+      const jobId = state.levelBOverlayJobId;
+      if (!jobId) return;
+      await cancelExperimentationJob(jobId, "Level B repetition batch");
+    });
+    byId("foc-level-b-force-stop-btn")?.addEventListener("click", async () => {
+      const jobId = state.levelBOverlayJobId;
+      if (!jobId) return;
+      await confirmForceStopExperimentationJob(jobId, "Level B repetition batch");
+    });
+    byId("foc-level-b-cleanup-btn")?.addEventListener("click", async () => {
+      const jobId = state.levelBOverlayJobId;
+      if (!jobId) return;
+      await confirmCleanupLevelBJob(jobId);
+    });
+    byId("foc-level-b-close-btn")?.addEventListener("click", () => {
+      state.levelBOverlayJobId = null;
+      root.remove();
+    });
+    return root;
+  }
+
+  function renderLevelBOverlay(payload) {
+    const root = byId("foc-level-b-overlay");
+    if (!root) return;
+    const body = byId("foc-level-b-overlay-body");
+    const closeBtn = byId("foc-level-b-close-btn");
+    const openBtn = byId("foc-level-b-open-report-btn");
+    const stopBtn = byId("foc-level-b-stop-btn");
+    const forceStopBtn = byId("foc-level-b-force-stop-btn");
+    const cleanupBtn = byId("foc-level-b-cleanup-btn");
+    if (!body || !closeBtn || !openBtn || !stopBtn || !forceStopBtn || !cleanupBtn) return;
+    if (!payload || !isLevelBRepetitionJob(payload) || state.levelBOverlayJobId !== payload.job_id) return;
+    const terminal = isTerminalJobStatus(payload.status);
+    const phaseStatuses = payload.phase_statuses || [];
+    const lastPhase = phaseStatuses.length ? phaseStatuses[phaseStatuses.length - 1] : null;
+    const phaseLabel = payload.current_phase_label || lastPhase?.phase_label || titleCaseStatus(payload.current_phase || "queued");
+    const phaseDetail = formatDetail(payload.current_phase_detail || lastPhase?.detail || "No detail available.");
+    const phaseStatus = lastPhase?.status || payload.status || "running";
+    const warnings = payload.warnings || [];
+    const blockers = (payload.errors || []).map((item) => item?.message || JSON.stringify(item));
+    body.innerHTML = `
+      <div class="space-y-5 text-sm text-slate-200">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+            <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Global repetition progress</div>
+            <div class="font-black mt-2">${esc(payload.current_repetition || 0)} / ${esc(payload.requested_repetitions || payload.meta?.requested_repetitions || 5)}</div>
+          </div>
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+            <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Current phase</div>
+            <div class="font-black mt-2">${esc(phaseLabel)}</div>
+          </div>
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+            <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Current phase status</div>
+            <div class="font-black mt-2 ${statusClass(phaseStatus)}">${esc(titleCaseStatus(phaseStatus))}</div>
+          </div>
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+            <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Exact progress</div>
+            <div class="font-black mt-2">${esc(payload.progress_percent ?? "not_available")}${payload.progress_percent != null ? "%" : ""}</div>
+          </div>
+        </div>
+        <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+          <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Detailed message</div>
+          <div class="mt-2">${esc(phaseDetail)}</div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Current case ID</div><div class="font-black mt-2 mono">${esc(payload.current_case_id || "not_available")}</div></div>
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Repetition / execution ID</div><div class="font-black mt-2 mono">${esc(payload.current_execution_id || "not_available")}</div></div>
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Report output path</div><div class="font-black mt-2 mono break-all">${esc(payload.report_output_path || "not_available")}</div></div>
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Final status</div><div class="font-black mt-2 ${statusClass(payload.status)}">${esc(titleCaseStatus(payload.status || "running"))}</div></div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Attack status</div><div class="font-black mt-2">${esc(titleCaseStatus(payload.current_attack_status || "queued"))}</div></div>
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Alert status</div><div class="font-black mt-2">${esc(titleCaseStatus(payload.current_alert_status || "queued"))}</div></div>
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Acquisition status</div><div class="font-black mt-2">${esc(titleCaseStatus(payload.current_acquisition_status || "queued"))}</div></div>
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Preservation status</div><div class="font-black mt-2">${esc(titleCaseStatus(payload.current_preservation_status || "queued"))}</div></div>
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Analysis status</div><div class="font-black mt-2">${esc(titleCaseStatus(payload.current_analysis_status || "queued"))}</div></div>
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Reconstruction/report status</div><div class="font-black mt-2">${esc(titleCaseStatus(payload.current_reconstruction_status || "queued"))}</div></div>
+        </div>
+        ${warnings.length ? `<div class="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-amber-200"><div class="font-black">Warnings</div><div class="mt-2 space-y-1">${warnings.slice(-8).map((item) => `<div>${esc(item)}</div>`).join("")}</div></div>` : ""}
+        ${blockers.length ? `<div class="rounded-2xl border border-red-500/30 bg-red-500/5 p-4 text-red-200"><div class="font-black">Blockers</div><div class="mt-2 space-y-1">${blockers.slice(-8).map((item) => `<div>${esc(item)}</div>`).join("")}</div></div>` : ""}
+      </div>
+    `;
+    stopBtn.classList.toggle("hidden", terminal);
+    stopBtn.disabled = String(payload.status || "").toLowerCase() === "cancel_requested";
+    stopBtn.classList.toggle("opacity-50", stopBtn.disabled);
+    stopBtn.classList.toggle("cursor-not-allowed", stopBtn.disabled);
+    forceStopBtn.classList.toggle("hidden", terminal);
+    forceStopBtn.disabled = ["stopped", "force_stop_requested"].includes(String(payload.status || "").toLowerCase());
+    forceStopBtn.classList.toggle("opacity-50", forceStopBtn.disabled);
+    forceStopBtn.classList.toggle("cursor-not-allowed", forceStopBtn.disabled);
+    cleanupBtn.classList.toggle("hidden", false);
+    cleanupBtn.disabled = false;
+    cleanupBtn.classList.remove("opacity-50", "cursor-not-allowed");
+    openBtn.classList.toggle("hidden", !terminal || !payload.level_b_report_path);
+    openBtn.onclick = () => openLevelBReport(payload.job_id);
+  }
+
+  async function cancelExperimentationJob(jobId, label) {
+    try {
+      await getJson(`/api/foc/experimentation/jobs/${encodeURIComponent(jobId)}/cancel`, { method: "POST" });
+    } catch (err) {
+      openOverlay("Job cancellation", `<div class="text-red-300 text-sm">${esc(err.message)}</div>`);
+      return;
+    }
+    openOverlay(
+      "Job cancellation requested",
+      `<div class="space-y-3 text-sm text-slate-300">
+        <div>A cancellation request was sent for <span class="mono">${esc(jobId)}</span>.</div>
+        <div>${esc(label)} will stop cooperatively as soon as the current backend phase reaches a safe checkpoint. If an underlying scientific subsystem does not support hard interruption, some nested work may still finish in the background.</div>
+      </div>`
+    );
+    await pollJob();
+  }
+
+  async function confirmForceStopExperimentationJob(jobId, label) {
+    openOkConfirmDialog({
+      title: "Force Stop Job",
+      bodyIntro: `You are about to force-stop ${label}. This immediately releases the experimentation wrapper and also asks the nested lifecycle and preserved-case analysis to stop.`,
+      bodyHtml: `
+        <div class="rounded-2xl border border-red-500/30 bg-red-500/5 p-4 text-red-200">
+          Use this only when normal cancellation is not being honored. Some backend scientific threads may still need a short time to acknowledge the stop request, but the dashboard job will be closed immediately.
+        </div>
+        <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+          <div><span class="font-black">Job ID:</span> <span class="mono">${esc(jobId)}</span></div>
+        </div>
+      `,
+      confirmLabel: "Force Stop Job",
+      onConfirm: async (resultNode, overlay) => {
+        try {
+          const payload = await getJson(`/api/foc/experimentation/jobs/${encodeURIComponent(jobId)}/force-stop`, { method: "POST" });
+          if (resultNode) {
+            resultNode.innerHTML = `<div class="text-amber-200">${esc(payload.note || "Force stop was requested.")}</div>`;
+          }
+          await pollJob();
+          setTimeout(() => overlay?.remove(), 900);
+        } catch (err) {
+          if (resultNode) resultNode.innerHTML = `<div class="text-red-300">${esc(err.message)}</div>`;
+        }
+      },
+    });
+  }
+
+  async function confirmCleanupLevelBJob(jobId) {
+    openOkConfirmDialog({
+      title: "Force Stop And Clean Level B Batch",
+      bodyIntro: "This action force-stops the Level B batch and then deletes everything that was created by that batch as far as possible.",
+      bodyHtml: `
+        <div class="rounded-2xl border border-red-500/30 bg-red-500/5 p-4 text-red-200">
+          The cleanup targets the Level B batch runtime directory, the fresh forensic cases created by the batch, the execution workspaces registered for that batch, nested Level A child campaigns created from those cases, and the Level B report bundle if it already exists.
+        </div>
+        <div class="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-amber-200">
+          Use this when Stop and Force Stop are not enough and you want to abandon this Level B batch completely without touching the active scenario definition.
+        </div>
+        <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+          <div><span class="font-black">Job ID:</span> <span class="mono">${esc(jobId)}</span></div>
+        </div>
+      `,
+      confirmLabel: "Force Stop And Clean",
+      onConfirm: async (resultNode, overlay) => {
+        try {
+          const payload = await getJson(`/api/foc/repetitions/level-b/cleanup/${encodeURIComponent(jobId)}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ confirmation: "OK" }),
+          });
+          if (resultNode) {
+            resultNode.innerHTML = `
+              <div class="text-cyan-300">${esc(payload.message || "Cleanup completed.")}</div>
+              <div class="mt-2 text-xs text-slate-400">Deleted cases: ${esc((payload.deleted_cases || []).length)}</div>
+              <div class="mt-1 text-xs text-slate-400">Deleted executions: ${esc((payload.deleted_executions || []).length)}</div>
+              <div class="mt-1 text-xs text-slate-400">Deleted nested Level A campaigns: ${esc((payload.deleted_nested_campaigns || []).length)}</div>
+            `;
+          }
+          clearActiveJob();
+          state.activeJobId = null;
+          state.levelBOverlayJobId = null;
+          if (state.pollTimer) {
+            clearInterval(state.pollTimer);
+            state.pollTimer = null;
+          }
+          byId("foc-level-b-overlay")?.remove();
+          await loadCampaigns();
+          await loadSourceCases();
+          setTimeout(() => overlay?.remove(), 900);
+        } catch (err) {
+          if (resultNode) resultNode.innerHTML = `<div class="text-red-300">${esc(err.message)}</div>`;
+        }
+      },
+    });
+  }
+
+  async function openGlobalCleaner() {
+    let inventory;
+    try {
+      inventory = await getJson("/api/foc/experimentation/cleanup/inventory");
+    } catch (err) {
+      openOverlay("Global Cleaner", `<div class="text-red-300 text-sm">${esc(err.message)}</div>`);
+      return;
+    }
+    const items = inventory.items || [];
+    const removable = items.filter((item) => item.deletable);
+    openInteractiveOverlay(
+      "Global Cleaner",
+      `
+        <div class="space-y-4 text-sm text-slate-300">
+          <div>This cleaner removes selected campaigns, executions, forensic cases, analyses, and report bundles across the repetition, comparison, reconstruction, and evidence lifecycle surfaces. It does not touch the active scenario definition.</div>
+          <div class="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-amber-200">
+            Select exactly what you want to remove. You can choose complete campaigns, individual executions, full forensic cases, scientific report bundles, validation reports, and scientific memory registries. Type <span class="mono">OK</span> to execute deletion.
+          </div>
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+            <div><span class="font-black">Removable items:</span> ${esc(removable.length)}</div>
+            <div class="mt-2"><span class="font-black">Estimated reclaimable space:</span> ${esc(inventory.summary?.estimated_reclaimable_human || "not_available")}</div>
+          </div>
+          <div class="flex gap-3 flex-wrap">
+            <button type="button" id="global-cleaner-select-all" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Select All Removable</button>
+            <button type="button" id="global-cleaner-clear" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Clear Selection</button>
+          </div>
+          <div class="max-h-[44vh] overflow-auto space-y-3 pr-1">
+            ${items.map((item) => `
+              <label class="block rounded-2xl border ${item.deletable ? "border-slate-700/60 bg-slate-950/30" : "border-red-500/25 bg-red-500/5"} p-4">
+                <div class="flex items-start gap-3">
+                  <input type="checkbox" class="global-cleaner-check mt-1" value="${esc(item.item_id)}" ${item.deletable ? "" : "disabled"}>
+                  <div class="min-w-0">
+                    <div class="font-black">${esc(item.label)}</div>
+                    <div class="text-xs uppercase tracking-[0.16em] text-slate-400 mt-1">${esc(item.item_type)}</div>
+                    <div class="mono text-xs text-slate-500 mt-2 break-all">${esc(item.path)}</div>
+                    <div class="text-xs text-slate-400 mt-2">Estimated size: ${esc(item.size_human || "not_available")}</div>
+                    ${item.blocked_reason ? `<div class="text-xs text-red-300 mt-2">${esc(item.blocked_reason)}</div>` : ""}
+                  </div>
+                </div>
+              </label>
+            `).join("")}
+          </div>
+          <label class="block">
+            <span class="font-black">Confirmation</span>
+            <input id="global-cleaner-confirm" class="w-full mt-3 rounded-xl bg-slate-950/60 border border-slate-700 px-3 py-2 text-slate-100" placeholder="Type OK">
+          </label>
+          <div class="flex gap-3 flex-wrap">
+            <button type="button" id="global-cleaner-submit" class="btn-danger rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase opacity-50 cursor-not-allowed" disabled>Delete Selected Items</button>
+            <button type="button" id="global-cleaner-cancel" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Cancel</button>
+          </div>
+          <div id="global-cleaner-result" class="text-sm text-slate-300"></div>
+        </div>
+      `,
+      () => {
+        const overlay = byId("foc-experimentation-overlay");
+        const confirmInput = byId("global-cleaner-confirm");
+        const submit = byId("global-cleaner-submit");
+        const resultNode = byId("global-cleaner-result");
+        const sync = () => {
+          const anySelected = [...document.querySelectorAll(".global-cleaner-check:checked")].length > 0;
+          const enabled = anySelected && String(confirmInput?.value || "") === "OK";
+          submit.disabled = !enabled;
+          submit.classList.toggle("opacity-50", !enabled);
+          submit.classList.toggle("cursor-not-allowed", !enabled);
+        };
+        byId("global-cleaner-select-all")?.addEventListener("click", () => {
+          document.querySelectorAll(".global-cleaner-check:not([disabled])").forEach((node) => { node.checked = true; });
+          sync();
+        });
+        byId("global-cleaner-clear")?.addEventListener("click", () => {
+          document.querySelectorAll(".global-cleaner-check").forEach((node) => { node.checked = false; });
+          sync();
+        });
+        document.querySelectorAll(".global-cleaner-check").forEach((node) => node.addEventListener("change", sync));
+        confirmInput?.addEventListener("input", sync);
+        byId("global-cleaner-cancel")?.addEventListener("click", () => overlay?.remove());
+        submit?.addEventListener("click", async () => {
+          if (submit.disabled) return;
+          const selectedIds = [...document.querySelectorAll(".global-cleaner-check:checked")].map((node) => node.value);
+          submit.disabled = true;
+          submit.classList.add("opacity-50", "cursor-not-allowed");
+          if (resultNode) resultNode.innerHTML = '<div class="text-slate-400">Deleting selected items…</div>';
+          try {
+            const payload = await getJson("/api/foc/experimentation/cleanup/delete", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ selected_item_ids: selectedIds, confirmation: "OK" }),
+            });
+            if (resultNode) resultNode.innerHTML = `
+              <div class="text-cyan-300">${esc(payload.message || "Cleanup completed.")}</div>
+              <div class="mt-2 text-xs text-slate-400 mono break-all">${esc(payload.cleanup_manifest_path || "not_available")}</div>
+            `;
+            clearActiveJob();
+            state.activeJobId = null;
+            if (state.pollTimer) {
+              clearInterval(state.pollTimer);
+              state.pollTimer = null;
+            }
+            await loadCampaigns();
+            await loadSourceCases();
+            setTimeout(() => overlay?.remove(), 900);
+          } catch (err) {
+            if (resultNode) resultNode.innerHTML = `<div class="text-red-300">${esc(err.message)}</div>`;
+            sync();
+          }
+        });
+        sync();
+      }
+    );
+  }
+
+  function openLevelBOverlay(jobId) {
+    state.levelBOverlayJobId = jobId;
+    ensureLevelBOverlay();
   }
 
   function originStatusNodeId(origin, executionId) {
@@ -2317,7 +2748,9 @@
     state.executionCache.clear();
     const payload = await getJson("/api/foc/experimentation/campaigns");
     state.campaigns = payload.campaigns || [];
-    if (!state.selectedCampaignId && state.campaigns.length) state.selectedCampaignId = state.campaigns[0].campaign_id;
+    if (!state.campaigns.some((item) => item.campaign_id === state.selectedCampaignId)) {
+      state.selectedCampaignId = state.campaigns.length ? state.campaigns[0].campaign_id : null;
+    }
     renderCampaigns();
     await renderSelectedCampaign();
   }
@@ -2578,7 +3011,12 @@
       if (isLevelAReportJob(payload) && !state.levelAReportOverlayJobId) {
         openLevelAReportProgressOverlay(payload.job_id);
       }
+      if (isLevelBRepetitionJob(payload) && !state.levelBOverlayJobId) {
+        openLevelBOverlay(payload.job_id);
+      }
       renderJob(payload);
+      renderLevelAReportOverlay(payload);
+      renderLevelBOverlay(payload);
       saveActiveJob({
         job_id: payload.job_id,
         campaign_id: (payload.meta || {}).campaign_id || null,
@@ -2680,9 +3118,41 @@
     trackJob(res.job_id);
   }
 
-  async function openLevelAReport(executionId) {
+  async function generatePaperEvidence(level) {
+    const campaign = selectedCampaign();
+    if (!campaign) return;
+    const cfg = state.selectedCampaignDetail?.config || {};
+    const requestedLevel = String(level || campaign.level || "A").toUpperCase();
+    const requestedRepetitions = Math.max(Number(byId("repetitions-input")?.value || cfg.repetitions || state.proposal?.number_of_repetitions || 6), 1);
+    const payload = {
+      level: requestedLevel,
+      case_id: cfg.base_case_id || cfg.run_case_id || null,
+      scenario_id: cfg.scenario_id || campaign.scenario_id || null,
+      attack_profile_id: cfg.attack_id || null,
+      acquisition_profile_id: cfg.acquisition_profile_id || null,
+      trigger_policy_id: cfg.trigger_policy_id || null,
+      n_repetitions: requestedRepetitions,
+      dry_run: true,
+      generate_latex: true,
+      generate_zip: true,
+    };
+    const endpoint = requestedLevel === "A"
+      ? "/api/foc/paper-evidence/level-a/run"
+      : requestedLevel === "B"
+        ? "/api/foc/paper-evidence/level-b/run"
+        : "/api/foc/paper-evidence/level-c/run";
+    const res = await getJson(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    trackJob(res.job_id);
+  }
+
+  async function openLevelAReport(executionId, campaignId = null) {
     if (!executionId) return;
-    const payload = await getJson(`/api/foc/repetitions/level-a/report/open/${encodeURIComponent(executionId)}`);
+    const suffix = campaignId ? `?campaign_id=${encodeURIComponent(campaignId)}` : "";
+    const payload = await getJson(`/api/foc/repetitions/level-a/report/open/${encodeURIComponent(executionId)}${suffix}`);
     openOverlay(
       `Level A Scientific Report · ${executionId}`,
       `
@@ -2707,6 +3177,178 @@
           </details>
         </div>
       `
+    );
+  }
+
+  async function openLevelBReport(jobId) {
+    if (!jobId) return;
+    const payload = await getJson(`/api/foc/repetitions/level-b/report/${encodeURIComponent(jobId)}`);
+    openOverlay(
+      `Level B Repetition Report · ${jobId}`,
+      `
+        <div class="space-y-4">
+          <div class="text-sm text-slate-300">
+            <div><span class="font-black">Status:</span> ${esc(titleCaseStatus(payload.status || "unknown"))}</div>
+            <div class="mt-2"><span class="font-black">Report path:</span> <span class="mono break-all">${esc(payload.report_path || "not_available")}</span></div>
+            <div class="mt-2"><span class="font-black">Report directory:</span> <span class="mono break-all">${esc(payload.report_dir || "not_available")}</span></div>
+            <div class="mt-2"><span class="font-black">Generated at:</span> ${esc(payload.generated_at || "not_available")}</div>
+          </div>
+          <details class="helper-details" open>
+            <summary class="help-chip">Markdown Summary</summary>
+            <pre class="whitespace-pre-wrap break-words text-xs text-slate-200 mono mt-4">${esc(payload.summary_markdown || "Summary markdown not available.")}</pre>
+          </details>
+          <details class="helper-details">
+            <summary class="help-chip">Main JSON Report</summary>
+            <pre class="whitespace-pre-wrap break-words text-xs text-slate-200 mono mt-4">${esc(JSON.stringify(payload.report_json || {}, null, 2))}</pre>
+          </details>
+          <details class="helper-details">
+            <summary class="help-chip">Cleanup Manifest</summary>
+            <pre class="whitespace-pre-wrap break-words text-xs text-slate-200 mono mt-4">${esc(JSON.stringify(payload.cleanup_manifest || {}, null, 2))}</pre>
+          </details>
+        </div>
+      `
+    );
+  }
+
+  function renderLatestLevelBReportSection(campaign) {
+    const reports = campaign?.validation_reports || {};
+    const latest = reports.latest_level_b || null;
+    if (!latest) return "";
+    return `
+      <div class="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-4">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <div class="font-black text-cyan-200">Latest Level B Report</div>
+            <div class="text-slate-400 mt-1">Generated at ${esc(latest.generated_at || "not_available")}.</div>
+            <div class="text-slate-400 mt-1 mono break-all">${esc(latest.report_dir || latest.main_report_path || "not_available")}</div>
+          </div>
+          ${latest.job_id ? `<button type="button" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase" data-open-level-b-report="${esc(latest.job_id)}">Open Latest Report</button>` : ""}
+        </div>
+      </div>
+    `;
+  }
+
+  async function runLevelBRepetitions() {
+    const campaign = selectedCampaign();
+    if (!campaign) return;
+    const requestedRepetitions = Math.max(Number(byId("repetitions-input")?.value || state.selectedCampaignDetail?.config?.repetitions || state.proposal?.number_of_repetitions || 3), 1);
+    let preview;
+    try {
+      preview = await getJson("/api/foc/repetitions/level-b/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          campaign_id: campaign.campaign_id,
+          requested_repetitions: requestedRepetitions,
+          preview_only: true,
+        }),
+      });
+    } catch (err) {
+      openOverlay("Level B Repetition Preview", `<div class="text-red-300 text-sm">${esc(err.message)}</div>`);
+      return;
+    }
+    if (!preview.ready) {
+      openOverlay(
+        "Level B Repetition Preview",
+        `
+          <div class="space-y-4 text-sm text-slate-300">
+            <div>${esc(preview.message || "The Level B repetition batch is not ready.")}</div>
+            <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+              <div><span class="font-black">Campaign:</span> <span class="mono">${esc(campaign.campaign_id)}</span></div>
+              <div class="mt-2"><span class="font-black">Scenario:</span> <span class="mono">${esc(preview.scenario_id || "not_available")}</span></div>
+              <div class="mt-2"><span class="font-black">Attack profile:</span> <span class="mono">${esc(preview.attack_profile_id || "not_available")}</span></div>
+            </div>
+          </div>
+        `
+      );
+      return;
+    }
+    const cleanup = preview.cleanup_preview || {};
+    const dfirBefore = getBrowserDfirMode();
+    openInteractiveOverlay(
+      `Run Level B Repetitions · ${campaign.campaign_id}`,
+      `
+        <div class="space-y-4 text-sm text-slate-300">
+          <div>This workflow will run ${esc(preview.requested_repetitions || requestedRepetitions)} independent repetitions of the same OT register-modification attack in the same deployed scenario. After each new Level B case is preserved and analyzed, it will also launch ${esc(preview.nested_level_a_repetitions || Math.max(requestedRepetitions, 2))} nested Level A dry-run repetitions over that preserved case and include both levels of comparability in the final report.</div>
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+            <div><span class="font-black">Scenario:</span> <span class="mono">${esc(preview.scenario_id || "not_available")}</span></div>
+            <div class="mt-2"><span class="font-black">Attack:</span> <span class="mono">${esc(preview.attack_profile_id || "not_available")}</span> · ${esc(preview.attack_name || "not_available")}</div>
+            <div class="mt-2"><span class="font-black">Target verified:</span> <span class="mono">${esc(preview.resolved_target?.vm_name || "not_available")}</span> (${esc(preview.resolved_target?.vm_ip || "not_available")})</div>
+            <div class="mt-2"><span class="font-black">Monitor:</span> <span class="mono">${esc(preview.resolved_monitor?.vm_name || "not_available")}</span> (${esc(preview.resolved_monitor?.vm_ip || "not_available")})</div>
+            <div class="mt-2"><span class="font-black">Requested Level B repetitions:</span> <span class="mono">${esc(preview.requested_repetitions || requestedRepetitions)}</span></div>
+            <div class="mt-2"><span class="font-black">Nested Level A repetitions per new case:</span> <span class="mono">${esc(preview.nested_level_a_repetitions || Math.max(requestedRepetitions, 2))}</span></div>
+          </div>
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+            <div class="font-black">Safe cleanup before run</div>
+            <div class="mt-2">Removable heavy cases detected: <span class="mono">${esc(cleanup.count || 0)}</span></div>
+            <div class="mt-2">Estimated freed disk space: <span class="mono">${esc(cleanup.freed_human_estimated || "0 B")}</span></div>
+            <label class="mt-3 flex items-start gap-3">
+              <input id="level-b-cleanup-checkbox" type="checkbox" class="mt-1">
+              <span>Delete old removable heavy forensic cases before launching the ${esc(preview.requested_repetitions || requestedRepetitions)} repetitions. Only preserved case directories are removed. Scenario configuration, attack profiles, acquisition profiles, validation reports, code, and dashboards are kept.</span>
+            </label>
+          </div>
+          <div class="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-amber-200">
+            Browser DFIR mode before this action: <span class="mono">${esc(dfirBefore)}</span>. If it is OFF, this dialog will switch the same platform DFIR browser mode to ON before starting the batch, and the backend will block the attack if the resulting mode is not ON.
+          </div>
+          <div class="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-amber-200">
+            Type <span class="mono">OK</span> to confirm. If you close this modal or type a different value, nothing will be launched or deleted.
+          </div>
+          <label class="block">
+            <span class="font-black">Confirmation</span>
+            <input id="confirm-ok-input" class="w-full mt-3 rounded-xl bg-slate-950/60 border border-slate-700 px-3 py-2 text-slate-100" placeholder="Type OK">
+          </label>
+          <div class="flex gap-3 flex-wrap">
+            <button type="button" id="confirm-ok-submit" class="btn-danger rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase opacity-50 cursor-not-allowed" disabled>Run Level B Repetitions</button>
+            <button type="button" id="confirm-ok-cancel" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Cancel</button>
+          </div>
+          <div id="confirm-ok-result" class="text-sm text-slate-300"></div>
+        </div>
+      `,
+      () => {
+        const input = byId("confirm-ok-input");
+        const submit = byId("confirm-ok-submit");
+        const cancel = byId("confirm-ok-cancel");
+        const overlay = byId("foc-experimentation-overlay");
+        const cleanupBox = byId("level-b-cleanup-checkbox");
+        const sync = () => {
+          const enabled = String(input?.value || "") === "OK";
+          submit.disabled = !enabled;
+          submit.classList.toggle("opacity-50", !enabled);
+          submit.classList.toggle("cursor-not-allowed", !enabled);
+        };
+        input?.addEventListener("input", sync);
+        cancel?.addEventListener("click", () => overlay?.remove());
+        submit?.addEventListener("click", async () => {
+          if (submit.disabled) return;
+          const resultNode = byId("confirm-ok-result");
+          submit.disabled = true;
+          submit.classList.add("opacity-50", "cursor-not-allowed");
+          if (resultNode) resultNode.innerHTML = '<div class="text-slate-400">Starting Level B batch…</div>';
+          const before = getBrowserDfirMode();
+          const after = before === "on" ? before : setBrowserDfirModeOn();
+          try {
+            const res = await getJson("/api/foc/repetitions/level-b/run", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                campaign_id: campaign.campaign_id,
+                requested_repetitions: requestedRepetitions,
+                cleanup_old_cases: !!cleanupBox?.checked,
+                confirmation: "OK",
+                dfir_mode_before: before,
+                dfir_mode_after: after,
+              }),
+            });
+            if (resultNode) resultNode.innerHTML = `<div class="text-cyan-300">Level B batch started. Job ID: <span class="mono">${esc(res.job_id || "not_available")}</span></div>`;
+            openLevelBOverlay(res.job_id);
+            trackJob(res.job_id);
+            setTimeout(() => overlay?.remove(), 900);
+          } catch (err) {
+            if (resultNode) resultNode.innerHTML = `<div class="text-red-300">${esc(err.message)}</div>`;
+          }
+        });
+        sync();
+      }
     );
   }
 
@@ -2807,8 +3449,13 @@
     byId("campaign-stop-btn")?.addEventListener("click", () => changeCampaignState("stop"));
     byId("campaign-run-next-btn")?.addEventListener("click", runNextExecution);
     byId("campaign-level-a-report-btn")?.addEventListener("click", generateLevelAScientificReport);
+    byId("campaign-paper-level-a-btn")?.addEventListener("click", () => generatePaperEvidence("A"));
+    byId("campaign-paper-level-b-btn")?.addEventListener("click", () => generatePaperEvidence("B"));
+    byId("campaign-paper-level-c-btn")?.addEventListener("click", () => generatePaperEvidence("C"));
     byId("campaign-run-real-btn")?.addEventListener("click", runRealLevelBExecution);
+    byId("campaign-run-level-b-repetitions-btn")?.addEventListener("click", runLevelBRepetitions);
     byId("register-case-btn")?.addEventListener("click", registerExistingCaseAsResultCard);
+    byId("global-cleaner-btn")?.addEventListener("click", openGlobalCleaner);
     bindRecommendedExperimentButtons();
     bindFieldListeners();
     renderModeButtons();

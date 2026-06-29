@@ -9,8 +9,21 @@ from pathlib import Path
 
 from .comparability_service import compare_executions
 from .config import EVIDENCE_STORE_ROOT, campaign_config_path, campaign_dir, campaign_manifest_path, rel
-from .execution_service import create_execution_from_campaign, load_execution
-from .job_runner import append_phase, append_job_list, get_job, new_job, start_job, update_job
+from .dry_run_orchestrator import start_dry_run_execution_job
+from .execution_service import load_execution
+from .job_runner import (
+    JobCancelled,
+    append_phase,
+    append_job_list,
+    get_job,
+    job_cancel_requested,
+    new_job,
+    raise_if_cancelled,
+    request_cancel,
+    start_job,
+    update_job,
+)
+from .profile_builder import resolve_case_source
 from ..foc_causal_reconstruction.service import (
     causal_graph_payload,
     causal_metrics_payload,
@@ -142,8 +155,9 @@ def _campaign_payload(campaign_id: str) -> tuple[dict, dict]:
     return manifest, config
 
 
-def _build_report_root(case_id: str, execution_id: str) -> Path:
-    return SCIENTIFIC_REPORTS_ROOT / _safe_slug(case_id) / execution_id
+def _build_report_root(case_id: str, campaign_id: str, generated_at: str) -> Path:
+    safe_ts = _safe_slug(generated_at.replace(":", "").replace("+", "_"))
+    return SCIENTIFIC_REPORTS_ROOT / _safe_slug(case_id) / _safe_slug(campaign_id) / f"level_A_{safe_ts}"
 
 
 def _phase_update(
@@ -185,6 +199,7 @@ def _phase_update(
 def _wait_for_analysis(case_id: str, *, job_id: str, job_path: Path, phase_index: int, timeout_seconds: int = 900) -> dict:
     started = time.time()
     while True:
+        raise_if_cancelled(job_id, job_path, phase_key="refresh_or_load_multilayer", phase_label="Refresh or load multilayer analysis", detail="Level A scientific report generation was cancelled while waiting for multilayer analysis.")
         status = load_analysis_status(case_id)
         if str(status.get("status") or "").lower() in TERMINAL_ANALYSIS_STATUSES:
             return status
@@ -205,6 +220,7 @@ def _wait_for_analysis(case_id: str, *, job_id: str, job_path: Path, phase_index
 def _wait_for_causal(case_id: str, case_dir: Path, *, job_id: str, job_path: Path, phase_index: int, timeout_seconds: int = 420) -> dict:
     started = time.time()
     while True:
+        raise_if_cancelled(job_id, job_path, phase_key="run_or_refresh_causal", phase_label="Run or refresh causal reconstruction", detail="Level A scientific report generation was cancelled while waiting for causal reconstruction.")
         status = causal_status_payload(case_id, case_dir) or {}
         if str(status.get("status") or "").lower() in TERMINAL_CAUSAL_STATUSES:
             return status
@@ -219,6 +235,57 @@ def _wait_for_causal(case_id: str, case_dir: Path, *, job_id: str, job_path: Pat
             progress_percent=_phase_progress(phase_index, completed=False),
         )
         time.sleep(2.0)
+
+
+def _wait_for_child_dry_run_job(
+    child_job_id: str,
+    *,
+    parent_job_id: str,
+    parent_job_path: Path,
+    phase_index: int,
+    repetition_index: int,
+    requested_repetitions: int,
+    case_id: str,
+    report_output_path: str,
+    timeout_seconds: int = 2700,
+) -> dict:
+    started = time.time()
+    while True:
+        if job_cancel_requested(parent_job_id):
+            request_cancel(child_job_id)
+            raise JobCancelled("level_a_report_cancelled")
+        child = get_job(child_job_id) or {}
+        child_meta = dict(child.get("meta") or {})
+        child_execution_id = str(child_meta.get("execution_id") or child.get("current_execution_id") or "").strip() or None
+        update_job(
+            parent_job_id,
+            parent_job_path,
+            current_phase="refresh_or_load_multilayer",
+            current_phase_label="Refresh or load multilayer analysis",
+            current_phase_detail=(
+                f"Run Dry-Run Execution {repetition_index}/{requested_repetitions}: "
+                f"{child.get('current_phase_label') or child.get('current_phase') or 'running'}"
+                f" — {child.get('current_phase_detail') or 'waiting for child dry-run execution to finish.'}"
+            ),
+            progress_percent=_phase_progress(phase_index, completed=False),
+            current_case_id=case_id,
+            current_execution_id=child_execution_id,
+            current_child_job_id=child_job_id,
+            report_output_path=report_output_path,
+        )
+        status = str(child.get("status") or "").lower()
+        if status in {"completed", "completed_with_degradation", "completed_with_failures", "failed", "cancelled", "stopped"}:
+            return child
+        if time.time() - started > timeout_seconds:
+            request_cancel(child_job_id)
+            return {
+                "job_id": child_job_id,
+                "status": "failed",
+                "current_phase_label": "Timed out",
+                "current_phase_detail": f"Dry-run repetition {repetition_index}/{requested_repetitions} exceeded the allowed timeout and was cancelled.",
+                "errors": [{"message": "dry_run_repetition_timeout"}],
+            }
+        time.sleep(2.5)
 
 
 def _register_source(index: dict, *, path: str | None, file_type: str, artifact_category: str, role: str, fields: list[str], evidence_class: str) -> None:
@@ -570,6 +637,8 @@ def _render_markdown(
     case_id: str,
     execution_id: str,
     campaign_id: str,
+    generated_execution_ids: list[str],
+    requested_repetitions: int,
     report_output_path: str,
     lifecycle: dict,
     analysis_status: dict,
@@ -604,13 +673,15 @@ def _render_markdown(
         "",
         f"- Generated at: `{generated_at}`",
         f"- Campaign ID: `{campaign_id}`",
-        f"- Execution ID: `{execution_id}`",
+        f"- Anchor execution ID: `{execution_id}`",
+        f"- Requested dry-run repetitions: `{requested_repetitions}`",
+        f"- Generated dry-run repetitions: `{', '.join(generated_execution_ids) if generated_execution_ids else 'not_available'}`",
         f"- Preserved case ID: `{case_id}`",
         f"- Report directory: `{report_output_path}`",
         "",
         "## Executive scientific summary",
         "",
-        f"This report audits a Level A repetition over the same preserved case. It reuses the same preserved evidence set in read-only mode and evaluates analytical repeatability rather than incident replay. The preserved case shows **{analysis_summary.get('layers_with_useful_output', 'not_available')} / {analysis_summary.get('layers_expected', 'not_available')}** analysis layers with useful output, a causal recovery of **{causal_summary.get('recovered_edges', 'not_available')} / {causal_summary.get('expected_edges', 'not_available')}** expected relations, and a repeatability comparison status of **{comparison_status}**.",
+        f"This report audits a Level A repetition campaign over the same preserved case. It launched the same `Run Dry-Run Execution` scientific backend path **{len(generated_execution_ids)}** times against the same preserved evidence set in read-only mode, then consolidated those outputs into one auditable report. The preserved case shows **{analysis_summary.get('layers_with_useful_output', 'not_available')} / {analysis_summary.get('layers_expected', 'not_available')}** analysis layers with useful output, a causal recovery of **{causal_summary.get('recovered_edges', 'not_available')} / {causal_summary.get('expected_edges', 'not_available')}** expected relations, and a repeatability comparison status of **{comparison_status}**.",
         "",
         f"The scientific position is therefore limited but defensible: the Level A repetition shows stable analytical behavior over the preserved case, while causal completeness remains partial where alert-to-intervention, intervention-to-preservation, timestamp ordering, or packet-level Modbus specificity are not fully supported.",
         "",
@@ -618,10 +689,22 @@ def _render_markdown(
         "",
         "- Same preserved case: yes",
         "- Same preserved evidence set: yes",
+        f"- Same dry-run scientific path launched several times: `{len(generated_execution_ids)}` repetition(s)",
         "- New attack launched: no",
         "- New scenario execution: no",
         "- New heavy preservation: no",
         "- Scientific purpose: verify analytical repeatability over preserved evidence, not universal reproducibility.",
+        "",
+        "### Generated Level A dry-run executions",
+        "",
+    ]
+    for idx, generated_execution_id in enumerate(generated_execution_ids, start=1):
+        lines.append(f"- Repetition {idx}: `{generated_execution_id}`")
+
+    lines.extend(
+        [
+        "",
+        "This workflow is equivalent to pressing `Run Dry-Run Execution` several times from the Level A campaign and then generating one consolidated scientific report from those fresh repetitions.",
         "",
         "## Preserved case identity",
         "",
@@ -683,7 +766,7 @@ def _render_markdown(
         "",
         "### Narrative storyline",
         "",
-    ]
+    ])
     if story_steps:
         for step in story_steps:
             lines.append(f"- {step.get('label') or step.get('title') or step.get('event') or 'story step'}: {(step.get('summary') or step.get('interpretation') or step.get('limitation') or 'not_available')}")
@@ -777,7 +860,7 @@ def _latest_report_for_case(case_id: str) -> dict | None:
         return None
     latest = None
     latest_ts = 0.0
-    for metadata in root.glob("*/report_metadata.json"):
+    for metadata in root.glob("**/report_metadata.json"):
         try:
             ts = metadata.stat().st_mtime
         except Exception:
@@ -793,16 +876,31 @@ def _latest_report_for_case(case_id: str) -> dict | None:
     return payload or None
 
 
-def _report_by_execution(execution_id: str) -> dict | None:
-    for metadata in SCIENTIFIC_REPORTS_ROOT.glob(f"*/{execution_id}/report_metadata.json"):
+def _report_by_execution(execution_id: str, *, campaign_id: str | None = None) -> dict | None:
+    matches: list[Path] = []
+    for metadata in SCIENTIFIC_REPORTS_ROOT.glob("**/report_metadata.json"):
         payload = _json_load(metadata) or {}
-        if payload:
-            payload["report_path"] = relative_path(metadata.parent)
-            markdown_path = metadata.parent / "SCIENTIFIC_LEVEL_A_REPORT.md"
-            payload["report_markdown"] = markdown_path.read_text(encoding="utf-8", errors="ignore") if markdown_path.is_file() else None
-            payload["source_files_index"] = _json_load(metadata.parent / "source_files_index.json")
-            payload["evidence_to_claim_map"] = _json_load(metadata.parent / "evidence_to_claim_map.json")
-            return payload
+        if not payload:
+            continue
+        if campaign_id and str(payload.get("campaign_id") or "").strip() != str(campaign_id).strip():
+            continue
+        generated_execution_ids = list(payload.get("generated_execution_ids") or [])
+        anchor_execution_id = str(payload.get("execution_id") or "")
+        if execution_id != anchor_execution_id and execution_id not in generated_execution_ids:
+            continue
+        matches.append(metadata)
+    if not matches:
+        return None
+    matches.sort(key=lambda item: item.stat().st_mtime, reverse=True)
+    metadata = matches[0]
+    payload = _json_load(metadata) or {}
+    if payload:
+        payload["report_path"] = relative_path(metadata.parent)
+        markdown_path = metadata.parent / "SCIENTIFIC_LEVEL_A_REPORT.md"
+        payload["report_markdown"] = markdown_path.read_text(encoding="utf-8", errors="ignore") if markdown_path.is_file() else None
+        payload["source_files_index"] = _json_load(metadata.parent / "source_files_index.json")
+        payload["evidence_to_claim_map"] = _json_load(metadata.parent / "evidence_to_claim_map.json")
+        return payload
     return None
 
 
@@ -810,8 +908,8 @@ def get_latest_level_a_report(case_id: str) -> dict | None:
     return _latest_report_for_case(case_id)
 
 
-def open_level_a_report(execution_id: str) -> dict | None:
-    return _report_by_execution(execution_id)
+def open_level_a_report(execution_id: str, *, campaign_id: str | None = None) -> dict | None:
+    return _report_by_execution(execution_id, campaign_id=campaign_id)
 
 
 def _run_level_a_report_job(job_id: str, job_path: Path, campaign_id: str) -> None:
@@ -827,7 +925,7 @@ def _run_level_a_report_job(job_id: str, job_path: Path, campaign_id: str) -> No
     def log(event: str, **extra):
         _append_jsonl(report_generation_log, {"ts": utc_now(), "event": event, **extra})
 
-    previous_execution_ids = _comparable_level_a_execution_ids(campaign_id)
+    requested_repetitions = max(int(config.get("repetitions") or 3), 2)
     phase_index = 0
     phase_key, phase_label = PHASES[phase_index]
     _phase_update(job_id=job_id, job_path=job_path, phase_key=phase_key, phase_label=phase_label, phase_index=phase_index, status="running", detail="Resolving the preserved reference case configured in the selected Level A campaign.")
@@ -837,28 +935,29 @@ def _run_level_a_report_job(job_id: str, job_path: Path, campaign_id: str) -> No
     if not source_case_id and not source_case_path:
         raise ValueError("level_a_campaign_has_no_reference_case")
 
-    execution_result = create_execution_from_campaign(campaign_id, overrides={})
-    execution_id = str(execution_result.get("execution_id"))
-    execution = load_execution(execution_id, campaign_id=campaign_id) or {}
-    execution_dir = Path(str(execution.get("execution_abs_path") or execution_result.get("execution_dir") or "")).resolve()
-    case_id = str(execution_result.get("source_case_id") or execution.get("source_case_id") or source_case_id)
-    case_path = str(execution.get("source_case_path") or source_case_path or "")
-    report_dir = _build_report_root(case_id, execution_id)
+    case_id = source_case_id or "not_available"
+    case_path = source_case_path or ""
+    report_dir = _build_report_root(case_id or "not_available", campaign_id, generated_at)
     report_output_path = relative_path(report_dir)
-    update_job(job_id, job_path, current_case_id=case_id, current_execution_id=execution_id, report_output_path=report_output_path)
-    log("resolved_reference_case", case_id=case_id, execution_id=execution_id, report_output_path=report_output_path)
-    _phase_update(job_id=job_id, job_path=job_path, phase_key=phase_key, phase_label=phase_label, phase_index=phase_index, status="completed", detail=f"Using preserved case {case_id} for Level A report generation.", case_id=case_id, execution_id=execution_id, report_output_path=report_output_path)
+    update_job(job_id, job_path, current_case_id=case_id, current_execution_id=None, report_output_path=report_output_path)
+    log("resolved_reference_case", case_id=case_id, report_output_path=report_output_path, requested_repetitions=requested_repetitions)
+    _phase_update(job_id=job_id, job_path=job_path, phase_key=phase_key, phase_label=phase_label, phase_index=phase_index, status="completed", detail=f"Using preserved case {case_id} for Level A report generation. The workflow will now launch {requested_repetitions} dry-run analytical repetitions over the same preserved evidence.", case_id=case_id, execution_id=None, report_output_path=report_output_path)
 
+    raise_if_cancelled(job_id, job_path, phase_key=phase_key, phase_label=phase_label, detail="Level A scientific report generation was cancelled after resolving the preserved reference case.")
     phase_index = 1
     phase_key, phase_label = PHASES[phase_index]
-    _phase_update(job_id=job_id, job_path=job_path, phase_key=phase_key, phase_label=phase_label, phase_index=phase_index, status="running", detail="Checking manifest.json and chain_of_custody.log before reading preserved analytical outputs.", case_id=case_id, execution_id=execution_id, report_output_path=report_output_path)
-    case_bundle = execution_result.get("source_case_id") and load_execution(execution_id, campaign_id=campaign_id)
+    _phase_update(job_id=job_id, job_path=job_path, phase_key=phase_key, phase_label=phase_label, phase_index=phase_index, status="running", detail="Checking manifest.json and chain_of_custody.log before reading preserved analytical outputs.", case_id=case_id, execution_id=None, report_output_path=report_output_path)
     case_dir = Path(case_path).resolve() if case_path else None
-    if not case_dir or not case_dir.is_dir():
-        resolved_execution = load_execution(execution_id, campaign_id=campaign_id) or {}
-        case_dir_raw = str(resolved_execution.get("source_case_path") or source_case_path or "")
-        if case_dir_raw:
-            case_dir = Path(case_dir_raw).resolve()
+    if (not case_dir or not case_dir.is_dir()) and source_case_id:
+        # campaign_config.json almost never carries base_case_path/run_case_path
+        # explicitly -- campaigns are normally created from a case_id picked in
+        # the UI, not a typed filesystem path. Resolve the real case directory
+        # from the case_id the same way execution_service.load_case_bundle()
+        # and the rest of this module already do, instead of treating an
+        # empty config path field as "the case does not exist".
+        resolved_source = resolve_case_source(case_id=source_case_id)
+        if resolved_source:
+            case_dir = Path(resolved_source["case_path"]).resolve()
     if not case_dir or not case_dir.is_dir():
         raise FileNotFoundError(f"reference_case_path_not_found:{case_id}")
     manifest_path = case_dir / "manifest.json"
@@ -872,22 +971,87 @@ def _run_level_a_report_job(job_id: str, job_path: Path, campaign_id: str) -> No
         for warning in validation_warnings:
             append_job_list(job_id, job_path, "warnings", warning)
     log("validated_manifest_and_custody", manifest_present=manifest_path.is_file(), custody_present=custody_path.is_file(), warnings=validation_warnings)
-    _phase_update(job_id=job_id, job_path=job_path, phase_key=phase_key, phase_label=phase_label, phase_index=phase_index, status="completed_with_degradation" if validation_warnings else "completed", detail="Manifest and custody checks completed for the preserved case.", case_id=case_id, execution_id=execution_id, report_output_path=report_output_path)
+    _phase_update(job_id=job_id, job_path=job_path, phase_key=phase_key, phase_label=phase_label, phase_index=phase_index, status="completed_with_degradation" if validation_warnings else "completed", detail="Manifest and custody checks completed for the preserved case.", case_id=case_id, execution_id=None, report_output_path=report_output_path)
 
+    raise_if_cancelled(job_id, job_path, phase_key=phase_key, phase_label=phase_label, detail="Level A scientific report generation was cancelled during evidence validation.")
     phase_index = 2
     phase_key, phase_label = PHASES[phase_index]
-    _phase_update(job_id=job_id, job_path=job_path, phase_key=phase_key, phase_label=phase_label, phase_index=phase_index, status="running", detail="Confirming that this workflow remains strictly inside Level A: same preserved case, same preserved evidence set, no new attack, and no new heavy preservation.", case_id=case_id, execution_id=execution_id, report_output_path=report_output_path)
+    _phase_update(job_id=job_id, job_path=job_path, phase_key=phase_key, phase_label=phase_label, phase_index=phase_index, status="running", detail="Confirming that this workflow remains strictly inside Level A: same preserved case, same preserved evidence set, no new attack, and no new heavy preservation.", case_id=case_id, execution_id=None, report_output_path=report_output_path)
     scope_notes = [
         "Same preserved case reused in read-only mode.",
+        "The workflow will call the same Run Dry-Run Execution scientific backend path multiple times.",
         "No new attack execution was launched by this report workflow.",
         "No Level B or Level C orchestration was invoked.",
     ]
     log("validated_level_a_scope", notes=scope_notes)
-    _phase_update(job_id=job_id, job_path=job_path, phase_key=phase_key, phase_label=phase_label, phase_index=phase_index, status="completed", detail="Level A scope validated. This report only reuses the preserved case and normalized execution outputs.", case_id=case_id, execution_id=execution_id, report_output_path=report_output_path)
+    _phase_update(job_id=job_id, job_path=job_path, phase_key=phase_key, phase_label=phase_label, phase_index=phase_index, status="completed", detail="Level A scope validated. This report will launch multiple dry-run analytical repetitions over the same preserved case and then compare their resulting profiles.", case_id=case_id, execution_id=None, report_output_path=report_output_path)
 
     phase_index = 3
     phase_key, phase_label = PHASES[phase_index]
-    _phase_update(job_id=job_id, job_path=job_path, phase_key=phase_key, phase_label=phase_label, phase_index=phase_index, status="running", detail="Loading existing multilayer outputs when valid, or starting the preserved-case analysis refresh when required.", case_id=case_id, execution_id=execution_id, report_output_path=report_output_path)
+    _phase_update(job_id=job_id, job_path=job_path, phase_key=phase_key, phase_label=phase_label, phase_index=phase_index, status="running", detail=f"Launching the same Run Dry-Run Execution backend path {requested_repetitions} times over the preserved case to generate fresh Level A analytical repetitions.", case_id=case_id, execution_id=None, report_output_path=report_output_path)
+    generated_execution_ids: list[str] = []
+    generated_execution_dirs: list[Path] = []
+    generated_jobs: list[str] = []
+    for repetition_index in range(1, requested_repetitions + 1):
+        raise_if_cancelled(job_id, job_path, phase_key=phase_key, phase_label=phase_label, detail="Level A scientific report generation was cancelled before launching the next dry-run repetition.")
+        detail = f"Run Dry-Run Execution {repetition_index}/{requested_repetitions}: refreshing FOC, causal reconstruction, and full evidence lifecycle over preserved case {case_id}."
+        update_job(
+            job_id,
+            job_path,
+            current_phase=phase_key,
+            current_phase_label=phase_label,
+            current_phase_detail=detail,
+            progress_percent=_phase_progress(phase_index, completed=False),
+            current_execution_id=generated_execution_ids[-1] if generated_execution_ids else None,
+        )
+        log("start_dry_run_repetition", repetition_index=repetition_index, requested_repetitions=requested_repetitions, case_id=case_id)
+        child = start_dry_run_execution_job(
+            campaign_id,
+            overrides={
+                "source_case_id": case_id,
+                "source_case_path": str(case_dir),
+            },
+        )
+        child_job_id = str(child.get("job_id") or "").strip()
+        if not child_job_id:
+            append_job_list(job_id, job_path, "warnings", f"Dry-run repetition {repetition_index}/{requested_repetitions} could not start and will not be used in the consolidated Level A report.")
+            log("failed_to_start_dry_run_repetition", repetition_index=repetition_index, requested_repetitions=requested_repetitions)
+            continue
+        generated_jobs.append(child_job_id)
+        child = _wait_for_child_dry_run_job(
+            child_job_id,
+            parent_job_id=job_id,
+            parent_job_path=job_path,
+            phase_index=phase_index,
+            repetition_index=repetition_index,
+            requested_repetitions=requested_repetitions,
+            case_id=case_id,
+            report_output_path=report_output_path,
+        )
+        child_status = str(child.get("status") or "failed").lower()
+        child_meta = dict(child.get("meta") or {})
+        child_execution_id = str(child_meta.get("execution_id") or child.get("current_execution_id") or "").strip()
+        if child_execution_id and child_status in {"completed", "completed_with_degradation", "completed_with_failures"}:
+            generated_execution_ids.append(child_execution_id)
+            child_execution = load_execution(child_execution_id, campaign_id=campaign_id) or {}
+            child_execution_dir = Path(str(child_execution.get("execution_abs_path") or "")).resolve()
+            if child_execution_dir.is_dir():
+                generated_execution_dirs.append(child_execution_dir)
+        if child_status not in {"completed", "completed_with_degradation", "completed_with_failures"}:
+            append_job_list(job_id, job_path, "warnings", f"Dry-run repetition {repetition_index}/{requested_repetitions} failed and will not be used in the consolidated Level A report.")
+        log(
+            "completed_dry_run_repetition",
+            repetition_index=repetition_index,
+            requested_repetitions=requested_repetitions,
+            child_job_id=child_job_id,
+            child_status=child.get("status"),
+            execution_id=child_execution_id or None,
+        )
+    if not generated_execution_ids:
+        raise RuntimeError("level_a_dry_run_generation_failed:no_execution_was_generated")
+    execution_id = generated_execution_ids[-1]
+    execution = load_execution(execution_id, campaign_id=campaign_id) or {}
+    execution_dir = Path(str(execution.get("execution_abs_path") or "")).resolve()
     analysis_status = load_analysis_status(case_id)
     if str(analysis_status.get("status") or "").lower() not in {"completed", "partial"}:
         refresh = run_analysis(case_id, force=False)
@@ -895,8 +1059,8 @@ def _run_level_a_report_job(job_id: str, job_path: Path, campaign_id: str) -> No
             raise RuntimeError(f"analysis_refresh_failed:{refresh.get('error')}")
         analysis_status = _wait_for_analysis(case_id, job_id=job_id, job_path=job_path, phase_index=phase_index)
     analysis_payload = analysis_report(case_id) or {}
-    log("analysis_ready", analysis_status=analysis_status.get("status"), report_status=analysis_payload.get("analysis_status"))
-    _phase_update(job_id=job_id, job_path=job_path, phase_key=phase_key, phase_label=phase_label, phase_index=phase_index, status="completed_with_degradation" if str(analysis_status.get("status")) == "partial" else "completed", detail=f"Multilayer analysis state is {analysis_status.get('status')}. The report will audit the preserved outputs instead of replaying Level B activity.", case_id=case_id, execution_id=execution_id, report_output_path=report_output_path)
+    log("analysis_ready", analysis_status=analysis_status.get("status"), report_status=analysis_payload.get("analysis_status"), generated_execution_ids=generated_execution_ids)
+    _phase_update(job_id=job_id, job_path=job_path, phase_key=phase_key, phase_label=phase_label, phase_index=phase_index, status="completed_with_degradation" if str(analysis_status.get("status")) == "partial" else "completed", detail=f"Generated {len(generated_execution_ids)} dry-run Level A repetitions. The report anchor execution is {execution_id}. Multilayer analysis state is {analysis_status.get('status')}.", case_id=case_id, execution_id=execution_id, report_output_path=report_output_path)
 
     case_bundle = {
         "case_id": case_id,
@@ -972,33 +1136,25 @@ def _run_level_a_report_job(job_id: str, job_path: Path, campaign_id: str) -> No
 
     phase_index = 12
     phase_key, phase_label = PHASES[phase_index]
-    _phase_update(job_id=job_id, job_path=job_path, phase_key=phase_key, phase_label=phase_label, phase_index=phase_index, status="running", detail="Comparing the new Level A repetition with previous Level A executions from the same campaign using comparison profiles and result cards.", case_id=case_id, execution_id=execution_id, report_output_path=report_output_path)
-    prior = [item for item in previous_execution_ids if item != execution_id]
+    _phase_update(job_id=job_id, job_path=job_path, phase_key=phase_key, phase_label=phase_label, phase_index=phase_index, status="running", detail=f"Comparing the {len(generated_execution_ids)} dry-run Level A repetitions generated by this workflow using their comparison profiles and result cards.", case_id=case_id, execution_id=execution_id, report_output_path=report_output_path)
     comparison = None
-    if prior:
-        for previous_execution_id in reversed(prior):
-            candidate = compare_executions([previous_execution_id, execution_id], campaign_id=campaign_id)
-            if candidate.get("status") != "Insufficient Data":
-                comparison = candidate
-                break
-        if comparison is None:
-            comparison = {
-                "status": "Insufficient Data",
-                "comparison_type": "level_a_reference_profiles_incomplete",
-                "summary": {},
-                "degradation_reasons": [],
-                "hard_failures": [],
-                "execution_ids": prior + [execution_id],
-                "reason": "previous Level A executions exist, but none produced a valid direct comparison bundle with the new execution",
-            }
+    comparable_generated = []
+    for candidate_execution_id in generated_execution_ids:
+        candidate_execution = load_execution(candidate_execution_id, campaign_id=campaign_id) or {}
+        if (candidate_execution.get("artifacts") or {}).get("forensic_comparison_profile"):
+            comparable_generated.append(candidate_execution_id)
+    if len(comparable_generated) >= 2:
+        comparison = compare_executions(comparable_generated, campaign_id=campaign_id)
+        if comparison.get("status") == "Insufficient Data":
+            comparison["comparison_type"] = comparison.get("comparison_type") or "generated_level_a_profiles_incomplete"
     else:
         comparison = {
             "status": "Insufficient Data",
-            "comparison_type": "no_previous_level_a_reference",
+            "comparison_type": "not_enough_generated_level_a_repetitions",
             "summary": {},
             "degradation_reasons": [],
             "hard_failures": [],
-            "execution_ids": [execution_id],
+            "execution_ids": generated_execution_ids,
         }
     log("comparison_ready", status=comparison.get("status"), comparison_type=comparison.get("comparison_type"), compared_execution_ids=comparison.get("execution_ids"))
     _phase_update(job_id=job_id, job_path=job_path, phase_key=phase_key, phase_label=phase_label, phase_index=phase_index, status="completed_with_degradation" if comparison.get("status") == "Comparable With Degradation" else "completed", detail=f"Comparison status: {comparison.get('status')}. Comparison type: {comparison.get('comparison_type')}.", case_id=case_id, execution_id=execution_id, report_output_path=report_output_path)
@@ -1041,6 +1197,8 @@ def _run_level_a_report_job(job_id: str, job_path: Path, campaign_id: str) -> No
         case_id=case_id,
         execution_id=execution_id,
         campaign_id=campaign_id,
+        generated_execution_ids=generated_execution_ids,
+        requested_repetitions=requested_repetitions,
         report_output_path=report_output_path,
         lifecycle=lifecycle,
         analysis_status=analysis_status,
@@ -1065,9 +1223,13 @@ def _run_level_a_report_job(job_id: str, job_path: Path, campaign_id: str) -> No
         "generated_at": generated_at,
         "campaign_id": campaign_id,
         "execution_id": execution_id,
+        "generated_execution_ids": generated_execution_ids,
+        "requested_repetitions": requested_repetitions,
+        "completed_repetitions": len(generated_execution_ids),
         "case_id": case_id,
         "case_path": relative_path(case_dir),
         "report_type": "level_a_scientific_report",
+        "report_scope": "consolidated_level_a_dry_run_repetitions",
         "level": "A",
         "job_id": job_id,
         "report_markdown_path": relative_path(report_dir / "SCIENTIFIC_LEVEL_A_REPORT.md"),
@@ -1087,7 +1249,10 @@ def _run_level_a_report_job(job_id: str, job_path: Path, campaign_id: str) -> No
     report_summary = {
         "case_id": case_id,
         "execution_id": execution_id,
+        "generated_execution_ids": generated_execution_ids,
         "campaign_id": campaign_id,
+        "requested_repetitions": requested_repetitions,
+        "completed_repetitions": len(generated_execution_ids),
         "analysis_status": analysis_status.get("status"),
         "causal_status": (lifecycle.get("summary") or {}).get("causal_summary", {}).get("status"),
         "comparison_status": comparison.get("status"),
@@ -1104,6 +1269,7 @@ def _run_level_a_report_job(job_id: str, job_path: Path, campaign_id: str) -> No
         "generated_at": generated_at,
         "campaign_id": campaign_id,
         "execution_id": execution_id,
+        "generated_execution_ids": generated_execution_ids,
         "case_id": case_id,
         "claims": claims,
     }
@@ -1111,6 +1277,7 @@ def _run_level_a_report_job(job_id: str, job_path: Path, campaign_id: str) -> No
         "generated_at": generated_at,
         "campaign_id": campaign_id,
         "execution_id": execution_id,
+        "generated_execution_ids": generated_execution_ids,
         "case_id": case_id,
         "files": sorted(source_index.values(), key=lambda row: row["path"]),
     }
@@ -1124,13 +1291,15 @@ def _run_level_a_report_job(job_id: str, job_path: Path, campaign_id: str) -> No
         "generated_at": generated_at,
         "job_id": job_id,
         "execution_id": execution_id,
+        "generated_execution_ids": generated_execution_ids,
         "case_id": case_id,
         "report_metadata_path": metadata["report_output_path"] + "/report_metadata.json",
         "report_markdown_path": metadata["report_markdown_path"],
         "status": metadata["status"],
     }
-    _append_execution_report_index(execution_dir, report_entry)
-    _update_execution_manifest_with_report(execution_id, report_entry)
+    for generated_execution_dir, generated_execution_id in zip(generated_execution_dirs, generated_execution_ids):
+        _append_execution_report_index(generated_execution_dir, report_entry)
+        _update_execution_manifest_with_report(generated_execution_id, report_entry)
     append_job_list(job_id, job_path, "generated_artifacts", metadata["report_markdown_path"])
     append_job_list(job_id, job_path, "generated_artifacts", metadata["source_files_index_path"])
     append_job_list(job_id, job_path, "generated_artifacts", metadata["evidence_to_claim_map_path"])
@@ -1150,6 +1319,7 @@ def _run_level_a_report_job(job_id: str, job_path: Path, campaign_id: str) -> No
         progress_percent=100.0,
         current_case_id=case_id,
         current_execution_id=execution_id,
+        current_child_job_id=None,
         report_output_path=report_output_path,
         report_markdown_path=metadata["report_markdown_path"],
         report_metadata_path=metadata["report_output_path"] + "/report_metadata.json",

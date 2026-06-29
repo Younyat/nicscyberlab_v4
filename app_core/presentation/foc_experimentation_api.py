@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_file
 
 from app_core.infrastructure.foc_experimentation.campaign_service import (
     build_campaign_proposal,
@@ -32,10 +32,19 @@ from app_core.infrastructure.foc_experimentation.config import (
     METHODOLOGICAL_BASIS_FILE,
     RESULT_REGISTRY_PATH,
     SCENARIO_REGISTRY_PATH,
+    campaign_config_path,
 )
 from app_core.infrastructure.foc_experimentation.execution_service import execution_artifacts, load_execution, regenerate_execution_profile
-from app_core.infrastructure.foc_experimentation.job_runner import get_job
+from app_core.infrastructure.foc_experimentation.global_cleanup_service import execute_cleanup, list_cleanup_inventory
+from app_core.infrastructure.foc_experimentation.job_runner import get_job, request_cancel, request_force_stop
 from app_core.infrastructure.foc_experimentation.level_b_orchestrator import start_real_level_b_execution_job
+from app_core.infrastructure.foc_experimentation.level_b_repetition_runner import (
+    cleanup_level_b_repetition_job,
+    get_level_b_repetition_report,
+    get_level_b_repetition_status,
+    preview_level_b_repetitions,
+    start_level_b_repetitions_job,
+)
 from app_core.infrastructure.foc_experimentation.level_a_scientific_report_service import (
     get_latest_level_a_report,
     open_level_a_report,
@@ -53,11 +62,71 @@ from app_core.infrastructure.foc_experimentation.scenario_destruction_service im
     destroy_full_scenario,
     validate_scenario_destruction,
 )
+from app_core.infrastructure.foc_paper_evidence import (
+    get_paper_evidence_report,
+    get_paper_evidence_table_registry,
+    get_paper_evidence_zip_path,
+    list_paper_evidence_reports,
+    start_level_a_paper_evidence_job,
+    start_level_b_paper_evidence_job,
+    start_level_c_paper_evidence_job,
+    start_paper_evidence_binder_job,
+)
 from app_core.infrastructure.attack.catalog import get_attack_catalog
 from app_core.infrastructure.foc_reconstruction.foc_case_analysis import cases_with_analysis_state
+from app_core.infrastructure.foc_reconstruction.foc_case_analysis import _analysis_cancel_path, _case_dir_from_entry, get_case_entry
+from app_core.infrastructure.foc_reconstruction.evidence_lifecycle_dashboard import request_lifecycle_cancel
 from app_core.infrastructure.foc_reconstruction.foc_paths import relative_path
+from app_core.infrastructure.foc_reconstruction.foc_sources import utc_now
 
 experimentation_bp = Blueprint("foc_experimentation", __name__)
+
+
+def _infer_case_id_from_job(payload: dict) -> str | None:
+    case_id = str((payload or {}).get("current_case_id") or "").strip()
+    if case_id:
+        return case_id
+    meta = (payload or {}).get("meta") or {}
+    campaign_id = str(meta.get("campaign_id") or "").strip()
+    if campaign_id:
+        try:
+            config = json.loads(campaign_config_path(campaign_id).read_text(encoding="utf-8"))
+        except Exception:
+            config = {}
+        for key in ("base_case_id", "run_case_id"):
+            value = str(config.get(key) or "").strip()
+            if value:
+                return value
+    detail = str((payload or {}).get("current_phase_detail") or "")
+    marker = "preserved case "
+    if marker in detail:
+        tail = detail.split(marker, 1)[1].strip()
+        return tail.split()[0].strip(".;,")
+    return None
+
+
+def _running_lifecycle_job_ids_for_case(case_id: str) -> list[str]:
+    entry = get_case_entry(case_id)
+    if not entry:
+        return []
+    case_dir = _case_dir_from_entry(entry)
+    jobs_dir = case_dir / "derived" / "executive" / "jobs"
+    found: list[tuple[float, str]] = []
+    for path in jobs_dir.glob("lifecycle-*.json"):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        status = str(payload.get("status") or "").lower()
+        if status not in {"queued", "running", "cancel_requested", "force_stop_requested"}:
+            continue
+        try:
+            ts = path.stat().st_mtime
+        except Exception:
+            ts = 0.0
+        found.append((ts, str(payload.get("job_id") or path.stem)))
+    found.sort(reverse=True)
+    return [job_id for _, job_id in found]
 
 
 @experimentation_bp.route("/api/foc/experimentation/health", methods=["GET"])
@@ -265,6 +334,73 @@ def api_foc_experimentation_job_status(job_id: str):
     return jsonify(payload), 200
 
 
+@experimentation_bp.route("/api/foc/experimentation/jobs/<job_id>/cancel", methods=["POST"])
+def api_foc_experimentation_job_cancel(job_id: str):
+    payload = request_cancel(job_id)
+    if not payload:
+        return jsonify({"error": "job_not_found", "job_id": job_id}), 404
+    child_job_id = str(payload.get("current_child_job_id") or "").strip()
+    lifecycle_job_id = str(payload.get("current_lifecycle_job_id") or "").strip()
+    case_id = _infer_case_id_from_job(payload) or ""
+    if child_job_id:
+        request_cancel(child_job_id)
+    lifecycle_job_ids = [lifecycle_job_id] if lifecycle_job_id else []
+    if case_id:
+        lifecycle_job_ids.extend([item for item in _running_lifecycle_job_ids_for_case(case_id) if item not in lifecycle_job_ids])
+    for item in lifecycle_job_ids:
+        request_lifecycle_cancel(item, force=False)
+    if case_id:
+        entry = get_case_entry(case_id)
+        if entry:
+            try:
+                case_dir = _case_dir_from_entry(entry)
+                cancel_path = _analysis_cancel_path(case_dir)
+                cancel_path.parent.mkdir(parents=True, exist_ok=True)
+                cancel_path.write_text(utc_now(), encoding="utf-8")
+            except Exception:
+                pass
+    return jsonify({"status": "ok", "job_id": job_id, "current_child_job_id": child_job_id or None, "current_lifecycle_job_id": lifecycle_job_id or None, "current_case_id": case_id or None, "matched_lifecycle_jobs": lifecycle_job_ids}), 200
+
+
+@experimentation_bp.route("/api/foc/experimentation/jobs/<job_id>/force-stop", methods=["POST"])
+def api_foc_experimentation_job_force_stop(job_id: str):
+    current = get_job(job_id)
+    if not current:
+        return jsonify({"error": "job_not_found", "job_id": job_id}), 404
+    payload = request_force_stop(job_id) or current
+    child_job_id = str(current.get("current_child_job_id") or "").strip()
+    lifecycle_job_id = str(current.get("current_lifecycle_job_id") or "").strip()
+    case_id = _infer_case_id_from_job(current) or ""
+    if child_job_id:
+        request_force_stop(child_job_id)
+    lifecycle_job_ids = [lifecycle_job_id] if lifecycle_job_id else []
+    if case_id:
+        lifecycle_job_ids.extend([item for item in _running_lifecycle_job_ids_for_case(case_id) if item not in lifecycle_job_ids])
+    for item in lifecycle_job_ids:
+        request_lifecycle_cancel(item, force=True)
+    if case_id:
+        entry = get_case_entry(case_id)
+        if entry:
+            try:
+                case_dir = _case_dir_from_entry(entry)
+                cancel_path = _analysis_cancel_path(case_dir)
+                cancel_path.parent.mkdir(parents=True, exist_ok=True)
+                cancel_path.write_text(utc_now(), encoding="utf-8")
+            except Exception:
+                pass
+    return jsonify({
+        "status": "ok",
+        "result": "force_stop_requested",
+        "job_id": job_id,
+        "current_child_job_id": child_job_id or None,
+        "current_lifecycle_job_id": lifecycle_job_id or None,
+        "current_case_id": case_id or None,
+        "matched_lifecycle_jobs": lifecycle_job_ids,
+        "job_status": payload.get("status") or "stopped",
+        "note": "The experimentation wrapper was force-stopped immediately. Nested lifecycle and case-analysis work was also asked to stop, but some backend threads may still need a short time to honor the request.",
+    }), 200
+
+
 @experimentation_bp.route("/api/foc/repetitions/level-a/report/generate", methods=["POST"])
 def api_foc_level_a_report_generate():
     body = request.get_json(silent=True) or {}
@@ -301,9 +437,73 @@ def api_foc_level_a_report_latest():
 
 @experimentation_bp.route("/api/foc/repetitions/level-a/report/open/<execution_id>", methods=["GET"])
 def api_foc_level_a_report_open(execution_id: str):
-    payload = open_level_a_report(execution_id)
+    campaign_id = str(request.args.get("campaign_id") or "").strip() or None
+    payload = open_level_a_report(execution_id, campaign_id=campaign_id)
     if not payload:
         return jsonify({"error": "report_not_found", "execution_id": execution_id}), 404
+    return jsonify(payload), 200
+
+
+@experimentation_bp.route("/api/foc/repetitions/level-b/run", methods=["POST"])
+def api_foc_level_b_repetitions_run():
+    body = request.get_json(silent=True) or {}
+    campaign_id = str(body.get("campaign_id") or "").strip()
+    if not campaign_id:
+        return jsonify({"error": "campaign_id_required"}), 400
+    if bool(body.get("preview_only")):
+        try:
+            payload = preview_level_b_repetitions(
+                campaign_id,
+                requested_repetitions=body.get("requested_repetitions"),
+            )
+        except FileNotFoundError:
+            return jsonify({"error": "campaign_not_found", "campaign_id": campaign_id}), 404
+        except ValueError as exc:
+            return jsonify({"error": str(exc), "campaign_id": campaign_id}), 400
+        return jsonify(payload), 200
+    try:
+        job = start_level_b_repetitions_job(
+            campaign_id,
+            confirmation=str(body.get("confirmation") or ""),
+            requested_repetitions=body.get("requested_repetitions"),
+            cleanup_old_cases=bool(body.get("cleanup_old_cases")),
+            detection_timeout_seconds=body.get("detection_timeout_seconds"),
+            dfir_mode_before=str(body.get("dfir_mode_before") or "unknown"),
+            dfir_mode_after=str(body.get("dfir_mode_after") or "unknown"),
+        )
+    except FileNotFoundError:
+        return jsonify({"error": "campaign_not_found", "campaign_id": campaign_id}), 404
+    except ValueError as exc:
+        return jsonify({"error": str(exc), "campaign_id": campaign_id}), 400
+    if job.get("error"):
+        return jsonify(job), 400
+    return jsonify(job), 202
+
+
+@experimentation_bp.route("/api/foc/repetitions/level-b/status/<job_id>", methods=["GET"])
+def api_foc_level_b_repetitions_status(job_id: str):
+    payload = get_level_b_repetition_status(job_id)
+    if not payload:
+        return jsonify({"error": "job_not_found", "job_id": job_id}), 404
+    return jsonify(payload), 200
+
+
+@experimentation_bp.route("/api/foc/repetitions/level-b/report/<job_id>", methods=["GET"])
+def api_foc_level_b_repetitions_report(job_id: str):
+    payload = get_level_b_repetition_report(job_id)
+    if not payload:
+        return jsonify({"error": "job_not_found", "job_id": job_id}), 404
+    if payload.get("report_ready") is False:
+        return jsonify(payload), 202
+    return jsonify(payload), 200
+
+
+@experimentation_bp.route("/api/foc/repetitions/level-b/cleanup/<job_id>", methods=["POST"])
+def api_foc_level_b_repetitions_cleanup(job_id: str):
+    body = request.get_json(silent=True) or {}
+    payload = cleanup_level_b_repetition_job(job_id, confirmation=str(body.get("confirmation") or ""))
+    if payload.get("error"):
+        return jsonify(payload), 400
     return jsonify(payload), 200
 
 
@@ -470,6 +670,24 @@ def api_foc_experimentation_scenario_destruction_destroy():
     return jsonify(payload), 200
 
 
+@experimentation_bp.route("/api/foc/experimentation/cleanup/inventory", methods=["GET"])
+def api_foc_experimentation_cleanup_inventory():
+    return jsonify(list_cleanup_inventory()), 200
+
+
+@experimentation_bp.route("/api/foc/experimentation/cleanup/delete", methods=["POST"])
+def api_foc_experimentation_cleanup_delete():
+    body = request.get_json(silent=True) or {}
+    payload = execute_cleanup(
+        selected_item_ids=list(body.get("selected_item_ids") or []),
+        confirmation=str(body.get("confirmation") or ""),
+        operator="foc_experimentation_ui",
+    )
+    if payload.get("error"):
+        return jsonify(payload), 400
+    return jsonify(payload), 200
+
+
 _ATTACK_CATALOG_FIELDS = (
     "attack_id",
     "display_name",
@@ -500,3 +718,82 @@ def api_foc_experimentation_attack_catalog():
     attacks = get_attack_catalog(target_role=target_role)
     items = [{key: attack.get(key) for key in _ATTACK_CATALOG_FIELDS} for attack in attacks]
     return jsonify({"attacks": items}), 200
+
+
+@experimentation_bp.route("/api/foc/paper-evidence/run", methods=["POST"])
+def api_foc_paper_evidence_run():
+    body = request.get_json(silent=True) or {}
+    try:
+        job = start_paper_evidence_binder_job(body)
+    except FileNotFoundError as exc:
+        return jsonify({"error": str(exc)}), 404
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify(job), 202
+
+
+@experimentation_bp.route("/api/foc/paper-evidence/level-a/run", methods=["POST"])
+def api_foc_paper_evidence_level_a_run():
+    body = request.get_json(silent=True) or {}
+    try:
+        job = start_level_a_paper_evidence_job(body)
+    except FileNotFoundError as exc:
+        return jsonify({"error": str(exc)}), 404
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify(job), 202
+
+
+@experimentation_bp.route("/api/foc/paper-evidence/level-b/run", methods=["POST"])
+def api_foc_paper_evidence_level_b_run():
+    body = request.get_json(silent=True) or {}
+    try:
+        job = start_level_b_paper_evidence_job(body)
+    except FileNotFoundError as exc:
+        return jsonify({"error": str(exc)}), 404
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify(job), 202
+
+
+@experimentation_bp.route("/api/foc/paper-evidence/level-c/run", methods=["POST"])
+def api_foc_paper_evidence_level_c_run():
+    body = request.get_json(silent=True) or {}
+    try:
+        job = start_level_c_paper_evidence_job(body)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify(job), 202
+
+
+@experimentation_bp.route("/api/foc/paper-evidence/reports/<report_id>", methods=["GET"])
+def api_foc_paper_evidence_report(report_id: str):
+    payload = get_paper_evidence_report(report_id)
+    if not payload:
+        return jsonify({"error": "report_not_found", "report_id": report_id}), 404
+    return jsonify(payload), 200
+
+
+@experimentation_bp.route("/api/foc/paper-evidence/reports", methods=["GET"])
+def api_foc_paper_evidence_reports():
+    payload = list_paper_evidence_reports(
+        level=str(request.args.get("level") or "").strip() or None,
+        case_id=str(request.args.get("case_id") or "").strip() or None,
+    )
+    return jsonify(payload), 200
+
+
+@experimentation_bp.route("/api/foc/paper-evidence/table-registry/<report_id>", methods=["GET"])
+def api_foc_paper_evidence_table_registry(report_id: str):
+    payload = get_paper_evidence_table_registry(report_id)
+    if not payload:
+        return jsonify({"error": "report_not_found", "report_id": report_id}), 404
+    return jsonify(payload), 200
+
+
+@experimentation_bp.route("/api/foc/paper-evidence/export/<report_id>.zip", methods=["GET"])
+def api_foc_paper_evidence_export(report_id: str):
+    path = get_paper_evidence_zip_path(report_id)
+    if not path or not path.is_file():
+        return jsonify({"error": "report_not_found", "report_id": report_id}), 404
+    return send_file(path, as_attachment=True, download_name=path.name)

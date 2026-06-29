@@ -104,6 +104,42 @@
     return "text-slate-300";
   }
 
+  function openInteractiveOverlay(title, html, onReady) {
+    let root = byId("cmp-overlay");
+    if (!root) {
+      root = document.createElement("div");
+      root.id = "cmp-overlay";
+      root.className = "fixed inset-0 z-[1200] bg-slate-950/65 backdrop-blur-sm p-4 md:p-8";
+      root.innerHTML = `
+        <div class="mx-auto max-w-5xl h-full flex items-center justify-center">
+          <div class="glass rounded-[28px] p-6 w-full max-h-[88vh] overflow-auto">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Comparability Detail</div>
+                <h2 id="cmp-overlay-title" class="text-2xl font-black mt-2"></h2>
+              </div>
+              <button id="cmp-overlay-close" type="button" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Close</button>
+            </div>
+            <div id="cmp-overlay-body" class="mt-5"></div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(root);
+      byId("cmp-overlay-close")?.addEventListener("click", () => root.remove());
+      root.addEventListener("click", (event) => {
+        if (event.target === root) root.remove();
+      });
+    }
+    byId("cmp-overlay-title").textContent = title;
+    byId("cmp-overlay-body").innerHTML = html;
+    if (typeof onReady === "function") onReady(root);
+    return root;
+  }
+
+  function openOverlay(title, html) {
+    openInteractiveOverlay(title, html);
+  }
+
   // comparison_type is an independent axis from status: it answers "are these
   // executions even the same experiment by design?" (family grouping),
   // separate from "did the numbers come out close?" (status).
@@ -133,6 +169,104 @@
 
   function selectedCampaign() {
     return state.campaigns.find((item) => item.campaign_id === state.selectedCampaignId) || null;
+  }
+
+  async function openGlobalCleaner() {
+    let inventory;
+    try {
+      inventory = await getJson("/api/foc/experimentation/cleanup/inventory");
+    } catch (err) {
+      openOverlay("Global Cleaner", `<div class="text-red-300 text-sm">${esc(err.message)}</div>`);
+      return;
+    }
+    const items = inventory.items || [];
+    openInteractiveOverlay(
+      "Global Cleaner",
+      `
+        <div class="space-y-4 text-sm text-slate-300">
+          <div>This cleaner removes selected campaigns, executions, preserved forensic cases, analyses, and report bundles without touching the active scenario definition.</div>
+          <div class="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-amber-200">Type <span class="mono">OK</span> to execute deletion. Non-removable items stay blocked.</div>
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+            <div><span class="font-black">Estimated reclaimable space:</span> ${esc(inventory.summary?.estimated_reclaimable_human || "not_available")}</div>
+            <div class="mt-2"><span class="font-black">Removable items:</span> ${esc(inventory.summary?.removable_items || 0)}</div>
+          </div>
+          <div class="flex gap-3 flex-wrap">
+            <button type="button" id="cmp-cleaner-select-all" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Select All Removable</button>
+            <button type="button" id="cmp-cleaner-clear" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Clear Selection</button>
+          </div>
+          <div class="max-h-[44vh] overflow-auto space-y-3 pr-1">
+            ${items.map((item) => `
+              <label class="block rounded-2xl border ${item.deletable ? "border-slate-700/60 bg-slate-950/30" : "border-red-500/25 bg-red-500/5"} p-4">
+                <div class="flex items-start gap-3">
+                  <input type="checkbox" class="cmp-cleaner-check mt-1" value="${esc(item.item_id)}" ${item.deletable ? "" : "disabled"}>
+                  <div class="min-w-0">
+                    <div class="font-black">${esc(item.label)}</div>
+                    <div class="text-xs uppercase tracking-[0.16em] text-slate-400 mt-1">${esc(item.item_type)}</div>
+                    <div class="mono text-xs text-slate-500 mt-2 break-all">${esc(item.path)}</div>
+                    <div class="text-xs text-slate-400 mt-2">Estimated size: ${esc(item.size_human || "not_available")}</div>
+                    ${item.blocked_reason ? `<div class="text-xs text-red-300 mt-2">${esc(item.blocked_reason)}</div>` : ""}
+                  </div>
+                </div>
+              </label>
+            `).join("")}
+          </div>
+          <label class="block">
+            <span class="font-black">Confirmation</span>
+            <input id="cmp-cleaner-confirm" class="w-full mt-3 rounded-xl bg-slate-950/60 border border-slate-700 px-3 py-2 text-slate-100" placeholder="Type OK">
+          </label>
+          <div class="flex gap-3 flex-wrap">
+            <button type="button" id="cmp-cleaner-submit" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase opacity-50 cursor-not-allowed" disabled>Delete Selected Items</button>
+            <button type="button" id="cmp-cleaner-cancel" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Cancel</button>
+          </div>
+          <div id="cmp-cleaner-result" class="text-sm text-slate-300"></div>
+        </div>
+      `,
+      () => {
+        const overlay = byId("cmp-overlay");
+        const confirmInput = byId("cmp-cleaner-confirm");
+        const submit = byId("cmp-cleaner-submit");
+        const resultNode = byId("cmp-cleaner-result");
+        const sync = () => {
+          const anySelected = [...document.querySelectorAll(".cmp-cleaner-check:checked")].length > 0;
+          const enabled = anySelected && String(confirmInput?.value || "") === "OK";
+          submit.disabled = !enabled;
+          submit.classList.toggle("opacity-50", !enabled);
+          submit.classList.toggle("cursor-not-allowed", !enabled);
+        };
+        byId("cmp-cleaner-select-all")?.addEventListener("click", () => {
+          document.querySelectorAll(".cmp-cleaner-check:not([disabled])").forEach((node) => { node.checked = true; });
+          sync();
+        });
+        byId("cmp-cleaner-clear")?.addEventListener("click", () => {
+          document.querySelectorAll(".cmp-cleaner-check").forEach((node) => { node.checked = false; });
+          sync();
+        });
+        document.querySelectorAll(".cmp-cleaner-check").forEach((node) => node.addEventListener("change", sync));
+        confirmInput?.addEventListener("input", sync);
+        byId("cmp-cleaner-cancel")?.addEventListener("click", () => overlay?.remove());
+        submit?.addEventListener("click", async () => {
+          if (submit.disabled) return;
+          const selectedIds = [...document.querySelectorAll(".cmp-cleaner-check:checked")].map((node) => node.value);
+          submit.disabled = true;
+          if (resultNode) resultNode.innerHTML = '<div class="text-slate-400">Deleting selected items…</div>';
+          try {
+            const payload = await getJson("/api/foc/experimentation/cleanup/delete", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ selected_item_ids: selectedIds, confirmation: "OK" }),
+            });
+            if (resultNode) resultNode.innerHTML = `<div class="text-cyan-300">${esc(payload.message || "Cleanup completed.")}</div>`;
+            await loadCampaigns();
+            renderResult(null);
+            setTimeout(() => overlay?.remove(), 900);
+          } catch (err) {
+            if (resultNode) resultNode.innerHTML = `<div class="text-red-300">${esc(err.message)}</div>`;
+            sync();
+          }
+        });
+        sync();
+      }
+    );
   }
 
   function renderViewModeButtons() {
@@ -610,7 +744,9 @@
   async function loadCampaigns() {
     const payload = await getJson("/api/foc/experimentation/campaigns");
     state.campaigns = payload.campaigns || [];
-    if (!state.selectedCampaignId && state.campaigns.length) state.selectedCampaignId = params.get("campaign_id") || state.campaigns[0].campaign_id;
+    if (!state.campaigns.some((item) => item.campaign_id === state.selectedCampaignId)) {
+      state.selectedCampaignId = params.get("campaign_id") || (state.campaigns[0]?.campaign_id || null);
+    }
     renderCampaigns();
     renderExecutions();
     await renderReadiness();
@@ -636,6 +772,7 @@
   async function init() {
     byId("cmp-run-btn")?.addEventListener("click", runComparison);
     byId("cmp-refresh-btn")?.addEventListener("click", async () => { await loadCampaigns(); renderResultStory(); });
+    byId("cmp-global-cleaner-btn")?.addEventListener("click", openGlobalCleaner);
     byId("cmp-story-mode-btn")?.addEventListener("click", () => {
       state.storyMode = true;
       renderViewModeButtons();

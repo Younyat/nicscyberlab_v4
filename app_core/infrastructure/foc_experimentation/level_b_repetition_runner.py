@@ -1,0 +1,2038 @@
+from __future__ import annotations
+
+import csv
+import json
+import math
+import os
+import shutil
+import statistics
+import subprocess
+import time
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+
+from .campaign_service import create_campaign
+from .comparability_service import compare_executions
+from .config import EVIDENCE_STORE_ROOT, campaign_config_path, campaign_dir, campaign_manifest_path, rel
+from .execution_service import aggregate_campaign_state, attach_real_case_to_execution, create_execution_from_campaign, load_execution
+from .job_runner import append_job_list, append_phase, get_job, job_cancel_requested, new_job, raise_if_cancelled, request_cancel, request_force_stop, start_job, update_job
+from .level_a_scientific_report_service import start_level_a_scientific_report_job
+from .retention_service import delete_generated_case_artifacts
+from .level_b_orchestrator import (
+    CONFIRMATION_TOKEN,
+    DEFAULT_DETECTION_TIMEOUT_SECONDS,
+    _build_alert_matcher,
+    _case_id_for_case_dir,
+    _launch_attack,
+    _resolve_real_targets,
+    _sha256_path,
+    _wait_for_lifecycle_job,
+)
+from ..attack.catalog import find_attack_by_id
+from ..foc_reconstruction.evidence_lifecycle_dashboard import start_full_lifecycle_job
+from ..foc_reconstruction.foc_attestation_builder import _parse_mbpoll_command
+from ..foc_reconstruction.foc_case_analysis import _case_dir_from_entry, cases_with_analysis_state, get_case_entry, load_analysis_status
+from ..foc_reconstruction.foc_paths import project_path, relative_path
+from ..foc_reconstruction.foc_sources import utc_now
+from ..forensics.forensics_api import (
+    _dfir_create_case_internal,
+    _dfir_ssh_user_for_role,
+    acquire_disk,
+    acquire_memory,
+)
+from ..forensics.network_context_importer import (
+    import_continuous_network_context,
+    initialize_volatile_first_acquisition,
+    update_acquisition_profile,
+)
+from ..monitor.alerts_logger import run_monitor_session
+
+RUNTIME_ROOT = project_path("runtime", "level_b_repetitions")
+VALIDATION_REPORTS_ROOT = EVIDENCE_STORE_ROOT / "validation_reports"
+ACTIVE_CASE_PTR = EVIDENCE_STORE_ROOT / "_active_case.txt"
+
+SETUP_PHASES: list[tuple[str, str]] = [
+    ("prepare_level_b_job", "Prepare Level B job"),
+    ("optional_cleanup", "Optional cleanup of old cases"),
+    ("resolve_active_scenario", "Resolve active scenario"),
+    ("verify_plc_target", "Verify PLC target"),
+    ("enable_dfir_mode", "Enable DFIR mode"),
+]
+
+REPETITION_PHASES: list[tuple[str, str]] = [
+    ("start_repetition", "Start repetition"),
+    ("execute_attack", "Execute OT register-modification attack"),
+    ("wait_alert", "Wait for high-severity alert"),
+    ("verify_trigger", "Verify forensic intervention trigger"),
+    ("run_acquisition", "Run automatic acquisition"),
+    ("seal_case", "Seal and register case"),
+    ("run_analysis", "Run multilayer analysis"),
+    ("run_reconstruction", "Run reconstruction/dependency analysis"),
+    ("store_result", "Store repetition result"),
+]
+
+FINAL_PHASES: list[tuple[str, str]] = [
+    ("generate_report", "Generate Level B report"),
+    ("complete", "Complete"),
+]
+
+
+def _json_load(path: Path | None):
+    try:
+        if path is None or not path.is_file():
+            return None
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def _write_json(path: Path, payload) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    tmp.replace(path)
+
+
+def _write_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(content, encoding="utf-8")
+    tmp.replace(path)
+
+
+def _read_jsonl(path: Path | None) -> list[dict]:
+    if path is None or not path.is_file():
+        return []
+    rows: list[dict] = []
+    try:
+        with path.open("r", encoding="utf-8") as fh:
+            for line in fh:
+                raw = line.strip()
+                if not raw:
+                    continue
+                try:
+                    payload = json.loads(raw)
+                except Exception:
+                    continue
+                if isinstance(payload, dict):
+                    rows.append(payload)
+    except Exception:
+        return []
+    return rows
+
+
+def _safe_float(value) -> float | None:
+    try:
+        if value in {None, "", "not_available"}:
+            return None
+        return float(value)
+    except Exception:
+        return None
+
+
+def _parse_dt(value: str | None) -> datetime | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except Exception:
+        return None
+
+
+def _seconds_between(start: str | None, end: str | None) -> float | None:
+    start_dt = _parse_dt(start)
+    end_dt = _parse_dt(end)
+    if not start_dt or not end_dt:
+        return None
+    return round((end_dt - start_dt).total_seconds(), 3)
+
+
+def _human_bytes(size: int | None) -> str:
+    if size is None:
+        return "not_available"
+    value = float(size)
+    units = ["B", "KB", "MB", "GB", "TB"]
+    unit = 0
+    while value >= 1024.0 and unit < len(units) - 1:
+        value /= 1024.0
+        unit += 1
+    return f"{value:.2f} {units[unit]}"
+
+
+def _dir_size_bytes(path: Path) -> int:
+    total = 0
+    for root, _, files in os.walk(path):
+        for name in files:
+            try:
+                total += (Path(root) / name).stat().st_size
+            except Exception:
+                continue
+    return total
+
+
+def _sample_std(values: list[float]) -> float:
+    if len(values) <= 1:
+        return 0.0
+    try:
+        return round(statistics.stdev(values), 6)
+    except Exception:
+        return 0.0
+
+
+def _mean(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    try:
+        return round(statistics.mean(values), 6)
+    except Exception:
+        return 0.0
+
+
+def _alert_haystack(alert_payload: dict) -> str:
+    primary = (alert_payload or {}).get("primary") or {}
+    raw = primary.get("raw") or {}
+    raw_data = raw.get("data") or {}
+    raw_alert = raw_data.get("alert") or {}
+    parts = [
+        primary.get("signature"),
+        primary.get("alert_type"),
+        primary.get("description"),
+        primary.get("rule_id"),
+        raw_alert.get("signature"),
+        raw_alert.get("signature_id"),
+        json.dumps(raw_alert.get("metadata") or {}, ensure_ascii=False),
+    ]
+    return " ".join(str(item or "") for item in parts).lower()
+
+
+def _mitre_matches_attack(alert_payload: dict, attack: dict) -> bool:
+    attack_mitre = str(attack.get("mitre_id") or "").strip().upper()
+    if not attack_mitre:
+        return False
+    primary = (alert_payload or {}).get("primary") or {}
+    raw = primary.get("raw") or {}
+    raw_mitre = raw.get("mitre_mapping")
+    if isinstance(raw_mitre, str) and attack_mitre in raw_mitre.upper():
+        return True
+    if isinstance(raw_mitre, list):
+        for item in raw_mitre:
+            if attack_mitre in str(item or "").upper():
+                return True
+    return False
+
+
+def _score_alert_for_attack(alert_payload: dict, attack: dict) -> tuple[int, list[str]]:
+    triage = (alert_payload or {}).get("triage") or {}
+    primary = (alert_payload or {}).get("primary") or {}
+    severity = str(triage.get("severity") or "").upper()
+    recommend = bool(triage.get("recommend_forensics"))
+    if severity not in {"HIGH", "CRITICAL"} or not recommend:
+        return 0, ["alert is not HIGH/CRITICAL with forensic recommendation"]
+
+    score = 2
+    reasons = ["high-severity alert eligible for forensic intervention"]
+    haystack = _alert_haystack(alert_payload)
+    expected_alert_tokens = {
+        str(item).strip().lower().replace("_", " ")
+        for item in (attack.get("expected_alerts") or [])
+        if str(item).strip()
+    }
+    if expected_alert_tokens:
+        matched_tokens = [token for token in expected_alert_tokens if token and token in haystack]
+        if matched_tokens:
+            score += 4
+            reasons.append(f"expected alert token match: {', '.join(matched_tokens[:4])}")
+    if _mitre_matches_attack(alert_payload, attack):
+        score += 4
+        reasons.append("MITRE technique mapping matches the selected attack profile")
+    raw_rule = str(primary.get("rule_id") or "")
+    if raw_rule in {"910836101", "910836102", "910836103", "910836104"}:
+        score += 3
+        reasons.append("matched known OT Modbus write detection rule")
+    if "modbus" in haystack:
+        score += 2
+        reasons.append("alert text contains Modbus indicators")
+    if "write" in haystack or "register" in haystack or "control" in haystack:
+        score += 1
+        reasons.append("alert text contains write/register/control indicators")
+    return score, reasons
+
+
+def _best_observed_alert_for_attack(observed_alerts: list[dict], attack: dict) -> tuple[dict | None, list[str]]:
+    best_alert = None
+    best_score = -1
+    best_reasons: list[str] = []
+    for alert_payload in observed_alerts or []:
+        score, reasons = _score_alert_for_attack(alert_payload, attack)
+        if score > best_score:
+            best_score = score
+            best_alert = alert_payload
+            best_reasons = reasons
+    if best_alert and best_score >= 4:
+        return best_alert, best_reasons
+    return None, best_reasons
+
+
+def _active_case_dir() -> Path | None:
+    try:
+        raw = ACTIVE_CASE_PTR.read_text(encoding="utf-8").strip()
+    except Exception:
+        return None
+    if not raw:
+        return None
+    path = Path(raw).expanduser().resolve()
+    return path if path.exists() else None
+
+
+def _load_campaign(campaign_id: str) -> tuple[dict, dict]:
+    manifest = _json_load(campaign_manifest_path(campaign_id)) or {}
+    config = _json_load(campaign_config_path(campaign_id)) or {}
+    return manifest, config
+
+
+def _resolve_repetition_count(config: dict, requested_repetitions: int | None, *, default: int = 3, minimum: int = 1) -> int:
+    value = requested_repetitions
+    if value in {None, "", 0}:
+        value = config.get("repetitions")
+    try:
+        resolved = int(value or default)
+    except Exception:
+        resolved = default
+    return max(resolved, minimum)
+
+
+def _safe_git_commit() -> str:
+    try:
+        proc = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=str(project_path()),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=False,
+        )
+        value = (proc.stdout or "").strip()
+        return value or "not_available"
+    except Exception:
+        return "not_available"
+
+
+def _report_dir_for_timestamp(timestamp: str) -> Path:
+    safe = timestamp.replace(":", "").replace("+", "_")
+    return VALIDATION_REPORTS_ROOT / f"level_b_repetition_report_{safe}"
+
+
+def _best_effort_rmtree(path: Path, deleted_paths: list[str], warnings: list[str]) -> None:
+    try:
+        if not path.exists():
+            return
+        shutil.rmtree(path)
+        deleted_paths.append(relative_path(path))
+    except Exception as exc:
+        warnings.append(f"{relative_path(path)}: {exc}")
+
+
+def _remove_execution_dir(campaign_id: str, execution_id: str, deleted_paths: list[str], warnings: list[str]) -> None:
+    execution = load_execution(execution_id, campaign_id=campaign_id) or {}
+    execution_abs_path = str(execution.get("execution_abs_path") or "").strip()
+    if not execution_abs_path:
+        return
+    _best_effort_rmtree(Path(execution_abs_path), deleted_paths, warnings)
+
+
+def _remove_case_dir(case_id: str | None, case_path: str | None, deleted_paths: list[str], warnings: list[str]) -> None:
+    candidate = None
+    if case_path:
+        raw = Path(str(case_path))
+        candidate = (Path.cwd() / raw).resolve() if not raw.is_absolute() else raw.resolve()
+    elif case_id:
+        entry = get_case_entry(case_id)
+        if entry:
+            candidate = _case_dir_from_entry(entry)
+    if candidate:
+        _best_effort_rmtree(candidate, deleted_paths, warnings)
+
+
+def _drop_latest_level_b_report_reference(campaign_id: str, report_dir_rel: str | None) -> None:
+    manifest_path = campaign_manifest_path(campaign_id)
+    manifest = _json_load(manifest_path) or {}
+    if not manifest:
+        return
+    reports = dict(manifest.get("validation_reports") or {})
+    history = list(reports.get("level_b_history") or [])
+    latest = reports.get("latest_level_b") or {}
+    if report_dir_rel and str((latest or {}).get("report_dir") or "") == str(report_dir_rel):
+        reports.pop("latest_level_b", None)
+    if report_dir_rel:
+        history = [item for item in history if str((item or {}).get("report_dir") or "") != str(report_dir_rel)]
+    reports["level_b_history"] = history
+    manifest["validation_reports"] = reports
+    _write_json(manifest_path, manifest)
+    try:
+        aggregate_campaign_state(campaign_id, manifest)
+    except Exception:
+        pass
+
+
+def _cleanup_candidates() -> list[dict]:
+    active_case = _active_case_dir()
+    candidates: list[dict] = []
+    for item in cases_with_analysis_state().get("cases", []):
+        raw_path = str(item.get("path") or "").strip()
+        if not raw_path:
+            continue
+        case_path = project_path(*Path(raw_path).parts) if not Path(raw_path).is_absolute() else Path(raw_path)
+        case_path = case_path.resolve()
+        if not case_path.exists() or not case_path.is_dir():
+            continue
+        if active_case and case_path == active_case:
+            continue
+        size_bytes = _dir_size_bytes(case_path)
+        candidates.append(
+            {
+                "case_id": item.get("case_id"),
+                "case_path": relative_path(case_path),
+                "analysis_status": item.get("analysis_status"),
+                "available_layers": item.get("available_layers") or [],
+                "size_bytes": size_bytes,
+                "size_human": _human_bytes(size_bytes),
+                "preserved_metadata": {
+                    "inventory_summary": item.get("inventory_summary") or {},
+                    "analysis_report_path": item.get("analysis_report_path"),
+                },
+            }
+        )
+    candidates.sort(key=lambda row: int(row.get("size_bytes") or 0), reverse=True)
+    return candidates
+
+
+def preview_level_b_repetitions(campaign_id: str, *, requested_repetitions: int | None = None) -> dict:
+    manifest, config = _load_campaign(campaign_id)
+    if not manifest:
+        raise FileNotFoundError(f"campaign_not_found:{campaign_id}")
+    level = str(config.get("level") or manifest.get("level") or "B").upper()
+    if level != "B":
+        raise ValueError("level_b_repetition_runner_requires_level_b_campaign")
+    attack_id = str(config.get("attack_id") or "").strip()
+    if not attack_id:
+        return {
+            "ready": False,
+            "campaign_id": campaign_id,
+            "error": "attack_profile_required",
+            "message": "Select an attack profile for this Level B campaign before launching repetitions.",
+            "cleanup_preview": {
+                "candidates": _cleanup_candidates(),
+            },
+        }
+    attack = find_attack_by_id(attack_id)
+    if not attack:
+        return {
+            "ready": False,
+            "campaign_id": campaign_id,
+            "error": "attack_profile_not_found",
+            "message": f"Attack profile not found: {attack_id}",
+            "cleanup_preview": {
+                "candidates": _cleanup_candidates(),
+            },
+        }
+    targets = _resolve_real_targets(attack)
+    target = targets.get("target")
+    monitor = targets.get("monitor")
+    candidates = _cleanup_candidates()
+    estimated = sum(int(item.get("size_bytes") or 0) for item in candidates)
+    repetitions = _resolve_repetition_count(config, requested_repetitions, default=3, minimum=1)
+    return {
+        "ready": bool(target and monitor and str((target or {}).get("role") or "").lower() == "plc"),
+        "campaign_id": campaign_id,
+        "requested_repetitions": repetitions,
+        "nested_level_a_repetitions": max(repetitions, 2),
+        "scenario_id": config.get("scenario_id") or manifest.get("scenario_id") or "not_available",
+        "attack_profile_id": attack.get("attack_id"),
+        "attack_name": attack.get("display_name"),
+        "mitre_id": attack.get("mitre_id"),
+        "script": attack.get("script"),
+        "expected_alerts": attack.get("expected_alerts") or [],
+        "expected_artifacts": attack.get("expected_artifacts") or [],
+        "cleanup_preview": {
+            "count": len(candidates),
+            "freed_bytes_estimated": estimated,
+            "freed_human_estimated": _human_bytes(estimated),
+            "candidates": candidates,
+        },
+        "resolved_target": target,
+        "resolved_monitor": monitor,
+        "message": (
+            f"The Level B repetition batch is ready for {repetitions} requested Level B repetitions."
+            if (target and monitor and str((target or {}).get("role") or "").lower() == "plc")
+            else "The active deployed scenario does not currently expose a resolvable PLC target and monitor pair for this attack."
+        ),
+    }
+
+
+def _phase_progress(
+    category: str,
+    index: int,
+    *,
+    completed: bool,
+    repetition_number: int | None = None,
+    total_repetitions: int = 5,
+) -> float:
+    if category == "setup":
+        start = (index / max(len(SETUP_PHASES), 1)) * 20.0
+        end = ((index + 1) / max(len(SETUP_PHASES), 1)) * 20.0
+        return round(end if completed else start, 2)
+    if category == "repetition":
+        rep_slot = 70.0 / max(total_repetitions, 1)
+        rep_index = max((repetition_number or 1) - 1, 0)
+        rep_start = 20.0 + (rep_index * rep_slot)
+        phase_start = rep_start + ((index / max(len(REPETITION_PHASES), 1)) * rep_slot)
+        phase_end = rep_start + (((index + 1) / max(len(REPETITION_PHASES), 1)) * rep_slot)
+        return round(phase_end if completed else phase_start, 2)
+    if category == "final":
+        start = 90.0 + ((index / max(len(FINAL_PHASES), 1)) * 10.0)
+        end = 90.0 + (((index + 1) / max(len(FINAL_PHASES), 1)) * 10.0)
+        return round(end if completed else start, 2)
+    return 0.0
+
+
+def _emit_phase(
+    job_id: str,
+    job_path: Path,
+    *,
+    phase_key: str,
+    phase_label: str,
+    status: str,
+    detail: str,
+    category: str,
+    index: int,
+    repetition_number: int | None = None,
+    total_repetitions: int = 5,
+    extra: dict | None = None,
+) -> None:
+    progress = _phase_progress(
+        category,
+        index,
+        completed=status in {"completed", "completed_with_degradation", "failed", "skipped"},
+        repetition_number=repetition_number,
+        total_repetitions=total_repetitions,
+    )
+    append_phase(
+        job_id,
+        job_path,
+        phase_key=phase_key,
+        phase_label=phase_label,
+        status=status,
+        progress_percent=progress,
+        detail=detail,
+    )
+    changes = {
+        "current_phase": phase_key,
+        "current_phase_label": phase_label,
+        "current_phase_detail": detail,
+        "progress_percent": progress,
+    }
+    if extra:
+        changes.update(extra)
+    update_job(job_id, job_path, **changes)
+
+
+def _cleanup_runtime_manifest(runtime_dir: Path, *, candidates: list[dict], status: str, warnings: list[str], deleted_cases: list[str], deleted_paths: list[str], estimated: int, actual: int, preserved_metadata: list[dict]) -> dict:
+    payload = {
+        "deleted_cases": deleted_cases,
+        "deleted_paths": deleted_paths,
+        "freed_bytes_estimated": estimated,
+        "freed_bytes_actual": actual,
+        "preserved_metadata": preserved_metadata,
+        "cleanup_status": status,
+        "warnings": warnings,
+    }
+    _write_json(runtime_dir / "cleanup_manifest.json", payload)
+    return payload
+
+
+def _run_cleanup(runtime_dir: Path, *, enabled: bool) -> dict:
+    candidates = _cleanup_candidates()
+    estimated = sum(int(item.get("size_bytes") or 0) for item in candidates)
+    if not enabled:
+        return _cleanup_runtime_manifest(
+            runtime_dir,
+            candidates=candidates,
+            status="skipped",
+            warnings=[],
+            deleted_cases=[],
+            deleted_paths=[],
+            estimated=estimated,
+            actual=0,
+            preserved_metadata=[{"case_id": item.get("case_id"), "case_path": item.get("case_path")} for item in candidates],
+        )
+
+    deleted_cases: list[str] = []
+    deleted_paths: list[str] = []
+    warnings: list[str] = []
+    actual = 0
+    preserved_metadata: list[dict] = []
+    for item in candidates:
+        case_id = str(item.get("case_id") or "")
+        case_path = project_path(*Path(item.get("case_path") or "").parts)
+        preserved_metadata.append({"case_id": case_id, "case_path": item.get("case_path"), "size_bytes": item.get("size_bytes")})
+        if not case_path.exists():
+            warnings.append(f"{case_id}: case path no longer exists.")
+            continue
+        size_before = int(item.get("size_bytes") or 0)
+        try:
+            shutil.rmtree(case_path)
+            deleted_cases.append(case_id)
+            deleted_paths.append(relative_path(case_path))
+            actual += size_before
+        except Exception as exc:
+            warnings.append(f"{case_id}: {exc}")
+            return _cleanup_runtime_manifest(
+                runtime_dir,
+                candidates=candidates,
+                status="failed",
+                warnings=warnings,
+                deleted_cases=deleted_cases,
+                deleted_paths=deleted_paths,
+                estimated=estimated,
+                actual=actual,
+                preserved_metadata=preserved_metadata,
+            )
+    return _cleanup_runtime_manifest(
+        runtime_dir,
+        candidates=candidates,
+        status="completed",
+        warnings=warnings,
+        deleted_cases=deleted_cases,
+        deleted_paths=deleted_paths,
+        estimated=estimated,
+        actual=actual,
+        preserved_metadata=preserved_metadata,
+    )
+
+
+def _attack_parameter_status(attack_result: dict) -> dict:
+    output_dir = Path(str(attack_result.get("_output_dir") or "")).resolve() if attack_result.get("_output_dir") else None
+    modbus_log = _json_load(output_dir / "modbus_transaction_log.json") if output_dir and output_dir.is_dir() else None
+    write_command = ((modbus_log or {}).get("write_command") or {}).get("command")
+    parsed = _parse_mbpoll_command(write_command or "")
+    return {
+        "protocol": "modbus_tcp",
+        "destination_port": 502,
+        "function_code": "confirmed" if parsed.get("modbus_function") else "unknown",
+        "register": "confirmed" if parsed.get("register_reference") is not None else "unknown",
+        "value": "confirmed" if parsed.get("value") is not None else "unknown",
+        "parsed_write_command": parsed,
+        "modbus_log_path": relative_path(output_dir / "modbus_transaction_log.json") if output_dir and (output_dir / "modbus_transaction_log.json").is_file() else None,
+    }
+
+
+def _network_context_payload(case_dir: Path) -> dict:
+    manifest = _json_load(case_dir / "network" / "traffic_preserved" / "network_context_manifest.json") or {}
+    preserved = list(manifest.get("preserved_segments") or [])
+    pending = list(manifest.get("pending_segments") or [])
+    if preserved and pending:
+        status = "partial"
+    elif preserved:
+        status = "completed"
+    elif pending:
+        status = "pending"
+    else:
+        status = "failed"
+    return {
+        "status": status,
+        "manifest": manifest,
+        "preserved_segments": len(preserved),
+        "pending_segments": len(pending),
+    }
+
+
+def _wait_for_child_job(
+    child_job_id: str,
+    *,
+    parent_job_id: str,
+    parent_job_path: Path,
+    current_phase: str,
+    current_phase_label: str,
+    current_detail_prefix: str,
+    timeout_seconds: int = 5400,
+) -> dict:
+    started = time.time()
+    while True:
+        if job_cancel_requested(parent_job_id):
+            request_cancel(child_job_id)
+            raise_if_cancelled(parent_job_id, parent_job_path, phase_key=current_phase, phase_label=current_phase_label, detail=f"{current_phase_label} was cancelled by the operator.")
+        child = get_job(child_job_id) or {}
+        child_status = str(child.get("status") or "").lower()
+        update_job(
+            parent_job_id,
+            parent_job_path,
+            current_child_job_id=child_job_id,
+            current_phase=current_phase,
+            current_phase_label=current_phase_label,
+            current_phase_detail=f"{current_detail_prefix}: {child.get('current_phase_label') or child.get('current_phase') or child_status or 'running'} — {child.get('current_phase_detail') or 'waiting for nested scientific job to finish.'}",
+        )
+        if child_status in {"completed", "completed_with_degradation", "completed_with_failures", "failed", "cancelled", "stopped"}:
+            return child
+        if time.time() - started > timeout_seconds:
+            request_cancel(child_job_id)
+            return {
+                "job_id": child_job_id,
+                "status": "failed",
+                "current_phase_label": "Timed out",
+                "current_phase_detail": f"{current_phase_label} exceeded the allowed timeout and was cancelled.",
+                "errors": [{"message": "child_job_timeout"}],
+            }
+        time.sleep(2.5)
+
+
+def _analysis_layer_counts(analysis_status: dict) -> dict:
+    phases = analysis_status.get("phases") or {}
+    completed = partial = failed = 0
+    for payload in phases.values():
+        raw = str((payload or {}).get("status") or "").lower()
+        if raw == "completed":
+            completed += 1
+        elif raw in {"partial", "completed_with_degradation"}:
+            partial += 1
+        elif raw == "failed":
+            failed += 1
+    return {
+        "layers_total": len(phases),
+        "layers_completed": completed,
+        "layers_partial": partial,
+        "layers_failed": failed,
+    }
+
+
+def _find_event_time(events: list[dict], event_name: str) -> str | None:
+    for item in events:
+        if str(item.get("event") or item.get("event_type") or "") == event_name:
+            return item.get("ts_utc_ms") or item.get("ts_utc") or item.get("timestamp")
+    return None
+
+
+def _latest_event_time(events: list[dict], event_name: str) -> str | None:
+    matching = [
+        item.get("ts_utc_ms") or item.get("ts_utc") or item.get("timestamp")
+        for item in events
+        if str(item.get("event") or item.get("event_type") or "") == event_name
+    ]
+    return matching[-1] if matching else None
+
+
+def _repetition_result_from_case(
+    *,
+    repetition_number: int,
+    campaign_id: str,
+    execution_id: str,
+    case_id: str | None,
+    case_dir: Path | None,
+    attack: dict,
+    attack_result: dict,
+    attack_started_at: str,
+    attack_completed_at: str,
+    target: dict,
+    matched_alert: dict | None,
+    memory_result: dict | None,
+    network_result: dict | None,
+    disk_result: dict | None,
+    lifecycle_result: dict | None,
+    attach_result: dict | None,
+    dfir_mode_before: str,
+    dfir_mode_after: str,
+    nested_level_a: dict | None = None,
+) -> dict:
+    output_dir = Path(str(attack_result.get("_output_dir") or "")).resolve() if attack_result.get("_output_dir") else None
+    params = _attack_parameter_status(attack_result)
+    trigger_primary = (matched_alert or {}).get("primary") or {}
+    trigger_triage = (matched_alert or {}).get("triage") or {}
+    case_path_rel = relative_path(case_dir) if case_dir else None
+    acquisition_profile = _json_load(case_dir / "metadata" / "acquisition_profile.json") if case_dir else None
+    events = _read_jsonl(case_dir / "metadata" / "pipeline_events.jsonl") if case_dir else []
+    comparison_profile = _json_load(Path((attach_result or {}).get("artifacts", {}).get("forensic_comparison_profile") or "")) if attach_result else None
+    result_card = _json_load(Path((attach_result or {}).get("artifacts", {}).get("forensic_result_card") or "")) if attach_result else None
+    analysis_status = load_analysis_status(case_id) if case_id else {}
+    layers = _analysis_layer_counts(analysis_status or {})
+    network_context = _network_context_payload(case_dir) if case_dir else {"status": "failed", "preserved_segments": 0, "pending_segments": 0, "manifest": {}}
+    summary = ((comparison_profile or {}).get("final_conclusion") or {})
+    causal = (comparison_profile or {}).get("causal_reconstruction") or {}
+    memory_hash = (memory_result or {}).get("sha256")
+    case_sealed_time = (
+        _latest_event_time(events, "dfir_orchestration_done")
+        or _latest_event_time(events, "case_digest_written")
+        or (acquisition_profile or {}).get("disk_completed_utc")
+        or (acquisition_profile or {}).get("memory_completed_utc")
+    )
+    analysis_started_at = (analysis_status or {}).get("started_at")
+    analysis_completed_at = (analysis_status or {}).get("finished_at")
+    reconstruction_completed_at = (lifecycle_result or {}).get("finished_at")
+    warnings = []
+    warnings.extend(list((lifecycle_result or {}).get("warnings") or []))
+    warnings.extend(list((result_card or {}).get("scientific_limitations") or []))
+    if nested_level_a and str(nested_level_a.get("status") or "").lower() not in {"completed", "completed_with_degradation"}:
+        warnings.append("nested Level A scientific report did not complete successfully for this Level B case")
+    blockers = []
+    blockers.extend([str(item) for item in ((lifecycle_result or {}).get("errors") or []) if item])
+    trigger_ts = trigger_primary.get("ts_utc") or trigger_primary.get("timestamp")
+    memory_started_at = (acquisition_profile or {}).get("memory_started_utc") or _find_event_time(events, "memory_start")
+    memory_completed_at = (acquisition_profile or {}).get("memory_completed_utc") or _find_event_time(events, "memory_preserved")
+    disk_started_at = (acquisition_profile or {}).get("disk_started_utc") or _find_event_time(events, "disk_start")
+    disk_completed_at = (acquisition_profile or {}).get("disk_completed_utc") or _find_event_time(events, "disk_preserved")
+    network_started_at = (acquisition_profile or {}).get("network_context_import_started_utc")
+    network_completed_at = (acquisition_profile or {}).get("network_context_import_completed_utc")
+
+    repetition_status = "completed"
+    if (lifecycle_result or {}).get("status") in {"completed_with_degradation"} or str((attach_result or {}).get("status") or "").lower() == "completed_with_degradation":
+        repetition_status = "partial"
+    if not case_id or not attach_result:
+        repetition_status = "failed"
+
+    return {
+        "repetition_number": repetition_number,
+        "campaign_id": campaign_id,
+        "execution_id": execution_id,
+        "execution_status": repetition_status,
+        "dfir_mode_before": dfir_mode_before,
+        "dfir_mode_after": dfir_mode_after,
+        "dfir_mode_enabled_successfully": dfir_mode_after == "on",
+        "dfir_mode_blocker": None if dfir_mode_after == "on" else "DFIR mode is not ON.",
+        "attack_profile_id": attack.get("attack_id"),
+        "attack_name": attack.get("display_name"),
+        "target_role": "PLC",
+        "target_node": target.get("vm_name"),
+        "target_ip": params.get("parsed_write_command", {}).get("target_ip"),
+        "protocol": params.get("protocol"),
+        "destination_port": params.get("destination_port"),
+        "function_code": params.get("function_code"),
+        "register": params.get("register"),
+        "value": params.get("value"),
+        "attack_started_at": attack_started_at,
+        "attack_completed_at": attack_completed_at,
+        "attack_output_path": relative_path(output_dir) if output_dir and output_dir.exists() else None,
+        "attack_output_sha256": _sha256_path(output_dir / "result.json") if output_dir and (output_dir / "result.json").is_file() else "not_available",
+        "trigger_alert_detected": bool(matched_alert),
+        "trigger_alert_id": trigger_primary.get("event_id"),
+        "trigger_alert_rule": trigger_primary.get("rule_id"),
+        "trigger_alert_severity": str(trigger_triage.get("severity") or "unknown").lower(),
+        "trigger_alert_timestamp": trigger_ts,
+        "trigger_alert_mitre": ((trigger_primary.get("raw") or {}).get("mitre_mapping")) or None,
+        "forensic_intervention_required": bool(trigger_triage.get("recommend_forensics")),
+        "automatic_acquisition_started": bool(case_id),
+        "alert_to_acquisition_start_seconds": _seconds_between(trigger_ts, (acquisition_profile or {}).get("acquisition_started_utc") or (acquisition_profile or {}).get("case_created_utc")),
+        "case_id": case_id,
+        "case_path": case_path_rel,
+        "memory_acquisition_status": "completed" if (memory_result or {}).get("ok") else ("failed" if memory_result else "skipped"),
+        "memory_hash": memory_hash,
+        "network_context_status": network_context.get("status"),
+        "pcap_segments_imported": network_context.get("preserved_segments", 0),
+        "disk_acquisition_status": "completed" if (disk_result or {}).get("ok") else ("failed" if disk_result else "skipped"),
+        "ot_export_status": "completed" if ((comparison_profile or {}).get("reports") or {}).get("ot") else "partial",
+        "alerts_preserved": int((((comparison_profile or {}).get("multilayer_analysis") or {}).get("alert_events_indexed")) or (((comparison_profile or {}).get("claimability") or {}).get("evidence_summary", {}).get("alerts_observed") or 0)),
+        "custody_status": "valid" if ((comparison_profile or {}).get("preservation") or {}).get("chain_of_custody_available") else "partial",
+        "case_sealed_status": "sealed" if ((comparison_profile or {}).get("preservation") or {}).get("manifest_available") else "partial",
+        "analysis_status": str((analysis_status or {}).get("status") or "failed"),
+        **layers,
+        "memory_analysis_status": str((((analysis_status or {}).get("phases") or {}).get("memory_analysis") or {}).get("status") or "not_started"),
+        "network_analysis_status": str((((analysis_status or {}).get("phases") or {}).get("network_analysis") or {}).get("status") or "not_started"),
+        "disk_analysis_status": str((((analysis_status or {}).get("phases") or {}).get("disk_analysis") or {}).get("status") or "not_started"),
+        "ot_analysis_status": str((((analysis_status or {}).get("phases") or {}).get("ot_export_analysis") or {}).get("status") or "not_started"),
+        "alert_analysis_status": str((((analysis_status or {}).get("phases") or {}).get("alerts_detection_analysis") or {}).get("status") or "not_started"),
+        "timeline_status": str((((analysis_status or {}).get("phases") or {}).get("unified_forensic_timeline") or {}).get("status") or "not_started"),
+        "reconstruction_status": str(causal.get("status") or (lifecycle_result or {}).get("status") or "failed"),
+        "timing_metrics": {
+            "alert_to_acquisition_start_seconds": _seconds_between(trigger_ts, (acquisition_profile or {}).get("acquisition_started_utc") or (acquisition_profile or {}).get("case_created_utc")),
+            "alert_to_memory_start_seconds": _seconds_between(trigger_ts, memory_started_at),
+            "alert_to_memory_preserved_seconds": _seconds_between(trigger_ts, memory_completed_at),
+            "alert_to_case_sealed_seconds": _seconds_between(trigger_ts, case_sealed_time),
+            "memory_acquisition_duration_seconds": _seconds_between(memory_started_at, memory_completed_at),
+            "pcap_import_duration_seconds": _seconds_between(network_started_at, network_completed_at),
+            "disk_acquisition_duration_seconds": _seconds_between(disk_started_at, disk_completed_at),
+            "case_sealed_to_analysis_completed_seconds": _seconds_between(case_sealed_time, analysis_completed_at),
+            "total_repetition_duration_seconds": _seconds_between(attack_started_at, reconstruction_completed_at or analysis_completed_at or case_sealed_time),
+        },
+        "reconstruction_metrics": {
+            "expected_relations": result_card.get("expected_causal_edges") and len(result_card.get("expected_causal_edges") or []) or causal.get("expected_edges"),
+            "recovered_relations": causal.get("recovered_edges"),
+            "degraded_relations": causal.get("degraded_edges"),
+            "ambiguous_relations": causal.get("ambiguous_edges"),
+            "missing_relations": causal.get("missing_edges"),
+            "recoverability_score": result_card.get("CPR") or causal.get("cpr"),
+            "weighted_recoverability_score": result_card.get("Weighted_CPR") or causal.get("weighted_cpr"),
+            "reconstruction_confidence": result_card.get("reconstruction_confidence") or causal.get("reconstruction_confidence"),
+            "warnings": warnings,
+            "blockers": blockers,
+        },
+        "comparison_family_id": result_card.get("comparison_family_id") if result_card else None,
+        "scenario_fingerprint": result_card.get("scenario_fingerprint") if result_card else (((comparison_profile or {}).get("scenario_profile") or {}).get("scenario_fingerprint")),
+        "final_case_status": summary.get("summary_class") or result_card.get("final_conclusion_class") if result_card else None,
+        "nested_level_a": nested_level_a or {},
+        "artifacts": {
+            "forensic_result_card": relative_path(Path((attach_result or {}).get("artifacts", {}).get("forensic_result_card") or "")) if (attach_result or {}).get("artifacts", {}).get("forensic_result_card") else None,
+            "forensic_comparison_profile": relative_path(Path((attach_result or {}).get("artifacts", {}).get("forensic_comparison_profile") or "")) if (attach_result or {}).get("artifacts", {}).get("forensic_comparison_profile") else None,
+            "acquisition_profile": relative_path(case_dir / "metadata" / "acquisition_profile.json") if case_dir and (case_dir / "metadata" / "acquisition_profile.json").is_file() else None,
+            "network_context_manifest": relative_path(case_dir / "network" / "traffic_preserved" / "network_context_manifest.json") if case_dir and (case_dir / "network" / "traffic_preserved" / "network_context_manifest.json").is_file() else None,
+            "pipeline_events": relative_path(case_dir / "metadata" / "pipeline_events.jsonl") if case_dir and (case_dir / "metadata" / "pipeline_events.jsonl").is_file() else None,
+        },
+        "warnings": warnings,
+        "blockers": blockers,
+    }
+
+
+def _failed_repetition_result(
+    *,
+    repetition_number: int,
+    campaign_id: str,
+    execution_id: str,
+    attack: dict,
+    dfir_mode_before: str,
+    dfir_mode_after: str,
+    attack_started_at: str | None,
+    attack_completed_at: str | None,
+    reason: str,
+    blockers: list[str],
+    target: dict | None = None,
+    attack_result: dict | None = None,
+    matched_alert: dict | None = None,
+    case_id: str | None = None,
+    case_dir: Path | None = None,
+    nested_level_a: dict | None = None,
+) -> dict:
+    params = _attack_parameter_status(attack_result or {})
+    trigger_primary = (matched_alert or {}).get("primary") or {}
+    trigger_triage = (matched_alert or {}).get("triage") or {}
+    return {
+        "repetition_number": repetition_number,
+        "campaign_id": campaign_id,
+        "execution_id": execution_id,
+        "execution_status": "failed",
+        "dfir_mode_before": dfir_mode_before,
+        "dfir_mode_after": dfir_mode_after,
+        "dfir_mode_enabled_successfully": dfir_mode_after == "on",
+        "dfir_mode_blocker": None if dfir_mode_after == "on" else "DFIR mode is not ON.",
+        "attack_profile_id": attack.get("attack_id"),
+        "attack_name": attack.get("display_name"),
+        "target_role": "PLC",
+        "target_node": (target or {}).get("vm_name"),
+        "target_ip": params.get("parsed_write_command", {}).get("target_ip"),
+        "protocol": "modbus_tcp",
+        "destination_port": 502,
+        "function_code": params.get("function_code"),
+        "register": params.get("register"),
+        "value": params.get("value"),
+        "attack_started_at": attack_started_at,
+        "attack_completed_at": attack_completed_at,
+        "attack_output_path": relative_path(Path(str((attack_result or {}).get("_output_dir") or "")).resolve()) if (attack_result or {}).get("_output_dir") else None,
+        "trigger_alert_detected": bool(matched_alert),
+        "trigger_alert_id": trigger_primary.get("event_id"),
+        "trigger_alert_rule": trigger_primary.get("rule_id"),
+        "trigger_alert_severity": str(trigger_triage.get("severity") or "unknown").lower(),
+        "trigger_alert_timestamp": trigger_primary.get("ts_utc") or trigger_primary.get("timestamp"),
+        "trigger_alert_mitre": ((trigger_primary.get("raw") or {}).get("mitre_mapping")) or None,
+        "forensic_intervention_required": bool(trigger_triage.get("recommend_forensics")),
+        "automatic_acquisition_started": bool(case_id),
+        "case_id": case_id,
+        "case_path": relative_path(case_dir) if case_dir else None,
+        "memory_acquisition_status": "failed" if case_id else "skipped",
+        "network_context_status": "failed" if case_id else "skipped",
+        "pcap_segments_imported": 0,
+        "disk_acquisition_status": "failed" if case_id else "skipped",
+        "ot_export_status": "skipped",
+        "alerts_preserved": 0,
+        "custody_status": "failed" if case_id else "skipped",
+        "case_sealed_status": "failed" if case_id else "skipped",
+        "analysis_status": "failed",
+        "layers_total": 0,
+        "layers_completed": 0,
+        "layers_partial": 0,
+        "layers_failed": 0,
+        "memory_analysis_status": "not_started",
+        "network_analysis_status": "not_started",
+        "disk_analysis_status": "not_started",
+        "ot_analysis_status": "not_started",
+        "alert_analysis_status": "not_started",
+        "timeline_status": "not_started",
+        "reconstruction_status": "failed",
+        "timing_metrics": {
+            "alert_to_acquisition_start_seconds": None,
+            "alert_to_memory_start_seconds": None,
+            "alert_to_memory_preserved_seconds": None,
+            "alert_to_case_sealed_seconds": None,
+            "memory_acquisition_duration_seconds": None,
+            "pcap_import_duration_seconds": None,
+            "disk_acquisition_duration_seconds": None,
+            "case_sealed_to_analysis_completed_seconds": None,
+            "total_repetition_duration_seconds": _seconds_between(attack_started_at, attack_completed_at) if attack_started_at and attack_completed_at else None,
+        },
+        "reconstruction_metrics": {
+            "expected_relations": 0,
+            "recovered_relations": 0,
+            "degraded_relations": 0,
+            "ambiguous_relations": 0,
+            "missing_relations": 0,
+            "recoverability_score": None,
+            "weighted_recoverability_score": None,
+            "reconstruction_confidence": None,
+            "warnings": [reason],
+            "blockers": blockers,
+        },
+        "comparison_family_id": None,
+        "scenario_fingerprint": None,
+        "final_case_status": "failed",
+        "nested_level_a": nested_level_a or {},
+        "artifacts": {},
+        "warnings": [reason],
+        "blockers": blockers,
+    }
+
+
+def _run_nested_level_a_report_for_case(
+    *,
+    parent_campaign_id: str,
+    parent_execution_id: str,
+    parent_config: dict,
+    case_id: str,
+    repetition_number: int,
+    nested_level_a_repetitions: int,
+    job_id: str,
+    job_path: Path,
+    rep_idx: int,
+    total_repetitions: int,
+    phase_extra: dict,
+) -> dict:
+    child_campaign = create_campaign(
+        {
+            "level": "A",
+            "name": f"Nested Level A · {parent_execution_id}",
+            "description": f"Automatically generated nested Level A repeatability audit for Level B execution {parent_execution_id}.",
+            "notes": f"Nested Level A scientific report for Level B parent campaign {parent_campaign_id}, execution {parent_execution_id}.",
+            "scenario_id": parent_config.get("scenario_id") or "not_available",
+            "base_case_id": case_id,
+            "run_case_id": case_id,
+            "repetitions": nested_level_a_repetitions,
+            "baseline_noise_threshold": parent_config.get("baseline_noise_threshold"),
+            "baseline_window_seconds": parent_config.get("baseline_window_seconds"),
+            "delta_wcpr_allowed": parent_config.get("delta_wcpr_allowed"),
+            "analysis_profile_id": parent_config.get("analysis_profile_id"),
+            "foc_profile_id": parent_config.get("foc_profile_id"),
+            "detection_policy_id": parent_config.get("detection_policy_id"),
+            "trigger_policy_id": parent_config.get("trigger_policy_id"),
+            "acquisition_profile_id": parent_config.get("acquisition_profile_id"),
+            "retention_policy": "original_case_retained",
+            "dry_run": False,
+            "parent_campaign_id": parent_campaign_id,
+            "parent_execution_id": parent_execution_id,
+            "parent_level": "B",
+        }
+    )
+    child_campaign_id = str(((child_campaign or {}).get("campaign") or {}).get("campaign_id") or "").strip()
+    if not child_campaign_id:
+        return {"status": "failed", "reason": "nested_level_a_campaign_creation_failed"}
+
+    _emit_phase(
+        job_id,
+        job_path,
+        phase_key=f"repetition_{rep_idx}_store",
+        phase_label="Store repetition result",
+        status="running",
+        detail=f"Launching nested Level A scientific report for case {case_id} using {nested_level_a_repetitions} dry-run repetitions inside child campaign {child_campaign_id}.",
+        category="repetition",
+        index=8,
+        repetition_number=rep_idx,
+        total_repetitions=total_repetitions,
+        extra={"nested_level_a_campaign_id": child_campaign_id, **phase_extra},
+    )
+    child_job = start_level_a_scientific_report_job(child_campaign_id)
+    child_job_id = str(child_job.get("job_id") or "").strip()
+    if not child_job_id:
+        return {"status": "failed", "reason": "nested_level_a_job_not_created", "campaign_id": child_campaign_id}
+
+    child = _wait_for_child_job(
+        child_job_id,
+        parent_job_id=job_id,
+        parent_job_path=job_path,
+        current_phase=f"repetition_{rep_idx}_store",
+        current_phase_label="Store repetition result",
+        current_detail_prefix=f"Nested Level A {repetition_number}/{total_repetitions}",
+    )
+    child_status = str(child.get("status") or "failed").lower()
+    report = dict(child.get("level_a_report") or {})
+    return {
+        "status": child_status,
+        "campaign_id": child_campaign_id,
+        "job_id": child_job_id,
+        "report": report,
+        "warnings": list(child.get("warnings") or []),
+        "errors": list(child.get("errors") or []),
+        "comparison_status": report.get("comparison_status"),
+        "comparison_type": report.get("comparison_type"),
+        "generated_execution_ids": list(report.get("generated_execution_ids") or []),
+        "report_output_path": report.get("report_output_path"),
+        "report_markdown_path": report.get("report_markdown_path"),
+        "completed_repetitions": report.get("completed_repetitions"),
+        "requested_repetitions": report.get("requested_repetitions") or nested_level_a_repetitions,
+    }
+
+
+def _aggregate_metrics(results: list[dict]) -> tuple[dict, dict]:
+    timing_fields = [
+        "alert_to_memory_start_seconds",
+        "alert_to_memory_preserved_seconds",
+        "alert_to_case_sealed_seconds",
+        "total_repetition_duration_seconds",
+    ]
+    timing_values: dict[str, list[float]] = {key: [] for key in timing_fields}
+    for item in results:
+        timing = item.get("timing_metrics") or {}
+        for key in timing_fields:
+            value = _safe_float(timing.get(key))
+            if value is not None:
+                timing_values[key].append(value)
+
+    aggregate_timing = {
+        "N_B": len(results),
+        "alert_to_memory_start_mean_seconds": _mean(timing_values["alert_to_memory_start_seconds"]),
+        "alert_to_memory_start_std_seconds": _sample_std(timing_values["alert_to_memory_start_seconds"]),
+        "alert_to_memory_preserved_mean_seconds": _mean(timing_values["alert_to_memory_preserved_seconds"]),
+        "alert_to_memory_preserved_std_seconds": _sample_std(timing_values["alert_to_memory_preserved_seconds"]),
+        "alert_to_case_sealed_mean_seconds": _mean(timing_values["alert_to_case_sealed_seconds"]),
+        "alert_to_case_sealed_std_seconds": _sample_std(timing_values["alert_to_case_sealed_seconds"]),
+        "total_duration_mean_seconds": _mean(timing_values["total_repetition_duration_seconds"]),
+        "total_duration_std_seconds": _sample_std(timing_values["total_repetition_duration_seconds"]),
+    }
+
+    recoverability = []
+    weighted = []
+    degraded = ambiguous = missing = 0
+    for item in results:
+        reconstruction = item.get("reconstruction_metrics") or {}
+        if _safe_float(reconstruction.get("recoverability_score")) is not None:
+            recoverability.append(float(reconstruction["recoverability_score"]))
+        if _safe_float(reconstruction.get("weighted_recoverability_score")) is not None:
+            weighted.append(float(reconstruction["weighted_recoverability_score"]))
+        degraded += int(reconstruction.get("degraded_relations") or 0)
+        ambiguous += int(reconstruction.get("ambiguous_relations") or 0)
+        missing += int(reconstruction.get("missing_relations") or 0)
+    aggregate_reconstruction = {
+        "recoverability_mean": _mean(recoverability),
+        "recoverability_std": _sample_std(recoverability),
+        "weighted_recoverability_mean": _mean(weighted),
+        "weighted_recoverability_std": _sample_std(weighted),
+        "degraded_relations_total": degraded,
+        "ambiguous_relations_total": ambiguous,
+        "missing_relations_total": missing,
+    }
+    return aggregate_timing, aggregate_reconstruction
+
+
+def _write_csv(path: Path, rows: list[dict], fieldnames: list[str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({key: row.get(key) for key in fieldnames})
+
+
+def _report_markdown(payload: dict) -> str:
+    lines = [
+        "# Level B Repetition Report",
+        "",
+        f"- Generated at: `{payload.get('generated_at')}`",
+        f"- Scenario ID: `{payload.get('scenario_id')}`",
+        f"- Scenario fingerprint: `{payload.get('scenario_fingerprint')}`",
+        f"- Attack profile: `{payload.get('attack_profile_id')}`",
+        f"- Requested repetitions: `{payload.get('requested_repetitions')}`",
+        f"- Nested Level A repetitions per Level B case: `{payload.get('nested_level_a_requested_repetitions')}`",
+        f"- Completed repetitions: `{payload.get('completed_repetitions')}`",
+        f"- Partial repetitions: `{payload.get('partial_repetitions')}`",
+        f"- Failed repetitions: `{payload.get('failed_repetitions')}`",
+        "",
+        "## Higher-Level Level B Comparability",
+        "",
+        f"- Comparison status: `{((payload.get('higher_level_comparison') or {}).get('status') or 'not_available')}`",
+        f"- Comparison type: `{((payload.get('higher_level_comparison') or {}).get('comparison_type') or 'not_available')}`",
+        f"- Compared executions: `{', '.join((payload.get('higher_level_comparison') or {}).get('execution_ids') or []) or 'not_available'}`",
+        "",
+        "## Nested Level A Repeatability",
+        "",
+        f"- Completed nested reports: `{((payload.get('nested_level_a_aggregate') or {}).get('completed_nested_reports') or 0)}`",
+        f"- Failed nested reports: `{((payload.get('nested_level_a_aggregate') or {}).get('failed_nested_reports') or 0)}`",
+        f"- Nested comparison statuses: `{', '.join((payload.get('nested_level_a_aggregate') or {}).get('comparison_statuses') or []) or 'not_available'}`",
+        "",
+        "## Aggregate Timing Metrics",
+        "",
+        f"- `N_B`: `{payload.get('aggregate_timing_metrics', {}).get('N_B')}`",
+        f"- Alert -> memory start mean/std: `{payload.get('aggregate_timing_metrics', {}).get('alert_to_memory_start_mean_seconds')}` / `{payload.get('aggregate_timing_metrics', {}).get('alert_to_memory_start_std_seconds')}`",
+        f"- Alert -> memory preserved mean/std: `{payload.get('aggregate_timing_metrics', {}).get('alert_to_memory_preserved_mean_seconds')}` / `{payload.get('aggregate_timing_metrics', {}).get('alert_to_memory_preserved_std_seconds')}`",
+        f"- Alert -> case sealed mean/std: `{payload.get('aggregate_timing_metrics', {}).get('alert_to_case_sealed_mean_seconds')}` / `{payload.get('aggregate_timing_metrics', {}).get('alert_to_case_sealed_std_seconds')}`",
+        f"- Total duration mean/std: `{payload.get('aggregate_timing_metrics', {}).get('total_duration_mean_seconds')}` / `{payload.get('aggregate_timing_metrics', {}).get('total_duration_std_seconds')}`",
+        "",
+        "## Aggregate Reconstruction Metrics",
+        "",
+        f"- Recoverability mean/std: `{payload.get('aggregate_reconstruction_metrics', {}).get('recoverability_mean')}` / `{payload.get('aggregate_reconstruction_metrics', {}).get('recoverability_std')}`",
+        f"- Weighted recoverability mean/std: `{payload.get('aggregate_reconstruction_metrics', {}).get('weighted_recoverability_mean')}` / `{payload.get('aggregate_reconstruction_metrics', {}).get('weighted_recoverability_std')}`",
+        f"- Degraded relations total: `{payload.get('aggregate_reconstruction_metrics', {}).get('degraded_relations_total')}`",
+        f"- Ambiguous relations total: `{payload.get('aggregate_reconstruction_metrics', {}).get('ambiguous_relations_total')}`",
+        f"- Missing relations total: `{payload.get('aggregate_reconstruction_metrics', {}).get('missing_relations_total')}`",
+        "",
+        "## Per-Repetition Results",
+        "",
+    ]
+    for item in payload.get("per_repetition_results") or []:
+        timing = item.get("timing_metrics") or {}
+        reconstruction = item.get("reconstruction_metrics") or {}
+        lines.extend(
+            [
+                f"### Repetition {item.get('repetition_number')}",
+                "",
+                f"- Execution ID: `{item.get('execution_id')}`",
+                f"- Case ID: `{item.get('case_id') or 'not_created'}`",
+                f"- Status: `{item.get('execution_status')}`",
+                f"- Attack output: `{item.get('attack_output_path') or 'not_available'}`",
+                f"- Trigger alert detected: `{item.get('trigger_alert_detected')}`",
+                f"- Trigger rule/severity: `{item.get('trigger_alert_rule')}` / `{item.get('trigger_alert_severity')}`",
+                f"- Automatic acquisition started: `{item.get('automatic_acquisition_started')}`",
+                f"- Memory / network / disk acquisition: `{item.get('memory_acquisition_status')}` / `{item.get('network_context_status')}` / `{item.get('disk_acquisition_status')}`",
+                f"- Analysis status: `{item.get('analysis_status')}`",
+                f"- Reconstruction status: `{item.get('reconstruction_status')}`",
+                f"- Nested Level A status: `{((item.get('nested_level_a') or {}).get('status') or 'not_available')}`",
+                f"- Nested Level A comparison: `{((item.get('nested_level_a') or {}).get('comparison_status') or 'not_available')}` / `{((item.get('nested_level_a') or {}).get('comparison_type') or 'not_available')}`",
+                f"- Recoverability / weighted / confidence: `{reconstruction.get('recoverability_score')}` / `{reconstruction.get('weighted_recoverability_score')}` / `{reconstruction.get('reconstruction_confidence')}`",
+                f"- Relations recovered/degraded/ambiguous/missing: `{reconstruction.get('recovered_relations')}` / `{reconstruction.get('degraded_relations')}` / `{reconstruction.get('ambiguous_relations')}` / `{reconstruction.get('missing_relations')}`",
+                f"- Alert -> memory start: `{timing.get('alert_to_memory_start_seconds')}` seconds",
+                f"- Alert -> case sealed: `{timing.get('alert_to_case_sealed_seconds')}` seconds",
+                f"- Total repetition duration: `{timing.get('total_repetition_duration_seconds')}` seconds",
+            ]
+        )
+        if item.get("warnings"):
+            lines.append(f"- Warnings: `{' | '.join(str(v) for v in item.get('warnings') or [])}`")
+        if item.get("blockers"):
+            lines.append(f"- Blockers: `{' | '.join(str(v) for v in item.get('blockers') or [])}`")
+        lines.append("")
+    return "\n".join(lines).strip() + "\n"
+
+
+def _store_level_b_report(
+    *,
+    job_id: str,
+    campaign_id: str,
+    config: dict,
+    cleanup_manifest: dict,
+    results: list[dict],
+    requested_repetitions: int,
+    report_dir: Path,
+    nested_level_a_repetitions: int,
+    higher_level_comparison: dict,
+) -> dict:
+    generated_at = utc_now()
+    aggregate_timing, aggregate_reconstruction = _aggregate_metrics(results)
+    completed_repetitions = sum(1 for item in results if item.get("execution_status") == "completed")
+    partial_repetitions = sum(1 for item in results if item.get("execution_status") == "partial")
+    failed_repetitions = sum(1 for item in results if item.get("execution_status") == "failed")
+    first_result = next((item for item in results if item.get("case_id")), None)
+    cases_created = [item.get("case_id") for item in results if item.get("case_id")]
+    warnings = [warning for item in results for warning in (item.get("warnings") or [])]
+    blockers = [blocker for item in results for blocker in (item.get("blockers") or [])]
+    nested_runs = [item.get("nested_level_a") or {} for item in results]
+    nested_completed = sum(1 for item in nested_runs if str(item.get("status") or "").lower() in {"completed", "completed_with_degradation"})
+    nested_failed = sum(1 for item in nested_runs if item and str(item.get("status") or "").lower() not in {"completed", "completed_with_degradation"})
+    nested_comparison_statuses = [str(item.get("comparison_status") or "not_available") for item in nested_runs if item]
+    nested_comparison_types = [str(item.get("comparison_type") or "not_available") for item in nested_runs if item]
+    payload = {
+        "report_type": "level_b_repetition_report",
+        "level": "B",
+        "definition": "Independent repeated execution of the same controlled incident in the same deployed scenario, producing new forensic cases and new preserved evidence.",
+        "requested_repetitions": requested_repetitions,
+        "completed_repetitions": completed_repetitions,
+        "failed_repetitions": failed_repetitions,
+        "partial_repetitions": partial_repetitions,
+        "scenario_id": config.get("scenario_id") or "not_available",
+        "scenario_fingerprint": first_result.get("scenario_fingerprint") if first_result else "not_available",
+        "attack_profile_id": config.get("attack_id") or "not_available",
+        "dfir_mode_required": True,
+        "dfir_mode_verified": all(bool(item.get("dfir_mode_enabled_successfully")) for item in results),
+        "cases_created": cases_created,
+        "nested_level_a_requested_repetitions": nested_level_a_repetitions,
+        "higher_level_comparison": higher_level_comparison,
+        "nested_level_a_aggregate": {
+            "completed_nested_reports": nested_completed,
+            "failed_nested_reports": nested_failed,
+            "comparison_statuses": nested_comparison_statuses,
+            "comparison_types": nested_comparison_types,
+        },
+        "aggregate_timing_metrics": aggregate_timing,
+        "aggregate_reconstruction_metrics": aggregate_reconstruction,
+        "per_repetition_results": results,
+        "warnings": warnings,
+        "blockers": blockers,
+        "generated_at": generated_at,
+        "git_commit": _safe_git_commit(),
+    }
+    report_dir.mkdir(parents=True, exist_ok=True)
+    _write_json(report_dir / "level_b_repetition_report.json", payload)
+
+    summary_rows = []
+    timing_rows = []
+    reconstruction_rows = []
+    cases_index = []
+    for item in results:
+        summary_rows.append(
+            {
+                "repetition_number": item.get("repetition_number"),
+                "execution_id": item.get("execution_id"),
+                "case_id": item.get("case_id"),
+                "execution_status": item.get("execution_status"),
+                "trigger_alert_detected": item.get("trigger_alert_detected"),
+                "memory_acquisition_status": item.get("memory_acquisition_status"),
+                "network_context_status": item.get("network_context_status"),
+                "disk_acquisition_status": item.get("disk_acquisition_status"),
+                "analysis_status": item.get("analysis_status"),
+                "reconstruction_status": item.get("reconstruction_status"),
+                "comparison_family_id": item.get("comparison_family_id"),
+                "nested_level_a_status": ((item.get("nested_level_a") or {}).get("status")),
+                "nested_level_a_comparison_status": ((item.get("nested_level_a") or {}).get("comparison_status")),
+            }
+        )
+        timing_rows.append({"repetition_number": item.get("repetition_number"), **(item.get("timing_metrics") or {})})
+        reconstruction_rows.append({"repetition_number": item.get("repetition_number"), **(item.get("reconstruction_metrics") or {})})
+        cases_index.append(
+            {
+                "repetition_number": item.get("repetition_number"),
+                "execution_id": item.get("execution_id"),
+                "case_id": item.get("case_id"),
+                "case_path": item.get("case_path"),
+                "forensic_result_card": (item.get("artifacts") or {}).get("forensic_result_card"),
+                "forensic_comparison_profile": (item.get("artifacts") or {}).get("forensic_comparison_profile"),
+                "nested_level_a_campaign_id": ((item.get("nested_level_a") or {}).get("campaign_id")),
+                "nested_level_a_report_path": ((item.get("nested_level_a") or {}).get("report_output_path")),
+            }
+        )
+
+    _write_csv(
+        report_dir / "level_b_repetition_summary.csv",
+        summary_rows,
+        [
+            "repetition_number",
+            "execution_id",
+            "case_id",
+            "execution_status",
+            "trigger_alert_detected",
+            "memory_acquisition_status",
+            "network_context_status",
+            "disk_acquisition_status",
+            "analysis_status",
+            "reconstruction_status",
+            "comparison_family_id",
+            "nested_level_a_status",
+            "nested_level_a_comparison_status",
+        ],
+    )
+    _write_csv(
+        report_dir / "level_b_timing_metrics.csv",
+        timing_rows,
+        [
+            "repetition_number",
+            "alert_to_acquisition_start_seconds",
+            "alert_to_memory_start_seconds",
+            "alert_to_memory_preserved_seconds",
+            "alert_to_case_sealed_seconds",
+            "memory_acquisition_duration_seconds",
+            "pcap_import_duration_seconds",
+            "disk_acquisition_duration_seconds",
+            "case_sealed_to_analysis_completed_seconds",
+            "total_repetition_duration_seconds",
+        ],
+    )
+    _write_csv(
+        report_dir / "level_b_reconstruction_metrics.csv",
+        reconstruction_rows,
+        [
+            "repetition_number",
+            "expected_relations",
+            "recovered_relations",
+            "degraded_relations",
+            "ambiguous_relations",
+            "missing_relations",
+            "recoverability_score",
+            "weighted_recoverability_score",
+            "reconstruction_confidence",
+        ],
+    )
+    _write_json(report_dir / "level_b_cases_index.json", {"generated_at": generated_at, "cases": cases_index})
+    _write_json(report_dir / "level_b_warnings_and_blockers.json", {"generated_at": generated_at, "warnings": warnings, "blockers": blockers})
+    _write_json(report_dir / "cleanup_manifest.json", cleanup_manifest)
+    _write_text(report_dir / "level_b_repetition_summary.md", _report_markdown(payload))
+    return {
+        "report_dir": relative_path(report_dir),
+        "main_report_path": relative_path(report_dir / "level_b_repetition_report.json"),
+        "summary_markdown_path": relative_path(report_dir / "level_b_repetition_summary.md"),
+        "summary_csv_path": relative_path(report_dir / "level_b_repetition_summary.csv"),
+        "timing_csv_path": relative_path(report_dir / "level_b_timing_metrics.csv"),
+        "reconstruction_csv_path": relative_path(report_dir / "level_b_reconstruction_metrics.csv"),
+        "cases_index_path": relative_path(report_dir / "level_b_cases_index.json"),
+        "warnings_path": relative_path(report_dir / "level_b_warnings_and_blockers.json"),
+        "cleanup_manifest_path": relative_path(report_dir / "cleanup_manifest.json"),
+        "payload": payload,
+    }
+
+
+def _persist_report_in_campaign(campaign_id: str, report_meta: dict) -> None:
+    manifest = _json_load(campaign_manifest_path(campaign_id)) or {}
+    reports = dict(manifest.get("validation_reports") or {})
+    history = list(reports.get("level_b_history") or [])
+    entry = {
+        "generated_at": utc_now(),
+        "report_dir": report_meta.get("report_dir"),
+        "main_report_path": report_meta.get("main_report_path"),
+        "summary_markdown_path": report_meta.get("summary_markdown_path"),
+        "job_id": report_meta.get("job_id"),
+    }
+    history.append(entry)
+    reports["latest_level_b"] = entry
+    reports["level_b_history"] = history[-12:]
+    manifest["validation_reports"] = reports
+    manifest["updated_at"] = utc_now()
+    _write_json(campaign_manifest_path(campaign_id), manifest)
+
+
+def _run_single_repetition(
+    job_id: str,
+    job_path: Path,
+    *,
+    campaign_id: str,
+    config: dict,
+    attack: dict,
+    repetition_number: int,
+    total_repetitions: int,
+    target: dict,
+    monitor: dict,
+    detection_timeout_seconds: int,
+    dfir_mode_before: str,
+    dfir_mode_after: str,
+    nested_level_a_repetitions: int,
+) -> dict:
+    raise_if_cancelled(job_id, job_path, phase_key=f"repetition_{repetition_number}_start", phase_label=f"Start repetition {repetition_number}/{total_repetitions}", detail="Level B repetition batch cancellation was requested before starting the next repetition.")
+    phase_extra = {"current_repetition": repetition_number, "requested_repetitions": total_repetitions}
+    execution = create_execution_from_campaign(campaign_id, overrides={})
+    execution_id = execution["execution_id"]
+    update_job(
+        job_id,
+        job_path,
+        current_execution_id=execution_id,
+        current_case_id=None,
+        current_attack_status="queued",
+        current_alert_status="queued",
+        current_acquisition_status="queued",
+        current_preservation_status="queued",
+        current_analysis_status="queued",
+        current_reconstruction_status="queued",
+        **phase_extra,
+    )
+
+    rep_idx = repetition_number
+    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_start", phase_label=f"Start repetition {rep_idx}/{total_repetitions}", status="running", detail=f"Execution workspace {execution_id} created. Starting independent Level B repetition {rep_idx} of {total_repetitions}.", category="repetition", index=0, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_execution_id": execution_id, **phase_extra})
+
+    if dfir_mode_after != "on":
+        reason = "DFIR mode is not ON. The attack is blocked before launch."
+        _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_start", phase_label=f"Start repetition {rep_idx}/{total_repetitions}", status="failed", detail=reason, category="repetition", index=0, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_execution_id": execution_id, **phase_extra})
+        return _failed_repetition_result(
+            repetition_number=repetition_number,
+            campaign_id=campaign_id,
+            execution_id=execution_id,
+            attack=attack,
+            dfir_mode_before=dfir_mode_before,
+            dfir_mode_after=dfir_mode_after,
+            attack_started_at=None,
+            attack_completed_at=None,
+            reason=reason,
+            blockers=[reason],
+            target=target,
+        )
+
+    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_start", phase_label=f"Start repetition {rep_idx}/{total_repetitions}", status="completed", detail=f"Independent Level B repetition {rep_idx} has started with execution {execution_id}.", category="repetition", index=0, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_execution_id": execution_id, **phase_extra})
+
+    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_attack", phase_label="Execute OT register-modification attack", status="running", detail=f"Launching {attack.get('attack_id')} against PLC target {target.get('vm_ip')}.", category="repetition", index=1, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_attack_status": "running", **phase_extra})
+    attack_started_at = utc_now()
+    attack_result = _launch_attack(attack, target.get("vm_ip"), target.get("role"))
+    attack_completed_at = utc_now()
+    if not attack_result.get("ok"):
+        reason = attack_result.get("reason") or "Attack execution failed."
+        _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_attack", phase_label="Execute OT register-modification attack", status="failed", detail=reason, category="repetition", index=1, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_attack_status": "failed", **phase_extra})
+        return _failed_repetition_result(
+            repetition_number=repetition_number,
+            campaign_id=campaign_id,
+            execution_id=execution_id,
+            attack=attack,
+            dfir_mode_before=dfir_mode_before,
+            dfir_mode_after=dfir_mode_after,
+            attack_started_at=attack_started_at,
+            attack_completed_at=attack_completed_at,
+            reason=reason,
+            blockers=[reason],
+            target=target,
+            attack_result=attack_result,
+        )
+    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_attack", phase_label="Execute OT register-modification attack", status="completed", detail=f"Attack completed successfully. Output directory: {attack_result.get('_output_dir') or 'not_available'}.", category="repetition", index=1, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_attack_status": "completed", **phase_extra})
+
+    raise_if_cancelled(job_id, job_path, phase_key=f"repetition_{rep_idx}_alert", phase_label="Wait for high-severity alert", detail="Level B repetition batch cancellation was requested before alert waiting.")
+    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_alert", phase_label="Wait for high-severity alert", status="running", detail=f"Watching monitor {monitor.get('vm_ip')} for a HIGH/CRITICAL alert matching the OT attack profile.", category="repetition", index=2, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_alert_status": "running", **phase_extra})
+    matched = run_monitor_session(
+        monitor.get("vm_ip"),
+        ssh_user="ubuntu",
+        ssh_key=os.environ.get("NICS_DFIR_SSH_KEY") or os.path.expanduser("~/.ssh/my_key"),
+        on_alert=_build_alert_matcher(attack),
+        stop_after_seconds=detection_timeout_seconds,
+    )
+    matched_alert = matched.get("matched_alert") or {}
+    alert_fallback_reasons: list[str] = []
+    if matched.get("status") != "matched":
+        fallback_alert, fallback_reasons = _best_observed_alert_for_attack(list(matched.get("observed_alerts") or []), attack)
+        if fallback_alert:
+            matched_alert = fallback_alert
+            alert_fallback_reasons = list(fallback_reasons or [])
+            matched["status"] = "matched"
+            matched["matched_alert"] = fallback_alert
+    if matched.get("status") != "matched":
+        reason = "No alert matching this attack's detection criteria was observed within the configured timeout."
+        _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_alert", phase_label="Wait for high-severity alert", status="failed", detail=reason, category="repetition", index=2, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_alert_status": "failed", **phase_extra})
+        return _failed_repetition_result(
+            repetition_number=repetition_number,
+            campaign_id=campaign_id,
+            execution_id=execution_id,
+            attack=attack,
+            dfir_mode_before=dfir_mode_before,
+            dfir_mode_after=dfir_mode_after,
+            attack_started_at=attack_started_at,
+            attack_completed_at=attack_completed_at,
+            reason=reason,
+            blockers=[reason],
+            target=target,
+            attack_result=attack_result,
+        )
+    alert_detail = f"Matched alert {(matched_alert.get('primary') or {}).get('event_id') or 'not_available'} with severity {((matched_alert.get('triage') or {}).get('severity') or 'unknown')}."
+    if alert_fallback_reasons:
+        alert_detail += f" Fallback matcher used because the attack dashboard alert taxonomy and the Level B expected-alert tokens did not align exactly. Reasons: {'; '.join(alert_fallback_reasons[:4])}."
+    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_alert", phase_label="Wait for high-severity alert", status="completed", detail=alert_detail, category="repetition", index=2, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_alert_status": "completed", **phase_extra})
+
+    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_trigger", phase_label="Verify forensic intervention trigger", status="running", detail="Verifying that the matched alert is eligible for forensic intervention and that automatic acquisition will start from this trigger.", category="repetition", index=3, repetition_number=rep_idx, total_repetitions=total_repetitions, extra=phase_extra)
+    triage = (matched_alert.get("triage") or {})
+    if str(triage.get("severity") or "").upper() not in {"HIGH", "CRITICAL"} or not triage.get("recommend_forensics"):
+        reason = "The matched alert is not eligible for forensic intervention. Severity or recommendation is insufficient."
+        _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_trigger", phase_label="Verify forensic intervention trigger", status="failed", detail=reason, category="repetition", index=3, repetition_number=rep_idx, total_repetitions=total_repetitions, extra=phase_extra)
+        return _failed_repetition_result(
+            repetition_number=repetition_number,
+            campaign_id=campaign_id,
+            execution_id=execution_id,
+            attack=attack,
+            dfir_mode_before=dfir_mode_before,
+            dfir_mode_after=dfir_mode_after,
+            attack_started_at=attack_started_at,
+            attack_completed_at=attack_completed_at,
+            reason=reason,
+            blockers=[reason],
+            target=target,
+            attack_result=attack_result,
+            matched_alert=matched_alert,
+        )
+    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_trigger", phase_label="Verify forensic intervention trigger", status="completed", detail="The matched high-severity alert is eligible for automatic forensic intervention.", category="repetition", index=3, repetition_number=rep_idx, total_repetitions=total_repetitions, extra=phase_extra)
+
+    raise_if_cancelled(job_id, job_path, phase_key=f"repetition_{rep_idx}_acquisition", phase_label="Run automatic acquisition", detail="Level B repetition batch cancellation was requested before automatic acquisition.")
+    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_acquisition", phase_label="Run automatic acquisition", status="running", detail="Creating a fresh forensic case and starting volatility-first DFIR acquisition: memory first, rolling-PCAP context import second, disk third.", category="repetition", index=4, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_acquisition_status": "running", **phase_extra})
+    case_dir = Path(_dfir_create_case_internal(run_id=execution_id)).resolve()
+    case_id = _case_id_for_case_dir(str(case_dir))
+    trigger_time_utc = ((matched_alert.get("primary") or {}).get("ts_utc")) or ((matched_alert.get("primary") or {}).get("timestamp")) or attack_completed_at
+    initialize_volatile_first_acquisition(
+        str(case_dir),
+        run_id=execution_id,
+        case_created_utc=utc_now(),
+        acquisition_started_utc=utc_now(),
+        trigger_time_utc=trigger_time_utc,
+    )
+    update_job(job_id, job_path, current_case_id=case_id)
+    update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"memory_started_utc": utc_now()})
+    memory_result = acquire_memory(str(case_dir), target.get("vm_id"), target.get("vm_ip"), os.environ.get("NICS_DFIR_SSH_KEY") or os.path.expanduser("~/.ssh/my_key"), ssh_user=_dfir_ssh_user_for_role(target.get("role")), mode="build", run_id=execution_id)
+    update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"memory_completed_utc": utc_now()})
+    update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"network_context_import_started_utc": utc_now()})
+    try:
+        network_result = import_continuous_network_context(str(case_dir), run_id=execution_id, trigger_time_utc=trigger_time_utc)
+    except Exception as exc:
+        network_result = {"error": str(exc), "preserved_segments": 0, "pending_segments": 0}
+    update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"network_context_import_completed_utc": utc_now()})
+    update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"disk_started_utc": utc_now()})
+    disk_result = acquire_disk(str(case_dir), target.get("vm_id"), "nova_libvirt", run_id=execution_id)
+    update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"disk_completed_utc": utc_now()})
+    acquisition_note = f"Case {case_id} created. Memory={memory_result.get('result')}; network_import preserved={network_result.get('preserved_segments', 0)} pending={network_result.get('pending_segments', 0)}; disk={disk_result.get('result')}."
+    acq_status = "completed"
+    if not memory_result.get("ok") or not disk_result.get("ok") or network_result.get("error"):
+        acq_status = "completed_with_degradation"
+    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_acquisition", phase_label="Run automatic acquisition", status=acq_status, detail=acquisition_note, category="repetition", index=4, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_acquisition_status": acq_status, **phase_extra})
+
+    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_seal", phase_label="Seal and register case", status="running", detail="Finalizing custody/digest state so the new case can feed the scientific analysis and reconstruction pipeline.", category="repetition", index=5, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_preservation_status": "running", **phase_extra})
+    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_seal", phase_label="Seal and register case", status="completed" if memory_result.get("ok") or disk_result.get("ok") else "completed_with_degradation", detail=f"Case {case_id} is registered for downstream analysis.", category="repetition", index=5, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_preservation_status": "completed", **phase_extra})
+
+    raise_if_cancelled(job_id, job_path, phase_key=f"repetition_{rep_idx}_analysis", phase_label="Run multilayer analysis", detail="Level B repetition batch cancellation was requested before lifecycle analysis.")
+    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_analysis", phase_label="Run multilayer analysis", status="running", detail=f"Running the existing preserved-case lifecycle backend over {case_id}.", category="repetition", index=6, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_analysis_status": "running", **phase_extra})
+    lifecycle_job = start_full_lifecycle_job(case_id, force_analysis=True, strict=False, degraded_ok=True)
+    if lifecycle_job.get("error"):
+        reason = f"Could not start lifecycle analysis: {lifecycle_job.get('error')}"
+        _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_analysis", phase_label="Run multilayer analysis", status="failed", detail=reason, category="repetition", index=6, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_analysis_status": "failed", **phase_extra})
+        return _failed_repetition_result(
+            repetition_number=repetition_number,
+            campaign_id=campaign_id,
+            execution_id=execution_id,
+            attack=attack,
+            dfir_mode_before=dfir_mode_before,
+            dfir_mode_after=dfir_mode_after,
+            attack_started_at=attack_started_at,
+            attack_completed_at=attack_completed_at,
+            reason=reason,
+            blockers=[reason],
+            target=target,
+            attack_result=attack_result,
+            matched_alert=matched_alert,
+            case_id=case_id,
+            case_dir=case_dir,
+        )
+    update_job(job_id, job_path, current_lifecycle_job_id=str(lifecycle_job.get("job_id") or ""))
+    lifecycle_result = _wait_for_lifecycle_job(lifecycle_job.get("job_id"))
+    update_job(job_id, job_path, current_lifecycle_job_id=None)
+    lifecycle_status = str(lifecycle_result.get("status") or "unknown")
+    if lifecycle_status == "failed":
+        reason = "; ".join(str(item) for item in (lifecycle_result.get("errors") or []) if item) or "Lifecycle analysis failed."
+        _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_analysis", phase_label="Run multilayer analysis", status="failed", detail=reason, category="repetition", index=6, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_analysis_status": "failed", **phase_extra})
+        return _failed_repetition_result(
+            repetition_number=repetition_number,
+            campaign_id=campaign_id,
+            execution_id=execution_id,
+            attack=attack,
+            dfir_mode_before=dfir_mode_before,
+            dfir_mode_after=dfir_mode_after,
+            attack_started_at=attack_started_at,
+            attack_completed_at=attack_completed_at,
+            reason=reason,
+            blockers=[reason],
+            target=target,
+            attack_result=attack_result,
+            matched_alert=matched_alert,
+            case_id=case_id,
+            case_dir=case_dir,
+        )
+    analysis_detail = "Lifecycle analysis finished successfully." if lifecycle_status == "completed" else "Lifecycle analysis finished with warnings or scientific degradation."
+    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_analysis", phase_label="Run multilayer analysis", status="completed" if lifecycle_status == "completed" else "completed_with_degradation", detail=analysis_detail, category="repetition", index=6, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_analysis_status": lifecycle_status, **phase_extra})
+
+    raise_if_cancelled(job_id, job_path, phase_key=f"repetition_{rep_idx}_reconstruction", phase_label="Run reconstruction/dependency analysis", detail="Level B repetition batch cancellation was requested before repetition result registration.")
+    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_reconstruction", phase_label="Run reconstruction/dependency analysis", status="running", detail="Attaching the fresh case back into the repetition workspace and generating the normalized comparison/result-card outputs.", category="repetition", index=7, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_reconstruction_status": "running", **phase_extra})
+    attack_record_override = {
+        "attack_id": attack.get("attack_id"),
+        "mitre": {"technique_id": attack.get("mitre_id"), "technique_name": attack.get("mitre_technique")},
+        "operation": {
+            "tool_used": attack.get("script"),
+            "tool_version": "not_available",
+            "protocol": "modbus_tcp",
+            "modbus_function": params.get("parsed_write_command", {}).get("modbus_function") if (params := _attack_parameter_status(attack_result)) else "not_available",
+            "register_reference": params.get("parsed_write_command", {}).get("register_reference") if params else None,
+            "value": params.get("parsed_write_command", {}).get("value") if params else None,
+        },
+        "execution": {"started_at": attack_started_at, "completed_at": attack_completed_at},
+        "source_reference": os.path.join("app_core", "infrastructure", "attack", "outputs", Path(str(attack_result.get("_output_dir") or "")).name, "result.json") if attack_result.get("_output_dir") else attack.get("script"),
+    }
+    stage_overrides = {
+        "environment_deployed": {"status": "completed", "reason": "scenario was reused in-place for this independent Level B repetition"},
+        "tools_installed_or_validated": {"status": "completed", "reason": "target and monitor nodes were validated before attack launch"},
+        "attack_executed": {"status": "completed", "reason": f"attack {attack.get('attack_id')} was executed against the PLC target"},
+        "detection_observed": {"status": "completed", "reason": "a real matching high-severity alert was observed"},
+        "trigger_selected": {"status": "completed", "reason": "the matched alert was used as the automatic forensic trigger"},
+        "acquisition_executed": {"status": "completed" if (memory_result.get("ok") or disk_result.get("ok")) else "completed_with_degradation", "reason": "automatic forensic acquisition ran after the trigger"},
+        "evidence_preserved": {"status": "completed", "reason": "the generated case preserves the fresh evidence set and custody records"},
+    }
+    attach_result = attach_real_case_to_execution(
+        campaign_id,
+        execution_id,
+        case_id=case_id,
+        attack_record_override=attack_record_override,
+        stage_overrides=stage_overrides,
+    )
+    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_reconstruction", phase_label="Run reconstruction/dependency analysis", status="completed" if attach_result.get("status") == "completed" else "completed_with_degradation", detail=f"Execution {execution_id} now points to case {case_id} with comparison family {attach_result.get('comparison_family_id')}.", category="repetition", index=7, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_reconstruction_status": attach_result.get("status"), **phase_extra})
+
+    nested_level_a = _run_nested_level_a_report_for_case(
+        parent_campaign_id=campaign_id,
+        parent_execution_id=execution_id,
+        parent_config=config,
+        case_id=case_id,
+        repetition_number=repetition_number,
+        nested_level_a_repetitions=max(int(nested_level_a_repetitions or total_repetitions or 2), 2),
+        job_id=job_id,
+        job_path=job_path,
+        rep_idx=rep_idx,
+        total_repetitions=total_repetitions,
+        phase_extra=phase_extra,
+    )
+
+    result = _repetition_result_from_case(
+        repetition_number=repetition_number,
+        campaign_id=campaign_id,
+        execution_id=execution_id,
+        case_id=case_id,
+        case_dir=case_dir,
+        attack=attack,
+        attack_result=attack_result,
+        attack_started_at=attack_started_at,
+        attack_completed_at=attack_completed_at,
+        target=target,
+        matched_alert=matched_alert,
+        memory_result=memory_result,
+        network_result=network_result,
+        disk_result=disk_result,
+        lifecycle_result=lifecycle_result,
+        attach_result=attach_result,
+        dfir_mode_before=dfir_mode_before,
+        dfir_mode_after=dfir_mode_after,
+        nested_level_a=nested_level_a,
+    )
+    try:
+        ACTIVE_CASE_PTR.write_text("", encoding="utf-8")
+    except Exception:
+        pass
+    cleanup_after_report = delete_generated_case_artifacts(
+        execution_id,
+        campaign_id=campaign_id,
+        case_id=case_id,
+        confirmation="OK",
+        operator="level_b_repetition_runner",
+    )
+    if cleanup_after_report.get("error"):
+        result.setdefault("warnings", []).append(
+            f"Post-report generated-case cleanup was not completed for {case_id}: {cleanup_after_report.get('error')}"
+        )
+    else:
+        result["post_report_case_cleanup"] = {
+            "status": cleanup_after_report.get("status") or "completed",
+            "action_type": cleanup_after_report.get("action_type") or "delete_case_directory",
+            "retention_manifest_path": cleanup_after_report.get("manifest_path"),
+            "archive_target": cleanup_after_report.get("archive_target"),
+            "lightweight_case_bundle_path": cleanup_after_report.get("lightweight_case_bundle_path"),
+            "lightweight_case_bundle_manifest_path": cleanup_after_report.get("lightweight_case_bundle_manifest_path"),
+        }
+        result["warnings"] = list(result.get("warnings") or [])
+        result["warnings"].append("Heavy generated case artifacts were cleaned after nested Level A reporting so the next Level B repetition could create a fresh case without accumulating heavy storage.")
+    if alert_fallback_reasons:
+        result.setdefault("warnings", []).append("Level B alert match required a fallback OT-aware matcher because the expected-alert taxonomy did not match the observed alert text exactly.")
+    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_store", phase_label="Store repetition result", status="completed" if result.get("execution_status") == "completed" else "completed_with_degradation", detail=f"Stored repetition {rep_idx}/{total_repetitions} result with status {result.get('execution_status')} and case {case_id}.", category="repetition", index=8, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_analysis_status": "completed", "current_reconstruction_status": result.get("reconstruction_status"), **phase_extra})
+    return result
+
+
+def _run_level_b_repetitions_job(
+    job_id: str,
+    job_path: Path,
+    *,
+    campaign_id: str,
+    requested_repetitions: int,
+    cleanup_old_cases: bool,
+    detection_timeout_seconds: int,
+    dfir_mode_before: str,
+    dfir_mode_after: str,
+    nested_level_a_repetitions: int,
+) -> None:
+    raise_if_cancelled(job_id, job_path, phase_key="prepare_level_b_job", phase_label="Prepare Level B job", detail="Level B repetition batch was cancelled before startup.")
+    manifest, config = _load_campaign(campaign_id)
+    attack = find_attack_by_id(str(config.get("attack_id") or "").strip())
+    if not manifest or not attack:
+        update_job(job_id, job_path, status="failed", finished_at=utc_now(), current_phase="failed", progress_percent=100.0, errors=[{"message": "campaign_or_attack_not_found"}])
+        return
+
+    runtime_dir = RUNTIME_ROOT / job_id
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+    report_timestamp = utc_now()
+    report_dir = _report_dir_for_timestamp(report_timestamp)
+    update_job(job_id, job_path, report_output_path=relative_path(report_dir), requested_repetitions=requested_repetitions)
+
+    _emit_phase(job_id, job_path, phase_key="prepare_level_b_job", phase_label="Prepare Level B job", status="running", detail="Preparing Level B batch execution, runtime workspace, and deterministic scientific progress plan.", category="setup", index=0, total_repetitions=requested_repetitions, extra={"requested_repetitions": requested_repetitions})
+    _emit_phase(job_id, job_path, phase_key="prepare_level_b_job", phase_label="Prepare Level B job", status="completed", detail=f"Prepared Level B batch job for campaign {campaign_id}.", category="setup", index=0, total_repetitions=requested_repetitions, extra={"requested_repetitions": requested_repetitions})
+
+    raise_if_cancelled(job_id, job_path, phase_key="optional_cleanup", phase_label="Optional cleanup of old cases", detail="Level B repetition batch was cancelled before cleanup.")
+    _emit_phase(job_id, job_path, phase_key="optional_cleanup", phase_label="Optional cleanup of old cases", status="running", detail="Inspecting removable heavy forensic cases before launching the independent Level B repetitions.", category="setup", index=1, total_repetitions=requested_repetitions)
+    cleanup_manifest = _run_cleanup(runtime_dir, enabled=cleanup_old_cases)
+    if cleanup_manifest.get("cleanup_status") == "failed":
+        _emit_phase(job_id, job_path, phase_key="optional_cleanup", phase_label="Optional cleanup of old cases", status="failed", detail="Cleanup failed. The workflow stops before launching any repetition to avoid mixed state.", category="setup", index=1, total_repetitions=requested_repetitions)
+        update_job(job_id, job_path, status="failed", finished_at=utc_now(), current_phase="optional_cleanup", current_phase_label="Optional cleanup of old cases", current_phase_detail="Cleanup failed. No repetition was launched.", progress_percent=100.0, level_b_cleanup_manifest_path=relative_path(runtime_dir / "cleanup_manifest.json"))
+        return
+    cleanup_detail = (
+        f"Cleanup {cleanup_manifest.get('cleanup_status')}. Estimated freed space: {_human_bytes(cleanup_manifest.get('freed_bytes_estimated'))}. Actual freed space: {_human_bytes(cleanup_manifest.get('freed_bytes_actual'))}."
+        if cleanup_old_cases
+        else "Cleanup skipped by operator choice."
+    )
+    _emit_phase(job_id, job_path, phase_key="optional_cleanup", phase_label="Optional cleanup of old cases", status="completed" if cleanup_manifest.get("cleanup_status") == "completed" else "skipped", detail=cleanup_detail, category="setup", index=1, total_repetitions=requested_repetitions, extra={"level_b_cleanup_manifest_path": relative_path(runtime_dir / "cleanup_manifest.json")})
+
+    _emit_phase(job_id, job_path, phase_key="resolve_active_scenario", phase_label="Resolve active scenario", status="running", detail=f"Resolving the already deployed scenario that will host all {requested_repetitions} independent Level B repetitions.", category="setup", index=2, total_repetitions=requested_repetitions)
+    targets = _resolve_real_targets(attack)
+    target = targets.get("target")
+    monitor = targets.get("monitor")
+    if not target or not monitor:
+        reason = "The active deployed scenario does not expose a resolvable target node and monitor node for the selected OT attack profile."
+        _emit_phase(job_id, job_path, phase_key="resolve_active_scenario", phase_label="Resolve active scenario", status="failed", detail=reason, category="setup", index=2, total_repetitions=requested_repetitions)
+        update_job(job_id, job_path, status="failed", finished_at=utc_now(), current_phase="resolve_active_scenario", current_phase_label="Resolve active scenario", current_phase_detail=reason, progress_percent=100.0, blockers=[reason])
+        return
+    _emit_phase(job_id, job_path, phase_key="resolve_active_scenario", phase_label="Resolve active scenario", status="completed", detail=f"Resolved target {target.get('vm_name')} ({target.get('vm_ip')}) and monitor {monitor.get('vm_name')} ({monitor.get('vm_ip')}).", category="setup", index=2, total_repetitions=requested_repetitions)
+
+    _emit_phase(job_id, job_path, phase_key="verify_plc_target", phase_label="Verify PLC target", status="running", detail="Checking that the selected target is really the PLC node used by the controlled OT register-modification profile.", category="setup", index=3, total_repetitions=requested_repetitions)
+    if str(target.get("role") or "").lower() != "plc":
+        reason = f"Resolved target role is {target.get('role')}, not PLC. Level B OT repetitions are blocked."
+        _emit_phase(job_id, job_path, phase_key="verify_plc_target", phase_label="Verify PLC target", status="failed", detail=reason, category="setup", index=3, total_repetitions=requested_repetitions)
+        update_job(job_id, job_path, status="failed", finished_at=utc_now(), current_phase="verify_plc_target", current_phase_label="Verify PLC target", current_phase_detail=reason, progress_percent=100.0, blockers=[reason])
+        return
+    _emit_phase(job_id, job_path, phase_key="verify_plc_target", phase_label="Verify PLC target", status="completed", detail=f"PLC target verified: {target.get('vm_name')} ({target.get('vm_ip')}).", category="setup", index=3, total_repetitions=requested_repetitions)
+
+    _emit_phase(job_id, job_path, phase_key="enable_dfir_mode", phase_label="Enable DFIR mode", status="running", detail="Verifying that DFIR mode is ON before the first OT attack is launched.", category="setup", index=4, total_repetitions=requested_repetitions, extra={"dfir_mode_before": dfir_mode_before, "dfir_mode_after": dfir_mode_after})
+    if dfir_mode_after != "on":
+        reason = "DFIR mode could not be verified as ON. The Level B attack batch is blocked before launch."
+        _emit_phase(job_id, job_path, phase_key="enable_dfir_mode", phase_label="Enable DFIR mode", status="failed", detail=reason, category="setup", index=4, total_repetitions=requested_repetitions, extra={"dfir_mode_before": dfir_mode_before, "dfir_mode_after": dfir_mode_after})
+        update_job(job_id, job_path, status="failed", finished_at=utc_now(), current_phase="enable_dfir_mode", current_phase_label="Enable DFIR mode", current_phase_detail=reason, progress_percent=100.0, blockers=[reason])
+        return
+    _emit_phase(job_id, job_path, phase_key="enable_dfir_mode", phase_label="Enable DFIR mode", status="completed", detail=f"DFIR mode verified ON. Browser mode transitioned from {dfir_mode_before} to {dfir_mode_after}.", category="setup", index=4, total_repetitions=requested_repetitions, extra={"dfir_mode_before": dfir_mode_before, "dfir_mode_after": dfir_mode_after})
+
+    results: list[dict] = []
+    for repetition_number in range(1, requested_repetitions + 1):
+        raise_if_cancelled(job_id, job_path, phase_key="start_repetition", phase_label=f"Start repetition {repetition_number}/{requested_repetitions}", detail="Level B repetition batch cancellation was requested before launching the next repetition.")
+        try:
+            result = _run_single_repetition(
+                job_id,
+                job_path,
+                campaign_id=campaign_id,
+                config=config,
+                attack=attack,
+                repetition_number=repetition_number,
+                total_repetitions=requested_repetitions,
+                target=target,
+                monitor=monitor,
+                detection_timeout_seconds=detection_timeout_seconds,
+                dfir_mode_before=dfir_mode_before,
+                dfir_mode_after=dfir_mode_after,
+                nested_level_a_repetitions=nested_level_a_repetitions,
+            )
+        except Exception as exc:
+            result = _failed_repetition_result(
+                repetition_number=repetition_number,
+                campaign_id=campaign_id,
+                execution_id=f"EXEC-UNKNOWN-{repetition_number}",
+                attack=attack,
+                dfir_mode_before=dfir_mode_before,
+                dfir_mode_after=dfir_mode_after,
+                attack_started_at=None,
+                attack_completed_at=None,
+                reason=f"Unexpected repetition failure: {exc}",
+                blockers=[str(exc)],
+                target=target,
+            )
+        results.append(result)
+        append_job_list(job_id, job_path, "per_repetition_results", result)
+        if result.get("warnings"):
+            for warning in result.get("warnings") or []:
+                append_job_list(job_id, job_path, "warnings", warning)
+        if result.get("blockers"):
+            for blocker in result.get("blockers") or []:
+                append_job_list(job_id, job_path, "errors", {"message": blocker, "repetition": repetition_number})
+        cleanup_state = dict(result.get("post_report_case_cleanup") or {})
+        if result.get("case_id") and not cleanup_state.get("lightweight_case_bundle_manifest_path"):
+            blocker = f"Post-report heavy-case cleanup did not complete for repetition {repetition_number}. The next Level B repetition is blocked to avoid coexisting heavy cases."
+            append_job_list(job_id, job_path, "errors", {"message": blocker, "repetition": repetition_number})
+            result.setdefault("blockers", []).append(blocker)
+            break
+
+    raise_if_cancelled(job_id, job_path, phase_key="generate_report", phase_label="Generate Level B report", detail="Level B repetition batch cancellation was requested before final report generation.")
+    _emit_phase(job_id, job_path, phase_key="generate_report", phase_label="Generate Level B report", status="running", detail="Aggregating per-repetition timing, acquisition, reconstruction, warnings, blockers, and case outputs into the final Level B validation report bundle.", category="final", index=0, total_repetitions=requested_repetitions)
+    comparable_execution_ids = [str(item.get("execution_id") or "") for item in results if item.get("execution_id") and (item.get("artifacts") or {}).get("forensic_comparison_profile")]
+    higher_level_comparison = compare_executions(comparable_execution_ids, campaign_id=campaign_id) if len(comparable_execution_ids) >= 2 else {
+        "status": "Insufficient Data",
+        "reason": "not_enough_completed_level_b_executions_for_direct_comparison",
+        "execution_ids": comparable_execution_ids,
+    }
+    report_meta = _store_level_b_report(
+        job_id=job_id,
+        campaign_id=campaign_id,
+        config=config,
+        cleanup_manifest=cleanup_manifest,
+        results=results,
+        requested_repetitions=requested_repetitions,
+        report_dir=report_dir,
+        nested_level_a_repetitions=nested_level_a_repetitions,
+        higher_level_comparison=higher_level_comparison,
+    )
+    report_meta["job_id"] = job_id
+    _persist_report_in_campaign(campaign_id, report_meta)
+    _write_json(Path.cwd() / report_meta["report_dir"] / "job_status.json", get_job(job_id) or {})
+    _emit_phase(job_id, job_path, phase_key="generate_report", phase_label="Generate Level B report", status="completed", detail=f"Level B report bundle written to {report_meta['report_dir']}.", category="final", index=0, total_repetitions=requested_repetitions, extra={"level_b_report_dir": report_meta["report_dir"], "level_b_report_path": report_meta["main_report_path"]})
+
+    completed = sum(1 for item in results if item.get("execution_status") == "completed")
+    partial = sum(1 for item in results if item.get("execution_status") == "partial")
+    failed = sum(1 for item in results if item.get("execution_status") == "failed")
+    final_status = "completed"
+    if failed:
+        final_status = "completed_with_failures"
+    elif partial:
+        final_status = "completed_with_degradation"
+    _emit_phase(job_id, job_path, phase_key="complete", phase_label="Complete", status="completed", detail=f"Level B repetition workflow finished: completed={completed}, partial={partial}, failed={failed}.", category="final", index=1, total_repetitions=requested_repetitions, extra={"level_b_report_dir": report_meta["report_dir"], "level_b_report_path": report_meta["main_report_path"]})
+    update_job(
+        job_id,
+        job_path,
+        status=final_status,
+        finished_at=utc_now(),
+        current_phase="complete",
+        current_phase_label="Complete",
+        current_phase_detail=f"Level B repetition workflow finished. Report: {report_meta['report_dir']}",
+        progress_percent=100.0,
+        level_b_report_dir=report_meta["report_dir"],
+        level_b_report_path=report_meta["main_report_path"],
+        level_b_summary_markdown_path=report_meta["summary_markdown_path"],
+        cleanup_manifest_path=report_meta["cleanup_manifest_path"],
+        completed_repetitions=completed,
+        partial_repetitions=partial,
+        failed_repetitions=failed,
+    )
+
+
+def start_level_b_repetitions_job(
+    campaign_id: str,
+    *,
+    confirmation: str,
+    requested_repetitions: int | None = None,
+    cleanup_old_cases: bool = False,
+    detection_timeout_seconds: int | None = None,
+    dfir_mode_before: str = "unknown",
+    dfir_mode_after: str = "unknown",
+) -> dict:
+    if str(confirmation or "").strip() != CONFIRMATION_TOKEN:
+        return {"error": "confirmation_required", "message": 'Type exactly "OK" to confirm the Level B repetition batch. This launches real OT attacks, waits for real alerts, creates new forensic cases, and runs real acquisition and analysis.'}
+    manifest, config = _load_campaign(campaign_id)
+    if not manifest:
+        raise FileNotFoundError(f"campaign_not_found:{campaign_id}")
+    level = str(config.get("level") or manifest.get("level") or "B").upper()
+    if level != "B":
+        return {"error": "not_level_b", "message": "This workflow is only defined for Level B campaigns."}
+    attack_id = str(config.get("attack_id") or "").strip()
+    if not attack_id:
+        return {"error": "attack_profile_required", "message": "Select an OT attack profile before launching Level B repetitions."}
+    if not find_attack_by_id(attack_id):
+        return {"error": "attack_profile_not_found", "message": f"Attack profile not found: {attack_id}"}
+    repetitions = _resolve_repetition_count(config, requested_repetitions, default=3, minimum=1)
+    nested_level_a_repetitions = max(repetitions, 2)
+    jobs_dir = campaign_dir(campaign_id) / "jobs"
+    jobs_dir.mkdir(parents=True, exist_ok=True)
+    job = new_job(
+        job_type="level_b_repetitions",
+        title=f"Run Level B repetitions for {campaign_id}",
+        job_path=jobs_dir / f"level-b-repetitions-{utc_now().replace(':', '').replace('+', '_')}.json",
+        meta={
+            "campaign_id": campaign_id,
+            "level": "B",
+            "attack_id": attack_id,
+            "requested_repetitions": repetitions,
+            "nested_level_a_repetitions": nested_level_a_repetitions,
+        },
+    )
+    timeout = int(detection_timeout_seconds or DEFAULT_DETECTION_TIMEOUT_SECONDS)
+    return start_job(
+        job,
+        lambda job_id, job_path: _run_level_b_repetitions_job(
+            job_id,
+            job_path,
+            campaign_id=campaign_id,
+            requested_repetitions=repetitions,
+            cleanup_old_cases=bool(cleanup_old_cases),
+            detection_timeout_seconds=timeout,
+            dfir_mode_before=str(dfir_mode_before or "unknown").strip().lower() or "unknown",
+            dfir_mode_after=str(dfir_mode_after or "unknown").strip().lower() or "unknown",
+            nested_level_a_repetitions=nested_level_a_repetitions,
+        ),
+    )
+
+
+def get_level_b_repetition_status(job_id: str) -> dict | None:
+    return get_job(job_id)
+
+
+def get_level_b_repetition_report(job_id: str) -> dict | None:
+    payload = get_job(job_id)
+    if not payload:
+        return None
+    report_path = payload.get("level_b_report_path")
+    report_dir = payload.get("level_b_report_dir")
+    if not report_path or not report_dir:
+        return {"job_id": job_id, "status": payload.get("status"), "report_ready": False}
+    main_path = Path.cwd() / report_path
+    summary_md_path = Path.cwd() / str(payload.get("level_b_summary_markdown_path") or "")
+    cleanup_manifest_path = Path.cwd() / str(payload.get("cleanup_manifest_path") or "")
+    return {
+        "job_id": job_id,
+        "status": payload.get("status"),
+        "report_ready": main_path.is_file(),
+        "report_dir": report_dir,
+        "report_path": report_path,
+        "report_json": _json_load(main_path) or {},
+        "summary_markdown": summary_md_path.read_text(encoding="utf-8") if summary_md_path.is_file() else None,
+        "cleanup_manifest": _json_load(cleanup_manifest_path) or {},
+        "generated_at": (_json_load(main_path) or {}).get("generated_at"),
+    }
+
+
+def cleanup_level_b_repetition_job(job_id: str, *, confirmation: str) -> dict:
+    if str(confirmation or "").strip() != CONFIRMATION_TOKEN:
+        return {
+            "error": "confirmation_required",
+            "message": 'Type exactly "OK" to delete everything created by this Level B batch job.',
+        }
+    payload = get_job(job_id)
+    if not payload:
+        return {"error": "job_not_found", "job_id": job_id}
+
+    request_force_stop(job_id)
+    meta = dict(payload.get("meta") or {})
+    campaign_id = str(meta.get("campaign_id") or "").strip()
+    deleted_paths: list[str] = []
+    warnings: list[str] = []
+    deleted_cases: list[str] = []
+    deleted_executions: list[str] = []
+    deleted_nested_campaigns: list[str] = []
+
+    for item in list(payload.get("per_repetition_results") or []):
+        if not isinstance(item, dict):
+            continue
+        execution_id = str(item.get("execution_id") or "").strip()
+        case_id = str(item.get("case_id") or "").strip() or None
+        case_path = str(item.get("case_path") or "").strip() or None
+        nested = dict(item.get("nested_level_a") or {})
+        nested_campaign_id = str(nested.get("campaign_id") or "").strip()
+        if case_id or case_path:
+            _remove_case_dir(case_id, case_path, deleted_paths, warnings)
+            if case_id:
+                deleted_cases.append(case_id)
+        if execution_id and campaign_id:
+            _remove_execution_dir(campaign_id, execution_id, deleted_paths, warnings)
+            deleted_executions.append(execution_id)
+        if nested_campaign_id:
+            _best_effort_rmtree(campaign_dir(nested_campaign_id), deleted_paths, warnings)
+            deleted_nested_campaigns.append(nested_campaign_id)
+
+    report_dir_rel = str(payload.get("level_b_report_dir") or payload.get("report_output_path") or "").strip()
+    if report_dir_rel:
+        report_dir = (Path.cwd() / Path(report_dir_rel)).resolve()
+        _best_effort_rmtree(report_dir, deleted_paths, warnings)
+
+    runtime_dir = RUNTIME_ROOT / job_id
+    _best_effort_rmtree(runtime_dir, deleted_paths, warnings)
+
+    if campaign_id:
+        _drop_latest_level_b_report_reference(campaign_id, report_dir_rel or None)
+
+    return {
+        "status": "completed" if not warnings else "completed_with_warnings",
+        "job_id": job_id,
+        "campaign_id": campaign_id or None,
+        "deleted_cases": list(dict.fromkeys(deleted_cases)),
+        "deleted_executions": list(dict.fromkeys(deleted_executions)),
+        "deleted_nested_campaigns": list(dict.fromkeys(deleted_nested_campaigns)),
+        "deleted_paths": list(dict.fromkeys(deleted_paths)),
+        "warnings": warnings,
+        "message": "Level B batch cleanup finished. The workflow artifacts created by this job were removed as far as possible.",
+    }

@@ -1,24 +1,27 @@
 {
-  "generated_at": "2026-06-27T13:03:29.655321+00:00",
+  "generated_at": "2026-06-29T08:43:49.899964+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
   "interventions": [
     {
-      "case_id": "case-1a8add06",
-      "trigger": "ALERTA: Ping Detectado",
+      "case_id": "case-643ce64e",
+      "trigger": "NICS CyberLab ICS Modbus write multiple registers",
       "trigger_type": "alert",
-      "triggering_alert_id": "alr-954733bd",
-      "triggering_alert_name": "ALERTA: Ping Detectado",
-      "triggering_alert_rule_id": "1000001",
-      "triggering_alert_severity": "LOW",
+      "triggering_alert_id": "alr-738b7ed4",
+      "triggering_alert_name": "NICS CyberLab ICS Modbus write multiple registers",
+      "triggering_alert_rule_id": "910836102",
+      "triggering_alert_severity": "HIGH",
       "triggering_alert_original_sensor": "suricata",
       "triggering_alert_collector": "wazuh",
-      "triggering_alert_protocol": "IPv6-ICMP",
-      "triggering_alert_mitre": [],
+      "triggering_alert_protocol": "TCP",
+      "triggering_alert_mitre": [
+        "T1692.001",
+        "T0836"
+      ],
       "trigger_selection_method": "fallback_prior_alert",
-      "trigger_selection_score": -415,
-      "trigger_selection_reason": "original_suricata,icmp_penalty,temporal_close,noise_penalty,ping_penalty",
-      "candidate_triggers_evaluated": 51,
+      "trigger_selection_score": 365,
+      "trigger_selection_reason": "confirmed_correlation,high_severity,ot_write_signal,forensics_recommended,original_suricata,network_protocol",
+      "candidate_triggers_evaluated": 3856,
       "stronger_trigger_available": false,
       "target_nodes": [
         "node-c800d431",
@@ -28,152 +31,763 @@
       "tools_used": [
         "dfir_orchestrator",
         "forensics_api",
-        "industrial_exporter",
         "traffic_api",
         "unknown"
       ],
       "commands_executed": [],
       "collected_artifacts": [
-        "art-000fa507",
-        "art-033b98ed",
-        "art-049b2020",
-        "art-07f0a0c4",
-        "art-096456a2",
-        "art-0df0fe2a",
-        "art-0f601cfb",
-        "art-157e8660",
-        "art-1fb42cac",
-        "art-256acc84",
-        "art-2c068262",
-        "art-2e7fcc06",
-        "art-34d87bf0",
-        "art-36d5d878",
-        "art-39a4b9ab",
-        "art-45155d64",
-        "art-4c523f3a",
-        "art-5148ac7e",
-        "art-51f2e804",
-        "art-52f85059",
-        "art-55ae1d85",
-        "art-55b8a1d3",
-        "art-562fa4aa",
-        "art-58908ba2",
-        "art-58da92b9",
-        "art-59c94e12",
-        "art-5bb5d53b",
-        "art-6162a419",
-        "art-61a6872b",
-        "art-68635f87",
-        "art-6a4d51db",
-        "art-6e7a71d0",
-        "art-70b4ed51",
-        "art-73572979",
-        "art-76c97a2f",
-        "art-7f55c491",
-        "art-86d456c4",
-        "art-86e7ebc6",
-        "art-8a088613",
-        "art-93708041",
-        "art-998ba141",
-        "art-9d6cd662",
-        "art-a3b640d8",
-        "art-a90ed684",
-        "art-ae3fdd42",
-        "art-ae90f147",
-        "art-b47eabd1",
-        "art-b4dc3dea",
-        "art-b5235947",
-        "art-b83f6936",
-        "art-c2feb210",
-        "art-c77f674b",
-        "art-c8c4a04d",
-        "art-d165aca5",
-        "art-d346aed0",
-        "art-d59e42df",
-        "art-db1b01c7",
-        "art-dc8423e5",
-        "art-dce3f75b",
-        "art-de70aba6",
-        "art-e0cebe44",
-        "art-e3b671b2",
-        "art-f2cf7362",
-        "art-f8f0c446",
-        "art-f973d4c9",
-        "art-fafc4129",
-        "art-fdf3d574",
-        "art-ff25a518"
+        "art-04440905",
+        "art-057ca546",
+        "art-05947b0c",
+        "art-0c3a7036",
+        "art-110d946d",
+        "art-12ee1ab8",
+        "art-1397abc3",
+        "art-17e40799",
+        "art-1bd7a20f",
+        "art-1cc39a6c",
+        "art-1d20b5d4",
+        "art-1ed846de",
+        "art-30308c0f",
+        "art-328fa4e0",
+        "art-37ea9b13",
+        "art-3a9a7cfb",
+        "art-3d6db254",
+        "art-41827ef1",
+        "art-49222592",
+        "art-4d10a3e4",
+        "art-4d5dd19d",
+        "art-4f7c5d2f",
+        "art-52346c38",
+        "art-53d7a7fd",
+        "art-5a698000",
+        "art-69344445",
+        "art-6ce22316",
+        "art-6e0861a6",
+        "art-6e7fb2b5",
+        "art-71ae6496",
+        "art-72869470",
+        "art-75f66bda",
+        "art-775fbccf",
+        "art-80132fba",
+        "art-8142ca8b",
+        "art-848e9fc7",
+        "art-84f71893",
+        "art-85411b09",
+        "art-892fc782",
+        "art-8bb88920",
+        "art-91ec617f",
+        "art-9495c390",
+        "art-96b5ade6",
+        "art-9cd1481f",
+        "art-9e198731",
+        "art-9ee4c3dd",
+        "art-a4cc1a53",
+        "art-a77391a8",
+        "art-a9b9a1dd",
+        "art-a9dab5f4",
+        "art-ab2b985f",
+        "art-aed664ee",
+        "art-af60b7a2",
+        "art-afbf7cfe",
+        "art-b5cfa231",
+        "art-b60922f0",
+        "art-b9328385",
+        "art-b9b62bcf",
+        "art-bcac1962",
+        "art-bd935508",
+        "art-bfeb18ce",
+        "art-c300d7b5",
+        "art-c42b9435",
+        "art-c63ac716",
+        "art-c8758c90",
+        "art-ce1666e7",
+        "art-d1202021",
+        "art-d324988a",
+        "art-d54760a4",
+        "art-d609ad59",
+        "art-d6fe5fde",
+        "art-dd0eb7ec",
+        "art-dd7ee249",
+        "art-df4baf74",
+        "art-e35cc616",
+        "art-e62caaa2",
+        "art-e9ccb2be",
+        "art-f09d8d26",
+        "art-f0c4f933",
+        "art-f3c7a199",
+        "art-f770d4b1",
+        "art-f9797155",
+        "art-fee14457"
       ],
-      "manifest_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260625-152324/manifest.json",
-      "chain_of_custody_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260625-152324/chain_of_custody.log",
+      "manifest_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260628-133923/manifest.json",
+      "chain_of_custody_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260628-133923/chain_of_custody.log",
       "chain_of_custody_events": [
-        "evt-db7c0578",
-        "evt-3c5371a5",
-        "evt-45f15790",
-        "evt-beec77f1",
-        "evt-7d33e043",
-        "evt-af0b150a",
-        "evt-f131725b",
-        "evt-f42a1702",
-        "evt-1bcc5083",
-        "evt-5cf527e8",
-        "evt-bd615fde",
-        "evt-5f2b2d5c",
-        "evt-82005149",
-        "evt-55fb2636",
-        "evt-f5630ec5",
-        "evt-ff6f62d5",
-        "evt-a8d8b73d",
-        "evt-c6bb4c90",
-        "evt-3fb47fb9",
-        "evt-7149a905",
-        "evt-6e176564",
-        "evt-133ecb87",
-        "evt-b640268d",
-        "evt-3cc9fcfe",
-        "evt-c7acc7d7"
+        "evt-5da4fdc2",
+        "evt-f7840e4a",
+        "evt-5efc0649",
+        "evt-7075fca9",
+        "evt-b03734db",
+        "evt-44a3e888",
+        "evt-8373da79",
+        "evt-3c41474a",
+        "evt-b40e0685",
+        "evt-f5bf0fd7",
+        "evt-d93865b3",
+        "evt-222b5539",
+        "evt-171cdca1",
+        "evt-2fed4368",
+        "evt-8a3c1ad4",
+        "evt-5a579274",
+        "evt-48fac176",
+        "evt-29d327ed",
+        "evt-5f01ffc0",
+        "evt-ce2cbd2d",
+        "evt-63e75d85",
+        "evt-e39e34eb",
+        "evt-10cb21f7",
+        "evt-ac973195",
+        "evt-c8f64634",
+        "evt-a66b599f",
+        "evt-69771f30",
+        "evt-335291a4",
+        "evt-ed6b8371",
+        "evt-21039baf",
+        "evt-1f3006a0",
+        "evt-2759fdea",
+        "evt-6ef22ee8",
+        "evt-50499a93",
+        "evt-7040b04a",
+        "evt-ec7961e6",
+        "evt-90555664"
       ],
-      "intervention_start_time": "2026-06-25T15:23:24Z",
-      "intervention_end_time": "2026-06-25T15:43:38Z",
+      "intervention_start_time": "2026-06-28T13:39:23Z",
+      "intervention_end_time": "2026-06-28T13:57:24Z",
       "intervention_status": "completed"
+    },
+    {
+      "case_id": "case-c39cd889",
+      "trigger": "NICS CyberLab ICS Modbus write multiple registers",
+      "trigger_type": "alert",
+      "triggering_alert_id": "alr-8e6b7f1f",
+      "triggering_alert_name": "NICS CyberLab ICS Modbus write multiple registers",
+      "triggering_alert_rule_id": "910836102",
+      "triggering_alert_severity": "HIGH",
+      "triggering_alert_original_sensor": "suricata",
+      "triggering_alert_collector": "wazuh",
+      "triggering_alert_protocol": "TCP",
+      "triggering_alert_mitre": [
+        "T1692.001",
+        "T0836"
+      ],
+      "trigger_selection_method": "fallback_prior_alert",
+      "trigger_selection_score": 365,
+      "trigger_selection_reason": "confirmed_correlation,high_severity,ot_write_signal,forensics_recommended,original_suricata,network_protocol",
+      "candidate_triggers_evaluated": 4602,
+      "stronger_trigger_available": false,
+      "target_nodes": [
+        "node-c800d431",
+        "node-e1ac03b8",
+        "node-f9ca9bfc"
+      ],
+      "tools_used": [
+        "dfir_orchestrator",
+        "forensics_api"
+      ],
+      "commands_executed": [],
+      "collected_artifacts": [
+        "art-04653b4c",
+        "art-08ac79e2",
+        "art-08c534ff",
+        "art-39976302",
+        "art-3b881971",
+        "art-4b6ba9e8",
+        "art-51ef1415",
+        "art-5484e5b8",
+        "art-66df7f43",
+        "art-6a4044c5",
+        "art-7bdede73",
+        "art-7cc2c70d",
+        "art-80a661a7",
+        "art-8872611c",
+        "art-99792aea",
+        "art-d2c35017",
+        "art-e20afc38",
+        "art-e348d73b",
+        "art-f55048bc",
+        "art-fa60f13a"
+      ],
+      "manifest_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062741/manifest.json",
+      "chain_of_custody_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062741/chain_of_custody.log",
+      "chain_of_custody_events": [
+        "evt-d8b56b9a",
+        "evt-ad9eef85",
+        "evt-4f347c0f",
+        "evt-bb2b47e7",
+        "evt-027ae3f0"
+      ],
+      "intervention_start_time": "2026-06-29T06:27:41Z",
+      "intervention_end_time": "2026-06-29T06:27:57Z",
+      "intervention_status": "partial"
+    },
+    {
+      "case_id": "case-da6e309c",
+      "trigger": "NICS CyberLab ICS Modbus write multiple registers",
+      "trigger_type": "alert",
+      "triggering_alert_id": "alr-8e6b7f1f",
+      "triggering_alert_name": "NICS CyberLab ICS Modbus write multiple registers",
+      "triggering_alert_rule_id": "910836102",
+      "triggering_alert_severity": "HIGH",
+      "triggering_alert_original_sensor": "suricata",
+      "triggering_alert_collector": "wazuh",
+      "triggering_alert_protocol": "TCP",
+      "triggering_alert_mitre": [
+        "T1692.001",
+        "T0836"
+      ],
+      "trigger_selection_method": "fallback_prior_alert",
+      "trigger_selection_score": 365,
+      "trigger_selection_reason": "confirmed_correlation,high_severity,ot_write_signal,forensics_recommended,original_suricata,network_protocol",
+      "candidate_triggers_evaluated": 4602,
+      "stronger_trigger_available": false,
+      "target_nodes": [
+        "node-c800d431",
+        "node-e1ac03b8",
+        "node-f9ca9bfc"
+      ],
+      "tools_used": [
+        "dfir_orchestrator",
+        "forensics_api"
+      ],
+      "commands_executed": [],
+      "collected_artifacts": [
+        "art-00d7d412",
+        "art-0dac601a",
+        "art-0ff65190",
+        "art-23955ec8",
+        "art-26532301",
+        "art-2dea4f91",
+        "art-3c7738cc",
+        "art-410382c0",
+        "art-6b5b0570",
+        "art-6fea6692",
+        "art-7a5c7153",
+        "art-93955331",
+        "art-9788235b",
+        "art-a0d8f083",
+        "art-b0078faf",
+        "art-b447d66b",
+        "art-d06a550b",
+        "art-e1723803",
+        "art-f17d0f2f",
+        "art-f4938ba4"
+      ],
+      "manifest_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062822/manifest.json",
+      "chain_of_custody_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062822/chain_of_custody.log",
+      "chain_of_custody_events": [
+        "evt-b66d42ec",
+        "evt-2d374da6",
+        "evt-db9ef19f",
+        "evt-dd3857a0",
+        "evt-e5ab8573"
+      ],
+      "intervention_start_time": "2026-06-29T06:28:22Z",
+      "intervention_end_time": "2026-06-29T06:28:23Z",
+      "intervention_status": "partial"
+    },
+    {
+      "case_id": "case-369f59d5",
+      "trigger": "NICS CyberLab ICS Modbus write multiple registers",
+      "trigger_type": "alert",
+      "triggering_alert_id": "alr-8e6b7f1f",
+      "triggering_alert_name": "NICS CyberLab ICS Modbus write multiple registers",
+      "triggering_alert_rule_id": "910836102",
+      "triggering_alert_severity": "HIGH",
+      "triggering_alert_original_sensor": "suricata",
+      "triggering_alert_collector": "wazuh",
+      "triggering_alert_protocol": "TCP",
+      "triggering_alert_mitre": [
+        "T1692.001",
+        "T0836"
+      ],
+      "trigger_selection_method": "fallback_prior_alert",
+      "trigger_selection_score": 365,
+      "trigger_selection_reason": "confirmed_correlation,high_severity,ot_write_signal,forensics_recommended,original_suricata,network_protocol",
+      "candidate_triggers_evaluated": 4602,
+      "stronger_trigger_available": false,
+      "target_nodes": [
+        "node-c800d431",
+        "node-e1ac03b8",
+        "node-f9ca9bfc"
+      ],
+      "tools_used": [
+        "dfir_orchestrator",
+        "forensics_api"
+      ],
+      "commands_executed": [],
+      "collected_artifacts": [
+        "art-1314bca3",
+        "art-4fa73f3f",
+        "art-6875ac6d",
+        "art-7bc4c6c2",
+        "art-892ca420",
+        "art-92f9e553",
+        "art-988bf22e",
+        "art-9c834e74",
+        "art-a28fa082",
+        "art-acf67568",
+        "art-add0c71f",
+        "art-b48c1982",
+        "art-b8c8df8d",
+        "art-d6b5296c",
+        "art-da285145",
+        "art-db46b640",
+        "art-dd704eb8",
+        "art-eb708af9",
+        "art-ebd25668",
+        "art-ed025fc3"
+      ],
+      "manifest_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062825/manifest.json",
+      "chain_of_custody_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062825/chain_of_custody.log",
+      "chain_of_custody_events": [
+        "evt-36283d8e",
+        "evt-a2db414d",
+        "evt-50ddf60a",
+        "evt-ce7f56fe",
+        "evt-9404cf00"
+      ],
+      "intervention_start_time": "2026-06-29T06:28:25Z",
+      "intervention_end_time": "2026-06-29T06:28:26Z",
+      "intervention_status": "partial"
+    },
+    {
+      "case_id": "case-c8ade0d8",
+      "trigger": "NICS CyberLab ICS Modbus write multiple registers",
+      "trigger_type": "alert",
+      "triggering_alert_id": "alr-8e6b7f1f",
+      "triggering_alert_name": "NICS CyberLab ICS Modbus write multiple registers",
+      "triggering_alert_rule_id": "910836102",
+      "triggering_alert_severity": "HIGH",
+      "triggering_alert_original_sensor": "suricata",
+      "triggering_alert_collector": "wazuh",
+      "triggering_alert_protocol": "TCP",
+      "triggering_alert_mitre": [
+        "T1692.001",
+        "T0836"
+      ],
+      "trigger_selection_method": "fallback_prior_alert",
+      "trigger_selection_score": 365,
+      "trigger_selection_reason": "confirmed_correlation,high_severity,ot_write_signal,forensics_recommended,original_suricata,network_protocol",
+      "candidate_triggers_evaluated": 4602,
+      "stronger_trigger_available": false,
+      "target_nodes": [
+        "node-c800d431",
+        "node-e1ac03b8",
+        "node-f9ca9bfc"
+      ],
+      "tools_used": [
+        "dfir_orchestrator",
+        "forensics_api"
+      ],
+      "commands_executed": [],
+      "collected_artifacts": [
+        "art-04270fdc",
+        "art-14b2b2b7",
+        "art-230cb72a",
+        "art-293f0424",
+        "art-3098d5f2",
+        "art-5667a591",
+        "art-59f6b4b4",
+        "art-6f5671b8",
+        "art-86ff1f44",
+        "art-92b6393b",
+        "art-94fa0a21",
+        "art-9de88b54",
+        "art-a320cfeb",
+        "art-a6c9f2f1",
+        "art-aaa26313",
+        "art-afe68c38",
+        "art-db612d6e",
+        "art-efd889ad",
+        "art-f0170973",
+        "art-fb8a2f27"
+      ],
+      "manifest_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062828/manifest.json",
+      "chain_of_custody_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062828/chain_of_custody.log",
+      "chain_of_custody_events": [
+        "evt-a27c93c8",
+        "evt-60e3e46a",
+        "evt-27f8ae0d",
+        "evt-188322f5",
+        "evt-bf031918"
+      ],
+      "intervention_start_time": "2026-06-29T06:28:28Z",
+      "intervention_end_time": "2026-06-29T06:28:29Z",
+      "intervention_status": "partial"
+    },
+    {
+      "case_id": "case-ce6e1e0f",
+      "trigger": "NICS CyberLab ICS Modbus write multiple registers",
+      "trigger_type": "alert",
+      "triggering_alert_id": "alr-8e6b7f1f",
+      "triggering_alert_name": "NICS CyberLab ICS Modbus write multiple registers",
+      "triggering_alert_rule_id": "910836102",
+      "triggering_alert_severity": "HIGH",
+      "triggering_alert_original_sensor": "suricata",
+      "triggering_alert_collector": "wazuh",
+      "triggering_alert_protocol": "TCP",
+      "triggering_alert_mitre": [
+        "T1692.001",
+        "T0836"
+      ],
+      "trigger_selection_method": "fallback_prior_alert",
+      "trigger_selection_score": 365,
+      "trigger_selection_reason": "confirmed_correlation,high_severity,ot_write_signal,forensics_recommended,original_suricata,network_protocol",
+      "candidate_triggers_evaluated": 4605,
+      "stronger_trigger_available": false,
+      "target_nodes": [
+        "node-c800d431",
+        "node-e1ac03b8",
+        "node-f9ca9bfc"
+      ],
+      "tools_used": [
+        "dfir_orchestrator",
+        "forensics_api"
+      ],
+      "commands_executed": [],
+      "collected_artifacts": [
+        "art-00fdfbaa",
+        "art-03229bcb",
+        "art-03eed702",
+        "art-23a27ef5",
+        "art-306085a7",
+        "art-3d2a3a81",
+        "art-4abb0812",
+        "art-4d208b1c",
+        "art-58ca789f",
+        "art-598e9815",
+        "art-603eab2a",
+        "art-70faef4d",
+        "art-85d01ed0",
+        "art-86d2e1d5",
+        "art-b864b403",
+        "art-c09bfe9f",
+        "art-c323f03a",
+        "art-c71a8ab0",
+        "art-dbb2ba78",
+        "art-ece9f1ec"
+      ],
+      "manifest_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062845/manifest.json",
+      "chain_of_custody_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062845/chain_of_custody.log",
+      "chain_of_custody_events": [
+        "evt-6dfaaada",
+        "evt-f6b331bf",
+        "evt-5ea4a16e",
+        "evt-b5cdd5bd",
+        "evt-6d04c008"
+      ],
+      "intervention_start_time": "2026-06-29T06:28:45Z",
+      "intervention_end_time": "2026-06-29T06:28:46Z",
+      "intervention_status": "partial"
+    },
+    {
+      "case_id": "case-6b5274b1",
+      "trigger": "NICS CyberLab ICS Modbus write multiple registers",
+      "trigger_type": "alert",
+      "triggering_alert_id": "alr-8e6b7f1f",
+      "triggering_alert_name": "NICS CyberLab ICS Modbus write multiple registers",
+      "triggering_alert_rule_id": "910836102",
+      "triggering_alert_severity": "HIGH",
+      "triggering_alert_original_sensor": "suricata",
+      "triggering_alert_collector": "wazuh",
+      "triggering_alert_protocol": "TCP",
+      "triggering_alert_mitre": [
+        "T1692.001",
+        "T0836"
+      ],
+      "trigger_selection_method": "fallback_prior_alert",
+      "trigger_selection_score": 365,
+      "trigger_selection_reason": "confirmed_correlation,high_severity,ot_write_signal,forensics_recommended,original_suricata,network_protocol",
+      "candidate_triggers_evaluated": 4605,
+      "stronger_trigger_available": false,
+      "target_nodes": [
+        "node-c800d431",
+        "node-e1ac03b8",
+        "node-f9ca9bfc"
+      ],
+      "tools_used": [
+        "dfir_orchestrator",
+        "forensics_api"
+      ],
+      "commands_executed": [],
+      "collected_artifacts": [
+        "art-0202f1b3",
+        "art-0df274ce",
+        "art-2a04ef92",
+        "art-3d839a2d",
+        "art-3fe971f5",
+        "art-50b801be",
+        "art-5fb3cd6f",
+        "art-6c3a00c7",
+        "art-6d3941c2",
+        "art-761f8784",
+        "art-7e7f527c",
+        "art-7ed4a05e",
+        "art-84730ded",
+        "art-8f83d208",
+        "art-9e01d3f4",
+        "art-b5da0f86",
+        "art-b66263fd",
+        "art-bf0e50c4",
+        "art-bf19b742",
+        "art-ceba1268"
+      ],
+      "manifest_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062848/manifest.json",
+      "chain_of_custody_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062848/chain_of_custody.log",
+      "chain_of_custody_events": [
+        "evt-6db3aee1",
+        "evt-56469e42",
+        "evt-57f32b20",
+        "evt-799e4e74",
+        "evt-bbf84511"
+      ],
+      "intervention_start_time": "2026-06-29T06:28:48Z",
+      "intervention_end_time": "2026-06-29T06:28:50Z",
+      "intervention_status": "partial"
+    },
+    {
+      "case_id": "case-17ea4b81",
+      "trigger": "NICS CyberLab ICS Modbus write multiple registers",
+      "trigger_type": "alert",
+      "triggering_alert_id": "alr-8e6b7f1f",
+      "triggering_alert_name": "NICS CyberLab ICS Modbus write multiple registers",
+      "triggering_alert_rule_id": "910836102",
+      "triggering_alert_severity": "HIGH",
+      "triggering_alert_original_sensor": "suricata",
+      "triggering_alert_collector": "wazuh",
+      "triggering_alert_protocol": "TCP",
+      "triggering_alert_mitre": [
+        "T1692.001",
+        "T0836"
+      ],
+      "trigger_selection_method": "fallback_prior_alert",
+      "trigger_selection_score": 365,
+      "trigger_selection_reason": "confirmed_correlation,high_severity,ot_write_signal,forensics_recommended,original_suricata,network_protocol",
+      "candidate_triggers_evaluated": 4605,
+      "stronger_trigger_available": false,
+      "target_nodes": [
+        "node-c800d431",
+        "node-e1ac03b8",
+        "node-f9ca9bfc"
+      ],
+      "tools_used": [
+        "dfir_orchestrator",
+        "forensics_api"
+      ],
+      "commands_executed": [],
+      "collected_artifacts": [
+        "art-13fecd63",
+        "art-1d584799",
+        "art-1d946c0b",
+        "art-2fedd32e",
+        "art-3be13c0d",
+        "art-41ee44f3",
+        "art-43445499",
+        "art-4849abfe",
+        "art-669effbf",
+        "art-72be5306",
+        "art-78f5b161",
+        "art-80e2c700",
+        "art-8434c22e",
+        "art-86756d20",
+        "art-8ba2c4f0",
+        "art-9381526c",
+        "art-bba14813",
+        "art-bd12450a",
+        "art-be437dfb",
+        "art-e6876032"
+      ],
+      "manifest_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062851/manifest.json",
+      "chain_of_custody_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062851/chain_of_custody.log",
+      "chain_of_custody_events": [
+        "evt-3f191c75",
+        "evt-dc588b68",
+        "evt-48499136",
+        "evt-75756c47",
+        "evt-ae80d34b"
+      ],
+      "intervention_start_time": "2026-06-29T06:28:51Z",
+      "intervention_end_time": "2026-06-29T06:28:52Z",
+      "intervention_status": "partial"
+    },
+    {
+      "case_id": "case-d708740f",
+      "trigger": "NICS CyberLab ICS Modbus write multiple registers",
+      "trigger_type": "alert",
+      "triggering_alert_id": "alr-8e6b7f1f",
+      "triggering_alert_name": "NICS CyberLab ICS Modbus write multiple registers",
+      "triggering_alert_rule_id": "910836102",
+      "triggering_alert_severity": "HIGH",
+      "triggering_alert_original_sensor": "suricata",
+      "triggering_alert_collector": "wazuh",
+      "triggering_alert_protocol": "TCP",
+      "triggering_alert_mitre": [
+        "T1692.001",
+        "T0836"
+      ],
+      "trigger_selection_method": "fallback_prior_alert",
+      "trigger_selection_score": 365,
+      "trigger_selection_reason": "confirmed_correlation,high_severity,ot_write_signal,forensics_recommended,original_suricata,network_protocol",
+      "candidate_triggers_evaluated": 4605,
+      "stronger_trigger_available": false,
+      "target_nodes": [
+        "node-c800d431",
+        "node-e1ac03b8",
+        "node-f9ca9bfc"
+      ],
+      "tools_used": [
+        "dfir_orchestrator",
+        "forensics_api"
+      ],
+      "commands_executed": [],
+      "collected_artifacts": [
+        "art-02231fee",
+        "art-0bedef41",
+        "art-0e585aa3",
+        "art-3ca90e89",
+        "art-42c04e50",
+        "art-4c3b6046",
+        "art-5257debd",
+        "art-5276ee13",
+        "art-54210a4b",
+        "art-734566a4",
+        "art-78cca8ba",
+        "art-810354a1",
+        "art-8325ea2b",
+        "art-95bdac2a",
+        "art-9e7c790a",
+        "art-b9148cbf",
+        "art-bdcac9d8",
+        "art-de9dcfc5",
+        "art-ec72c3a8",
+        "art-f3069580"
+      ],
+      "manifest_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062903/manifest.json",
+      "chain_of_custody_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062903/chain_of_custody.log",
+      "chain_of_custody_events": [
+        "evt-8a455001",
+        "evt-a9a54015",
+        "evt-265b4087",
+        "evt-3e44e9fc",
+        "evt-74eeb772"
+      ],
+      "intervention_start_time": "2026-06-29T06:29:03Z",
+      "intervention_end_time": "2026-06-29T06:29:04Z",
+      "intervention_status": "partial"
+    },
+    {
+      "case_id": "case-5b4a0312",
+      "trigger": "NICS CyberLab ICS Modbus write multiple registers",
+      "trigger_type": "alert",
+      "triggering_alert_id": "alr-8e6b7f1f",
+      "triggering_alert_name": "NICS CyberLab ICS Modbus write multiple registers",
+      "triggering_alert_rule_id": "910836102",
+      "triggering_alert_severity": "HIGH",
+      "triggering_alert_original_sensor": "suricata",
+      "triggering_alert_collector": "wazuh",
+      "triggering_alert_protocol": "TCP",
+      "triggering_alert_mitre": [
+        "T1692.001",
+        "T0836"
+      ],
+      "trigger_selection_method": "fallback_prior_alert",
+      "trigger_selection_score": 365,
+      "trigger_selection_reason": "confirmed_correlation,high_severity,ot_write_signal,forensics_recommended,original_suricata,network_protocol",
+      "candidate_triggers_evaluated": 4605,
+      "stronger_trigger_available": false,
+      "target_nodes": [
+        "node-c800d431",
+        "node-e1ac03b8",
+        "node-f9ca9bfc"
+      ],
+      "tools_used": [
+        "dfir_orchestrator",
+        "forensics_api"
+      ],
+      "commands_executed": [],
+      "collected_artifacts": [
+        "art-0dbbf65c",
+        "art-0e2548fe",
+        "art-111cbeab",
+        "art-32c589da",
+        "art-4044ef0a",
+        "art-45f3e9dc",
+        "art-479b7e60",
+        "art-4dfa0b59",
+        "art-67521c65",
+        "art-69543b61",
+        "art-75d14b96",
+        "art-7ee195c9",
+        "art-9edeac46",
+        "art-a88d1044",
+        "art-b5996194",
+        "art-bf9e2325",
+        "art-c5df43a0",
+        "art-c79d093c",
+        "art-d6846f89",
+        "art-e41e01ee"
+      ],
+      "manifest_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062907/manifest.json",
+      "chain_of_custody_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062907/chain_of_custody.log",
+      "chain_of_custody_events": [
+        "evt-ec5cfa6c",
+        "evt-de73e910",
+        "evt-ee49f4cf",
+        "evt-5266ebb4",
+        "evt-d6d5acc7"
+      ],
+      "intervention_start_time": "2026-06-29T06:29:07Z",
+      "intervention_end_time": "2026-06-29T06:29:08Z",
+      "intervention_status": "partial"
     }
   ],
   "raw_events": [
     {
-      "timeline_event_id": "evt-db7c0578",
+      "timeline_event_id": "evt-5da4fdc2",
       "event_type": "case_created",
-      "timestamp": "2026-06-25T15:23:24Z",
+      "timestamp": "2026-06-28T13:39:23Z",
       "status": "recorded",
-      "related_case_id": "case-1a8add06",
+      "related_case_id": "case-643ce64e",
       "related_node_id": "unresolved",
       "related_instance_id": "unresolved",
       "description": "case_created",
       "details": {
-        "ts_utc": "2026-06-25T15:23:24Z",
-        "ts_epoch": 1782401004.0,
+        "ts_utc": "2026-06-28T13:39:23Z",
+        "ts_epoch": 1782653963.0,
         "run_id": "R1",
         "actor": "forensics_api",
         "action": "case_created",
         "artifact_rel": null,
         "outcome": "ok",
         "details": {
-          "case_dir": "/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/CASE-20260625-152324"
+          "case_dir": "/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/CASE-20260628-133923"
         },
         "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
-        "entry_hash": "491de1d59061498efa84f161b50888daca1419262fbbedcf0b11ba43812f46f9"
+        "entry_hash": "d37c32537b5a683cba73965fbf504a1eeb23d53be7e0943a4631d0167788f135"
       }
     },
     {
-      "timeline_event_id": "evt-99c48358",
+      "timeline_event_id": "evt-7d9e3ff9",
       "event_type": "dfir_orchestration_start",
-      "timestamp": "2026-06-25T15:23:45Z",
+      "timestamp": "2026-06-28T13:39:45Z",
       "status": "observed",
-      "related_case_id": "case-1a8add06",
+      "related_case_id": "case-643ce64e",
       "related_node_id": "unresolved",
       "related_instance_id": "unresolved",
       "description": "dfir_orchestration_start",
       "details": {
-        "ts_utc": "2026-06-25T15:23:45Z",
-        "ts_epoch": 1782401025.0,
+        "ts_utc": "2026-06-28T13:39:45Z",
+        "ts_epoch": 1782653985.0,
         "event": "dfir_orchestration_start",
         "run_id": "R1",
         "meta": {
@@ -201,345 +815,27 @@
       }
     },
     {
-      "timeline_event_id": "evt-8db6a95b",
-      "event_type": "ot_export_preserved",
-      "timestamp": "2026-06-25T15:24:13Z",
-      "status": "observed",
-      "related_case_id": "case-1a8add06",
-      "related_node_id": "node-e1ac03b8",
-      "related_instance_id": "inst-a495cfe7",
-      "description": "ot_export_preserved",
-      "details": {
-        "ts_utc": "2026-06-25T15:24:13Z",
-        "ts_utc_ms": "2026-06-25T15:24:13.859Z",
-        "ts_epoch": 1782401053.8592513,
-        "event": "ot_export_preserved",
-        "run_id": "R1",
-        "meta": {
-          "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
-          "protocol": "modbus_tcp",
-          "industrial_export_rel": "industrial/ot_export_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260625_152352Z.json",
-          "industrial_export_sha256": "efd21c5a3fe14fdb221ff4fb151488d8008c8bc41e3cc8626dad4365a5eeda57",
-          "industrial_export_size": 38689,
-          "records_exported": 80
-        }
-      }
-    },
-    {
-      "timeline_event_id": "evt-beec77f1",
-      "event_type": "acquire_preserved",
-      "timestamp": "2026-06-25T15:24:13Z",
-      "status": "recorded",
-      "related_case_id": "case-1a8add06",
-      "related_node_id": "node-e1ac03b8",
-      "related_instance_id": "inst-a495cfe7",
-      "description": "acquire_preserved",
-      "details": {
-        "ts_utc": "2026-06-25T15:24:13Z",
-        "ts_epoch": 1782401053.8522775,
-        "run_id": "R1",
-        "actor": "traffic_api",
-        "action": "acquire_preserved",
-        "artifact_rel": "network/per_vm/a495cfe7-b55b-41d0-95bf-78f9093f7fe2/pcap_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260625_152352Z.pcap",
-        "outcome": "ok",
-        "details": {
-          "kind": "pcap",
-          "sha256": "a1b014c8172d55f8327773f083d56ed0098c1b99f4d81d2cdf849bdf77fefe52",
-          "size": 29707,
-          "duration_s": 20
-        },
-        "prev_hash": "617c1ee6096e7ed8ce20d8afef001bfeaee2d45487c0b8a091c70ae9bfe21313",
-        "entry_hash": "73bcb1182856cb45d3f08797f28fff52c05dc25bb10d9d07f761af092d265daf"
-      }
-    },
-    {
-      "timeline_event_id": "evt-7d33e043",
-      "event_type": "acquire_preserved",
-      "timestamp": "2026-06-25T15:24:13Z",
-      "status": "recorded",
-      "related_case_id": "case-1a8add06",
-      "related_node_id": "node-e1ac03b8",
-      "related_instance_id": "inst-a495cfe7",
-      "description": "acquire_preserved",
-      "details": {
-        "ts_utc": "2026-06-25T15:24:13Z",
-        "ts_epoch": 1782401053.8525624,
-        "run_id": "R1",
-        "actor": "traffic_api",
-        "action": "acquire_preserved",
-        "artifact_rel": "network/per_vm/a495cfe7-b55b-41d0-95bf-78f9093f7fe2/pcap_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260625_152352Z.metadata.json",
-        "outcome": "ok",
-        "details": {
-          "kind": "pcap_metadata",
-          "sha256": "25a08fe99199c58f40cea1223c2527e2734e944a2d30952bab018e0599b87652",
-          "size": 1423,
-          "duration_s": 20
-        },
-        "prev_hash": "73bcb1182856cb45d3f08797f28fff52c05dc25bb10d9d07f761af092d265daf",
-        "entry_hash": "e831ec90cad39aae785db9b6e95a98cfe80d080e4ee4597277d63450c27c08a4"
-      }
-    },
-    {
-      "timeline_event_id": "evt-af0b150a",
-      "event_type": "acquire_preserved",
-      "timestamp": "2026-06-25T15:24:13Z",
-      "status": "recorded",
-      "related_case_id": "case-1a8add06",
-      "related_node_id": "unresolved",
-      "related_instance_id": "unresolved",
-      "description": "acquire_preserved",
-      "details": {
-        "ts_utc": "2026-06-25T15:24:13Z",
-        "ts_epoch": 1782401053.85728,
-        "run_id": "R1",
-        "actor": "traffic_api",
-        "action": "acquire_preserved",
-        "artifact_rel": "industrial/ot_export_a495cfe7-b55b-41d0-95bf-78f9093f7fe2_R1_20260625_152352Z.json",
-        "outcome": "ok",
-        "details": {
-          "kind": "industrial_ot_export_modbus_tcp",
-          "sha256": "efd21c5a3fe14fdb221ff4fb151488d8008c8bc41e3cc8626dad4365a5eeda57",
-          "size": 38689,
-          "records_exported": 80
-        },
-        "prev_hash": "e831ec90cad39aae785db9b6e95a98cfe80d080e4ee4597277d63450c27c08a4",
-        "entry_hash": "c11c3ce92b8a2adb7e9875bddee1848edaf24ce1c248174a6dce99587f1e0496"
-      }
-    },
-    {
-      "timeline_event_id": "evt-4dffa8e4",
-      "event_type": "ot_export_preserved",
-      "timestamp": "2026-06-25T15:24:42Z",
-      "status": "observed",
-      "related_case_id": "case-1a8add06",
-      "related_node_id": "node-f9ca9bfc",
-      "related_instance_id": "inst-8c0c86c9",
-      "description": "ot_export_preserved",
-      "details": {
-        "ts_utc": "2026-06-25T15:24:42Z",
-        "ts_utc_ms": "2026-06-25T15:24:42.577Z",
-        "ts_epoch": 1782401082.5769696,
-        "event": "ot_export_preserved",
-        "run_id": "R1",
-        "meta": {
-          "vm_id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
-          "protocol": "modbus_tcp",
-          "industrial_export_rel": "industrial/ot_export_8c0c86c9-2c69-424b-9080-f6c07d798787_R1_20260625_152421Z.json",
-          "industrial_export_sha256": "8c275c008e02b7ba5052065c3f7f0b9969e7ff84b3877515d8417ef6f39d92a4",
-          "industrial_export_size": 35854,
-          "records_exported": 74
-        }
-      }
-    },
-    {
-      "timeline_event_id": "evt-f131725b",
-      "event_type": "acquire_preserved",
-      "timestamp": "2026-06-25T15:24:42Z",
-      "status": "recorded",
-      "related_case_id": "case-1a8add06",
-      "related_node_id": "node-f9ca9bfc",
-      "related_instance_id": "inst-8c0c86c9",
-      "description": "acquire_preserved",
-      "details": {
-        "ts_utc": "2026-06-25T15:24:42Z",
-        "ts_epoch": 1782401082.568524,
-        "run_id": "R1",
-        "actor": "traffic_api",
-        "action": "acquire_preserved",
-        "artifact_rel": "network/per_vm/8c0c86c9-2c69-424b-9080-f6c07d798787/pcap_8c0c86c9-2c69-424b-9080-f6c07d798787_R1_20260625_152421Z.pcap",
-        "outcome": "ok",
-        "details": {
-          "kind": "pcap",
-          "sha256": "3dcaede7eaebf7d6d4c4d7b58f7ff83faa7e033cc79a462edd5271dbfee7d833",
-          "size": 1062743,
-          "duration_s": 20
-        },
-        "prev_hash": "c11c3ce92b8a2adb7e9875bddee1848edaf24ce1c248174a6dce99587f1e0496",
-        "entry_hash": "7e6cb9934d4c7b3ac826777ca41f64d360eb2344b8ddc60c8ed56932f12f0fef"
-      }
-    },
-    {
-      "timeline_event_id": "evt-f42a1702",
-      "event_type": "acquire_preserved",
-      "timestamp": "2026-06-25T15:24:42Z",
-      "status": "recorded",
-      "related_case_id": "case-1a8add06",
-      "related_node_id": "node-f9ca9bfc",
-      "related_instance_id": "inst-8c0c86c9",
-      "description": "acquire_preserved",
-      "details": {
-        "ts_utc": "2026-06-25T15:24:42Z",
-        "ts_epoch": 1782401082.5687997,
-        "run_id": "R1",
-        "actor": "traffic_api",
-        "action": "acquire_preserved",
-        "artifact_rel": "network/per_vm/8c0c86c9-2c69-424b-9080-f6c07d798787/pcap_8c0c86c9-2c69-424b-9080-f6c07d798787_R1_20260625_152421Z.metadata.json",
-        "outcome": "ok",
-        "details": {
-          "kind": "pcap_metadata",
-          "sha256": "b1b523698f991b80f14a5f32bf5bb3cff047aabf6a48e0ee4828994b588ac704",
-          "size": 1426,
-          "duration_s": 20
-        },
-        "prev_hash": "7e6cb9934d4c7b3ac826777ca41f64d360eb2344b8ddc60c8ed56932f12f0fef",
-        "entry_hash": "69b3674f118cf5323dfdb396c200a69756be16043bd65351619a550fbce36959"
-      }
-    },
-    {
-      "timeline_event_id": "evt-1bcc5083",
-      "event_type": "acquire_preserved",
-      "timestamp": "2026-06-25T15:24:42Z",
-      "status": "recorded",
-      "related_case_id": "case-1a8add06",
-      "related_node_id": "unresolved",
-      "related_instance_id": "unresolved",
-      "description": "acquire_preserved",
-      "details": {
-        "ts_utc": "2026-06-25T15:24:42Z",
-        "ts_epoch": 1782401082.5753112,
-        "run_id": "R1",
-        "actor": "traffic_api",
-        "action": "acquire_preserved",
-        "artifact_rel": "industrial/ot_export_8c0c86c9-2c69-424b-9080-f6c07d798787_R1_20260625_152421Z.json",
-        "outcome": "ok",
-        "details": {
-          "kind": "industrial_ot_export_modbus_tcp",
-          "sha256": "8c275c008e02b7ba5052065c3f7f0b9969e7ff84b3877515d8417ef6f39d92a4",
-          "size": 35854,
-          "records_exported": 74
-        },
-        "prev_hash": "69b3674f118cf5323dfdb396c200a69756be16043bd65351619a550fbce36959",
-        "entry_hash": "c72562abb7efb536c5d3ab7b5290b8595206616f923528d3ec88a40aadf07147"
-      }
-    },
-    {
-      "timeline_event_id": "evt-d8086516",
-      "event_type": "ot_export_preserved",
-      "timestamp": "2026-06-25T15:25:11Z",
-      "status": "observed",
-      "related_case_id": "case-1a8add06",
-      "related_node_id": "node-c800d431",
-      "related_instance_id": "inst-16583180",
-      "description": "ot_export_preserved",
-      "details": {
-        "ts_utc": "2026-06-25T15:25:11Z",
-        "ts_utc_ms": "2026-06-25T15:25:11.606Z",
-        "ts_epoch": 1782401111.6064327,
-        "event": "ot_export_preserved",
-        "run_id": "R1",
-        "meta": {
-          "vm_id": "16583180-627d-4c40-bd65-aa9db704d75c",
-          "protocol": "modbus_tcp",
-          "industrial_export_rel": "industrial/ot_export_16583180-627d-4c40-bd65-aa9db704d75c_R1_20260625_152450Z.json",
-          "industrial_export_sha256": "3359fa8a329359bf4a04e5cc9bd89ec8f1638e84039369f3bf863026c53b2457",
-          "industrial_export_size": 947,
-          "records_exported": 0
-        }
-      }
-    },
-    {
-      "timeline_event_id": "evt-5cf527e8",
-      "event_type": "acquire_preserved",
-      "timestamp": "2026-06-25T15:25:11Z",
-      "status": "recorded",
-      "related_case_id": "case-1a8add06",
-      "related_node_id": "node-c800d431",
-      "related_instance_id": "inst-16583180",
-      "description": "acquire_preserved",
-      "details": {
-        "ts_utc": "2026-06-25T15:25:11Z",
-        "ts_epoch": 1782401111.5982144,
-        "run_id": "R1",
-        "actor": "traffic_api",
-        "action": "acquire_preserved",
-        "artifact_rel": "network/per_vm/16583180-627d-4c40-bd65-aa9db704d75c/pcap_16583180-627d-4c40-bd65-aa9db704d75c_R1_20260625_152450Z.pcap",
-        "outcome": "ok",
-        "details": {
-          "kind": "pcap",
-          "sha256": "da6263733a2f2830e25801dc94fa58363c744c72dc7d3145e9500cfdb8b8e1db",
-          "size": 3845,
-          "duration_s": 20
-        },
-        "prev_hash": "c72562abb7efb536c5d3ab7b5290b8595206616f923528d3ec88a40aadf07147",
-        "entry_hash": "654d569d7ef0d638daea7bcafa326131e87e8fb889beb87aa75a82c13e983bac"
-      }
-    },
-    {
-      "timeline_event_id": "evt-bd615fde",
-      "event_type": "acquire_preserved",
-      "timestamp": "2026-06-25T15:25:11Z",
-      "status": "recorded",
-      "related_case_id": "case-1a8add06",
-      "related_node_id": "node-c800d431",
-      "related_instance_id": "inst-16583180",
-      "description": "acquire_preserved",
-      "details": {
-        "ts_utc": "2026-06-25T15:25:11Z",
-        "ts_epoch": 1782401111.598632,
-        "run_id": "R1",
-        "actor": "traffic_api",
-        "action": "acquire_preserved",
-        "artifact_rel": "network/per_vm/16583180-627d-4c40-bd65-aa9db704d75c/pcap_16583180-627d-4c40-bd65-aa9db704d75c_R1_20260625_152450Z.metadata.json",
-        "outcome": "ok",
-        "details": {
-          "kind": "pcap_metadata",
-          "sha256": "f49ed9a402e40f8ea53de559f7f14db980c0f6a13026cfdafca290ecb59ae86d",
-          "size": 1423,
-          "duration_s": 20
-        },
-        "prev_hash": "654d569d7ef0d638daea7bcafa326131e87e8fb889beb87aa75a82c13e983bac",
-        "entry_hash": "219f32972c8de9ab2ce36d7f47697baf3ccac95e47906c482864192b2a51dae3"
-      }
-    },
-    {
-      "timeline_event_id": "evt-5f2b2d5c",
-      "event_type": "acquire_preserved",
-      "timestamp": "2026-06-25T15:25:11Z",
-      "status": "recorded",
-      "related_case_id": "case-1a8add06",
-      "related_node_id": "unresolved",
-      "related_instance_id": "unresolved",
-      "description": "acquire_preserved",
-      "details": {
-        "ts_utc": "2026-06-25T15:25:11Z",
-        "ts_epoch": 1782401111.6048715,
-        "run_id": "R1",
-        "actor": "traffic_api",
-        "action": "acquire_preserved",
-        "artifact_rel": "industrial/ot_export_16583180-627d-4c40-bd65-aa9db704d75c_R1_20260625_152450Z.json",
-        "outcome": "ok",
-        "details": {
-          "kind": "industrial_ot_export_modbus_tcp",
-          "sha256": "3359fa8a329359bf4a04e5cc9bd89ec8f1638e84039369f3bf863026c53b2457",
-          "size": 947,
-          "records_exported": 0
-        },
-        "prev_hash": "219f32972c8de9ab2ce36d7f47697baf3ccac95e47906c482864192b2a51dae3",
-        "entry_hash": "b78fb883fa552795229ea2d67ed886a41f20e1dea74b23a64788cbc0ffc409f8"
-      }
-    },
-    {
-      "timeline_event_id": "evt-d6d98732",
+      "timeline_event_id": "evt-a245996e",
       "event_type": "memory_preserved",
-      "timestamp": "2026-06-25T15:26:50Z",
+      "timestamp": "2026-06-28T13:41:26Z",
       "status": "observed",
-      "related_case_id": "case-1a8add06",
+      "related_case_id": "case-643ce64e",
       "related_node_id": "node-e1ac03b8",
       "related_instance_id": "inst-a495cfe7",
       "description": "memory_preserved",
       "details": {
-        "ts_utc": "2026-06-25T15:26:50Z",
-        "ts_epoch": 1782401210.0,
+        "ts_utc": "2026-06-28T13:41:26Z",
+        "ts_epoch": 1782654086.0,
         "event": "memory_preserved",
         "run_id": "R1",
         "meta": {
           "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
           "vm_ip": "10.0.2.9",
-          "rel": "memory/memdump_10.0.2.9_20260625_152512Z.lime",
+          "rel": "memory/memdump_10.0.2.9_20260628_133946Z.lime",
           "size": 1073192000,
-          "sha256": "bac7c243360737d9483d96b207330c0a46173014772357a3e457e04bfe3b0919",
+          "sha256": "9b53fb48bf4e4469cb65616a53bf269ca675975abdc89b0f61612aa54f6d217d",
           "exit_code": 0,
-          "elapsed_s": 98.427,
+          "elapsed_s": 100.933,
           "ssh_user_used": "ubuntu",
           "attempted_users": [
             "debian",
@@ -550,56 +846,56 @@
       }
     },
     {
-      "timeline_event_id": "evt-55fb2636",
+      "timeline_event_id": "evt-b03734db",
       "event_type": "acquire_preserved",
-      "timestamp": "2026-06-25T15:26:50Z",
+      "timestamp": "2026-06-28T13:41:26Z",
       "status": "recorded",
-      "related_case_id": "case-1a8add06",
+      "related_case_id": "case-643ce64e",
       "related_node_id": "unresolved",
       "related_instance_id": "unresolved",
       "description": "acquire_preserved",
       "details": {
-        "ts_utc": "2026-06-25T15:26:50Z",
-        "ts_epoch": 1782401210.0,
+        "ts_utc": "2026-06-28T13:41:26Z",
+        "ts_epoch": 1782654086.0,
         "run_id": "R1",
         "actor": "forensics_api",
         "action": "acquire_preserved",
-        "artifact_rel": "memory/memdump_10.0.2.9_20260625_152512Z.lime",
+        "artifact_rel": "memory/memdump_10.0.2.9_20260628_133946Z.lime",
         "outcome": "ok",
         "details": {
           "kind": "memory",
           "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
           "vm_ip": "10.0.2.9",
-          "sha256": "bac7c243360737d9483d96b207330c0a46173014772357a3e457e04bfe3b0919",
+          "sha256": "9b53fb48bf4e4469cb65616a53bf269ca675975abdc89b0f61612aa54f6d217d",
           "size": 1073192000,
           "mode": "build"
         },
-        "prev_hash": "7b125c07cb7e52d22379a71314f21b89d8e073a2a210d14d16f6aece6fbaa52f",
-        "entry_hash": "784ca645d6a692f7ae22dbfaf95ef0c99b4b78eda980249a5324e640a50f23b6"
+        "prev_hash": "7188b8d30d3728f5f1b6a4d86d6af504ae342ad35f2f7a32640630415488cea0",
+        "entry_hash": "2bd4018c74ffae2369e6d4210c7bf056c6511454c75b18ec6dee7dddd6522cd6"
       }
     },
     {
-      "timeline_event_id": "evt-d52b9a14",
+      "timeline_event_id": "evt-1d97c6ba",
       "event_type": "memory_preserved",
-      "timestamp": "2026-06-25T15:28:33Z",
+      "timestamp": "2026-06-28T13:43:23Z",
       "status": "observed",
-      "related_case_id": "case-1a8add06",
+      "related_case_id": "case-643ce64e",
       "related_node_id": "node-f9ca9bfc",
       "related_instance_id": "inst-8c0c86c9",
       "description": "memory_preserved",
       "details": {
-        "ts_utc": "2026-06-25T15:28:33Z",
-        "ts_epoch": 1782401313.0,
+        "ts_utc": "2026-06-28T13:43:23Z",
+        "ts_epoch": 1782654203.0,
         "event": "memory_preserved",
         "run_id": "R1",
         "meta": {
           "vm_id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
           "vm_ip": "10.0.2.22",
-          "rel": "memory/memdump_10.0.2.22_20260625_152650Z.lime",
+          "rel": "memory/memdump_10.0.2.22_20260628_134127Z.lime",
           "size": 1073192000,
-          "sha256": "d85e4398d822fa36709006d127c0a41d08bd8297d7aad207dc0c9c9b6700db6e",
+          "sha256": "bd89da88d979c3430a99ade35a9d3b64bab334c61c2fbad227d06611baad9329",
           "exit_code": 0,
-          "elapsed_s": 103.723,
+          "elapsed_s": 116.404,
           "ssh_user_used": "ubuntu",
           "attempted_users": [
             "debian",
@@ -610,56 +906,56 @@
       }
     },
     {
-      "timeline_event_id": "evt-ff6f62d5",
+      "timeline_event_id": "evt-8373da79",
       "event_type": "acquire_preserved",
-      "timestamp": "2026-06-25T15:28:33Z",
+      "timestamp": "2026-06-28T13:43:23Z",
       "status": "recorded",
-      "related_case_id": "case-1a8add06",
+      "related_case_id": "case-643ce64e",
       "related_node_id": "unresolved",
       "related_instance_id": "unresolved",
       "description": "acquire_preserved",
       "details": {
-        "ts_utc": "2026-06-25T15:28:33Z",
-        "ts_epoch": 1782401313.0,
+        "ts_utc": "2026-06-28T13:43:23Z",
+        "ts_epoch": 1782654203.0,
         "run_id": "R1",
         "actor": "forensics_api",
         "action": "acquire_preserved",
-        "artifact_rel": "memory/memdump_10.0.2.22_20260625_152650Z.lime",
+        "artifact_rel": "memory/memdump_10.0.2.22_20260628_134127Z.lime",
         "outcome": "ok",
         "details": {
           "kind": "memory",
           "vm_id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
           "vm_ip": "10.0.2.22",
-          "sha256": "d85e4398d822fa36709006d127c0a41d08bd8297d7aad207dc0c9c9b6700db6e",
+          "sha256": "bd89da88d979c3430a99ade35a9d3b64bab334c61c2fbad227d06611baad9329",
           "size": 1073192000,
           "mode": "build"
         },
-        "prev_hash": "0be2199c4af0e84b7134bbe59f41f29ded77b593d283cbecab38fe23f9ad0efa",
-        "entry_hash": "ebfc1e5a9a19c6c8e6a60db3c7ac5f39c7aebca2764ac109e22503aba974317b"
+        "prev_hash": "e8cdfbd5c9fcbdf7b2514dcae44284364169e5f008a8dad46ec2edc9d4bc934d",
+        "entry_hash": "3a7f729effc06cee39f76c0d65f38f2e924ad342c4c65e039eb5eafb3d609cdc"
       }
     },
     {
-      "timeline_event_id": "evt-bc36579a",
+      "timeline_event_id": "evt-0283cf38",
       "event_type": "memory_preserved",
-      "timestamp": "2026-06-25T15:30:18Z",
+      "timestamp": "2026-06-28T13:45:08Z",
       "status": "observed",
-      "related_case_id": "case-1a8add06",
+      "related_case_id": "case-643ce64e",
       "related_node_id": "node-c800d431",
       "related_instance_id": "inst-16583180",
       "description": "memory_preserved",
       "details": {
-        "ts_utc": "2026-06-25T15:30:18Z",
-        "ts_epoch": 1782401418.0,
+        "ts_utc": "2026-06-28T13:45:08Z",
+        "ts_epoch": 1782654308.0,
         "event": "memory_preserved",
         "run_id": "R1",
         "meta": {
           "vm_id": "16583180-627d-4c40-bd65-aa9db704d75c",
           "vm_ip": "10.0.2.172",
-          "rel": "memory/memdump_10.0.2.172_20260625_152834Z.lime",
+          "rel": "memory/memdump_10.0.2.172_20260628_134323Z.lime",
           "size": 2146933824,
-          "sha256": "c67aa95eca75e43931be5b37b12ddb23394e6231e0a8f17d7e828d8e0e4c647d",
+          "sha256": "2163fd32af8c5bdd18acaa2363df0ec5bac95cce91c4da5697331d2630e2166b",
           "exit_code": 0,
-          "elapsed_s": 104.871,
+          "elapsed_s": 105.029,
           "ssh_user_used": "debian",
           "attempted_users": [
             "ubuntu",
@@ -670,172 +966,172 @@
       }
     },
     {
-      "timeline_event_id": "evt-c6bb4c90",
+      "timeline_event_id": "evt-b40e0685",
       "event_type": "acquire_preserved",
-      "timestamp": "2026-06-25T15:30:18Z",
+      "timestamp": "2026-06-28T13:45:08Z",
       "status": "recorded",
-      "related_case_id": "case-1a8add06",
+      "related_case_id": "case-643ce64e",
       "related_node_id": "unresolved",
       "related_instance_id": "unresolved",
       "description": "acquire_preserved",
       "details": {
-        "ts_utc": "2026-06-25T15:30:18Z",
-        "ts_epoch": 1782401418.0,
+        "ts_utc": "2026-06-28T13:45:08Z",
+        "ts_epoch": 1782654308.0,
         "run_id": "R1",
         "actor": "forensics_api",
         "action": "acquire_preserved",
-        "artifact_rel": "memory/memdump_10.0.2.172_20260625_152834Z.lime",
+        "artifact_rel": "memory/memdump_10.0.2.172_20260628_134323Z.lime",
         "outcome": "ok",
         "details": {
           "kind": "memory",
           "vm_id": "16583180-627d-4c40-bd65-aa9db704d75c",
           "vm_ip": "10.0.2.172",
-          "sha256": "c67aa95eca75e43931be5b37b12ddb23394e6231e0a8f17d7e828d8e0e4c647d",
+          "sha256": "2163fd32af8c5bdd18acaa2363df0ec5bac95cce91c4da5697331d2630e2166b",
           "size": 2146933824,
           "mode": "build"
         },
-        "prev_hash": "93f4f739c7cd820da2e9f8931f4b07d8d046b894384ed1fca4c7591858d27051",
-        "entry_hash": "bae48cabed2d1152ea69563ed187f15e1b984cf982d9222267365aa15625b64e"
+        "prev_hash": "4f1e7c5639b326afe63711a08c6a9a49568dd28dcdb3e59dd42ede193c796776",
+        "entry_hash": "6c64c18d99f877001b5cc67b33d28505e171293cdab3fbdcb96b0b2d935271de"
       }
     },
     {
-      "timeline_event_id": "evt-03872833",
+      "timeline_event_id": "evt-42d43de1",
       "event_type": "disk_preserved",
-      "timestamp": "2026-06-25T15:33:41Z",
+      "timestamp": "2026-06-28T13:48:39Z",
       "status": "observed",
-      "related_case_id": "case-1a8add06",
+      "related_case_id": "case-643ce64e",
       "related_node_id": "node-e1ac03b8",
       "related_instance_id": "inst-a495cfe7",
       "description": "disk_preserved",
       "details": {
-        "ts_utc": "2026-06-25T15:33:41Z",
-        "ts_epoch": 1782401621.0,
+        "ts_utc": "2026-06-28T13:48:39Z",
+        "ts_epoch": 1782654519.0,
         "event": "disk_preserved",
         "run_id": "R1",
         "meta": {
           "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
-          "rel": "disk/a495cfe7-b55b-41d0-95bf-78f9093f7fe2_20260625_153018Z.disk.final.raw",
+          "rel": "disk/a495cfe7-b55b-41d0-95bf-78f9093f7fe2_20260628_134531Z.disk.final.raw",
           "size": 10737418240,
-          "sha256": "034421e7bc410f333362a90ea6701bf18829355360189dd4515cfb04cccdf9c7",
+          "sha256": "685bf8792f6bcda1f75c57818da732e05be44764353051d22d43fe69be71c8e0",
           "exit_code": 0,
-          "elapsed_s": 202.857
+          "elapsed_s": 187.622
         }
       }
     },
     {
-      "timeline_event_id": "evt-7149a905",
+      "timeline_event_id": "evt-2759fdea",
       "event_type": "acquire_preserved",
-      "timestamp": "2026-06-25T15:33:41Z",
+      "timestamp": "2026-06-28T13:48:39Z",
       "status": "recorded",
-      "related_case_id": "case-1a8add06",
+      "related_case_id": "case-643ce64e",
       "related_node_id": "unresolved",
       "related_instance_id": "unresolved",
       "description": "acquire_preserved",
       "details": {
-        "ts_utc": "2026-06-25T15:33:41Z",
-        "ts_epoch": 1782401621.0,
+        "ts_utc": "2026-06-28T13:48:39Z",
+        "ts_epoch": 1782654519.0,
         "run_id": "R1",
         "actor": "forensics_api",
         "action": "acquire_preserved",
-        "artifact_rel": "disk/a495cfe7-b55b-41d0-95bf-78f9093f7fe2_20260625_153018Z.disk.final.raw",
+        "artifact_rel": "disk/a495cfe7-b55b-41d0-95bf-78f9093f7fe2_20260628_134531Z.disk.final.raw",
         "outcome": "ok",
         "details": {
           "kind": "disk",
           "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
-          "sha256": "034421e7bc410f333362a90ea6701bf18829355360189dd4515cfb04cccdf9c7",
+          "sha256": "685bf8792f6bcda1f75c57818da732e05be44764353051d22d43fe69be71c8e0",
           "size": 10737418240
         },
-        "prev_hash": "713321c4368bb84a99ea817b78f553a7d320ab5acb33cfceed4589f72334af53",
-        "entry_hash": "a142e8688d998e4a73b63182f11e4333f9402387ae2f468b5a7a17a64cf479ee"
+        "prev_hash": "66c2b640cbf803c92c176b785f2b4d585c6a0ed6e1f3f4e32a44e6798ac02cdb",
+        "entry_hash": "f6f3f70cb5cb1c62435dac9ccfa9e7f8991aa344630b37f71cbd340830571661"
       }
     },
     {
-      "timeline_event_id": "evt-1cb1e959",
+      "timeline_event_id": "evt-aef1f523",
       "event_type": "disk_preserved",
-      "timestamp": "2026-06-25T15:37:12Z",
+      "timestamp": "2026-06-28T13:51:34Z",
       "status": "observed",
-      "related_case_id": "case-1a8add06",
+      "related_case_id": "case-643ce64e",
       "related_node_id": "node-f9ca9bfc",
       "related_instance_id": "inst-8c0c86c9",
       "description": "disk_preserved",
       "details": {
-        "ts_utc": "2026-06-25T15:37:12Z",
-        "ts_epoch": 1782401832.0,
+        "ts_utc": "2026-06-28T13:51:34Z",
+        "ts_epoch": 1782654694.0,
         "event": "disk_preserved",
         "run_id": "R1",
         "meta": {
           "vm_id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
-          "rel": "disk/8c0c86c9-2c69-424b-9080-f6c07d798787_20260625_153341Z.disk.final.raw",
+          "rel": "disk/8c0c86c9-2c69-424b-9080-f6c07d798787_20260628_134839Z.disk.final.raw",
           "size": 10737418240,
-          "sha256": "08fcced8a2c20b23d11857f7b842e2c904b47f5f80c03ef091627f11da85221b",
+          "sha256": "36c2ed8a1f97d16da4e096fbf90e8b93d7f328ea0c44e707411ae4bba95ee1b4",
           "exit_code": 0,
-          "elapsed_s": 210.674
+          "elapsed_s": 175.564
         }
       }
     },
     {
-      "timeline_event_id": "evt-133ecb87",
+      "timeline_event_id": "evt-50499a93",
       "event_type": "acquire_preserved",
-      "timestamp": "2026-06-25T15:37:12Z",
+      "timestamp": "2026-06-28T13:51:34Z",
       "status": "recorded",
-      "related_case_id": "case-1a8add06",
+      "related_case_id": "case-643ce64e",
       "related_node_id": "unresolved",
       "related_instance_id": "unresolved",
       "description": "acquire_preserved",
       "details": {
-        "ts_utc": "2026-06-25T15:37:12Z",
-        "ts_epoch": 1782401832.0,
+        "ts_utc": "2026-06-28T13:51:34Z",
+        "ts_epoch": 1782654694.0,
         "run_id": "R1",
         "actor": "forensics_api",
         "action": "acquire_preserved",
-        "artifact_rel": "disk/8c0c86c9-2c69-424b-9080-f6c07d798787_20260625_153341Z.disk.final.raw",
+        "artifact_rel": "disk/8c0c86c9-2c69-424b-9080-f6c07d798787_20260628_134839Z.disk.final.raw",
         "outcome": "ok",
         "details": {
           "kind": "disk",
           "vm_id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
-          "sha256": "08fcced8a2c20b23d11857f7b842e2c904b47f5f80c03ef091627f11da85221b",
+          "sha256": "36c2ed8a1f97d16da4e096fbf90e8b93d7f328ea0c44e707411ae4bba95ee1b4",
           "size": 10737418240
         },
-        "prev_hash": "cdf2fe5928c1897eeb3ed06274ac518682648be6a65100bf9843c45345b50d7c",
-        "entry_hash": "5f78ff0bbee5c649181ef440f42a9947bd264b986391f90cf64128181173e322"
+        "prev_hash": "f52c4114df940bdb4af41aa8a6b0ffd8728ef705dbde15c2b796b09bc1819875",
+        "entry_hash": "0400445f781f50773ced330817248d7f73dcfd2f82153522c6c96e0351c39cbe"
       }
     },
     {
-      "timeline_event_id": "evt-c2a3bcc7",
+      "timeline_event_id": "evt-33757547",
       "event_type": "disk_preserved",
-      "timestamp": "2026-06-25T15:43:38Z",
+      "timestamp": "2026-06-28T13:57:24Z",
       "status": "observed",
-      "related_case_id": "case-1a8add06",
+      "related_case_id": "case-643ce64e",
       "related_node_id": "node-c800d431",
       "related_instance_id": "inst-16583180",
       "description": "disk_preserved",
       "details": {
-        "ts_utc": "2026-06-25T15:43:38Z",
-        "ts_epoch": 1782402218.0,
+        "ts_utc": "2026-06-28T13:57:24Z",
+        "ts_epoch": 1782655044.0,
         "event": "disk_preserved",
         "run_id": "R1",
         "meta": {
           "vm_id": "16583180-627d-4c40-bd65-aa9db704d75c",
-          "rel": "disk/16583180-627d-4c40-bd65-aa9db704d75c_20260625_153712Z.disk.final.raw",
+          "rel": "disk/16583180-627d-4c40-bd65-aa9db704d75c_20260628_135134Z.disk.final.raw",
           "size": 21474836480,
-          "sha256": "54719a8051efe0fb8a9a9dfb99dca6235772b5f0bfcbebdfc134b640734e0cd3",
+          "sha256": "931ff2644e78699ae4c278281d4382c50fe6b902537dd31b39f63159bc2f7332",
           "exit_code": 0,
-          "elapsed_s": 386.05
+          "elapsed_s": 349.318
         }
       }
     },
     {
-      "timeline_event_id": "evt-015cdca5",
+      "timeline_event_id": "evt-f5a23f0e",
       "event_type": "dfir_orchestration_done",
-      "timestamp": "2026-06-25T15:43:38Z",
+      "timestamp": "2026-06-28T13:57:24Z",
       "status": "observed",
-      "related_case_id": "case-1a8add06",
+      "related_case_id": "case-643ce64e",
       "related_node_id": "unresolved",
       "related_instance_id": "unresolved",
       "description": "dfir_orchestration_done",
       "details": {
-        "ts_utc": "2026-06-25T15:43:38Z",
-        "ts_epoch": 1782402218.0,
+        "ts_utc": "2026-06-28T13:57:24Z",
+        "ts_epoch": 1782655044.0,
         "event": "dfir_orchestration_done",
         "run_id": "R1",
         "meta": {
@@ -844,44 +1140,44 @@
       }
     },
     {
-      "timeline_event_id": "evt-3cc9fcfe",
+      "timeline_event_id": "evt-ec7961e6",
       "event_type": "acquire_preserved",
-      "timestamp": "2026-06-25T15:43:38Z",
+      "timestamp": "2026-06-28T13:57:24Z",
       "status": "recorded",
-      "related_case_id": "case-1a8add06",
+      "related_case_id": "case-643ce64e",
       "related_node_id": "unresolved",
       "related_instance_id": "unresolved",
       "description": "acquire_preserved",
       "details": {
-        "ts_utc": "2026-06-25T15:43:38Z",
-        "ts_epoch": 1782402218.0,
+        "ts_utc": "2026-06-28T13:57:24Z",
+        "ts_epoch": 1782655044.0,
         "run_id": "R1",
         "actor": "forensics_api",
         "action": "acquire_preserved",
-        "artifact_rel": "disk/16583180-627d-4c40-bd65-aa9db704d75c_20260625_153712Z.disk.final.raw",
+        "artifact_rel": "disk/16583180-627d-4c40-bd65-aa9db704d75c_20260628_135134Z.disk.final.raw",
         "outcome": "ok",
         "details": {
           "kind": "disk",
           "vm_id": "16583180-627d-4c40-bd65-aa9db704d75c",
-          "sha256": "54719a8051efe0fb8a9a9dfb99dca6235772b5f0bfcbebdfc134b640734e0cd3",
+          "sha256": "931ff2644e78699ae4c278281d4382c50fe6b902537dd31b39f63159bc2f7332",
           "size": 21474836480
         },
-        "prev_hash": "082eb49f05eb77294533fafb2ac2103ac5149370b11b37e9c205ed40776b3c67",
-        "entry_hash": "5ce5a3cd080a447130dea5bee445e6d151e2ac942a4a33e18d9b44e32d456328"
+        "prev_hash": "b1eef52798f080d648189694df7fe147f79e2ece71ecca0d51044f4b0a566988",
+        "entry_hash": "ef1f2fb04ba7faf0e367db161d90c7ceac4d1f964024c2ee437beebb993e82bf"
       }
     },
     {
-      "timeline_event_id": "evt-c7acc7d7",
+      "timeline_event_id": "evt-90555664",
       "event_type": "dfir_orchestration_done",
-      "timestamp": "2026-06-25T15:43:38Z",
+      "timestamp": "2026-06-28T13:57:24Z",
       "status": "recorded",
-      "related_case_id": "case-1a8add06",
+      "related_case_id": "case-643ce64e",
       "related_node_id": "unresolved",
       "related_instance_id": "unresolved",
       "description": "dfir_orchestration_done",
       "details": {
-        "ts_utc": "2026-06-25T15:43:38Z",
-        "ts_epoch": 1782402218.0,
+        "ts_utc": "2026-06-28T13:57:24Z",
+        "ts_epoch": 1782655044.0,
         "run_id": "R1",
         "actor": "forensics_api",
         "action": "dfir_orchestration_done",
@@ -890,8 +1186,566 @@
         "details": {
           "targets_count": 3
         },
-        "prev_hash": "5ce5a3cd080a447130dea5bee445e6d151e2ac942a4a33e18d9b44e32d456328",
-        "entry_hash": "0e68bc10b9ec57155b7223989a59cefe2a162964091e006186a0f892177e1971"
+        "prev_hash": "ef1f2fb04ba7faf0e367db161d90c7ceac4d1f964024c2ee437beebb993e82bf",
+        "entry_hash": "63cef8f3dcb96095983ca12a7ed41e49b6a1fd81d0fabec41d7a226e4bf366ab"
+      }
+    },
+    {
+      "timeline_event_id": "evt-d8b56b9a",
+      "event_type": "case_created",
+      "timestamp": "2026-06-29T06:27:41Z",
+      "status": "recorded",
+      "related_case_id": "case-c39cd889",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "case_created",
+      "details": {
+        "ts_utc": "2026-06-29T06:27:41Z",
+        "ts_epoch": 1782714461.0,
+        "run_id": "R1",
+        "actor": "forensics_api",
+        "action": "case_created",
+        "artifact_rel": null,
+        "outcome": "ok",
+        "details": {
+          "case_dir": "/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/CASE-20260629-062741"
+        },
+        "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "entry_hash": "881ca9bc70633feb036ea157ffbd71bfae511e7d7b133fcc684ec1a6bfaab73b"
+      }
+    },
+    {
+      "timeline_event_id": "evt-b1c0a7b4",
+      "event_type": "dfir_orchestration_start",
+      "timestamp": "2026-06-29T06:27:57Z",
+      "status": "observed",
+      "related_case_id": "case-c39cd889",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "dfir_orchestration_start",
+      "details": {
+        "ts_utc": "2026-06-29T06:27:57Z",
+        "ts_epoch": 1782714477.0,
+        "event": "dfir_orchestration_start",
+        "run_id": "R1",
+        "meta": {
+          "targets": [
+            {
+              "role": "fuxa",
+              "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+              "vm_ip": "10.0.2.9"
+            },
+            {
+              "role": "plc",
+              "vm_id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
+              "vm_ip": "10.0.2.22"
+            },
+            {
+              "role": "victim",
+              "vm_id": "16583180-627d-4c40-bd65-aa9db704d75c",
+              "vm_ip": "10.0.2.172"
+            }
+          ],
+          "traffic_seconds": 20,
+          "memory_mode": "build",
+          "disk_container": "nova_libvirt"
+        }
+      }
+    },
+    {
+      "timeline_event_id": "evt-b66d42ec",
+      "event_type": "case_created",
+      "timestamp": "2026-06-29T06:28:22Z",
+      "status": "recorded",
+      "related_case_id": "case-da6e309c",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "case_created",
+      "details": {
+        "ts_utc": "2026-06-29T06:28:22Z",
+        "ts_epoch": 1782714502.0,
+        "run_id": "R1",
+        "actor": "forensics_api",
+        "action": "case_created",
+        "artifact_rel": null,
+        "outcome": "ok",
+        "details": {
+          "case_dir": "/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/CASE-20260629-062822"
+        },
+        "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "entry_hash": "35fc2684b17936a29e854d77f25001935524a7fcd144c8981830250b9f63cf52"
+      }
+    },
+    {
+      "timeline_event_id": "evt-c825f1dc",
+      "event_type": "dfir_orchestration_start",
+      "timestamp": "2026-06-29T06:28:23Z",
+      "status": "observed",
+      "related_case_id": "case-da6e309c",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "dfir_orchestration_start",
+      "details": {
+        "ts_utc": "2026-06-29T06:28:23Z",
+        "ts_epoch": 1782714503.0,
+        "event": "dfir_orchestration_start",
+        "run_id": "R1",
+        "meta": {
+          "targets": [
+            {
+              "role": "fuxa",
+              "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+              "vm_ip": "10.0.2.9"
+            },
+            {
+              "role": "plc",
+              "vm_id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
+              "vm_ip": "10.0.2.22"
+            },
+            {
+              "role": "victim",
+              "vm_id": "16583180-627d-4c40-bd65-aa9db704d75c",
+              "vm_ip": "10.0.2.172"
+            }
+          ],
+          "traffic_seconds": 20,
+          "memory_mode": "build",
+          "disk_container": "nova_libvirt"
+        }
+      }
+    },
+    {
+      "timeline_event_id": "evt-36283d8e",
+      "event_type": "case_created",
+      "timestamp": "2026-06-29T06:28:25Z",
+      "status": "recorded",
+      "related_case_id": "case-369f59d5",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "case_created",
+      "details": {
+        "ts_utc": "2026-06-29T06:28:25Z",
+        "ts_epoch": 1782714505.0,
+        "run_id": "R1",
+        "actor": "forensics_api",
+        "action": "case_created",
+        "artifact_rel": null,
+        "outcome": "ok",
+        "details": {
+          "case_dir": "/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/CASE-20260629-062825"
+        },
+        "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "entry_hash": "0e513886b22e44f80c775ba2532d51710915af22a5c0bbe3c7ab52fe6b27d3bc"
+      }
+    },
+    {
+      "timeline_event_id": "evt-aba1fa14",
+      "event_type": "dfir_orchestration_start",
+      "timestamp": "2026-06-29T06:28:26Z",
+      "status": "observed",
+      "related_case_id": "case-369f59d5",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "dfir_orchestration_start",
+      "details": {
+        "ts_utc": "2026-06-29T06:28:26Z",
+        "ts_epoch": 1782714506.0,
+        "event": "dfir_orchestration_start",
+        "run_id": "R1",
+        "meta": {
+          "targets": [
+            {
+              "role": "fuxa",
+              "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+              "vm_ip": "10.0.2.9"
+            },
+            {
+              "role": "plc",
+              "vm_id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
+              "vm_ip": "10.0.2.22"
+            },
+            {
+              "role": "victim",
+              "vm_id": "16583180-627d-4c40-bd65-aa9db704d75c",
+              "vm_ip": "10.0.2.172"
+            }
+          ],
+          "traffic_seconds": 20,
+          "memory_mode": "build",
+          "disk_container": "nova_libvirt"
+        }
+      }
+    },
+    {
+      "timeline_event_id": "evt-a27c93c8",
+      "event_type": "case_created",
+      "timestamp": "2026-06-29T06:28:28Z",
+      "status": "recorded",
+      "related_case_id": "case-c8ade0d8",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "case_created",
+      "details": {
+        "ts_utc": "2026-06-29T06:28:28Z",
+        "ts_epoch": 1782714508.0,
+        "run_id": "R1",
+        "actor": "forensics_api",
+        "action": "case_created",
+        "artifact_rel": null,
+        "outcome": "ok",
+        "details": {
+          "case_dir": "/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/CASE-20260629-062828"
+        },
+        "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "entry_hash": "bf50aed0877acba07198a857690ec5aa861ab010cff3d4ebecdd8668bf570e69"
+      }
+    },
+    {
+      "timeline_event_id": "evt-8446b09b",
+      "event_type": "dfir_orchestration_start",
+      "timestamp": "2026-06-29T06:28:29Z",
+      "status": "observed",
+      "related_case_id": "case-c8ade0d8",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "dfir_orchestration_start",
+      "details": {
+        "ts_utc": "2026-06-29T06:28:29Z",
+        "ts_epoch": 1782714509.0,
+        "event": "dfir_orchestration_start",
+        "run_id": "R1",
+        "meta": {
+          "targets": [
+            {
+              "role": "fuxa",
+              "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+              "vm_ip": "10.0.2.9"
+            },
+            {
+              "role": "plc",
+              "vm_id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
+              "vm_ip": "10.0.2.22"
+            },
+            {
+              "role": "victim",
+              "vm_id": "16583180-627d-4c40-bd65-aa9db704d75c",
+              "vm_ip": "10.0.2.172"
+            }
+          ],
+          "traffic_seconds": 20,
+          "memory_mode": "build",
+          "disk_container": "nova_libvirt"
+        }
+      }
+    },
+    {
+      "timeline_event_id": "evt-6dfaaada",
+      "event_type": "case_created",
+      "timestamp": "2026-06-29T06:28:45Z",
+      "status": "recorded",
+      "related_case_id": "case-ce6e1e0f",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "case_created",
+      "details": {
+        "ts_utc": "2026-06-29T06:28:45Z",
+        "ts_epoch": 1782714525.0,
+        "run_id": "R1",
+        "actor": "forensics_api",
+        "action": "case_created",
+        "artifact_rel": null,
+        "outcome": "ok",
+        "details": {
+          "case_dir": "/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/CASE-20260629-062845"
+        },
+        "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "entry_hash": "ae0b5699b25383b4b8e7c0a9acf7dd654b83da042f1991bf6d65e023172f19f6"
+      }
+    },
+    {
+      "timeline_event_id": "evt-7b0422a8",
+      "event_type": "dfir_orchestration_start",
+      "timestamp": "2026-06-29T06:28:46Z",
+      "status": "observed",
+      "related_case_id": "case-ce6e1e0f",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "dfir_orchestration_start",
+      "details": {
+        "ts_utc": "2026-06-29T06:28:46Z",
+        "ts_epoch": 1782714526.0,
+        "event": "dfir_orchestration_start",
+        "run_id": "R1",
+        "meta": {
+          "targets": [
+            {
+              "role": "fuxa",
+              "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+              "vm_ip": "10.0.2.9"
+            },
+            {
+              "role": "plc",
+              "vm_id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
+              "vm_ip": "10.0.2.22"
+            },
+            {
+              "role": "victim",
+              "vm_id": "16583180-627d-4c40-bd65-aa9db704d75c",
+              "vm_ip": "10.0.2.172"
+            }
+          ],
+          "traffic_seconds": 20,
+          "memory_mode": "build",
+          "disk_container": "nova_libvirt"
+        }
+      }
+    },
+    {
+      "timeline_event_id": "evt-6db3aee1",
+      "event_type": "case_created",
+      "timestamp": "2026-06-29T06:28:48Z",
+      "status": "recorded",
+      "related_case_id": "case-6b5274b1",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "case_created",
+      "details": {
+        "ts_utc": "2026-06-29T06:28:48Z",
+        "ts_epoch": 1782714528.0,
+        "run_id": "R1",
+        "actor": "forensics_api",
+        "action": "case_created",
+        "artifact_rel": null,
+        "outcome": "ok",
+        "details": {
+          "case_dir": "/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/CASE-20260629-062848"
+        },
+        "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "entry_hash": "ab17e0026d5bff6af2e8368c53bbf1e29ceb44f159580afb56bec3cce9a7c01e"
+      }
+    },
+    {
+      "timeline_event_id": "evt-1f7faf37",
+      "event_type": "dfir_orchestration_start",
+      "timestamp": "2026-06-29T06:28:50Z",
+      "status": "observed",
+      "related_case_id": "case-6b5274b1",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "dfir_orchestration_start",
+      "details": {
+        "ts_utc": "2026-06-29T06:28:50Z",
+        "ts_epoch": 1782714530.0,
+        "event": "dfir_orchestration_start",
+        "run_id": "R1",
+        "meta": {
+          "targets": [
+            {
+              "role": "fuxa",
+              "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+              "vm_ip": "10.0.2.9"
+            },
+            {
+              "role": "plc",
+              "vm_id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
+              "vm_ip": "10.0.2.22"
+            },
+            {
+              "role": "victim",
+              "vm_id": "16583180-627d-4c40-bd65-aa9db704d75c",
+              "vm_ip": "10.0.2.172"
+            }
+          ],
+          "traffic_seconds": 20,
+          "memory_mode": "build",
+          "disk_container": "nova_libvirt"
+        }
+      }
+    },
+    {
+      "timeline_event_id": "evt-3f191c75",
+      "event_type": "case_created",
+      "timestamp": "2026-06-29T06:28:51Z",
+      "status": "recorded",
+      "related_case_id": "case-17ea4b81",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "case_created",
+      "details": {
+        "ts_utc": "2026-06-29T06:28:51Z",
+        "ts_epoch": 1782714531.0,
+        "run_id": "R1",
+        "actor": "forensics_api",
+        "action": "case_created",
+        "artifact_rel": null,
+        "outcome": "ok",
+        "details": {
+          "case_dir": "/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/CASE-20260629-062851"
+        },
+        "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "entry_hash": "13d617470aceeb43a315f7916c3353cc8114c00ab43b0532c6f232a167a82638"
+      }
+    },
+    {
+      "timeline_event_id": "evt-07a70138",
+      "event_type": "dfir_orchestration_start",
+      "timestamp": "2026-06-29T06:28:52Z",
+      "status": "observed",
+      "related_case_id": "case-17ea4b81",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "dfir_orchestration_start",
+      "details": {
+        "ts_utc": "2026-06-29T06:28:52Z",
+        "ts_epoch": 1782714532.0,
+        "event": "dfir_orchestration_start",
+        "run_id": "R1",
+        "meta": {
+          "targets": [
+            {
+              "role": "fuxa",
+              "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+              "vm_ip": "10.0.2.9"
+            },
+            {
+              "role": "plc",
+              "vm_id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
+              "vm_ip": "10.0.2.22"
+            },
+            {
+              "role": "victim",
+              "vm_id": "16583180-627d-4c40-bd65-aa9db704d75c",
+              "vm_ip": "10.0.2.172"
+            }
+          ],
+          "traffic_seconds": 20,
+          "memory_mode": "build",
+          "disk_container": "nova_libvirt"
+        }
+      }
+    },
+    {
+      "timeline_event_id": "evt-8a455001",
+      "event_type": "case_created",
+      "timestamp": "2026-06-29T06:29:03Z",
+      "status": "recorded",
+      "related_case_id": "case-d708740f",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "case_created",
+      "details": {
+        "ts_utc": "2026-06-29T06:29:03Z",
+        "ts_epoch": 1782714543.0,
+        "run_id": "R1",
+        "actor": "forensics_api",
+        "action": "case_created",
+        "artifact_rel": null,
+        "outcome": "ok",
+        "details": {
+          "case_dir": "/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/CASE-20260629-062903"
+        },
+        "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "entry_hash": "5d94b206133203626793ec3d249a5fed0f5673e150de4fad9c0a29815ff9ce0c"
+      }
+    },
+    {
+      "timeline_event_id": "evt-19523375",
+      "event_type": "dfir_orchestration_start",
+      "timestamp": "2026-06-29T06:29:04Z",
+      "status": "observed",
+      "related_case_id": "case-d708740f",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "dfir_orchestration_start",
+      "details": {
+        "ts_utc": "2026-06-29T06:29:04Z",
+        "ts_epoch": 1782714544.0,
+        "event": "dfir_orchestration_start",
+        "run_id": "R1",
+        "meta": {
+          "targets": [
+            {
+              "role": "fuxa",
+              "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+              "vm_ip": "10.0.2.9"
+            },
+            {
+              "role": "plc",
+              "vm_id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
+              "vm_ip": "10.0.2.22"
+            },
+            {
+              "role": "victim",
+              "vm_id": "16583180-627d-4c40-bd65-aa9db704d75c",
+              "vm_ip": "10.0.2.172"
+            }
+          ],
+          "traffic_seconds": 20,
+          "memory_mode": "build",
+          "disk_container": "nova_libvirt"
+        }
+      }
+    },
+    {
+      "timeline_event_id": "evt-ec5cfa6c",
+      "event_type": "case_created",
+      "timestamp": "2026-06-29T06:29:07Z",
+      "status": "recorded",
+      "related_case_id": "case-5b4a0312",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "case_created",
+      "details": {
+        "ts_utc": "2026-06-29T06:29:07Z",
+        "ts_epoch": 1782714547.0,
+        "run_id": "R1",
+        "actor": "forensics_api",
+        "action": "case_created",
+        "artifact_rel": null,
+        "outcome": "ok",
+        "details": {
+          "case_dir": "/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/CASE-20260629-062907"
+        },
+        "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "entry_hash": "b406473d128199547355be8c5dfd96ddf68a4ce7028f864fec157099595aa712"
+      }
+    },
+    {
+      "timeline_event_id": "evt-f6ec70fa",
+      "event_type": "dfir_orchestration_start",
+      "timestamp": "2026-06-29T06:29:08Z",
+      "status": "observed",
+      "related_case_id": "case-5b4a0312",
+      "related_node_id": "unresolved",
+      "related_instance_id": "unresolved",
+      "description": "dfir_orchestration_start",
+      "details": {
+        "ts_utc": "2026-06-29T06:29:08Z",
+        "ts_epoch": 1782714548.0,
+        "event": "dfir_orchestration_start",
+        "run_id": "R1",
+        "meta": {
+          "targets": [
+            {
+              "role": "fuxa",
+              "vm_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+              "vm_ip": "10.0.2.9"
+            },
+            {
+              "role": "plc",
+              "vm_id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
+              "vm_ip": "10.0.2.22"
+            },
+            {
+              "role": "victim",
+              "vm_id": "16583180-627d-4c40-bd65-aa9db704d75c",
+              "vm_ip": "10.0.2.172"
+            }
+          ],
+          "traffic_seconds": 20,
+          "memory_mode": "build",
+          "disk_container": "nova_libvirt"
+        }
       }
     }
   ]

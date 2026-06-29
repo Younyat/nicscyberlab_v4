@@ -10,6 +10,7 @@ from ..foc_reconstruction.evidence_lifecycle_dashboard import load_evidence_life
 from ..foc_reconstruction.foc_case_analysis import _case_dir_from_entry, get_case_entry, load_analysis_status, load_time_sync_status
 from ..foc_reconstruction.foc_paths import relative_path
 from ..foc_reconstruction.foc_sources import utc_now
+from .config import CASE_REGISTRY_PATH
 from ..foc_causal_reconstruction.service import causal_metrics_payload, causal_status_payload, causal_uncertainty_payload
 from .scientific_memory import (
     build_analysis_repeatability_profile,
@@ -25,6 +26,14 @@ def _json_load(path: Path | None):
         return json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return None
+
+
+def _case_registry_entry(case_id: str) -> dict | None:
+    registry = _json_load(CASE_REGISTRY_PATH) or {}
+    for entry in list(registry.get("entries") or []):
+        if str(entry.get("case_id") or "") == str(case_id):
+            return entry
+    return None
 
 
 def _write_json(path: Path, payload) -> None:
@@ -59,14 +68,30 @@ def _sha256_path(path: Path | None) -> str:
 def resolve_case_source(case_id: str | None = None, case_path: str | None = None) -> dict | None:
     if case_id:
         entry = get_case_entry(case_id)
-        if not entry:
+        if entry:
+            case_dir = _case_dir_from_entry(entry)
+            return {
+                "case_id": str(entry.get("case_id")),
+                "case_path": str(case_dir),
+                "case_rel_path": relative_path(case_dir),
+                "entry": entry,
+            }
+        registry_entry = _case_registry_entry(case_id)
+        registry_path = str((registry_entry or {}).get("case_path") or "").strip()
+        if not registry_path:
             return None
-        case_dir = _case_dir_from_entry(entry)
+        case_dir = Path(registry_path).expanduser().resolve()
+        if not case_dir.is_dir():
+            return None
         return {
-            "case_id": str(entry.get("case_id")),
+            "case_id": str((registry_entry or {}).get("case_id") or case_id),
             "case_path": str(case_dir),
             "case_rel_path": relative_path(case_dir),
-            "entry": entry,
+            "entry": {
+                "case_id": str((registry_entry or {}).get("case_id") or case_id),
+                "source_case_name": str((registry_entry or {}).get("source_case_name") or case_dir.name),
+                "path": relative_path(case_dir),
+            },
         }
     if case_path:
         path = Path(case_path).expanduser().resolve()

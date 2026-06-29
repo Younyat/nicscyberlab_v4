@@ -8,7 +8,16 @@ from pathlib import Path
 
 from .config import EVIDENCE_STORE_ROOT, campaign_config_path, campaign_dir, campaign_manifest_path, rel
 from .execution_service import create_execution_from_campaign
-from .job_runner import append_phase, list_jobs, new_job, start_job, update_job
+from .job_runner import (
+    append_phase,
+    get_job,
+    job_cancel_requested,
+    list_jobs,
+    new_job,
+    raise_if_cancelled,
+    start_job,
+    update_job,
+)
 from .profile_builder import load_case_bundle, resolve_case_source
 from .config import CASE_REGISTRY_PATH
 from ..foc_causal_reconstruction.service import causal_status_payload, run_causal_reconstruction
@@ -52,6 +61,8 @@ def _running_job_for_campaign(campaign_id: str) -> dict | None:
     for item in list_jobs():
         meta = item.get("meta") or {}
         if str(meta.get("campaign_id")) != str(campaign_id):
+            continue
+        if str(item.get("job_type") or "").lower() == "level_a_scientific_report":
             continue
         if str(item.get("status")) in {"queued", "running"}:
             return item
@@ -163,10 +174,12 @@ def _reference_case_failure_reason(config: dict, overrides: dict, level: str) ->
     return "No preserved base case could be resolved for this dry-run execution."
 
 
-def _wait_for_causal(case_id: str, case_path: Path, *, timeout_seconds: float = DEFAULT_CAUSAL_TIMEOUT_SECONDS, poll_seconds: float = DEFAULT_POLL_SECONDS) -> dict:
+def _wait_for_causal(case_id: str, case_path: Path, *, timeout_seconds: float = DEFAULT_CAUSAL_TIMEOUT_SECONDS, poll_seconds: float = DEFAULT_POLL_SECONDS, job_id: str | None = None, job_path: Path | None = None) -> dict:
     deadline = time.time() + timeout_seconds
     last = {"status": "unknown"}
     while time.time() < deadline:
+        if job_id and job_path:
+            raise_if_cancelled(job_id, job_path, phase_key="run_causal_reconstruction", phase_label="Run Causal Reconstruction", detail="Dry-run execution cancellation was requested while waiting for causal reconstruction.")
         payload = causal_status_payload(case_id, case_path) or {"status": "unknown"}
         last = payload
         if str(payload.get("status") or "").lower() not in {"running", "ready_to_run", "queued"}:
@@ -177,10 +190,12 @@ def _wait_for_causal(case_id: str, case_path: Path, *, timeout_seconds: float = 
     return last
 
 
-def _wait_for_lifecycle(job_id: str, *, timeout_seconds: float = DEFAULT_LIFECYCLE_TIMEOUT_SECONDS, poll_seconds: float = DEFAULT_POLL_SECONDS, on_poll=None) -> dict:
+def _wait_for_lifecycle(job_id: str, *, timeout_seconds: float = DEFAULT_LIFECYCLE_TIMEOUT_SECONDS, poll_seconds: float = DEFAULT_POLL_SECONDS, on_poll=None, parent_job_id: str | None = None, parent_job_path: Path | None = None) -> dict:
     deadline = time.time() + timeout_seconds
     last = {"status": "unknown"}
     while time.time() < deadline:
+        if parent_job_id and parent_job_path and job_cancel_requested(parent_job_id):
+            raise_if_cancelled(parent_job_id, parent_job_path, phase_key="run_full_evidence_lifecycle", phase_label="Run Full Evidence Lifecycle", detail="Dry-run execution cancellation was requested while waiting for the full evidence lifecycle.")
         payload = get_lifecycle_job(job_id)
         if isinstance(payload, dict):
             last = payload
@@ -250,8 +265,60 @@ def start_dry_run_execution_job(campaign_id: str, overrides: dict | None = None)
     return start_job(job, runner)
 
 
+def run_dry_run_execution_inline(campaign_id: str, *, overrides: dict | None = None, title: str | None = None) -> dict:
+    overrides = dict(overrides or {})
+    manifest, config = _load_campaign(campaign_id)
+    if not manifest:
+        raise FileNotFoundError(f"campaign_not_found:{campaign_id}")
+    level = str(config.get("level") or manifest.get("level") or "A").upper()
+    job = new_job(
+        job_type="campaign_dry_run_execution_inline",
+        title=title or f"Run dry-run execution inline for {campaign_id}",
+        job_path=campaign_dir(campaign_id) / "jobs" / f"job-inline-{uuid.uuid4().hex[:8]}.json",
+        meta={"campaign_id": campaign_id, "level": level, "dry_run": True, "inline": True},
+    )
+    job_id = str(job["job_id"])
+    job_path = Path(job["job_path"])
+    update_job(
+        job_id,
+        job_path,
+        status="running",
+        started_at=utc_now(),
+        current_phase="starting",
+        current_phase_label="Starting",
+        current_phase_detail="Preparing inline dry-run execution.",
+        progress_percent=1.0,
+        phase_statuses=[
+            {
+                "phase_key": "starting",
+                "phase_label": "Starting",
+                "status": "running",
+                "detail": "Preparing inline dry-run execution.",
+                "updated_at": utc_now(),
+                "progress_percent": 1.0,
+            }
+        ],
+    )
+    try:
+        _run_dry_run_execution(job_id, job_path, campaign_id, manifest, config, overrides)
+    except Exception as exc:
+        update_job(
+            job_id,
+            job_path,
+            status="failed",
+            finished_at=utc_now(),
+            current_phase="failed",
+            current_phase_label="Failed",
+            current_phase_detail=str(exc),
+            progress_percent=100.0,
+            errors=[{"message": str(exc)}],
+        )
+    return get_job(job_id) or job
+
+
 def _run_dry_run_execution(job_id: str, job_path: Path, campaign_id: str, manifest: dict, config: dict, overrides: dict) -> None:
     level = str(config.get("level") or manifest.get("level") or "A").upper()
+    raise_if_cancelled(job_id, job_path, phase_key="starting", phase_label="Starting", detail="Dry-run execution was cancelled before it started.")
     _phase(job_id, job_path, "resolve_reference_case", "Resolve reference preserved case", "running", 4.0, "Resolving the preserved case that will feed the dry-run scientific replay.")
     reference_case = _resolve_reference_case(config, overrides)
     if not reference_case:
@@ -286,8 +353,10 @@ def _run_dry_run_execution(job_id: str, job_path: Path, campaign_id: str, manife
 
     case_id = str(reference_case["case_id"])
     case_path = Path(reference_case["case_path"]).resolve()
+    update_job(job_id, job_path, current_case_id=case_id)
     _phase(job_id, job_path, "resolve_reference_case", "Resolve reference preserved case", "completed", 10.0, f"Using preserved case {case_id} from {reference_case['source_policy']}.")
 
+    raise_if_cancelled(job_id, job_path, phase_key="bootstrap_foc", phase_label="Bootstrap FOC", detail="Dry-run execution was cancelled before FOC bootstrap.")
     _phase(job_id, job_path, "bootstrap_foc", "Bootstrap FOC", "running", 16.0, "Calling the same backend bootstrap used by the FOC Reconstruction view.")
     try:
         bootstrap_result = bootstrap_existing_context(force=False)
@@ -298,6 +367,7 @@ def _run_dry_run_execution(job_id: str, job_path: Path, campaign_id: str, manife
     bootstrap_reason = bootstrap_result.get("status") or "bootstrapped"
     _phase(job_id, job_path, "bootstrap_foc", "Bootstrap FOC", "completed", 28.0, f"FOC bootstrap finished with status {bootstrap_reason}.")
 
+    raise_if_cancelled(job_id, job_path, phase_key="regenerate_reconstruction", phase_label="Regenerate Reconstruction", detail="Dry-run execution was cancelled before reconstruction regeneration.")
     _phase(job_id, job_path, "regenerate_reconstruction", "Regenerate Reconstruction", "running", 34.0, "Calling the same reconstruction regeneration used by the FOC Reconstruction view.")
     try:
         current_manifest = read_generated_json(GENERATED_FILES["manifest"]) or bootstrap_manifest or {}
@@ -307,13 +377,14 @@ def _run_dry_run_execution(job_id: str, job_path: Path, campaign_id: str, manife
         return
     _phase(job_id, job_path, "regenerate_reconstruction", "Regenerate Reconstruction", "completed", 46.0, "FOC reconstruction artifacts were regenerated successfully.")
 
+    raise_if_cancelled(job_id, job_path, phase_key="run_causal_reconstruction", phase_label="Run Causal Reconstruction", detail="Dry-run execution was cancelled before causal reconstruction.")
     _phase(job_id, job_path, "run_causal_reconstruction", "Run Causal Reconstruction", "running", 54.0, f"Launching causal reconstruction for preserved case {case_id}.")
     try:
         causal_start = run_causal_reconstruction(case_id=case_id, case_path=case_path, degraded_ok=True, strict=False)
     except Exception as exc:
         _fail(job_id, job_path, "run_causal_reconstruction", "Run Causal Reconstruction", 54.0, f"Causal reconstruction failed to start: {exc}")
         return
-    causal_status = _wait_for_causal(case_id, case_path)
+    causal_status = _wait_for_causal(case_id, case_path, job_id=job_id, job_path=job_path)
     causal_state = str(causal_status.get("status") or causal_start.get("status") or "unknown").lower()
     causal_retry_required = False
     if causal_state in {"blocked_missing_analysis", "not_available"}:
@@ -326,15 +397,20 @@ def _run_dry_run_execution(job_id: str, job_path: Path, campaign_id: str, manife
         causal_phase_status = "completed_with_degradation" if causal_state == "completed_with_degradation" else "completed"
         _phase(job_id, job_path, "run_causal_reconstruction", "Run Causal Reconstruction", causal_phase_status, 68.0, causal_status.get("reason") or "Causal reconstruction completed.")
 
+    raise_if_cancelled(job_id, job_path, phase_key="run_full_evidence_lifecycle", phase_label="Run Full Evidence Lifecycle", detail="Dry-run execution was cancelled before the full evidence lifecycle.")
     _phase(job_id, job_path, "run_full_evidence_lifecycle", "Run Full Evidence Lifecycle", "running", 74.0, f"Launching the same full evidence lifecycle backend used by the Executive Scientific Reconstruction Surface for {case_id}.")
     lifecycle_job = start_full_lifecycle_job(case_id, force_analysis=True, strict=False, degraded_ok=True)
     if lifecycle_job.get("error"):
         _fail(job_id, job_path, "run_full_evidence_lifecycle", "Run Full Evidence Lifecycle", 74.0, f"Could not start full evidence lifecycle: {lifecycle_job.get('error')}")
         return
+    update_job(job_id, job_path, current_lifecycle_job_id=str(lifecycle_job.get("job_id") or ""))
     lifecycle_status = _wait_for_lifecycle(
         str(lifecycle_job.get("job_id")),
         on_poll=lambda payload: _sync_nested_lifecycle_trace(job_id, job_path, payload),
+        parent_job_id=job_id,
+        parent_job_path=job_path,
     )
+    update_job(job_id, job_path, current_lifecycle_job_id=None)
     lifecycle_state = str(lifecycle_status.get("status") or "unknown").lower()
     if lifecycle_state in {"failed", "timeout"}:
         errors = lifecycle_status.get("errors") or []
@@ -347,13 +423,14 @@ def _run_dry_run_execution(job_id: str, job_path: Path, campaign_id: str, manife
 
     causal_final_phase_status = "completed"
     if causal_retry_required:
+        raise_if_cancelled(job_id, job_path, phase_key="rerun_causal_reconstruction", phase_label="Rerun Causal Reconstruction", detail="Dry-run execution was cancelled before causal reconstruction retry.")
         _phase(job_id, job_path, "rerun_causal_reconstruction", "Rerun Causal Reconstruction", "running", 90.0, "Retrying causal reconstruction after the refreshed evidence lifecycle outputs were generated.")
         try:
             rerun_start = run_causal_reconstruction(case_id=case_id, case_path=case_path, degraded_ok=True, strict=False)
         except Exception as exc:
             _fail(job_id, job_path, "rerun_causal_reconstruction", "Rerun Causal Reconstruction", 90.0, f"Causal reconstruction retry failed to start: {exc}")
             return
-        rerun_status = _wait_for_causal(case_id, case_path)
+        rerun_status = _wait_for_causal(case_id, case_path, job_id=job_id, job_path=job_path)
         rerun_state = str(rerun_status.get("status") or rerun_start.get("status") or "unknown").lower()
         if rerun_state in {"failed", "blocked_missing_ground_truth", "blocked_missing_analysis", "not_available", "timeout"}:
             _fail(job_id, job_path, "rerun_causal_reconstruction", "Rerun Causal Reconstruction", 92.0, rerun_status.get("reason") or "Causal reconstruction retry did not complete successfully.")
@@ -363,6 +440,7 @@ def _run_dry_run_execution(job_id: str, job_path: Path, campaign_id: str, manife
     else:
         causal_final_phase_status = "completed_with_degradation" if causal_state == "completed_with_degradation" else "completed"
 
+    raise_if_cancelled(job_id, job_path, phase_key="finalize", phase_label="Finalize dry-run execution", detail="Dry-run execution was cancelled before execution registration.")
     progress_hook = lambda key, label, percent, detail=None: _phase(job_id, job_path, key, label, "running", min(98.0, percent), detail)
     result = create_execution_from_campaign(
         campaign_id,

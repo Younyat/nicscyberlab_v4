@@ -1,21 +1,21 @@
 {
-  "generated_at": "2026-06-27T13:03:29.655321+00:00",
+  "generated_at": "2026-06-29T08:43:49.899964+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
-  "total_correlation_records": 4641,
-  "total_alerts": 3064,
-  "relevant_alerts": 1438,
-  "correlated_alerts": 1770,
-  "confirmed_correlations": 1770,
+  "total_correlation_records": 6739,
+  "total_alerts": 6819,
+  "relevant_alerts": 3588,
+  "correlated_alerts": 2412,
+  "confirmed_correlations": 2412,
   "weak_correlations": 0,
-  "unresolved_alerts": 2832,
+  "unresolved_alerts": 4288,
   "noise_alerts": 0,
   "false_positive_candidates": 0,
   "missing_expected_alerts_total": 39,
   "bucket_counts": {
-    "correlated": 1770,
-    "uncorrelated": 2832,
-    "noise": 1626,
+    "correlated": 2412,
+    "uncorrelated": 4288,
+    "noise": 3231,
     "false_positive_candidate": 0,
     "missing_expected_alert": 39,
     "weak_candidate": 0,
@@ -25,85 +25,89 @@
   "top_signatures": [
     {
       "label": "Jun 25 15:37:16 plc-instance sshd[2787405]: Invalid user debian from 10.0.2.1 port 53846",
-      "count": 2832
+      "count": 3216
     },
     {
       "label": "NICS CyberLab ICS Modbus write multiple registers",
-      "count": 1770
+      "count": 2412
+    },
+    {
+      "label": "Jun 28 13:51:56 plc-instance sshd[3347517]: Invalid user debian from 10.0.2.1 port 35796",
+      "count": 1072
     }
   ],
   "top_rule_ids": [
     {
       "label": "5710",
-      "count": 2832
+      "count": 4288
     },
     {
       "label": "86601",
-      "count": 1770
+      "count": 2412
     }
   ],
   "top_nodes": [
     {
       "label": "node-f9ca9bfc",
-      "count": 4602
+      "count": 6700
     }
   ],
   "severity_distribution": [
     {
       "label": "LOW",
-      "count": 1626
+      "count": 3231
     },
     {
       "label": "HIGH",
-      "count": 1150
+      "count": 2964
     },
     {
       "label": "MEDIUM",
-      "count": 288
+      "count": 624
     }
   ],
   "alerts_by_node": [
     {
       "label": "node-c800d431",
-      "count": 1527
-    },
-    {
-      "label": "node-e1ac03b8",
-      "count": 864
+      "count": 3012
     },
     {
       "label": "node-f9ca9bfc",
-      "count": 177
+      "count": 2303
+    },
+    {
+      "label": "node-e1ac03b8",
+      "count": 1008
     }
   ],
   "alerts_by_mitre_technique": [
     {
       "label": "T1692.001",
-      "count": 30
+      "count": 36
     },
     {
       "label": "T0836",
-      "count": 30
+      "count": 36
     }
   ],
   "alerts_by_original_sensor": [
     {
-      "label": "suricata",
-      "count": 1656
+      "label": "wazuh",
+      "count": 3552
     },
     {
-      "label": "wazuh",
-      "count": 1408
+      "label": "suricata",
+      "count": 3267
     }
   ],
   "alerts_by_collector": [
     {
       "label": "wazuh",
-      "count": 3064
+      "count": 6819
     }
   ],
   "unique_confirmed_attack_pairs": 1,
-  "unique_correlation_candidates": 27,
+  "unique_correlation_candidates": 28,
   "confirmed_attack_ids": 1,
   "weak_attack_ids": 0,
   "observable_attack_ids": 1,

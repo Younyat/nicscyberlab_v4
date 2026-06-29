@@ -120,6 +120,10 @@ def _job_path(case_dir: Path, job_id: str) -> Path:
     return _jobs_dir(case_dir) / f"{job_id}.json"
 
 
+def _job_cancel_path(case_dir: Path, job_id: str) -> Path:
+    return _jobs_dir(case_dir) / f"{job_id}.cancel"
+
+
 def _mtime(path: Path) -> float:
     try:
         return float(path.stat().st_mtime)
@@ -1543,6 +1547,11 @@ def _new_job(case_id: str, case_dir: Path, job_type: str, title: str) -> dict:
 
 
 def _set_job(job: dict, case_dir: Path, **updates) -> None:
+    if job.get("hard_stop_locked") and not updates.pop("allow_post_stop_update", False):
+        with _JOB_LOCK:
+            _JOBS[job["job_id"]] = job
+        _write_json(_job_path(case_dir, job["job_id"]), job)
+        return
     job.update(updates)
     job["updated_at"] = utc_now()
     with _JOB_LOCK:
@@ -1576,6 +1585,77 @@ def get_lifecycle_job(job_id: str) -> dict | None:
         if isinstance(payload, dict):
             return payload
     return None
+
+
+def request_lifecycle_cancel(job_id: str, *, force: bool = False) -> dict | None:
+    payload = get_lifecycle_job(job_id)
+    if not payload:
+        return None
+    case_path = Path(str(payload.get("case_path") or ""))
+    if not case_path.is_absolute():
+        repo_root = Path(__file__).resolve().parents[3]
+        case_path = (repo_root / case_path).resolve() if str(case_path) else case_path
+    if not case_path.is_dir():
+        case_id = str(payload.get("case_id") or "")
+        entry = get_case_entry(case_id) if case_id else None
+        if entry:
+            case_path = _case_dir_from_entry(entry)
+    if not case_path or not Path(case_path).is_dir():
+        return payload
+    cancel_path = _job_cancel_path(Path(case_path), job_id)
+    cancel_path.parent.mkdir(parents=True, exist_ok=True)
+    cancel_path.write_text(utc_now(), encoding="utf-8")
+    updates = {
+        "cancel_requested": True,
+        "cancel_requested_at": utc_now(),
+        "status": "cancel_requested",
+        "current_phase_detail": "A lifecycle cancellation request was received.",
+    }
+    if force:
+        updates.update(
+            {
+                "force_stop_requested": True,
+                "force_stop_requested_at": utc_now(),
+                "status": "stopped",
+                "finished_at": utc_now(),
+                "current_phase": "force_stopped",
+                "current_phase_label": "Force Stopped",
+                "current_phase_detail": "A lifecycle force-stop request was received.",
+                "progress_percent": 100,
+                "hard_stop_locked": True,
+            }
+        )
+    payload.update(updates)
+    _set_job(payload, Path(case_path), **updates)
+    return payload
+
+
+def _job_cancel_requested(job: dict, case_dir: Path) -> tuple[bool, bool]:
+    cancel_path = _job_cancel_path(case_dir, str(job.get("job_id") or ""))
+    force = bool(job.get("force_stop_requested"))
+    requested = force or bool(job.get("cancel_requested")) or cancel_path.exists()
+    return requested, force
+
+
+def _stop_lifecycle_job(job: dict, case_dir: Path, *, forced: bool, detail: str) -> None:
+    status = "stopped" if forced else "cancelled"
+    label = "Force Stopped" if forced else "Cancelled"
+    _update_phase(job, case_dir, str(job.get("current_phase") or "lifecycle"), status, finished_at=utc_now(), label=job.get("current_phase_label") or label, detail=detail)
+    _set_job(
+        job,
+        case_dir,
+        status=status,
+        finished_at=utc_now(),
+        current_phase="force_stopped" if forced else "cancelled",
+        current_phase_label=label,
+        current_phase_detail=detail,
+        progress_percent=100,
+        hard_stop_locked=forced,
+    )
+    try:
+        _job_cancel_path(case_dir, str(job.get("job_id") or "")).unlink()
+    except Exception:
+        pass
 
 
 def _wait_for_terminal(case_id: str, getter, running_statuses: set[str], terminal_statuses: set[str], timeout_seconds: int = 7200) -> dict:
@@ -1672,6 +1752,10 @@ def _run_full_worker(job: dict, case_dir: Path, force_analysis: bool, strict: bo
     warnings: list[str] = []
     errors: list[str] = []
     try:
+        requested, forced = _job_cancel_requested(job, case_dir)
+        if requested:
+            _stop_lifecycle_job(job, case_dir, forced=forced, detail="The full evidence lifecycle was cancelled before startup.")
+            return
         _set_job(job, case_dir, status="running", started_at=utc_now(), current_phase="resolve_preserved_case", current_phase_label="Resolve preserved case", current_phase_detail=f"Preparing full evidence lifecycle execution for preserved case {case_id}.", progress_percent=2)
         _upsert_phase_trace(
             job,
@@ -1719,6 +1803,10 @@ def _run_full_worker(job: dict, case_dir: Path, force_analysis: bool, strict: bo
             _set_job(job, case_dir, status="failed", finished_at=utc_now(), current_phase="failed", current_phase_label="Verify preserved evidence", current_phase_detail=verify_result.get("detail"), progress_percent=100, errors=errors, warnings=warnings)
             return
         warnings.extend(list(verify_result.get("warnings") or []))
+        requested, forced = _job_cancel_requested(job, case_dir)
+        if requested:
+            _stop_lifecycle_job(job, case_dir, forced=forced, detail="The full evidence lifecycle was cancelled after preserved evidence verification.")
+            return
 
         _set_job(job, case_dir, progress_percent=14, current_phase="run_multilayer_analysis", current_phase_label="Run multilayer forensic analysis", current_phase_detail="Running the preserved-case forensic analysis layers.")
         _update_phase(job, case_dir, "run_multilayer_analysis", "running", started_at=utc_now(), label="Run multilayer forensic analysis", detail="Running the preserved-case forensic analysis layers.")
@@ -1739,6 +1827,18 @@ def _run_full_worker(job: dict, case_dir: Path, force_analysis: bool, strict: bo
         analysis_status = load_analysis_status(case_id)
         deadline = time.time() + 7200
         while time.time() < deadline:
+            requested, forced = _job_cancel_requested(job, case_dir)
+            if requested:
+                try:
+                    from .foc_case_analysis import _analysis_cancel_path
+
+                    cancel_path = _analysis_cancel_path(case_dir)
+                    cancel_path.parent.mkdir(parents=True, exist_ok=True)
+                    cancel_path.write_text(utc_now(), encoding="utf-8")
+                except Exception:
+                    pass
+                _stop_lifecycle_job(job, case_dir, forced=forced, detail="The full evidence lifecycle was stopped while multilayer analysis was running. A case-analysis cancellation request was also issued.")
+                return
             analysis_status = load_analysis_status(case_id)
             _sync_multilayer_phase_trace(job, case_dir, case_id, analysis_status)
             current_state = str((analysis_status or {}).get("status") or "").lower()
@@ -1793,6 +1893,10 @@ def _run_full_worker(job: dict, case_dir: Path, force_analysis: bool, strict: bo
             detail="Multilayer analysis finalization completed.",
         )
         _update_phase(job, case_dir, "run_multilayer_analysis", analysis_final_status, finished_at=utc_now(), label="Run multilayer forensic analysis", detail="Multilayer analysis finalization completed.", artifact_path=analysis_status.get("forensic_analysis_report_path"))
+        requested, forced = _job_cancel_requested(job, case_dir)
+        if requested:
+            _stop_lifecycle_job(job, case_dir, forced=forced, detail="The full evidence lifecycle was cancelled after multilayer analysis.")
+            return
 
         _set_job(job, case_dir, progress_percent=52, current_phase="bootstrap_foc", current_phase_label="Bootstrap FOC", current_phase_detail="Bootstrapping FOC context from preserved artifacts.")
         _update_phase(job, case_dir, "bootstrap_foc", "running", started_at=utc_now(), label="Bootstrap FOC", detail="Bootstrapping FOC context from preserved artifacts.")
@@ -1813,6 +1917,10 @@ def _run_full_worker(job: dict, case_dir: Path, force_analysis: bool, strict: bo
             detail=f"FOC bootstrap finished with status {bootstrap_result.get('status') or 'completed'}.",
         )
         _update_phase(job, case_dir, "bootstrap_foc", "completed", finished_at=utc_now(), label="Bootstrap FOC", detail=f"FOC bootstrap finished with status {bootstrap_result.get('status') or 'completed'}.")
+        requested, forced = _job_cancel_requested(job, case_dir)
+        if requested:
+            _stop_lifecycle_job(job, case_dir, forced=forced, detail="The full evidence lifecycle was cancelled after FOC bootstrap.")
+            return
 
         _set_job(job, case_dir, progress_percent=58, current_phase="regenerate_foc_context", current_phase_label="Regenerate FOC context", current_phase_detail="Refreshing generated FOC context artifacts.")
         _update_phase(job, case_dir, "regenerate_foc_context", "running", started_at=utc_now(), label="Regenerate FOC context", detail="Refreshing generated FOC context artifacts.")
@@ -1832,6 +1940,10 @@ def _run_full_worker(job: dict, case_dir: Path, force_analysis: bool, strict: bo
             detail="FOC context artifacts were regenerated.",
         )
         _update_phase(job, case_dir, "regenerate_foc_context", "completed", finished_at=utc_now(), label="Regenerate FOC context", detail="FOC context artifacts were regenerated.")
+        requested, forced = _job_cancel_requested(job, case_dir)
+        if requested:
+            _stop_lifecycle_job(job, case_dir, forced=forced, detail="The full evidence lifecycle was cancelled after FOC regeneration.")
+            return
 
         _set_job(job, case_dir, progress_percent=64, current_phase="time_sync_and_timestamp_quality", current_phase_label="Time synchronization and timestamp quality assessment", current_phase_detail="Measuring clock offset and timestamp quality inputs.")
         _update_phase(job, case_dir, "time_sync_and_timestamp_quality", "running", started_at=utc_now(), label="Time synchronization and timestamp quality assessment", detail="Measuring clock offset and timestamp quality inputs.")
@@ -1870,6 +1982,10 @@ def _run_full_worker(job: dict, case_dir: Path, force_analysis: bool, strict: bo
             detail=str(time_sync_status.get("reason") or "Time synchronization and timestamp quality assessment completed."),
         )
         _update_phase(job, case_dir, "time_sync_and_timestamp_quality", time_sync_trace_status, finished_at=utc_now(), label="Time synchronization and timestamp quality assessment", detail=str(time_sync_status.get("reason") or "Time synchronization and timestamp quality assessment completed."), artifact_path=((time_sync_status.get("output_paths") or {}).get("json")))
+        requested, forced = _job_cancel_requested(job, case_dir)
+        if requested:
+            _stop_lifecycle_job(job, case_dir, forced=forced, detail="The full evidence lifecycle was cancelled after time synchronization assessment.")
+            return
 
         _set_job(job, case_dir, progress_percent=72, current_phase="run_causal_reconstruction", current_phase_label="Run causal reconstruction", current_phase_detail="Running causal reconstruction after multilayer outputs and time assessment.")
         analysis_gate = str(analysis_status.get("status") or "").lower()
@@ -1961,6 +2077,10 @@ def _run_full_worker(job: dict, case_dir: Path, force_analysis: bool, strict: bo
                 for value in (causal_status.get("output_paths") or {}).values():
                     if value:
                         generated_artifacts.append(value)
+        requested, forced = _job_cancel_requested(job, case_dir)
+        if requested:
+            _stop_lifecycle_job(job, case_dir, forced=forced, detail="The full evidence lifecycle was cancelled after causal reconstruction.")
+            return
 
         _set_job(job, case_dir, progress_percent=86, current_phase="run_evidence_based_hypothesis_support", current_phase_label="Run evidence-based hypothesis support", current_phase_detail="Generating normalized evidence-support and claimability outputs.")
         _update_phase(job, case_dir, "run_evidence_based_hypothesis_support", "running", started_at=utc_now(), label="Run evidence-based hypothesis support", detail="Generating normalized evidence-support and claimability outputs.")
@@ -2001,6 +2121,10 @@ def _run_full_worker(job: dict, case_dir: Path, force_analysis: bool, strict: bo
         ):
             if support_result.get(value):
                 generated_artifacts.append(support_result.get(value))
+        requested, forced = _job_cancel_requested(job, case_dir)
+        if requested:
+            _stop_lifecycle_job(job, case_dir, forced=forced, detail="The full evidence lifecycle was cancelled after evidence-based hypothesis support generation.")
+            return
 
         _set_job(job, case_dir, progress_percent=94, current_phase="generate_executive_summary", current_phase_label="Generate executive summary and lifecycle dashboard snapshot", current_phase_detail="Writing the executive evidence lifecycle summary snapshot.")
         _update_phase(job, case_dir, "generate_executive_summary", "running", started_at=utc_now(), label="Generate executive summary and lifecycle dashboard snapshot", detail="Writing the executive evidence lifecycle summary snapshot.")

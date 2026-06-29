@@ -11,6 +11,40 @@ from .scientific_memory import append_retention_manifest, build_retention_manife
 from ..foc_reconstruction.foc_paths import relative_path
 from ..foc_reconstruction.foc_sources import utc_now
 
+LIGHTWEIGHT_CASE_RETAIN_PATHS: tuple[str, ...] = (
+    "manifest.json",
+    "chain_of_custody.log",
+    "metadata/acquisition_profile.json",
+    "metadata/pipeline_events.jsonl",
+    "metadata/time_sync.json",
+    "network/traffic_preserved/network_context_manifest.json",
+    "analysis/analysis_status.json",
+    "analysis/preflight_validation.json",
+    "analysis/forensic_analysis_manifest.json",
+    "analysis/forensic_analysis_report.json",
+    "analysis/forensic_analysis_summary.md",
+    "analysis/00_inventory/evidence_inventory.json",
+    "analysis/01_integrity_custody/integrity_custody_report.json",
+    "analysis/03_network/network_findings.json",
+    "analysis/04_memory/memory_preflight.json",
+    "analysis/04_memory/memory_findings.json",
+    "analysis/05_disk/disk_findings.json",
+    "analysis/06_ot/ot_findings.json",
+    "analysis/07_alerts/alert_findings.json",
+    "analysis/09_timeline/unified_forensic_timeline.json",
+    "analysis/10_findings/cross_layer_findings.json",
+    "analysis/visual/analysis_visual_summary.json",
+    "derived/executive/evidence_lifecycle_summary.json",
+    "derived/reconstruction/causal_status.json",
+    "derived/reconstruction/reconstruction_metrics.json",
+    "derived/reconstruction/uncertainty_report.json",
+    "derived/reconstruction/causal_graph.json",
+    "derived/evidence_support/hypothesis_support_report.json",
+    "derived/evidence_support/claimability_report.json",
+    "derived/evidence_support/counter_evidence_report.json",
+    "derived/evidence_support/forensic_storyline.json",
+)
+
 
 def _json_load(path: Path | None):
     try:
@@ -26,6 +60,34 @@ def _write_json(path: Path, payload) -> None:
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     tmp.replace(path)
+
+
+def _copy_lightweight_case_bundle(*, original_case_path: Path, execution_base: Path, case_id: str) -> dict:
+    bundle_root = execution_base / "retained_case_lightweight_bundle" / case_id
+    copied_files: list[str] = []
+    missing_files: list[str] = []
+    for rel_path in LIGHTWEIGHT_CASE_RETAIN_PATHS:
+        source = original_case_path / rel_path
+        if not source.is_file():
+            missing_files.append(rel_path)
+            continue
+        target = bundle_root / rel_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
+        copied_files.append(relative_path(target))
+    manifest = {
+        "generated_at": utc_now(),
+        "case_id": case_id,
+        "source_case_path": relative_path(original_case_path),
+        "bundle_root": relative_path(bundle_root),
+        "copied_files": copied_files,
+        "missing_optional_files": missing_files,
+        "purpose": "Preserve lightweight per-layer analysis evidence after heavy generated-case cleanup.",
+    }
+    manifest_path = bundle_root / "lightweight_case_bundle_manifest.json"
+    _write_json(manifest_path, manifest)
+    manifest["manifest_path"] = relative_path(manifest_path)
+    return manifest
 
 
 def _active_case_id() -> str | None:
@@ -363,6 +425,12 @@ def delete_generated_case_artifacts(
         preserved_profiles.append(relative_path(base / "retention_manifest.json"))
     if (base / "analysis_repeatability_profile.json").is_file():
         preserved_profiles.append(relative_path(base / "analysis_repeatability_profile.json"))
+    lightweight_bundle = _copy_lightweight_case_bundle(
+        original_case_path=original_case_path,
+        execution_base=base,
+        case_id=str(context["case_id"] or "case"),
+    )
+    preserved_profiles.append(lightweight_bundle.get("manifest_path"))
 
     comparison_registry = load_comparison_registry()
     scientific_case_registry = load_scientific_registry(CASE_REGISTRY_PATH)
@@ -395,13 +463,16 @@ def delete_generated_case_artifacts(
 
     result_card["heavy_artifacts_retained"] = action_type == "archive_case_directory"
     result_card["heavy_artifacts_location"] = relative_path(archive_target) if archive_target else None
+    result_card["lightweight_case_bundle_path"] = lightweight_bundle.get("bundle_root")
     case_result_card["heavy_artifacts_retained"] = action_type == "archive_case_directory"
     case_result_card["retention_policy"] = result_card.get("retention_policy") or "profiles_only_after_archive"
+    case_result_card["lightweight_case_bundle_path"] = lightweight_bundle.get("bundle_root")
     execution_manifest["heavy_artifacts_retained"] = action_type == "archive_case_directory"
     execution_manifest["cleanup_status"] = "completed"
     execution_manifest["cleanup_action_type"] = action_type
     execution_manifest["heavy_artifacts_location_before_action"] = original_case_rel
     execution_manifest["heavy_artifacts_location_after_action"] = relative_path(archive_target) if archive_target else None
+    execution_manifest["lightweight_case_bundle_path"] = lightweight_bundle.get("bundle_root")
     if archive_target:
         case_result_card["case_path"] = relative_path(archive_target)
 
@@ -417,6 +488,8 @@ def delete_generated_case_artifacts(
             "preserved_comparison_profile_path": relative_path(base / "forensic_comparison_profile.json"),
             "preserved_case_card_path": context.get("case_result_card_path"),
             "preserved_registry_entries": registry_refs,
+            "preserved_lightweight_case_bundle_path": lightweight_bundle.get("bundle_root"),
+            "preserved_lightweight_case_bundle_manifest_path": lightweight_bundle.get("manifest_path"),
             "original_case_path": original_case_rel,
             "heavy_artifacts_location_before_action": original_case_rel,
             "heavy_artifacts_location_after_action": relative_path(archive_target) if archive_target else None,
@@ -441,5 +514,7 @@ def delete_generated_case_artifacts(
         "action_type": action_type,
         "manifest_path": relative_path(manifest_path),
         "archive_target": relative_path(archive_target) if archive_target else None,
+        "lightweight_case_bundle_path": lightweight_bundle.get("bundle_root"),
+        "lightweight_case_bundle_manifest_path": lightweight_bundle.get("manifest_path"),
         "message": "Heavy generated-case artifacts were cleaned up. Lightweight scientific comparison memory was preserved.",
     }
