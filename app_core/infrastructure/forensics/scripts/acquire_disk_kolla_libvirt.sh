@@ -1,9 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Debe ejecutarse como root para evitar prompts de sudo en mitad del proceso
-# Auto-elevación: si no soy root, relanzo el script con sudo -E
+# Debe ejecutarse como root para evitar prompts de sudo en mitad del proceso.
+# Si NICS_DFIR_SUDO_NONINTERACTIVE=1, la auto-elevación se hace con sudo -n
+# para que los orquestadores en background fallen rápido en vez de quedarse
+# esperando una contraseña en el terminal.
 if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
+  if [[ "${NICS_DFIR_SUDO_NONINTERACTIVE:-0}" == "1" ]]; then
+    sudo -n -E true >/dev/null 2>&1 || {
+      echo "[ERROR] Disk acquisition requires non-interactive sudo/root privileges for background execution."
+      echo "[ERROR] Configure NOPASSWD for the disk acquisition helper or run the service as root."
+      exit 77
+    }
+    exec sudo -n -E "$0" "$@"
+  fi
   exec sudo -E "$0" "$@"
 fi
 

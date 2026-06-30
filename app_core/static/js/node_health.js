@@ -8,6 +8,10 @@ const NH = {
   diskCard: document.getElementById("nh-disk-card"),
   services: document.getElementById("nh-services"),
   timeSyncCard: document.getElementById("nh-time-sync-card"),
+  openstackHealthCard: document.getElementById("nh-openstack-health-card"),
+  healthAlerts: document.getElementById("nh-health-alerts"),
+  fleetTable: document.getElementById("nh-fleet-table"),
+  fleetMeta: document.getElementById("nh-fleet-meta"),
   securityMeta: document.getElementById("nh-security-meta"),
   securitySummary: document.getElementById("nh-security-summary"),
   securityDetail: document.getElementById("nh-security-detail"),
@@ -17,10 +21,13 @@ const NH = {
   topMem: document.getElementById("nh-top-mem"),
   console: document.getElementById("nh-console"),
   btnRefreshNodes: document.getElementById("nh-refresh-nodes"),
+  btnRefreshHealth: document.getElementById("nh-refresh-health"),
   btnRefreshSelected: document.getElementById("nh-refresh-selected"),
   btnMeasureClock: document.getElementById("nh-measure-clock"),
   btnFixTimeSync: document.getElementById("nh-fix-time-sync"),
   btnCleanupSelected: document.getElementById("nh-cleanup-selected"),
+  btnRestartOpenstack: document.getElementById("nh-restart-openstack"),
+  btnOpenHealthAlertCenter: document.getElementById("nh-open-health-alert-center"),
   btnClearConsole: document.getElementById("nh-clear-console"),
 };
 
@@ -32,8 +39,10 @@ const STATE = {
   toolingPayload: null,
   cy: null,
   cleanupSource: null,
+  restartSource: null,
   timeSyncStatus: null,
   timeSyncPollTimer: null,
+  healthSummary: null,
 };
 
 function now() {
@@ -75,6 +84,22 @@ function severityBadge(sev) {
     ? "text-emerald-300 border-emerald-500/40 bg-emerald-500/10"
     : "text-slate-300 border-slate-700 bg-slate-800/50";
   return `<span class="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.2em] ${cls}">${esc(sev || "unknown")}</span>`;
+}
+
+function severityRank(sev) {
+  const value = String(sev || "unknown").toLowerCase();
+  if (value === "critical") return 3;
+  if (value === "warning") return 2;
+  if (value === "ok") return 1;
+  return 0;
+}
+
+function healthStateTone(state) {
+  const value = String(state || "unknown").toLowerCase();
+  if (["completed", "ok", "healthy"].includes(value)) return "ok";
+  if (["partial", "warning", "degraded", "stale_fallback"].includes(value)) return "warn";
+  if (["failed", "critical", "down", "unavailable"].includes(value)) return "error";
+  return "idle";
 }
 
 function timeSyncTone(syncStatus) {
@@ -321,6 +346,131 @@ function renderScenarioOverview(summary, nodes) {
   NH.securityDetail.innerHTML = `<div class="rounded-xl border border-slate-800 bg-slate-950/70 p-4">No tool detail is loaded until a node and then a tool are selected.</div>`;
   NH.securityRules.innerHTML = "";
   NH.timeSyncCard.innerHTML = `<div class="text-slate-500">Select a node to inspect time synchronization state, max clock offset and correction history.</div>`;
+}
+
+function renderOpenstackHealth(summary) {
+  const openstack = summary?.openstack || {};
+  const alerts = summary?.alerts || [];
+  NH.openstackHealthCard.innerHTML = `
+    <div class="flex items-center justify-between gap-3">
+      <div class="text-xs uppercase tracking-[0.25em] text-slate-500 font-black">OpenStack Service Health</div>
+      ${severityBadge(openstack.state === "completed" ? "ok" : "critical")}
+    </div>
+    <div class="mt-3 text-sm text-white font-bold">${esc(openstack.status_label || "OpenStack status unavailable")}</div>
+    <div class="mt-2 text-xs text-slate-300">${esc(openstack.message || "No OpenStack health message available.")}</div>
+    ${openstack.error ? `<div class="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">${esc(openstack.error)}</div>` : ""}
+    ${openstack.recommendation ? `<div class="mt-3 rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2 text-xs text-slate-300"><strong>Recommended action:</strong> ${esc(openstack.recommendation)}</div>` : ""}
+    <div class="mt-3 text-xs text-slate-500">Instances visible: ${esc(openstack.instance_count ?? "not_available")} | Health alerts: ${esc(alerts.length)}</div>
+  `;
+}
+
+function renderHealthAlerts(summary) {
+  const alerts = summary?.alerts || [];
+  const critical = alerts.filter(alert => String(alert.severity || "").toLowerCase() === "critical").length;
+  const warning = alerts.filter(alert => String(alert.severity || "").toLowerCase() === "warning").length;
+  if (!alerts.length) {
+    NH.healthAlerts.innerHTML = `
+      <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-4 text-sm text-emerald-200">
+        No active OpenStack, host or node health alerts are currently raised.
+      </div>
+    `;
+    return;
+  }
+  const topTitles = alerts.slice(0, 3).map(alert => `
+    <div class="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-3 text-sm text-slate-300">
+      <div class="flex items-center justify-between gap-3">
+        <div class="font-bold text-white">${esc(alert.title || "Health alert")}</div>
+        ${severityBadge(alert.severity)}
+      </div>
+      <div class="mt-2 text-xs text-slate-400">${esc(alert.scope || "health")} · ${esc(alert.target || "platform")} · ${esc(alert.generated_at || "--")}</div>
+    </div>
+  `).join("");
+  NH.healthAlerts.innerHTML = `
+    <div class="grid grid-cols-1 gap-3 lg:grid-cols-3">
+      <div class="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-4">
+        <div class="text-xs uppercase tracking-[0.25em] text-red-200 font-black">Critical</div>
+        <div class="mt-2 text-2xl font-black text-white">${critical}</div>
+      </div>
+      <div class="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-4">
+        <div class="text-xs uppercase tracking-[0.25em] text-amber-200 font-black">Warning</div>
+        <div class="mt-2 text-2xl font-black text-white">${warning}</div>
+      </div>
+      <div class="rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-4">
+        <div class="text-xs uppercase tracking-[0.25em] text-slate-500 font-black">Alert Center</div>
+        <div class="mt-2 text-sm text-slate-300">Use the global health-alert bell to review unread alerts and open the dedicated health alert center.</div>
+      </div>
+    </div>
+    <div class="mt-4 grid grid-cols-1 gap-3">${topTitles}</div>
+  `;
+}
+
+function renderFleetTable(summary) {
+  const host = summary?.host || {};
+  const nodes = summary?.nodes || [];
+  NH.fleetMeta.textContent = `Summary generated ${summary?.generated_at || "--"} | nodes=${nodes.length}`;
+  const rows = [
+    {
+      kind: "host",
+      name: host.hostname || "host",
+      role: "openstack_host",
+      cpu_usage_pct: host.cpu_load_ratio != null ? `${host.cpu_load_ratio.toFixed(2)} load/core` : "not_available",
+      cpu_severity: host.cpu_severity || "unknown",
+      memory_usage_pct: host.memory_usage_pct,
+      memory_available_mb: host.mem_avail_mb,
+      memory_severity: host.memory_severity || "unknown",
+      disk_root_use_pct: host.root_use_pct,
+      disk_root_avail_bytes: host.root_avail_bytes,
+      disk_severity: host.disk_severity || "unknown",
+      overall_severity: host.overall_severity || "unknown",
+      source: "local_host",
+    },
+    ...nodes,
+  ];
+
+  NH.fleetTable.innerHTML = `
+    <div class="overflow-x-auto rounded-xl border border-slate-800">
+      <table class="min-w-full divide-y divide-slate-800 text-sm">
+        <thead class="bg-slate-950/70 text-xs uppercase tracking-[0.2em] text-slate-500">
+          <tr>
+            <th class="px-4 py-3 text-left">Scope</th>
+            <th class="px-4 py-3 text-left">Role</th>
+            <th class="px-4 py-3 text-left">CPU</th>
+            <th class="px-4 py-3 text-left">Memory</th>
+            <th class="px-4 py-3 text-left">Disk</th>
+            <th class="px-4 py-3 text-left">State</th>
+            <th class="px-4 py-3 text-left">Source</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800 bg-slate-950/50">
+          ${rows.map(row => `
+            <tr>
+              <td class="px-4 py-3 align-top">
+                <div class="font-bold text-white">${esc(row.name || "unknown")}</div>
+                <div class="mt-1 text-xs text-slate-500">${esc(row.kind || "node")}</div>
+              </td>
+              <td class="px-4 py-3 align-top text-slate-300">${esc(row.role || "not_available")}</td>
+              <td class="px-4 py-3 align-top text-slate-300">${severityBadge(row.cpu_severity)} <span class="ml-2">${esc(row.cpu_usage_pct ?? "not_available")}${typeof row.cpu_usage_pct === "number" ? "%" : ""}</span></td>
+              <td class="px-4 py-3 align-top text-slate-300">${severityBadge(row.memory_severity)} <span class="ml-2">${esc(row.memory_usage_pct ?? "not_available")}${typeof row.memory_usage_pct === "number" ? "%" : ""}</span><div class="mt-1 text-xs text-slate-500">free ${esc(row.memory_available_mb ?? "not_available")} MB</div></td>
+              <td class="px-4 py-3 align-top text-slate-300">${severityBadge(row.disk_severity)} <span class="ml-2">${esc(row.disk_root_use_pct ?? "not_available")}${typeof row.disk_root_use_pct === "number" ? "%" : ""}</span><div class="mt-1 text-xs text-slate-500">free ${bytesHuman(row.disk_root_avail_bytes)}</div></td>
+              <td class="px-4 py-3 align-top">${severityBadge(row.overall_severity)}</td>
+              <td class="px-4 py-3 align-top text-xs text-slate-500">${esc(row.source || "not_available")}${row.error ? `<div class="mt-1 text-red-300">${esc(row.error)}</div>` : ""}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderHealthSummary(summary) {
+  STATE.healthSummary = summary;
+  renderOpenstackHealth(summary);
+  renderHealthAlerts(summary);
+  renderFleetTable(summary);
+  const tone = healthStateTone(summary?.overall_state);
+  if (tone !== "idle") {
+    setStatus(`Health ${summary?.overall_state || "unknown"}`, tone);
+  }
 }
 
 function buildGraph(graph) {
@@ -832,6 +982,13 @@ async function fetchTimeSyncStatus(nodeId) {
   return payload;
 }
 
+async function loadHealthSummary(refresh = false) {
+  const query = refresh ? "?refresh=1" : "";
+  const payload = await fetchJson(`/api/node-health/health-summary${query}`, "node health summary");
+  renderHealthSummary(payload);
+  return payload;
+}
+
 function scheduleTimeSyncPolling(nodeId) {
   stopTimeSyncPolling();
   STATE.timeSyncPollTimer = window.setTimeout(async () => {
@@ -909,6 +1066,9 @@ async function loadNodes(autoSelect = true) {
   STATE.nodeMap = new Map(STATE.nodes.map(node => [node.id, node]));
   buildGraph(data.graph || { nodes: [], edges: [] });
   renderScenarioOverview(data.summary || {}, STATE.nodes);
+  if (data.inventory_error) {
+    consoleWrite(`OpenStack inventory warning: ${data.inventory_error}`);
+  }
   setStatus(`Nodes ${STATE.nodes.length}`, "ok");
 }
 
@@ -999,7 +1159,55 @@ function startCleanup() {
   };
 }
 
+function startOpenstackRestart() {
+  const confirmed = window.confirm("Restart OpenStack services from Node Health? This can temporarily degrade Horizon, Keystone, Nova and Neutron while containers restart.");
+  if (!confirmed) return;
+  if (STATE.restartSource) {
+    STATE.restartSource.close();
+    STATE.restartSource = null;
+  }
+  setStatus("Restarting OpenStack", "warn");
+  consoleWrite("Starting OpenStack services restart from Node Health...");
+  const source = new EventSource("/api/node-health/openstack/restart/stream");
+  STATE.restartSource = source;
+  source.onmessage = evt => {
+    consoleWrite(evt.data);
+  };
+  source.addEventListener("done", async () => {
+    consoleWrite("OpenStack restart stream finished.");
+    source.close();
+    STATE.restartSource = null;
+    try {
+      await loadNodes(false);
+    } catch (error) {
+      consoleWrite(`Post-restart node inventory refresh failed: ${error.message}`);
+    }
+    try {
+      await loadHealthSummary(true);
+    } catch (error) {
+      consoleWrite(`Post-restart health refresh failed: ${error.message}`);
+    }
+  });
+  source.onerror = () => {
+    consoleWrite("OpenStack restart stream closed.");
+    source.close();
+    STATE.restartSource = null;
+  };
+}
+
+function openHealthAlertCenter() {
+  if (window.parent && typeof window.parent.openView === "function") {
+    window.parent.openView("health_alerts");
+    return;
+  }
+  window.location.href = "/health_alerts.html";
+}
+
 NH.btnRefreshNodes.addEventListener("click", () => loadNodes(false));
+NH.btnRefreshHealth.addEventListener("click", () => loadHealthSummary(true).catch(error => {
+  setStatus("Health Error", "error");
+  consoleWrite(`Fleet health refresh failed: ${error.message}`);
+}));
 NH.btnRefreshSelected.addEventListener("click", () => STATE.selectedId ? selectNode(STATE.selectedId) : consoleWrite("Select a node first."));
 NH.btnMeasureClock.addEventListener("click", () => runTimeSync(false).catch(error => {
   setStatus("Time Sync Error", "error");
@@ -1010,11 +1218,16 @@ NH.btnFixTimeSync.addEventListener("click", () => runTimeSync(true).catch(error 
   consoleWrite(`Time synchronization correction failed: ${error.message}`);
 }));
 NH.btnCleanupSelected.addEventListener("click", startCleanup);
+NH.btnRestartOpenstack.addEventListener("click", startOpenstackRestart);
+NH.btnOpenHealthAlertCenter.addEventListener("click", openHealthAlertCenter);
 NH.btnClearConsole.addEventListener("click", () => { NH.console.textContent = ""; });
 
 document.addEventListener("DOMContentLoaded", () => {
-  loadNodes(false).catch(error => {
-    setStatus("Load Error", "error");
-    consoleWrite(`Failed to load node health module: ${error.message}`);
+  Promise.allSettled([loadNodes(false), loadHealthSummary(true)]).then(results => {
+    const firstError = results.find(result => result.status === "rejected");
+    if (firstError) {
+      setStatus("Load Error", "error");
+      consoleWrite(`Failed to load node health module: ${firstError.reason.message}`);
+    }
   });
 });

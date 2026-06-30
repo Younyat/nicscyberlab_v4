@@ -6,6 +6,7 @@ import hashlib
 import logging
 import threading
 import subprocess
+import shutil
 from datetime import datetime, timezone
 from flask import current_app
 
@@ -69,6 +70,7 @@ os.makedirs(EVIDENCE_ROOT, exist_ok=True)
 # ============================================================
 
 ACTIVE_CASE_PTR = os.path.join(EVIDENCE_ROOT, "_active_case.txt")
+ACTIVE_PRESERVATION_PTR = os.path.join(EVIDENCE_ROOT, "_active_preservation.json")
 
 def set_active_case_dir(case_dir: str) -> None:
     """
@@ -94,6 +96,166 @@ def set_active_case_dir(case_dir: str) -> None:
     except Exception:
         # Fail-safe: nunca romper el flujo de creación del caso
         pass
+
+
+def _read_active_case_dir() -> str:
+    try:
+        if not os.path.isfile(ACTIVE_CASE_PTR):
+            return ""
+        raw = (Path(ACTIVE_CASE_PTR).read_text(encoding="utf-8") or "").strip()
+        if not raw:
+            return ""
+        case_dir = os.path.abspath(raw)
+        return case_dir if os.path.isdir(case_dir) else ""
+    except Exception:
+        return ""
+
+
+def _load_active_preservation_state() -> dict:
+    try:
+        if not os.path.isfile(ACTIVE_PRESERVATION_PTR):
+            return {}
+        payload = json.loads(Path(ACTIVE_PRESERVATION_PTR).read_text(encoding="utf-8"))
+        return payload if isinstance(payload, dict) else {}
+    except Exception:
+        return {}
+
+
+def _write_active_preservation_state(case_dir: str, *, run_id: str = "R1", state: str = "running", source: str = "dfir") -> dict:
+    payload = {
+        "case_dir": os.path.abspath(case_dir),
+        "case_id": os.path.basename(os.path.abspath(case_dir)),
+        "run_id": (run_id or "R1").strip() or "R1",
+        "state": str(state or "running").strip().lower() or "running",
+        "source": str(source or "dfir").strip() or "dfir",
+        "started_at_utc": _utc_now_iso(),
+    }
+    try:
+        Path(ACTIVE_PRESERVATION_PTR).write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    except Exception:
+        pass
+    return payload
+
+
+def _clear_active_preservation_state(case_dir: str | None = None, *, run_id: str | None = None, final_state: str = "completed", reason: str | None = None) -> None:
+    current = _load_active_preservation_state()
+    if not current:
+        return
+    current_case_dir = os.path.abspath(str(current.get("case_dir") or ""))
+    requested_case_dir = os.path.abspath(str(case_dir or "")) if case_dir else ""
+    current_run_id = str(current.get("run_id") or "").strip()
+    requested_run_id = str(run_id or "").strip()
+    if requested_case_dir and current_case_dir and requested_case_dir != current_case_dir:
+        return
+    if requested_run_id and current_run_id and requested_run_id != current_run_id:
+        return
+    try:
+        if current_case_dir and os.path.isdir(current_case_dir):
+            _append_case_event(
+                current_case_dir,
+                "active_preservation_released",
+                run_id=requested_run_id or current_run_id or "R1",
+                meta={
+                    "final_state": str(final_state or "completed"),
+                    "reason": str(reason or "").strip() or None,
+                },
+            )
+    except Exception:
+        pass
+    try:
+        Path(ACTIVE_PRESERVATION_PTR).unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
+def _load_acquisition_profile_for_case(case_dir: str) -> dict:
+    try:
+        path = os.path.join(case_dir, "metadata", "acquisition_profile.json")
+        if not os.path.isfile(path):
+            return {}
+        with open(path, "r", encoding="utf-8") as fh:
+            payload = json.load(fh)
+        return payload if isinstance(payload, dict) else {}
+    except Exception:
+        return {}
+
+
+def _case_event_present(case_dir: str, event_name: str) -> bool:
+    for item in _read_jsonl_events(case_dir):
+        if str(item.get("event") or "") == event_name:
+            return True
+    return False
+
+
+def _case_preservation_in_progress(case_dir: str) -> bool:
+    profile = _load_acquisition_profile_for_case(case_dir)
+    if profile.get("memory_started_utc") and not profile.get("memory_completed_utc"):
+        return True
+    if profile.get("network_context_import_started_utc") and not profile.get("network_context_import_completed_utc"):
+        return True
+    if profile.get("disk_started_utc") and not profile.get("disk_completed_utc"):
+        return True
+
+    events = _read_jsonl_events(case_dir)
+    present = {str(item.get("event") or "") for item in events if item.get("event")}
+    starts = {
+        "memory_start": ("memory_preserved", "memory_failed"),
+        "disk_start": ("disk_preserved", "disk_failed"),
+        "pcap_start": ("pcap_preserved", "pcap_failed"),
+        "industrial_start": ("industrial_preserved", "industrial_failed"),
+    }
+    for start_evt, terminal in starts.items():
+        if start_evt in present and not any(done_evt in present for done_evt in terminal):
+            return True
+
+    if _case_event_present(case_dir, "active_preservation_claimed") and not _case_event_present(case_dir, "active_preservation_released"):
+        if not _case_event_present(case_dir, "dfir_orchestration_done"):
+            return True
+
+    return False
+
+
+def _active_preservation_guard(max_recent_seconds: int = 900) -> dict:
+    current = _load_active_preservation_state()
+    if not current:
+        return {"allowed": True, "active": False, "reason": None}
+
+    case_dir = os.path.abspath(str(current.get("case_dir") or ""))
+    case_id = str(current.get("case_id") or os.path.basename(case_dir or "") or "not_available")
+    run_id = str(current.get("run_id") or "R1").strip() or "R1"
+    started_at = str(current.get("started_at_utc") or "").strip()
+    started_epoch = iso_to_epoch(started_at) if started_at else 0.0
+    age_seconds = max(0.0, time.time() - started_epoch) if started_epoch else None
+
+    if not case_dir or not os.path.isdir(case_dir):
+        _clear_active_preservation_state(case_dir=case_dir or None, run_id=run_id, final_state="stale_cleared", reason="preservation_case_directory_missing")
+        return {"allowed": True, "active": False, "reason": None, "stale_lock_cleared": True}
+
+    if _case_event_present(case_dir, "dfir_orchestration_done"):
+        _clear_active_preservation_state(case_dir=case_dir, run_id=run_id, final_state="completed", reason="dfir_orchestration_done_recorded")
+        return {"allowed": True, "active": False, "reason": None, "stale_lock_cleared": True}
+
+    in_progress = _case_preservation_in_progress(case_dir)
+    if not in_progress and age_seconds is not None and age_seconds > float(max_recent_seconds):
+        _clear_active_preservation_state(case_dir=case_dir, run_id=run_id, final_state="stale_cleared", reason="preservation_lock_expired_without_active_steps")
+        return {"allowed": True, "active": False, "reason": None, "stale_lock_cleared": True}
+
+    reason = (
+        f"Automatic forensic case creation is blocked because evidence preservation is already running for case {case_id}. "
+        f"While artifacts are being preserved, DFIR is treated as OFF for new interventions. "
+        f"Wait until the current preservation finishes before arming a new case."
+    )
+    return {
+        "allowed": False,
+        "active": True,
+        "reason": reason,
+        "case_dir": case_dir,
+        "case_id": case_id,
+        "run_id": run_id,
+        "started_at_utc": started_at or None,
+        "age_seconds": round(age_seconds, 3) if age_seconds is not None else None,
+        "policy_state": "blocked_active_preservation",
+    }
 
 
 os.makedirs(TOOLS_TMP_DIR, exist_ok=True)
@@ -1752,7 +1914,7 @@ def api_forensics_case_download():
     filename = os.path.basename(abs_path)
     return send_from_directory(directory, filename, as_attachment=True)
 
-def _run_script(script_path: str, args: list, cwd: str = None, timeout: int = 60 * 60):
+def _run_script(script_path: str, args: list, cwd: str = None, timeout: int = 60 * 60, *, stdin_devnull: bool = False, env: dict | None = None):
     if not os.path.exists(script_path):
         return (1, "", f"Script no encontrado: {script_path}")
 
@@ -1767,9 +1929,103 @@ def _run_script(script_path: str, args: list, cwd: str = None, timeout: int = 60
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
-        timeout=timeout
+        timeout=timeout,
+        stdin=subprocess.DEVNULL if stdin_devnull else None,
+        env=env,
     )
     return (proc.returncode, proc.stdout, proc.stderr)
+
+
+def disk_acquisition_preflight(container_name: str = "nova_libvirt", *, require_stable_noninteractive: bool = False) -> dict:
+    blockers: list[str] = []
+    warnings: list[str] = []
+    privilege_mode = "root" if os.geteuid() == 0 else "user"
+    script_path = os.path.join(FORENSICS_SCRIPTS_DIR, "acquire_disk_kolla_libvirt.sh")
+    docker_path = shutil.which("docker")
+    qemu_img_path = shutil.which("qemu-img")
+
+    sudo_noninteractive_ok = privilege_mode == "root"
+    sudo_nopasswd_granted = privilege_mode == "root"
+    sudo_list_output = ""
+
+    if not os.path.isfile(script_path):
+        blockers.append("disk_acquisition_script_missing")
+    if not docker_path:
+        blockers.append("docker_not_available")
+    if not qemu_img_path:
+        blockers.append("qemu_img_not_available")
+
+    if privilege_mode != "root":
+        try:
+            probe = subprocess.run(
+                ["sudo", "-n", "true"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                stdin=subprocess.DEVNULL,
+                timeout=10,
+            )
+            sudo_noninteractive_ok = probe.returncode == 0
+        except Exception:
+            sudo_noninteractive_ok = False
+
+        if sudo_noninteractive_ok:
+            try:
+                probe = subprocess.run(
+                    ["sudo", "-n", "-l"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    stdin=subprocess.DEVNULL,
+                    timeout=10,
+                )
+                sudo_list_output = f"{probe.stdout}\n{probe.stderr}"
+                if probe.returncode == 0 and "NOPASSWD" in sudo_list_output.upper():
+                    sudo_nopasswd_granted = True
+            except Exception:
+                sudo_list_output = ""
+
+        if not sudo_noninteractive_ok:
+            blockers.append("sudo_noninteractive_unavailable")
+        elif require_stable_noninteractive and not sudo_nopasswd_granted:
+            blockers.append("sudo_nopasswd_not_granted_for_stable_level_b_batches")
+            warnings.append(
+                "Current sudo access may depend on a temporary cached credential. "
+                "That is not stable enough for multi-repetition Level B batches because nested analysis can outlive the sudo timestamp."
+            )
+
+    docker_access_ok = False
+    if docker_path:
+        docker_cmd = ["docker", "ps"] if privilege_mode == "root" else ["sudo", "-n", "docker", "ps"]
+        try:
+            probe = subprocess.run(
+                docker_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                stdin=subprocess.DEVNULL,
+                timeout=15,
+            )
+            docker_access_ok = probe.returncode == 0
+            if not docker_access_ok:
+                blockers.append("docker_access_unavailable")
+        except Exception:
+            blockers.append("docker_access_unavailable")
+
+    return {
+        "ok": not blockers,
+        "blockers": blockers,
+        "warnings": warnings,
+        "privilege_mode": privilege_mode,
+        "sudo_noninteractive_ok": sudo_noninteractive_ok,
+        "sudo_nopasswd_granted": sudo_nopasswd_granted,
+        "docker_available": bool(docker_path),
+        "docker_access_ok": docker_access_ok,
+        "qemu_img_available": bool(qemu_img_path),
+        "script_path": script_path,
+        "container_name": container_name,
+        "sudo_list_excerpt": sudo_list_output[:1000] if sudo_list_output else "",
+    }
 
 
 #---------------------------------------------------------------------- FSR ejecutador -------------------
@@ -1995,7 +2251,7 @@ def _launch_ieee_eval_tables_async(case_dir: str, run_id: str = "R1") -> dict:
 
 
 
-def acquire_disk(case_dir: str, vm_id: str, container_name: str = "nova_libvirt", *, run_id: str = "R1", alert_ts_utc: str = "") -> dict:
+def acquire_disk(case_dir: str, vm_id: str, container_name: str = "nova_libvirt", *, run_id: str = "R1", alert_ts_utc: str = "", noninteractive: bool = False) -> dict:
     """
     Pure (Flask-free) disk acquisition, callable from background orchestrators
     (e.g. the Level B real-execution job) as well as from the HTTP route below.
@@ -2020,11 +2276,39 @@ def acquire_disk(case_dir: str, vm_id: str, container_name: str = "nova_libvirt"
     _write_case_digest(case_dir, run_id=run_id)
 
     script = os.path.join(FORENSICS_SCRIPTS_DIR, "acquire_disk_kolla_libvirt.sh")
+    preflight = disk_acquisition_preflight(container_name, require_stable_noninteractive=bool(noninteractive))
+    if not preflight.get("ok"):
+        error_message = (
+            "Disk acquisition prerequisites are not satisfied: "
+            + ", ".join(str(item) for item in preflight.get("blockers") or [] if item)
+        )
+        _append_case_event(case_dir, "disk_failed", run_id=run_id, meta={"vm_id": vm_id, "container": container_name, "preflight": preflight, "reason": error_message})
+        _append_custody_entry(
+            case_dir,
+            "acquire_failed",
+            "forensics_api",
+            run_id=run_id,
+            outcome="error",
+            details={"kind": "disk", "vm_id": vm_id, "preflight": preflight, "reason": error_message}
+        )
+        _register_custody_artifact(case_dir)
+        _write_case_digest(case_dir, run_id=run_id)
+        return {"ok": False, "result": "error", "error": error_message, "preflight": preflight}
 
     _append_case_event(case_dir, "disk_start", run_id=run_id, meta={"vm_id": vm_id, "container": container_name})
 
     t0 = time.time()
-    rc, out, err = _run_script(script, [case_dir, vm_id, container_name], cwd=REPO_ROOT, timeout=60 * 60)
+    env = os.environ.copy()
+    if noninteractive:
+        env["NICS_DFIR_SUDO_NONINTERACTIVE"] = "1"
+    rc, out, err = _run_script(
+        script,
+        [case_dir, vm_id, container_name],
+        cwd=REPO_ROOT,
+        timeout=60 * 60,
+        stdin_devnull=bool(noninteractive),
+        env=env,
+    )
     t1 = time.time()
 
     disk_rel = None
@@ -2077,6 +2361,7 @@ def acquire_disk(case_dir: str, vm_id: str, container_name: str = "nova_libvirt"
         "exit_code": rc,
         "stdout": out,
         "stderr": err,
+        "preflight": preflight,
         "disk_raw": disk_rel,
         "sha256": sha_value,
     }
@@ -3867,7 +4152,11 @@ def api_dfir_orchestrator_trigger():
 
  
 
-def _dfir_create_case_internal(run_id: str = "R1") -> str:
+def _dfir_create_case_internal(run_id: str = "R1", *, source: str = "dfir") -> str:
+    guard = _active_preservation_guard()
+    if not guard.get("allowed"):
+        raise RuntimeError(str(guard.get("reason") or "active_preservation_in_progress"))
+
     ts = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
     case_dir = os.path.join(EVIDENCE_ROOT, f"CASE-{ts}")
     os.makedirs(case_dir, exist_ok=True)
@@ -3883,6 +4172,7 @@ def _dfir_create_case_internal(run_id: str = "R1") -> str:
     ensure_case_layout(case_dir)
 
     set_active_case_dir(case_dir)
+    _write_active_preservation_state(case_dir, run_id=run_id, state="running", source=source)
     logger.info("[DFIR_CASE_CREATE] active case pointer written")
 
     _ensure_custody_file(case_dir)
@@ -3895,6 +4185,7 @@ def _dfir_create_case_internal(run_id: str = "R1") -> str:
     _write_manifest(case_dir, manifest)
 
     _append_custody_entry(case_dir, "case_created", "forensics_api", run_id=run_id, details={"case_dir": case_dir})
+    _append_case_event(case_dir, "active_preservation_claimed", run_id=run_id, meta={"source": source})
 
     _register_custody_artifact(case_dir)
     _export_time_sync(case_dir, run_id=run_id)
@@ -3994,6 +4285,7 @@ def api_dfir_orchestrator_auto_stream():
 
         start_ts = time.time()
         case_dir = None
+        preservation_released = False
 
         try:
             # CLAVE: mantener contexto de app durante el streaming
@@ -4002,7 +4294,14 @@ def api_dfir_orchestrator_auto_stream():
                 yield emit(f"[SISTEMA] ssh_key resolved: {ssh_key}")
 
                 # 1) Crear CASE aquí
-                case_dir = _dfir_create_case_internal(run_id=run_id)
+                try:
+                    case_dir = _dfir_create_case_internal(run_id=run_id, source="dfir_auto_orchestrator")
+                except RuntimeError as exc:
+                    reason = str(exc)
+                    yield emit(f"[BLOCKED] {reason}")
+                    payload = {"result": "error", "exit_code": 8, "case_dir": None, "reason": "active_preservation_in_progress", "details": reason}
+                    yield f"event: done\ndata: {json.dumps(payload)}\n\n"
+                    return
                 yield emit(f"[SISTEMA] Case created: {case_dir}")
 
                 # 2) Anclar alert timestamp dentro del CASE
@@ -4236,6 +4535,8 @@ def api_dfir_orchestrator_auto_stream():
                 _append_custody_entry(case_dir, "dfir_orchestration_done", "forensics_api", run_id=run_id, details={"targets_count": len(targets_ok)})
                 _register_custody_artifact(case_dir)
                 _write_case_digest(case_dir, run_id=run_id)
+                _clear_active_preservation_state(case_dir, run_id=run_id, final_state="completed", reason="dfir_orchestration_done")
+                preservation_released = True
 
                 elapsed = round(time.time() - start_ts, 3)
                 yield emit(f"[SISTEMA] DFIR AUTO finished ok elapsed_s={elapsed}")
@@ -4249,6 +4550,11 @@ def api_dfir_orchestrator_auto_stream():
             yield f"event: done\ndata: {json.dumps(payload)}\n\n"
 
         finally:
+            if case_dir and not preservation_released:
+                try:
+                    _clear_active_preservation_state(case_dir, run_id=run_id, final_state="aborted", reason="dfir_auto_orchestrator_terminated_before_completion")
+                except Exception:
+                    pass
             try:
                 DFIR_ORCH_LOCK.release()
             except Exception:

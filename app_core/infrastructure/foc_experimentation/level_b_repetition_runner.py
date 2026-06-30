@@ -36,10 +36,13 @@ from ..foc_reconstruction.foc_case_analysis import _case_dir_from_entry, cases_w
 from ..foc_reconstruction.foc_paths import project_path, relative_path
 from ..foc_reconstruction.foc_sources import utc_now
 from ..forensics.forensics_api import (
+    _active_preservation_guard,
+    _clear_active_preservation_state,
     _dfir_create_case_internal,
     _dfir_ssh_user_for_role,
     acquire_disk,
     acquire_memory,
+    disk_acquisition_preflight,
 )
 from ..forensics.network_context_importer import (
     import_continuous_network_context,
@@ -51,6 +54,8 @@ from ..monitor.alerts_logger import run_monitor_session
 RUNTIME_ROOT = project_path("runtime", "level_b_repetitions")
 VALIDATION_REPORTS_ROOT = EVIDENCE_STORE_ROOT / "validation_reports"
 ACTIVE_CASE_PTR = EVIDENCE_STORE_ROOT / "_active_case.txt"
+MAX_TRIGGER_ARMING_ATTEMPTS = 10
+TRIGGER_ARMING_INTERVAL_SECONDS = 10
 
 SETUP_PHASES: list[tuple[str, str]] = [
     ("prepare_level_b_job", "Prepare Level B job"),
@@ -58,6 +63,7 @@ SETUP_PHASES: list[tuple[str, str]] = [
     ("resolve_active_scenario", "Resolve active scenario"),
     ("verify_plc_target", "Verify PLC target"),
     ("enable_dfir_mode", "Enable DFIR mode"),
+    ("verify_disk_acquisition", "Verify disk acquisition prerequisites"),
 ]
 
 REPETITION_PHASES: list[tuple[str, str]] = [
@@ -69,6 +75,7 @@ REPETITION_PHASES: list[tuple[str, str]] = [
     ("seal_case", "Seal and register case"),
     ("run_analysis", "Run multilayer analysis"),
     ("run_reconstruction", "Run reconstruction/dependency analysis"),
+    ("cleanup_case", "Clean heavy generated case"),
     ("store_result", "Store repetition result"),
 ]
 
@@ -275,6 +282,39 @@ def _best_observed_alert_for_attack(observed_alerts: list[dict], attack: dict) -
     return None, best_reasons
 
 
+def _trigger_eligibility(alert_payload: dict | None) -> tuple[bool, str]:
+    triage = ((alert_payload or {}).get("triage") or {})
+    severity = str(triage.get("severity") or "").upper()
+    recommend = bool(triage.get("recommend_forensics"))
+    if severity not in {"HIGH", "CRITICAL"}:
+        return False, f"observed alert severity is {severity or 'unknown'}, not HIGH/CRITICAL"
+    if not recommend:
+        return False, "observed alert is not marked as eligible for forensic intervention"
+    return True, "observed alert is HIGH/CRITICAL and eligible for forensic intervention"
+
+
+def _diagnose_trigger_failure(attempt_trace: list[dict], dfir_mode_after: str) -> tuple[str, list[str]]:
+    mode = str(dfir_mode_after or "unknown").strip().lower() or "unknown"
+    if mode != "on":
+        return (
+            "Forensic preservation was never armed because DFIR mode remained OFF during the repeated attack attempts. "
+            "Alerts may have been observed, but the platform was not in forensic intervention mode.",
+            ["dfir_mode_off_during_trigger_arming"],
+        )
+
+    if any(bool(item.get("trigger_alert_detected")) for item in attempt_trace):
+        return (
+            "Alerts were observed during the repeated attack attempts, but none of them reached a trigger state eligible for automatic forensic preservation. "
+            "The most likely cause is insufficient alert severity or missing forensic-intervention recommendation.",
+            ["observed_alerts_not_eligible_for_forensic_intervention"],
+        )
+
+    return (
+        "No alert matching the controlled OT attack profile was observed during the repeated trigger-arming attempts, so automatic forensic preservation never started.",
+        ["no_matching_alert_observed_during_trigger_arming"],
+    )
+
+
 def _active_case_dir() -> Path | None:
     try:
         raw = ACTIVE_CASE_PTR.read_text(encoding="utf-8").strip()
@@ -284,6 +324,166 @@ def _active_case_dir() -> Path | None:
         return None
     path = Path(raw).expanduser().resolve()
     return path if path.exists() else None
+
+
+def _cleanup_previous_heavy_case_before_next_repetition(
+    *,
+    job_id: str,
+    job_path: Path,
+    campaign_id: str,
+    repetition_number: int,
+    total_repetitions: int,
+    previous_result: dict | None,
+) -> dict:
+    active_case_dir = _active_case_dir()
+    if not active_case_dir:
+        return {"status": "skipped", "reason": "no_active_case_present"}
+
+    previous_case_id = str((previous_result or {}).get("case_id") or "").strip()
+    previous_execution_id = str((previous_result or {}).get("execution_id") or "").strip()
+    active_case_id = _case_id_for_case_dir(str(active_case_dir))
+    case_id = active_case_id or previous_case_id
+    if not case_id or not previous_execution_id:
+        return {
+            "status": "failed",
+            "reason": "could_not_resolve_previous_case_or_execution",
+            "active_case_dir": str(active_case_dir),
+            "active_case_id": active_case_id,
+            "previous_case_id": previous_case_id,
+            "previous_execution_id": previous_execution_id,
+        }
+
+    try:
+        ACTIVE_CASE_PTR.write_text("", encoding="utf-8")
+    except Exception:
+        pass
+
+    _emit_phase(
+        job_id,
+        job_path,
+        phase_key=f"repetition_{repetition_number}_cleanup_previous",
+        phase_label="Clean previous heavy case before next repetition",
+        status="running",
+        detail=(
+            f"Previous heavy case {case_id} is still present before repetition {repetition_number}/{total_repetitions}. "
+            "Cleaning it now so a new heavy case can be created without coexisting storage pressure."
+        ),
+        category="repetition",
+        index=0,
+        repetition_number=repetition_number,
+        total_repetitions=total_repetitions,
+        extra={"previous_case_id": case_id, "previous_execution_id": previous_execution_id},
+    )
+    cleanup = delete_generated_case_artifacts(
+        previous_execution_id,
+        campaign_id=campaign_id,
+        case_id=case_id,
+        confirmation="OK",
+        operator="level_b_repetition_runner_pre_next_cleanup",
+    )
+    if cleanup.get("error") == "case_id_mismatch" and active_case_dir.exists():
+        try:
+            shutil.rmtree(active_case_dir)
+            try:
+                ACTIVE_CASE_PTR.write_text("", encoding="utf-8")
+            except Exception:
+                pass
+            try:
+                _clear_active_preservation_state(str(active_case_dir), final_state="cleaned_as_orphan", reason="pre_next_repetition_orphan_case_cleanup")
+            except Exception:
+                pass
+            cleanup = {
+                "status": "ok",
+                "message": "The previous heavy case was no longer linked consistently to the execution workspace and was deleted directly as an orphan heavy case before the next repetition.",
+                "fallback_cleanup": "direct_orphan_case_delete",
+                "deleted_case_dir": str(active_case_dir),
+                "deleted_case_id": case_id,
+            }
+        except Exception as exc:
+            cleanup = {
+                "error": "orphan_case_cleanup_failed",
+                "message": str(exc),
+            }
+    if cleanup.get("error"):
+        _emit_phase(
+            job_id,
+            job_path,
+            phase_key=f"repetition_{repetition_number}_cleanup_previous",
+            phase_label="Clean previous heavy case before next repetition",
+            status="failed",
+            detail=f"Could not clean previous heavy case {case_id} before repetition {repetition_number}: {cleanup.get('error')}",
+            category="repetition",
+            index=0,
+            repetition_number=repetition_number,
+            total_repetitions=total_repetitions,
+            extra={"previous_case_id": case_id, "previous_execution_id": previous_execution_id},
+        )
+        return {
+            "status": "failed",
+            "reason": str(cleanup.get("error") or "cleanup_failed"),
+            "case_id": case_id,
+            "execution_id": previous_execution_id,
+            "cleanup": cleanup,
+        }
+
+    bundle_manifest = str(cleanup.get("lightweight_case_bundle_manifest_path") or "")
+    _emit_phase(
+        job_id,
+        job_path,
+        phase_key=f"repetition_{repetition_number}_cleanup_previous",
+        phase_label="Clean previous heavy case before next repetition",
+        status="completed",
+        detail=(
+            f"Previous heavy case {case_id} was removed before creating the new case for repetition {repetition_number}. "
+            f"Lightweight retained bundle: {bundle_manifest or 'not_available'}."
+        ),
+        category="repetition",
+        index=0,
+        repetition_number=repetition_number,
+        total_repetitions=total_repetitions,
+        extra={"previous_case_id": case_id, "previous_execution_id": previous_execution_id, "lightweight_case_bundle_manifest_path": bundle_manifest or None},
+    )
+    return {
+        "status": "completed",
+        "case_id": case_id,
+        "execution_id": previous_execution_id,
+        "cleanup": cleanup,
+    }
+
+
+def _wait_for_active_preservation_release(
+    *,
+    expected_case_dir: Path,
+    timeout_seconds: int = 1800,
+    poll_seconds: int = 5,
+) -> dict:
+    started = time.time()
+    expected_resolved = expected_case_dir.resolve()
+    last_guard: dict | None = None
+    while (time.time() - started) <= timeout_seconds:
+        guard = _active_preservation_guard()
+        last_guard = guard
+        if guard.get("allowed"):
+            return {
+                "status": "completed",
+                "elapsed_seconds": round(time.time() - started, 3),
+                "guard": guard,
+            }
+        guard_case_dir = Path(str(guard.get("case_dir") or "")).resolve() if guard.get("case_dir") else None
+        if guard_case_dir and guard_case_dir != expected_resolved:
+            return {
+                "status": "failed",
+                "reason": "different_active_preservation_case_detected",
+                "elapsed_seconds": round(time.time() - started, 3),
+                "guard": guard,
+            }
+        time.sleep(max(1, int(poll_seconds)))
+    return {
+        "status": "failed",
+        "reason": "active_preservation_timeout",
+        "elapsed_seconds": round(time.time() - started, 3),
+        "guard": last_guard or {},
+    }
 
 
 def _load_campaign(campaign_id: str) -> tuple[dict, dict]:
@@ -378,6 +578,7 @@ def _drop_latest_level_b_report_reference(campaign_id: str, report_dir_rel: str 
 
 def _cleanup_candidates() -> list[dict]:
     active_case = _active_case_dir()
+    indexed_by_path: dict[str, dict] = {}
     candidates: list[dict] = []
     for item in cases_with_analysis_state().get("cases", []):
         raw_path = str(item.get("path") or "").strip()
@@ -387,20 +588,27 @@ def _cleanup_candidates() -> list[dict]:
         case_path = case_path.resolve()
         if not case_path.exists() or not case_path.is_dir():
             continue
-        if active_case and case_path == active_case:
+        indexed_by_path[str(case_path)] = item
+
+    for case_path in sorted(EVIDENCE_STORE_ROOT.glob("CASE-*")):
+        case_path = case_path.resolve()
+        if not case_path.exists() or not case_path.is_dir():
             continue
+        item = indexed_by_path.get(str(case_path), {})
         size_bytes = _dir_size_bytes(case_path)
         candidates.append(
             {
-                "case_id": item.get("case_id"),
+                "case_id": item.get("case_id") or _case_id_for_case_dir(str(case_path)) or case_path.name,
                 "case_path": relative_path(case_path),
-                "analysis_status": item.get("analysis_status"),
+                "analysis_status": item.get("analysis_status") or "not_indexed",
                 "available_layers": item.get("available_layers") or [],
+                "is_active_case": bool(active_case and case_path == active_case),
                 "size_bytes": size_bytes,
                 "size_human": _human_bytes(size_bytes),
                 "preserved_metadata": {
                     "inventory_summary": item.get("inventory_summary") or {},
                     "analysis_report_path": item.get("analysis_report_path"),
+                    "indexed": bool(item),
                 },
             }
         )
@@ -743,6 +951,7 @@ def _repetition_result_from_case(
     dfir_mode_before: str,
     dfir_mode_after: str,
     nested_level_a: dict | None = None,
+    trigger_attempt_trace: list[dict] | None = None,
 ) -> dict:
     output_dir = Path(str(attack_result.get("_output_dir") or "")).resolve() if attack_result.get("_output_dir") else None
     params = _attack_parameter_status(attack_result)
@@ -868,6 +1077,8 @@ def _repetition_result_from_case(
         "scenario_fingerprint": result_card.get("scenario_fingerprint") if result_card else (((comparison_profile or {}).get("scenario_profile") or {}).get("scenario_fingerprint")),
         "final_case_status": summary.get("summary_class") or result_card.get("final_conclusion_class") if result_card else None,
         "nested_level_a": nested_level_a or {},
+        "trigger_attempt_trace": list(trigger_attempt_trace or []),
+        "trigger_attempts_total": len(trigger_attempt_trace or []),
         "artifacts": {
             "forensic_result_card": relative_path(Path((attach_result or {}).get("artifacts", {}).get("forensic_result_card") or "")) if (attach_result or {}).get("artifacts", {}).get("forensic_result_card") else None,
             "forensic_comparison_profile": relative_path(Path((attach_result or {}).get("artifacts", {}).get("forensic_comparison_profile") or "")) if (attach_result or {}).get("artifacts", {}).get("forensic_comparison_profile") else None,
@@ -898,6 +1109,7 @@ def _failed_repetition_result(
     case_id: str | None = None,
     case_dir: Path | None = None,
     nested_level_a: dict | None = None,
+    trigger_attempt_trace: list[dict] | None = None,
 ) -> dict:
     params = _attack_parameter_status(attack_result or {})
     trigger_primary = (matched_alert or {}).get("primary") or {}
@@ -981,6 +1193,8 @@ def _failed_repetition_result(
         "scenario_fingerprint": None,
         "final_case_status": "failed",
         "nested_level_a": nested_level_a or {},
+        "trigger_attempt_trace": list(trigger_attempt_trace or []),
+        "trigger_attempts_total": len(trigger_attempt_trace or []),
         "artifacts": {},
         "warnings": [reason],
         "blockers": blockers,
@@ -1191,6 +1405,7 @@ def _report_markdown(payload: dict) -> str:
                 f"- Case ID: `{item.get('case_id') or 'not_created'}`",
                 f"- Status: `{item.get('execution_status')}`",
                 f"- Attack output: `{item.get('attack_output_path') or 'not_available'}`",
+                f"- Trigger arming attempts: `{item.get('trigger_attempts_total') or 0}`",
                 f"- Trigger alert detected: `{item.get('trigger_alert_detected')}`",
                 f"- Trigger rule/severity: `{item.get('trigger_alert_rule')}` / `{item.get('trigger_alert_severity')}`",
                 f"- Automatic acquisition started: `{item.get('automatic_acquisition_started')}`",
@@ -1199,6 +1414,7 @@ def _report_markdown(payload: dict) -> str:
                 f"- Reconstruction status: `{item.get('reconstruction_status')}`",
                 f"- Nested Level A status: `{((item.get('nested_level_a') or {}).get('status') or 'not_available')}`",
                 f"- Nested Level A comparison: `{((item.get('nested_level_a') or {}).get('comparison_status') or 'not_available')}` / `{((item.get('nested_level_a') or {}).get('comparison_type') or 'not_available')}`",
+                f"- Previous heavy case cleaned before next repetition: `{((item.get('pre_next_repetition_cleanup') or {}).get('status') or 'not_applicable')}`",
                 f"- Recoverability / weighted / confidence: `{reconstruction.get('recoverability_score')}` / `{reconstruction.get('weighted_recoverability_score')}` / `{reconstruction.get('reconstruction_confidence')}`",
                 f"- Relations recovered/degraded/ambiguous/missing: `{reconstruction.get('recovered_relations')}` / `{reconstruction.get('degraded_relations')}` / `{reconstruction.get('ambiguous_relations')}` / `{reconstruction.get('missing_relations')}`",
                 f"- Alert -> memory start: `{timing.get('alert_to_memory_start_seconds')}` seconds",
@@ -1206,6 +1422,10 @@ def _report_markdown(payload: dict) -> str:
                 f"- Total repetition duration: `{timing.get('total_repetition_duration_seconds')}` seconds",
             ]
         )
+        if (item.get("pre_next_repetition_cleanup") or {}).get("status") == "completed":
+            lines.append(
+                f"- Previous case cleanup detail: `The previous heavy case was deleted before creating the next case to avoid storage pressure, and the lightweight retained bundle was preserved for comparison.`"
+            )
         if item.get("warnings"):
             lines.append(f"- Warnings: `{' | '.join(str(v) for v in item.get('warnings') or [])}`")
         if item.get("blockers"):
@@ -1434,69 +1654,187 @@ def _run_single_repetition(
     rep_idx = repetition_number
     _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_start", phase_label=f"Start repetition {rep_idx}/{total_repetitions}", status="running", detail=f"Execution workspace {execution_id} created. Starting independent Level B repetition {rep_idx} of {total_repetitions}.", category="repetition", index=0, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_execution_id": execution_id, **phase_extra})
 
-    if dfir_mode_after != "on":
-        reason = "DFIR mode is not ON. The attack is blocked before launch."
-        _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_start", phase_label=f"Start repetition {rep_idx}/{total_repetitions}", status="failed", detail=reason, category="repetition", index=0, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_execution_id": execution_id, **phase_extra})
-        return _failed_repetition_result(
-            repetition_number=repetition_number,
-            campaign_id=campaign_id,
-            execution_id=execution_id,
-            attack=attack,
-            dfir_mode_before=dfir_mode_before,
-            dfir_mode_after=dfir_mode_after,
-            attack_started_at=None,
-            attack_completed_at=None,
-            reason=reason,
-            blockers=[reason],
-            target=target,
-        )
-
     _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_start", phase_label=f"Start repetition {rep_idx}/{total_repetitions}", status="completed", detail=f"Independent Level B repetition {rep_idx} has started with execution {execution_id}.", category="repetition", index=0, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_execution_id": execution_id, **phase_extra})
+    trigger_attempt_trace: list[dict] = []
+    matched_alert: dict = {}
+    attack_result: dict = {}
+    attack_started_at: str | None = None
+    attack_completed_at: str | None = None
+    successful_attempt_number: int | None = None
+    effective_attack_status = "queued"
+    effective_alert_status = "queued"
 
-    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_attack", phase_label="Execute OT register-modification attack", status="running", detail=f"Launching {attack.get('attack_id')} against PLC target {target.get('vm_ip')}.", category="repetition", index=1, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_attack_status": "running", **phase_extra})
-    attack_started_at = utc_now()
-    attack_result = _launch_attack(attack, target.get("vm_ip"), target.get("role"))
-    attack_completed_at = utc_now()
-    if not attack_result.get("ok"):
-        reason = attack_result.get("reason") or "Attack execution failed."
-        _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_attack", phase_label="Execute OT register-modification attack", status="failed", detail=reason, category="repetition", index=1, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_attack_status": "failed", **phase_extra})
-        return _failed_repetition_result(
-            repetition_number=repetition_number,
-            campaign_id=campaign_id,
-            execution_id=execution_id,
-            attack=attack,
-            dfir_mode_before=dfir_mode_before,
-            dfir_mode_after=dfir_mode_after,
-            attack_started_at=attack_started_at,
-            attack_completed_at=attack_completed_at,
-            reason=reason,
-            blockers=[reason],
-            target=target,
-            attack_result=attack_result,
+    for attempt_number in range(1, MAX_TRIGGER_ARMING_ATTEMPTS + 1):
+        raise_if_cancelled(job_id, job_path, phase_key=f"repetition_{rep_idx}_attack", phase_label="Execute OT register-modification attack", detail="Level B repetition batch cancellation was requested during repeated trigger arming attempts.")
+        attempt_suffix = f"attempt {attempt_number}/{MAX_TRIGGER_ARMING_ATTEMPTS}"
+        _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_attack", phase_label="Execute OT register-modification attack", status="running", detail=f"Launching {attack.get('attack_id')} against PLC target {target.get('vm_ip')} ({attempt_suffix}).", category="repetition", index=1, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_attack_status": "running", "trigger_attempt": attempt_number, **phase_extra})
+        current_attack_started_at = utc_now()
+        current_attack_result = _launch_attack(attack, target.get("vm_ip"), target.get("role"))
+        current_attack_completed_at = utc_now()
+        if not current_attack_result.get("ok"):
+            reason = current_attack_result.get("reason") or "Attack execution failed."
+            trigger_attempt_trace.append({
+                "attempt_number": attempt_number,
+                "attack_started_at": current_attack_started_at,
+                "attack_completed_at": current_attack_completed_at,
+                "attack_status": "failed",
+                "reason": reason,
+                "dfir_mode_after": dfir_mode_after,
+                "trigger_alert_detected": False,
+                "forensic_intervention_eligible": False,
+                "automatic_preservation_armed": False,
+            })
+            effective_attack_status = "failed"
+            _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_attack", phase_label="Execute OT register-modification attack", status="completed_with_degradation" if attempt_number < MAX_TRIGGER_ARMING_ATTEMPTS else "failed", detail=f"{reason} ({attempt_suffix}).", category="repetition", index=1, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_attack_status": "failed", "trigger_attempt": attempt_number, **phase_extra})
+            if attempt_number < MAX_TRIGGER_ARMING_ATTEMPTS:
+                time.sleep(TRIGGER_ARMING_INTERVAL_SECONDS)
+                continue
+            return _failed_repetition_result(
+                repetition_number=repetition_number,
+                campaign_id=campaign_id,
+                execution_id=execution_id,
+                attack=attack,
+                dfir_mode_before=dfir_mode_before,
+                dfir_mode_after=dfir_mode_after,
+                attack_started_at=current_attack_started_at,
+                attack_completed_at=current_attack_completed_at,
+                reason=reason,
+                blockers=[reason],
+                target=target,
+                attack_result=current_attack_result,
+                trigger_attempt_trace=trigger_attempt_trace,
+            )
+
+        attack_started_at = current_attack_started_at
+        attack_completed_at = current_attack_completed_at
+        attack_result = current_attack_result
+        effective_attack_status = "completed"
+        _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_attack", phase_label="Execute OT register-modification attack", status="completed", detail=f"Attack completed successfully ({attempt_suffix}). Output directory: {attack_result.get('_output_dir') or 'not_available'}.", category="repetition", index=1, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_attack_status": "completed", "trigger_attempt": attempt_number, **phase_extra})
+
+        raise_if_cancelled(job_id, job_path, phase_key=f"repetition_{rep_idx}_alert", phase_label="Wait for high-severity alert", detail="Level B repetition batch cancellation was requested before alert waiting.")
+        _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_alert", phase_label="Wait for high-severity alert", status="running", detail=f"Watching monitor {monitor.get('vm_ip')} for a HIGH/CRITICAL alert matching the OT attack profile ({attempt_suffix}).", category="repetition", index=2, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_alert_status": "running", "trigger_attempt": attempt_number, **phase_extra})
+        matched = run_monitor_session(
+            monitor.get("vm_ip"),
+            ssh_user="ubuntu",
+            ssh_key=os.environ.get("NICS_DFIR_SSH_KEY") or os.path.expanduser("~/.ssh/my_key"),
+            on_alert=_build_alert_matcher(attack),
+            stop_after_seconds=detection_timeout_seconds,
         )
-    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_attack", phase_label="Execute OT register-modification attack", status="completed", detail=f"Attack completed successfully. Output directory: {attack_result.get('_output_dir') or 'not_available'}.", category="repetition", index=1, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_attack_status": "completed", **phase_extra})
+        current_matched_alert = matched.get("matched_alert") or {}
+        alert_fallback_reasons: list[str] = []
+        if matched.get("status") != "matched":
+            fallback_alert, fallback_reasons = _best_observed_alert_for_attack(list(matched.get("observed_alerts") or []), attack)
+            if fallback_alert:
+                current_matched_alert = fallback_alert
+                alert_fallback_reasons = list(fallback_reasons or [])
+                matched["status"] = "matched"
+                matched["matched_alert"] = fallback_alert
 
-    raise_if_cancelled(job_id, job_path, phase_key=f"repetition_{rep_idx}_alert", phase_label="Wait for high-severity alert", detail="Level B repetition batch cancellation was requested before alert waiting.")
-    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_alert", phase_label="Wait for high-severity alert", status="running", detail=f"Watching monitor {monitor.get('vm_ip')} for a HIGH/CRITICAL alert matching the OT attack profile.", category="repetition", index=2, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_alert_status": "running", **phase_extra})
-    matched = run_monitor_session(
-        monitor.get("vm_ip"),
-        ssh_user="ubuntu",
-        ssh_key=os.environ.get("NICS_DFIR_SSH_KEY") or os.path.expanduser("~/.ssh/my_key"),
-        on_alert=_build_alert_matcher(attack),
-        stop_after_seconds=detection_timeout_seconds,
-    )
-    matched_alert = matched.get("matched_alert") or {}
-    alert_fallback_reasons: list[str] = []
-    if matched.get("status") != "matched":
-        fallback_alert, fallback_reasons = _best_observed_alert_for_attack(list(matched.get("observed_alerts") or []), attack)
-        if fallback_alert:
-            matched_alert = fallback_alert
-            alert_fallback_reasons = list(fallback_reasons or [])
-            matched["status"] = "matched"
-            matched["matched_alert"] = fallback_alert
-    if matched.get("status") != "matched":
-        reason = "No alert matching this attack's detection criteria was observed within the configured timeout."
-        _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_alert", phase_label="Wait for high-severity alert", status="failed", detail=reason, category="repetition", index=2, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_alert_status": "failed", **phase_extra})
+        current_trigger_detected = matched.get("status") == "matched"
+        effective_alert_status = "completed" if current_trigger_detected else "failed"
+        eligible, eligibility_reason = _trigger_eligibility(current_matched_alert)
+        automatic_preservation_armed = bool(current_trigger_detected and eligible and str(dfir_mode_after or "").lower() == "on")
+        trigger_attempt_trace.append({
+            "attempt_number": attempt_number,
+            "attack_started_at": current_attack_started_at,
+            "attack_completed_at": current_attack_completed_at,
+            "attack_status": "completed",
+            "dfir_mode_after": dfir_mode_after,
+            "trigger_alert_detected": current_trigger_detected,
+            "trigger_alert_id": ((current_matched_alert.get("primary") or {}).get("event_id")),
+            "trigger_alert_rule": ((current_matched_alert.get("primary") or {}).get("rule_id")),
+            "trigger_alert_severity": str(((current_matched_alert.get("triage") or {}).get("severity") or "unknown")).lower(),
+            "forensic_intervention_eligible": eligible,
+            "automatic_preservation_armed": automatic_preservation_armed,
+            "eligibility_reason": eligibility_reason,
+            "fallback_reasons": list(alert_fallback_reasons or []),
+            "observed_alerts_count": len(list(matched.get("observed_alerts") or [])),
+        })
+
+        if not current_trigger_detected:
+            reason = f"No alert matching this attack's detection criteria was observed within the configured timeout ({attempt_suffix})."
+            _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_alert", phase_label="Wait for high-severity alert", status="completed_with_degradation" if attempt_number < MAX_TRIGGER_ARMING_ATTEMPTS else "failed", detail=reason, category="repetition", index=2, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_alert_status": "failed", "trigger_attempt": attempt_number, **phase_extra})
+            if attempt_number < MAX_TRIGGER_ARMING_ATTEMPTS:
+                time.sleep(TRIGGER_ARMING_INTERVAL_SECONDS)
+                continue
+            final_reason, derived_blockers = _diagnose_trigger_failure(trigger_attempt_trace, dfir_mode_after)
+            return _failed_repetition_result(
+                repetition_number=repetition_number,
+                campaign_id=campaign_id,
+                execution_id=execution_id,
+                attack=attack,
+                dfir_mode_before=dfir_mode_before,
+                dfir_mode_after=dfir_mode_after,
+                attack_started_at=attack_started_at,
+                attack_completed_at=attack_completed_at,
+                reason=final_reason,
+                blockers=derived_blockers,
+                target=target,
+                attack_result=attack_result,
+                trigger_attempt_trace=trigger_attempt_trace,
+            )
+
+        alert_detail = f"Matched alert {(current_matched_alert.get('primary') or {}).get('event_id') or 'not_available'} with severity {((current_matched_alert.get('triage') or {}).get('severity') or 'unknown')} ({attempt_suffix})."
+        if alert_fallback_reasons:
+            alert_detail += f" Fallback matcher used because the attack dashboard alert taxonomy and the Level B expected-alert tokens did not align exactly. Reasons: {'; '.join(alert_fallback_reasons[:4])}."
+        _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_alert", phase_label="Wait for high-severity alert", status="completed", detail=alert_detail, category="repetition", index=2, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_alert_status": "completed", "trigger_attempt": attempt_number, **phase_extra})
+
+        _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_trigger", phase_label="Verify forensic intervention trigger", status="running", detail=f"Verifying that the matched alert is eligible for forensic intervention and that automatic acquisition may start from this trigger ({attempt_suffix}).", category="repetition", index=3, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"trigger_attempt": attempt_number, **phase_extra})
+        if not eligible:
+            reason = f"The matched alert is not eligible for forensic intervention: {eligibility_reason}."
+            _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_trigger", phase_label="Verify forensic intervention trigger", status="completed_with_degradation" if attempt_number < MAX_TRIGGER_ARMING_ATTEMPTS else "failed", detail=reason, category="repetition", index=3, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"trigger_attempt": attempt_number, **phase_extra})
+            if attempt_number < MAX_TRIGGER_ARMING_ATTEMPTS:
+                time.sleep(TRIGGER_ARMING_INTERVAL_SECONDS)
+                continue
+            final_reason, derived_blockers = _diagnose_trigger_failure(trigger_attempt_trace, dfir_mode_after)
+            return _failed_repetition_result(
+                repetition_number=repetition_number,
+                campaign_id=campaign_id,
+                execution_id=execution_id,
+                attack=attack,
+                dfir_mode_before=dfir_mode_before,
+                dfir_mode_after=dfir_mode_after,
+                attack_started_at=attack_started_at,
+                attack_completed_at=attack_completed_at,
+                reason=final_reason,
+                blockers=derived_blockers,
+                target=target,
+                attack_result=attack_result,
+                matched_alert=current_matched_alert,
+                trigger_attempt_trace=trigger_attempt_trace,
+            )
+
+        if str(dfir_mode_after or "").lower() != "on":
+            reason = f"The alert is eligible, but DFIR mode is {dfir_mode_after or 'unknown'} so automatic forensic preservation is not armed ({attempt_suffix})."
+            _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_trigger", phase_label="Verify forensic intervention trigger", status="completed_with_degradation" if attempt_number < MAX_TRIGGER_ARMING_ATTEMPTS else "failed", detail=reason, category="repetition", index=3, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"trigger_attempt": attempt_number, **phase_extra})
+            if attempt_number < MAX_TRIGGER_ARMING_ATTEMPTS:
+                time.sleep(TRIGGER_ARMING_INTERVAL_SECONDS)
+                continue
+            final_reason, derived_blockers = _diagnose_trigger_failure(trigger_attempt_trace, dfir_mode_after)
+            return _failed_repetition_result(
+                repetition_number=repetition_number,
+                campaign_id=campaign_id,
+                execution_id=execution_id,
+                attack=attack,
+                dfir_mode_before=dfir_mode_before,
+                dfir_mode_after=dfir_mode_after,
+                attack_started_at=attack_started_at,
+                attack_completed_at=attack_completed_at,
+                reason=final_reason,
+                blockers=derived_blockers,
+                target=target,
+                attack_result=attack_result,
+                matched_alert=current_matched_alert,
+                trigger_attempt_trace=trigger_attempt_trace,
+            )
+
+        matched_alert = current_matched_alert
+        successful_attempt_number = attempt_number
+        _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_trigger", phase_label="Verify forensic intervention trigger", status="completed", detail=f"The matched high-severity alert is eligible for automatic forensic intervention and DFIR mode is ON ({attempt_suffix}).", category="repetition", index=3, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"trigger_attempt": attempt_number, **phase_extra})
+        break
+
+    if not matched_alert or successful_attempt_number is None:
+        final_reason, derived_blockers = _diagnose_trigger_failure(trigger_attempt_trace, dfir_mode_after)
         return _failed_repetition_result(
             repetition_number=repetition_number,
             campaign_id=campaign_id,
@@ -1506,64 +1844,113 @@ def _run_single_repetition(
             dfir_mode_after=dfir_mode_after,
             attack_started_at=attack_started_at,
             attack_completed_at=attack_completed_at,
-            reason=reason,
-            blockers=[reason],
-            target=target,
-            attack_result=attack_result,
-        )
-    alert_detail = f"Matched alert {(matched_alert.get('primary') or {}).get('event_id') or 'not_available'} with severity {((matched_alert.get('triage') or {}).get('severity') or 'unknown')}."
-    if alert_fallback_reasons:
-        alert_detail += f" Fallback matcher used because the attack dashboard alert taxonomy and the Level B expected-alert tokens did not align exactly. Reasons: {'; '.join(alert_fallback_reasons[:4])}."
-    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_alert", phase_label="Wait for high-severity alert", status="completed", detail=alert_detail, category="repetition", index=2, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_alert_status": "completed", **phase_extra})
-
-    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_trigger", phase_label="Verify forensic intervention trigger", status="running", detail="Verifying that the matched alert is eligible for forensic intervention and that automatic acquisition will start from this trigger.", category="repetition", index=3, repetition_number=rep_idx, total_repetitions=total_repetitions, extra=phase_extra)
-    triage = (matched_alert.get("triage") or {})
-    if str(triage.get("severity") or "").upper() not in {"HIGH", "CRITICAL"} or not triage.get("recommend_forensics"):
-        reason = "The matched alert is not eligible for forensic intervention. Severity or recommendation is insufficient."
-        _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_trigger", phase_label="Verify forensic intervention trigger", status="failed", detail=reason, category="repetition", index=3, repetition_number=rep_idx, total_repetitions=total_repetitions, extra=phase_extra)
-        return _failed_repetition_result(
-            repetition_number=repetition_number,
-            campaign_id=campaign_id,
-            execution_id=execution_id,
-            attack=attack,
-            dfir_mode_before=dfir_mode_before,
-            dfir_mode_after=dfir_mode_after,
-            attack_started_at=attack_started_at,
-            attack_completed_at=attack_completed_at,
-            reason=reason,
-            blockers=[reason],
+            reason=final_reason,
+            blockers=derived_blockers,
             target=target,
             attack_result=attack_result,
             matched_alert=matched_alert,
+            trigger_attempt_trace=trigger_attempt_trace,
         )
-    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_trigger", phase_label="Verify forensic intervention trigger", status="completed", detail="The matched high-severity alert is eligible for automatic forensic intervention.", category="repetition", index=3, repetition_number=rep_idx, total_repetitions=total_repetitions, extra=phase_extra)
 
     raise_if_cancelled(job_id, job_path, phase_key=f"repetition_{rep_idx}_acquisition", phase_label="Run automatic acquisition", detail="Level B repetition batch cancellation was requested before automatic acquisition.")
     _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_acquisition", phase_label="Run automatic acquisition", status="running", detail="Creating a fresh forensic case and starting volatility-first DFIR acquisition: memory first, rolling-PCAP context import second, disk third.", category="repetition", index=4, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_acquisition_status": "running", **phase_extra})
-    case_dir = Path(_dfir_create_case_internal(run_id=execution_id)).resolve()
-    case_id = _case_id_for_case_dir(str(case_dir))
     trigger_time_utc = ((matched_alert.get("primary") or {}).get("ts_utc")) or ((matched_alert.get("primary") or {}).get("timestamp")) or attack_completed_at
-    initialize_volatile_first_acquisition(
-        str(case_dir),
-        run_id=execution_id,
-        case_created_utc=utc_now(),
-        acquisition_started_utc=utc_now(),
-        trigger_time_utc=trigger_time_utc,
-    )
-    update_job(job_id, job_path, current_case_id=case_id)
-    update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"memory_started_utc": utc_now()})
-    memory_result = acquire_memory(str(case_dir), target.get("vm_id"), target.get("vm_ip"), os.environ.get("NICS_DFIR_SSH_KEY") or os.path.expanduser("~/.ssh/my_key"), ssh_user=_dfir_ssh_user_for_role(target.get("role")), mode="build", run_id=execution_id)
-    update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"memory_completed_utc": utc_now()})
-    update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"network_context_import_started_utc": utc_now()})
+    adopted_existing_case = False
     try:
-        network_result = import_continuous_network_context(str(case_dir), run_id=execution_id, trigger_time_utc=trigger_time_utc)
-    except Exception as exc:
-        network_result = {"error": str(exc), "preserved_segments": 0, "pending_segments": 0}
-    update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"network_context_import_completed_utc": utc_now()})
-    update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"disk_started_utc": utc_now()})
-    disk_result = acquire_disk(str(case_dir), target.get("vm_id"), "nova_libvirt", run_id=execution_id)
-    update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"disk_completed_utc": utc_now()})
-    acquisition_note = f"Case {case_id} created. Memory={memory_result.get('result')}; network_import preserved={network_result.get('preserved_segments', 0)} pending={network_result.get('pending_segments', 0)}; disk={disk_result.get('result')}."
+        case_dir = Path(_dfir_create_case_internal(run_id=execution_id, source="level_b_repetition_runner")).resolve()
+        case_id = _case_id_for_case_dir(str(case_dir))
+        initialize_volatile_first_acquisition(
+            str(case_dir),
+            run_id=execution_id,
+            case_created_utc=utc_now(),
+            acquisition_started_utc=utc_now(),
+            trigger_time_utc=trigger_time_utc,
+        )
+        update_job(job_id, job_path, current_case_id=case_id)
+        update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"memory_started_utc": utc_now()})
+        memory_result = acquire_memory(str(case_dir), target.get("vm_id"), target.get("vm_ip"), os.environ.get("NICS_DFIR_SSH_KEY") or os.path.expanduser("~/.ssh/my_key"), ssh_user=_dfir_ssh_user_for_role(target.get("role")), mode="build", run_id=execution_id)
+        update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"memory_completed_utc": utc_now()})
+        update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"network_context_import_started_utc": utc_now()})
+        try:
+            network_result = import_continuous_network_context(str(case_dir), run_id=execution_id, trigger_time_utc=trigger_time_utc)
+        except Exception as exc:
+            network_result = {"error": str(exc), "preserved_segments": 0, "pending_segments": 0}
+        update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"network_context_import_completed_utc": utc_now()})
+        update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"disk_started_utc": utc_now()})
+        disk_result = acquire_disk(str(case_dir), target.get("vm_id"), "nova_libvirt", run_id=execution_id, noninteractive=True)
+        update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"disk_completed_utc": utc_now()})
+        acquisition_note = f"Case {case_id} created. Memory={memory_result.get('result')}; network_import preserved={network_result.get('preserved_segments', 0)} pending={network_result.get('pending_segments', 0)}; disk={disk_result.get('result')}."
+    except RuntimeError as exc:
+        guard = _active_preservation_guard()
+        guard_case_dir = Path(str(guard.get("case_dir") or "")).resolve() if guard.get("case_dir") else None
+        if not guard.get("allowed") and guard_case_dir and guard_case_dir.exists():
+            adopted_existing_case = True
+            case_dir = guard_case_dir
+            case_id = _case_id_for_case_dir(str(case_dir))
+            update_job(job_id, job_path, current_case_id=case_id)
+            _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_acquisition", phase_label="Run automatic acquisition", status="running", detail=f"An automatic forensic preservation case is already being created for the matched alert. Reusing active case {case_id} instead of creating a second case, and waiting until preservation finishes.", category="repetition", index=4, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_acquisition_status": "running", "adopted_active_case": case_id, **phase_extra})
+            wait_result = _wait_for_active_preservation_release(expected_case_dir=case_dir)
+            if wait_result.get("status") != "completed":
+                reason = (
+                    f"Automatic preservation started a case for this alert, but it did not finish cleanly: "
+                    f"{wait_result.get('reason') or 'active_preservation_wait_failed'}."
+                )
+                _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_acquisition", phase_label="Run automatic acquisition", status="failed", detail=reason, category="repetition", index=4, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_acquisition_status": "failed", **phase_extra})
+                return _failed_repetition_result(
+                    repetition_number=repetition_number,
+                    campaign_id=campaign_id,
+                    execution_id=execution_id,
+                    attack=attack,
+                    dfir_mode_before=dfir_mode_before,
+                    dfir_mode_after=dfir_mode_after,
+                    attack_started_at=attack_started_at,
+                    attack_completed_at=attack_completed_at,
+                    reason=reason,
+                    blockers=[reason],
+                    target=target,
+                    attack_result=attack_result,
+                    matched_alert=matched_alert,
+                    case_id=case_id,
+                    case_dir=case_dir,
+                    trigger_attempt_trace=trigger_attempt_trace,
+                )
+            profile = _json_load(case_dir / "metadata" / "acquisition_profile.json") or {}
+            network_manifest = _json_load(case_dir / "network" / "traffic_preserved" / "network_context_manifest.json") or {}
+            preserved_segments = len(network_manifest.get("preserved_segments") or [])
+            pending_segments = len(network_manifest.get("pending_segments") or [])
+            memory_result = {
+                "ok": bool(profile.get("memory_completed_utc")),
+                "result": "ok" if profile.get("memory_completed_utc") else "error",
+            }
+            disk_result = {
+                "ok": bool(profile.get("disk_completed_utc")),
+                "result": "ok" if profile.get("disk_completed_utc") else "error",
+            }
+            network_result = {
+                "error": None if preserved_segments or pending_segments or profile.get("network_context_import_completed_utc") else "network_context_not_observed",
+                "preserved_segments": preserved_segments,
+                "pending_segments": pending_segments,
+            }
+            acquisition_note = f"Automatic alert-driven preservation reused active case {case_id}. Memory={'ok' if memory_result.get('ok') else 'missing'}; network_import preserved={preserved_segments} pending={pending_segments}; disk={'ok' if disk_result.get('ok') else 'missing'}."
+        else:
+            reason = str(exc)
+            _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_acquisition", phase_label="Run automatic acquisition", status="failed", detail=reason, category="repetition", index=4, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_acquisition_status": "failed", **phase_extra})
+            return _failed_repetition_result(
+                repetition_number=repetition_number,
+                campaign_id=campaign_id,
+                execution_id=execution_id,
+                attack=attack,
+                dfir_mode_before=dfir_mode_before,
+                dfir_mode_after="off",
+                attack_started_at=attack_started_at,
+                attack_completed_at=attack_completed_at,
+                reason=reason,
+                blockers=["active_preservation_in_progress", reason],
+                target=target,
+                attack_result=attack_result,
+                matched_alert=matched_alert,
+                trigger_attempt_trace=trigger_attempt_trace,
+            )
     acq_status = "completed"
     if not memory_result.get("ok") or not disk_result.get("ok") or network_result.get("error"):
         acq_status = "completed_with_degradation"
@@ -1571,6 +1958,7 @@ def _run_single_repetition(
 
     _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_seal", phase_label="Seal and register case", status="running", detail="Finalizing custody/digest state so the new case can feed the scientific analysis and reconstruction pipeline.", category="repetition", index=5, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_preservation_status": "running", **phase_extra})
     _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_seal", phase_label="Seal and register case", status="completed" if memory_result.get("ok") or disk_result.get("ok") else "completed_with_degradation", detail=f"Case {case_id} is registered for downstream analysis.", category="repetition", index=5, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_preservation_status": "completed", **phase_extra})
+    _clear_active_preservation_state(str(case_dir), run_id=execution_id, final_state="completed", reason="case_sealed_for_downstream_analysis")
 
     raise_if_cancelled(job_id, job_path, phase_key=f"repetition_{rep_idx}_analysis", phase_label="Run multilayer analysis", detail="Level B repetition batch cancellation was requested before lifecycle analysis.")
     _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_analysis", phase_label="Run multilayer analysis", status="running", detail=f"Running the existing preserved-case lifecycle backend over {case_id}.", category="repetition", index=6, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_analysis_status": "running", **phase_extra})
@@ -1594,6 +1982,7 @@ def _run_single_repetition(
             matched_alert=matched_alert,
             case_id=case_id,
             case_dir=case_dir,
+            trigger_attempt_trace=trigger_attempt_trace,
         )
     update_job(job_id, job_path, current_lifecycle_job_id=str(lifecycle_job.get("job_id") or ""))
     lifecycle_result = _wait_for_lifecycle_job(lifecycle_job.get("job_id"))
@@ -1618,6 +2007,7 @@ def _run_single_repetition(
             matched_alert=matched_alert,
             case_id=case_id,
             case_dir=case_dir,
+            trigger_attempt_trace=trigger_attempt_trace,
         )
     analysis_detail = "Lifecycle analysis finished successfully." if lifecycle_status == "completed" else "Lifecycle analysis finished with warnings or scientific degradation."
     _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_analysis", phase_label="Run multilayer analysis", status="completed" if lifecycle_status == "completed" else "completed_with_degradation", detail=analysis_detail, category="repetition", index=6, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_analysis_status": lifecycle_status, **phase_extra})
@@ -1690,11 +2080,13 @@ def _run_single_repetition(
         dfir_mode_before=dfir_mode_before,
         dfir_mode_after=dfir_mode_after,
         nested_level_a=nested_level_a,
+        trigger_attempt_trace=trigger_attempt_trace,
     )
     try:
         ACTIVE_CASE_PTR.write_text("", encoding="utf-8")
     except Exception:
         pass
+    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_cleanup", phase_label="Clean heavy generated case", status="running", detail=f"Cleaning heavy artifacts for case {case_id} after nested Level A analysis so the next Level B repetition can create a fresh case without coexisting heavy cases.", category="repetition", index=8, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_preservation_status": "cleanup_running", **phase_extra})
     cleanup_after_report = delete_generated_case_artifacts(
         execution_id,
         campaign_id=campaign_id,
@@ -1703,8 +2095,12 @@ def _run_single_repetition(
         operator="level_b_repetition_runner",
     )
     if cleanup_after_report.get("error"):
+        _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_cleanup", phase_label="Clean heavy generated case", status="failed", detail=f"Heavy-case cleanup failed for {case_id}: {cleanup_after_report.get('error')}", category="repetition", index=8, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_preservation_status": "cleanup_failed", **phase_extra})
         result.setdefault("warnings", []).append(
             f"Post-report generated-case cleanup was not completed for {case_id}: {cleanup_after_report.get('error')}"
+        )
+        result.setdefault("blockers", []).append(
+            f"Heavy generated case cleanup failed for {case_id}; the next Level B repetition must not start until this case is cleaned."
         )
     else:
         result["post_report_case_cleanup"] = {
@@ -1717,9 +2113,19 @@ def _run_single_repetition(
         }
         result["warnings"] = list(result.get("warnings") or [])
         result["warnings"].append("Heavy generated case artifacts were cleaned after nested Level A reporting so the next Level B repetition could create a fresh case without accumulating heavy storage.")
-    if alert_fallback_reasons:
+        cleanup_manifest_path = str((result.get("post_report_case_cleanup") or {}).get("lightweight_case_bundle_manifest_path") or "")
+        if cleanup_manifest_path:
+            _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_cleanup", phase_label="Clean heavy generated case", status="completed", detail=f"Heavy generated case {case_id} was cleaned after nested Level A analysis. Lightweight retained bundle: {cleanup_manifest_path}.", category="repetition", index=8, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_preservation_status": "cleanup_completed", **phase_extra})
+        else:
+            _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_cleanup", phase_label="Clean heavy generated case", status="failed", detail=f"Cleanup for {case_id} did not produce the required lightweight retained bundle. The next Level B repetition must be blocked.", category="repetition", index=8, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_preservation_status": "cleanup_failed", **phase_extra})
+            result.setdefault("blockers", []).append(
+                f"Cleanup for {case_id} did not produce the required lightweight retained bundle."
+            )
+    if any(list(item.get("fallback_reasons") or []) for item in trigger_attempt_trace):
         result.setdefault("warnings", []).append("Level B alert match required a fallback OT-aware matcher because the expected-alert taxonomy did not match the observed alert text exactly.")
-    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_store", phase_label="Store repetition result", status="completed" if result.get("execution_status") == "completed" else "completed_with_degradation", detail=f"Stored repetition {rep_idx}/{total_repetitions} result with status {result.get('execution_status')} and case {case_id}.", category="repetition", index=8, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_analysis_status": "completed", "current_reconstruction_status": result.get("reconstruction_status"), **phase_extra})
+    if result.get("blockers") and result.get("execution_status") == "completed":
+        result["execution_status"] = "partial"
+    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_store", phase_label="Store repetition result", status="completed" if result.get("execution_status") == "completed" else "completed_with_degradation", detail=f"Stored repetition {rep_idx}/{total_repetitions} result with status {result.get('execution_status')} and case {case_id}.", category="repetition", index=9, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_analysis_status": "completed", "current_reconstruction_status": result.get("reconstruction_status"), **phase_extra})
     return result
 
 
@@ -1751,19 +2157,18 @@ def _run_level_b_repetitions_job(
     _emit_phase(job_id, job_path, phase_key="prepare_level_b_job", phase_label="Prepare Level B job", status="running", detail="Preparing Level B batch execution, runtime workspace, and deterministic scientific progress plan.", category="setup", index=0, total_repetitions=requested_repetitions, extra={"requested_repetitions": requested_repetitions})
     _emit_phase(job_id, job_path, phase_key="prepare_level_b_job", phase_label="Prepare Level B job", status="completed", detail=f"Prepared Level B batch job for campaign {campaign_id}.", category="setup", index=0, total_repetitions=requested_repetitions, extra={"requested_repetitions": requested_repetitions})
 
-    raise_if_cancelled(job_id, job_path, phase_key="optional_cleanup", phase_label="Optional cleanup of old cases", detail="Level B repetition batch was cancelled before cleanup.")
-    _emit_phase(job_id, job_path, phase_key="optional_cleanup", phase_label="Optional cleanup of old cases", status="running", detail="Inspecting removable heavy forensic cases before launching the independent Level B repetitions.", category="setup", index=1, total_repetitions=requested_repetitions)
-    cleanup_manifest = _run_cleanup(runtime_dir, enabled=cleanup_old_cases)
+    raise_if_cancelled(job_id, job_path, phase_key="optional_cleanup", phase_label="Clean previous heavy cases", detail="Level B repetition batch was cancelled before mandatory cleanup of previous heavy cases.")
+    _emit_phase(job_id, job_path, phase_key="optional_cleanup", phase_label="Clean previous heavy cases", status="running", detail="Inspecting and deleting previous heavy forensic cases before launching the independent Level B repetitions. This is mandatory so two heavy cases never coexist.", category="setup", index=1, total_repetitions=requested_repetitions)
+    cleanup_manifest = _run_cleanup(runtime_dir, enabled=True)
     if cleanup_manifest.get("cleanup_status") == "failed":
-        _emit_phase(job_id, job_path, phase_key="optional_cleanup", phase_label="Optional cleanup of old cases", status="failed", detail="Cleanup failed. The workflow stops before launching any repetition to avoid mixed state.", category="setup", index=1, total_repetitions=requested_repetitions)
-        update_job(job_id, job_path, status="failed", finished_at=utc_now(), current_phase="optional_cleanup", current_phase_label="Optional cleanup of old cases", current_phase_detail="Cleanup failed. No repetition was launched.", progress_percent=100.0, level_b_cleanup_manifest_path=relative_path(runtime_dir / "cleanup_manifest.json"))
+        _emit_phase(job_id, job_path, phase_key="optional_cleanup", phase_label="Clean previous heavy cases", status="failed", detail="Mandatory cleanup of previous heavy cases failed. The workflow stops before launching any repetition to avoid coexistence of two heavy cases.", category="setup", index=1, total_repetitions=requested_repetitions)
+        update_job(job_id, job_path, status="failed", finished_at=utc_now(), current_phase="optional_cleanup", current_phase_label="Clean previous heavy cases", current_phase_detail="Mandatory cleanup of previous heavy cases failed. No repetition was launched.", progress_percent=100.0, level_b_cleanup_manifest_path=relative_path(runtime_dir / "cleanup_manifest.json"))
         return
     cleanup_detail = (
-        f"Cleanup {cleanup_manifest.get('cleanup_status')}. Estimated freed space: {_human_bytes(cleanup_manifest.get('freed_bytes_estimated'))}. Actual freed space: {_human_bytes(cleanup_manifest.get('freed_bytes_actual'))}."
-        if cleanup_old_cases
-        else "Cleanup skipped by operator choice."
+        f"Mandatory cleanup {cleanup_manifest.get('cleanup_status')}. Estimated freed space: {_human_bytes(cleanup_manifest.get('freed_bytes_estimated'))}. "
+        f"Actual freed space: {_human_bytes(cleanup_manifest.get('freed_bytes_actual'))}. Deleted cases: {len(cleanup_manifest.get('deleted_cases') or [])}."
     )
-    _emit_phase(job_id, job_path, phase_key="optional_cleanup", phase_label="Optional cleanup of old cases", status="completed" if cleanup_manifest.get("cleanup_status") == "completed" else "skipped", detail=cleanup_detail, category="setup", index=1, total_repetitions=requested_repetitions, extra={"level_b_cleanup_manifest_path": relative_path(runtime_dir / "cleanup_manifest.json")})
+    _emit_phase(job_id, job_path, phase_key="optional_cleanup", phase_label="Clean previous heavy cases", status="completed", detail=cleanup_detail, category="setup", index=1, total_repetitions=requested_repetitions, extra={"level_b_cleanup_manifest_path": relative_path(runtime_dir / "cleanup_manifest.json")})
 
     _emit_phase(job_id, job_path, phase_key="resolve_active_scenario", phase_label="Resolve active scenario", status="running", detail=f"Resolving the already deployed scenario that will host all {requested_repetitions} independent Level B repetitions.", category="setup", index=2, total_repetitions=requested_repetitions)
     targets = _resolve_real_targets(attack)
@@ -1785,16 +2190,56 @@ def _run_level_b_repetitions_job(
     _emit_phase(job_id, job_path, phase_key="verify_plc_target", phase_label="Verify PLC target", status="completed", detail=f"PLC target verified: {target.get('vm_name')} ({target.get('vm_ip')}).", category="setup", index=3, total_repetitions=requested_repetitions)
 
     _emit_phase(job_id, job_path, phase_key="enable_dfir_mode", phase_label="Enable DFIR mode", status="running", detail="Verifying that DFIR mode is ON before the first OT attack is launched.", category="setup", index=4, total_repetitions=requested_repetitions, extra={"dfir_mode_before": dfir_mode_before, "dfir_mode_after": dfir_mode_after})
-    if dfir_mode_after != "on":
-        reason = "DFIR mode could not be verified as ON. The Level B attack batch is blocked before launch."
-        _emit_phase(job_id, job_path, phase_key="enable_dfir_mode", phase_label="Enable DFIR mode", status="failed", detail=reason, category="setup", index=4, total_repetitions=requested_repetitions, extra={"dfir_mode_before": dfir_mode_before, "dfir_mode_after": dfir_mode_after})
-        update_job(job_id, job_path, status="failed", finished_at=utc_now(), current_phase="enable_dfir_mode", current_phase_label="Enable DFIR mode", current_phase_detail=reason, progress_percent=100.0, blockers=[reason])
+    preservation_guard = _active_preservation_guard()
+    if not preservation_guard.get("allowed"):
+        reason = (
+            f"{preservation_guard.get('reason')} "
+            f"Current preservation case: {preservation_guard.get('case_id') or 'not_available'}."
+        )
+        _emit_phase(job_id, job_path, phase_key="enable_dfir_mode", phase_label="Enable DFIR mode", status="failed", detail=reason, category="setup", index=4, total_repetitions=requested_repetitions, extra={"dfir_mode_before": dfir_mode_before, "dfir_mode_after": "off", "active_preservation_case_id": preservation_guard.get("case_id")})
+        update_job(job_id, job_path, status="failed", finished_at=utc_now(), current_phase="enable_dfir_mode", current_phase_label="Enable DFIR mode", current_phase_detail=reason, progress_percent=100.0, blockers=[reason], active_preservation_case_id=preservation_guard.get("case_id"))
         return
-    _emit_phase(job_id, job_path, phase_key="enable_dfir_mode", phase_label="Enable DFIR mode", status="completed", detail=f"DFIR mode verified ON. Browser mode transitioned from {dfir_mode_before} to {dfir_mode_after}.", category="setup", index=4, total_repetitions=requested_repetitions, extra={"dfir_mode_before": dfir_mode_before, "dfir_mode_after": dfir_mode_after})
+    if dfir_mode_after != "on":
+        reason = "DFIR mode could not be verified as ON. The workflow will still run controlled trigger-arming attempts, but automatic preservation cannot start until DFIR mode is ON."
+        _emit_phase(job_id, job_path, phase_key="enable_dfir_mode", phase_label="Enable DFIR mode", status="completed_with_degradation", detail=reason, category="setup", index=4, total_repetitions=requested_repetitions, extra={"dfir_mode_before": dfir_mode_before, "dfir_mode_after": dfir_mode_after})
+    else:
+        _emit_phase(job_id, job_path, phase_key="enable_dfir_mode", phase_label="Enable DFIR mode", status="completed", detail=f"DFIR mode verified ON. Browser mode transitioned from {dfir_mode_before} to {dfir_mode_after}.", category="setup", index=4, total_repetitions=requested_repetitions, extra={"dfir_mode_before": dfir_mode_before, "dfir_mode_after": dfir_mode_after})
+
+    _emit_phase(job_id, job_path, phase_key="verify_disk_acquisition", phase_label="Verify disk acquisition prerequisites", status="running", detail="Checking whether disk preservation can run in stable non-interactive mode for a long Level B batch.", category="setup", index=5, total_repetitions=requested_repetitions)
+    disk_preflight = disk_acquisition_preflight("nova_libvirt", require_stable_noninteractive=True)
+    if not disk_preflight.get("ok"):
+        reason = (
+            "Disk acquisition for Level B batches is blocked because stable non-interactive privileges are not available. "
+            "This environment currently depends on interactive sudo/password entry or lacks required docker/qemu-img access. "
+            "That is unsafe for multi-repetition Level B workflows because nested Level A analysis can outlive the sudo timestamp. "
+            f"Blockers: {', '.join(str(item) for item in (disk_preflight.get('blockers') or []) if item)}."
+        )
+        _emit_phase(job_id, job_path, phase_key="verify_disk_acquisition", phase_label="Verify disk acquisition prerequisites", status="failed", detail=reason, category="setup", index=5, total_repetitions=requested_repetitions, extra={"disk_preflight": disk_preflight})
+        update_job(job_id, job_path, status="failed", finished_at=utc_now(), current_phase="verify_disk_acquisition", current_phase_label="Verify disk acquisition prerequisites", current_phase_detail=reason, progress_percent=100.0, blockers=[reason], disk_preflight=disk_preflight)
+        return
+    _emit_phase(job_id, job_path, phase_key="verify_disk_acquisition", phase_label="Verify disk acquisition prerequisites", status="completed", detail="Stable non-interactive disk acquisition prerequisites verified for Level B batch execution.", category="setup", index=5, total_repetitions=requested_repetitions, extra={"disk_preflight": disk_preflight})
 
     results: list[dict] = []
     for repetition_number in range(1, requested_repetitions + 1):
         raise_if_cancelled(job_id, job_path, phase_key="start_repetition", phase_label=f"Start repetition {repetition_number}/{requested_repetitions}", detail="Level B repetition batch cancellation was requested before launching the next repetition.")
+        if repetition_number > 1 and results:
+            pre_cleanup = _cleanup_previous_heavy_case_before_next_repetition(
+                job_id=job_id,
+                job_path=job_path,
+                campaign_id=campaign_id,
+                repetition_number=repetition_number,
+                total_repetitions=requested_repetitions,
+                previous_result=results[-1],
+            )
+            results[-1]["pre_next_repetition_cleanup"] = pre_cleanup
+            if pre_cleanup.get("status") == "failed":
+                blocker = (
+                    f"Previous heavy case could not be cleaned before repetition {repetition_number}. "
+                    f"Reason: {pre_cleanup.get('reason') or 'cleanup_failed'}."
+                )
+                append_job_list(job_id, job_path, "errors", {"message": blocker, "repetition": repetition_number})
+                results[-1].setdefault("blockers", []).append(blocker)
+                break
         try:
             result = _run_single_repetition(
                 job_id,

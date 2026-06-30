@@ -227,6 +227,7 @@ body::-webkit-scrollbar-thumb {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  z-index: 36000;
 }
 
 .theme-switcher-trigger {
@@ -264,7 +265,7 @@ body::-webkit-scrollbar-thumb {
   position: absolute;
   top: calc(100% + 0.5rem);
   right: 0;
-  z-index: 200;
+  z-index: 36010;
   min-width: 220px;
   padding: 0.5rem;
   border-radius: 16px;

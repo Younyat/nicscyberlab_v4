@@ -1,0 +1,13 @@
+# Install with:
+#   sudo visudo -f /etc/sudoers.d/nicscyberlab-acquire-disk
+#
+# Replace <WEB_USER> with the user running the web/backend process and
+# replace <REPO_ROOT> with the absolute repository root.
+#
+# This grants a narrowly scoped NOPASSWD rule only for the disk-acquisition
+# helper used by long-running Level B / paper-evidence batches.
+
+Defaults!NICS_DFIR_DISK_HELPER !requiretty
+Cmnd_Alias NICS_DFIR_DISK_HELPER = /bin/bash <REPO_ROOT>/app_core/infrastructure/forensics/scripts/acquire_disk_kolla_libvirt.sh *
+
+<WEB_USER> ALL=(root) NOPASSWD: NICS_DFIR_DISK_HELPER

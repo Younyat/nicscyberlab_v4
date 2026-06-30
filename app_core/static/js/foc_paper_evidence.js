@@ -15,6 +15,8 @@
 
   const byId = (id) => document.getElementById(id);
   const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+  const levelARepetitions = () => Math.max(Number(byId("paper-level-a-repetitions-input")?.value || 6), 1);
+  const levelBRepetitions = () => Math.max(Number(byId("paper-level-b-repetitions-input")?.value || 6), 1);
 
   async function getJson(url, options) {
     const res = await fetch(url, options);
@@ -397,7 +399,7 @@
     if (!preferredAttack) {
       throw new Error("No Level B-compatible attack profile is available for the PLC target.");
     }
-    const repetitions = Math.max(Number(byId("paper-repetitions-input")?.value || 6), 1);
+    const repetitions = levelBRepetitions();
     const created = await getJson("/api/foc/experimentation/campaigns/create", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -467,7 +469,7 @@
       renderCaseSummary();
       return;
     }
-    const n = Math.max(Number(byId("paper-repetitions-input")?.value || 6), 1);
+    const n = levelARepetitions();
     const payload = {
       case_id: caseItem.case_id,
       level: "A",
@@ -490,7 +492,7 @@
       renderCampaignSummary();
       return;
     }
-    const n = Math.max(Number(byId("paper-repetitions-input")?.value || 6), 1);
+    const n = levelBRepetitions();
     const payload = {
       campaign_id: campaign.campaign_id,
       level: "B",

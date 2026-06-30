@@ -393,4 +393,3 @@ def hud_action():
         "status": "accepted",
         "message": f"Acción {action_id} enviada a {instance_id}"
     }), 202
-

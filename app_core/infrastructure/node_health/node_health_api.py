@@ -8,6 +8,7 @@ import subprocess
 import threading
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -24,9 +25,16 @@ PROBE_SCRIPT_PATH = Path(__file__).resolve().parent / "scripts" / "probe_node_he
 TOOLING_PROBE_SCRIPT_PATH = Path(__file__).resolve().parent / "scripts" / "probe_node_tooling_inside_node.sh"
 CLEANUP_SCRIPT_PATH = REPO_ROOT / "pre_memory_cleanup_inside_node.sh"
 TIME_SYNC_SCRIPT_PATH = REPO_ROOT / "app_core" / "infrastructure" / "forensics" / "scripts" / "time_sync_preflight.sh"
+OPENSTACK_HEALTH_DIR = Path(__file__).resolve().parent / "openstack_health"
+OPENSTACK_RESTART_SCRIPT_PATH = OPENSTACK_HEALTH_DIR / "restart_openstack_services.sh"
 TOOLS_INSTALLED_DIR = REPO_ROOT / "tools-installer" / "installed"
 TOOLS_TMP_DIR = REPO_ROOT / "tools-installer-tmp"
 NODE_HEALTH_TIME_SYNC_DIR = REPO_ROOT / "runtime" / "time_sync" / "node_health"
+NODE_HEALTH_RUNTIME_DIR = REPO_ROOT / "runtime" / "node_health"
+OPENSTACK_HEALTH_RUNTIME_DIR = NODE_HEALTH_RUNTIME_DIR / "openstack_health"
+OPENSTACK_RESTART_JOBS_DIR = OPENSTACK_HEALTH_RUNTIME_DIR / "restart_jobs"
+PROBE_CACHE_DIR = NODE_HEALTH_RUNTIME_DIR / "probe_cache"
+HEALTH_SUMMARY_CACHE_PATH = OPENSTACK_HEALTH_RUNTIME_DIR / "health_summary.json"
 EVIDENCE_ROOT = REPO_ROOT / "app_core" / "infrastructure" / "forensics" / "evidence_store"
 ACTIVE_CASE_PTR = EVIDENCE_ROOT / "_active_case.txt"
 _TIME_SYNC_STATE_LOCK = threading.Lock()
@@ -57,6 +65,71 @@ def _append_jsonl(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(payload, ensure_ascii=False) + "\n")
+
+
+def _safe_slug(value: str) -> str:
+    return re.sub(r"[^a-zA-Z0-9._-]+", "_", str(value or "")).strip("_") or "unknown"
+
+
+def _cache_age_seconds(path: Path) -> float | None:
+    try:
+        if not path.is_file():
+            return None
+        return max(time.time() - path.stat().st_mtime, 0.0)
+    except Exception:
+        return None
+
+
+def _probe_cache_path(instance_id: str) -> Path:
+    return PROBE_CACHE_DIR / f"{_safe_slug(instance_id)}.json"
+
+
+def _severity_rank(value: str | None) -> int:
+    normalized = str(value or "unknown").lower()
+    if normalized == "critical":
+        return 3
+    if normalized == "warning":
+        return 2
+    if normalized == "ok":
+        return 1
+    return 0
+
+
+def _max_severity(*values: str | None) -> str:
+    ranked = sorted(values, key=_severity_rank, reverse=True)
+    return ranked[0] if ranked else "unknown"
+
+
+def _host_pct_severity(pct: float | int | None) -> str:
+    if pct is None:
+        return "unknown"
+    if pct >= 95:
+        return "critical"
+    if pct >= 85:
+        return "warning"
+    return "ok"
+
+
+def _host_load_severity(loadavg: str | None) -> tuple[str, float | None]:
+    try:
+        one_min = float(str(loadavg or "").split()[0])
+        cores = max(os.cpu_count() or 1, 1)
+        ratio = one_min / cores
+        if ratio >= 1.5:
+            return "critical", ratio
+        if ratio >= 1.0:
+            return "warning", ratio
+        return "ok", ratio
+    except Exception:
+        return "unknown", None
+
+
+def _read_probe_cache(instance_id: str) -> dict | None:
+    return _read_json(_probe_cache_path(instance_id))
+
+
+def _write_probe_cache(instance_id: str, payload: dict) -> None:
+    _write_json(_probe_cache_path(instance_id), payload)
 
 
 def _read_active_case_dir() -> Path | None:
@@ -629,6 +702,79 @@ def _parse_probe_output(stdout: str) -> dict:
     }
 
 
+def _probe_node_live(node: dict, *, timeout: int = 120) -> dict:
+    result = _run_remote_script_capture(node, PROBE_SCRIPT_PATH, timeout=timeout)
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr.strip() or result.stdout.strip() or f"Remote probe failed with exit code {result.returncode}")
+    probe = _parse_probe_output(result.stdout)
+    payload = {
+        "generated_at": _utc_now(),
+        "node": {
+            "id": node.get("id"),
+            "name": node.get("name"),
+            "role": node.get("role"),
+            "status": node.get("status"),
+            "ssh_target_ip": node.get("ssh_target_ip"),
+        },
+        "probe": probe,
+        "stdout": result.stdout,
+    }
+    _write_probe_cache(node["id"], payload)
+    return payload
+
+
+def _node_metrics_row(node: dict, probe_payload: dict | None, *, source: str, stale: bool, error: str | None = None) -> dict:
+    probe = (probe_payload or {}).get("probe") or {}
+    cpu = probe.get("cpu") or {}
+    memory = probe.get("memory") or {}
+    disk = probe.get("disk") or {}
+    cache_path = _probe_cache_path(node["id"])
+    age_seconds = _cache_age_seconds(cache_path)
+    generated_at = (probe_payload or {}).get("generated_at")
+    overall_severity = _max_severity(cpu.get("severity"), memory.get("severity"), disk.get("severity"))
+    if error and overall_severity == "unknown":
+        overall_severity = "critical"
+    return {
+        "id": node.get("id"),
+        "name": node.get("name"),
+        "role": node.get("role"),
+        "status": node.get("status"),
+        "ssh_target_ip": node.get("ssh_target_ip"),
+        "source": source,
+        "stale": bool(stale),
+        "error": error,
+        "generated_at": generated_at,
+        "cache_age_seconds": round(age_seconds, 2) if age_seconds is not None else None,
+        "cpu_usage_pct": cpu.get("usage_pct"),
+        "cpu_severity": cpu.get("severity", "unknown"),
+        "memory_usage_pct": memory.get("usage_pct"),
+        "memory_available_mb": memory.get("available_mb"),
+        "memory_severity": memory.get("severity", "unknown"),
+        "disk_root_use_pct": disk.get("root_use_pct"),
+        "disk_root_avail_bytes": disk.get("root_avail_bytes"),
+        "disk_severity": disk.get("severity", "unknown"),
+        "overall_severity": overall_severity,
+    }
+
+
+def _probe_cached_or_refresh(node: dict, *, refresh: bool, max_age_seconds: int) -> dict:
+    cache = _read_probe_cache(node["id"])
+    cache_path = _probe_cache_path(node["id"])
+    age_seconds = _cache_age_seconds(cache_path)
+    cache_fresh = cache is not None and age_seconds is not None and age_seconds <= max_age_seconds
+    if refresh and not cache_fresh:
+        try:
+            live = _probe_node_live(node)
+            return _node_metrics_row(node, live, source="live_probe", stale=False)
+        except Exception as exc:
+            if cache:
+                return _node_metrics_row(node, cache, source="stale_cache", stale=True, error=str(exc))
+            return _node_metrics_row(node, None, source="probe_failed", stale=True, error=str(exc))
+    if cache:
+        return _node_metrics_row(node, cache, source="cache", stale=not cache_fresh)
+    return _node_metrics_row(node, None, source="not_available", stale=True, error="No cached node metrics available yet.")
+
+
 def _parse_tooling_output(stdout: str) -> dict:
     values: dict[str, str] = {}
     sections: dict[str, list[str]] = {}
@@ -795,6 +941,252 @@ def _build_tooling_payload(node: dict) -> dict:
         "runtime": runtime,
         "runtime_error": runtime_error,
     }
+
+
+def _inventory_nodes_from_health_cache() -> list[dict]:
+    cached = _read_json(HEALTH_SUMMARY_CACHE_PATH) or {}
+    nodes = cached.get("inventory_nodes")
+    return nodes if isinstance(nodes, list) else []
+
+
+def _openstack_runtime_status(nodes: list[dict], error: str | None = None, *, cache_fallback: bool = False) -> dict:
+    if error:
+        return {
+            "state": "failed",
+            "status_label": "OpenStack API unavailable",
+            "inventory_loaded": False,
+            "cache_fallback": bool(cache_fallback),
+            "instance_count": len(nodes or []),
+            "message": "OpenStack inventory could not be loaded. Node Health is using the latest cached topology when available.",
+            "error": error,
+            "recommendation": "Restarting Keystone, Nova, Neutron, Glance or Horizon may recover the control plane if the failure persists.",
+        }
+    return {
+        "state": "completed",
+        "status_label": "OpenStack inventory loaded",
+        "inventory_loaded": True,
+        "cache_fallback": False,
+        "instance_count": len(nodes or []),
+        "message": "OpenStack control-plane inventory is reachable and the current node list loaded correctly.",
+        "error": None,
+        "recommendation": None,
+    }
+
+
+def _host_health_row(summary: dict) -> dict:
+    host = summary.get("host") or {}
+    mem_total = host.get("mem_total_mb")
+    mem_used = host.get("mem_used_mb")
+    mem_pct = round((float(mem_used) / float(mem_total)) * 100.0, 2) if mem_total and mem_used is not None else None
+    cpu_severity, load_ratio = _host_load_severity(host.get("loadavg"))
+    memory_severity = _host_pct_severity(mem_pct)
+    disk_pct = None
+    try:
+        disk_pct = float(str(host.get("root_use_pct") or "").replace("%", "").strip())
+    except Exception:
+        disk_pct = None
+    disk_severity = _host_pct_severity(disk_pct)
+    return {
+        "hostname": host.get("hostname", "not_available"),
+        "date_utc": host.get("date_utc", "not_available"),
+        "loadavg": host.get("loadavg", "not_available"),
+        "cpu_load_ratio": round(load_ratio, 3) if load_ratio is not None else None,
+        "cpu_severity": cpu_severity,
+        "mem_total_mb": mem_total,
+        "mem_used_mb": mem_used,
+        "mem_avail_mb": host.get("mem_avail_mb"),
+        "memory_usage_pct": mem_pct,
+        "memory_severity": memory_severity,
+        "root_total_bytes": host.get("root_total_bytes"),
+        "root_used_bytes": host.get("root_used_bytes"),
+        "root_avail_bytes": host.get("root_avail_bytes"),
+        "root_use_pct": host.get("root_use_pct"),
+        "disk_severity": disk_severity,
+        "overall_severity": _max_severity(cpu_severity, memory_severity, disk_severity),
+    }
+
+
+def _build_health_alerts(openstack_status: dict, host_row: dict, node_rows: list[dict]) -> list[dict]:
+    alerts: list[dict] = []
+
+    def push(alert_id: str, level: str, title: str, detail: str, scope: str, recommendation: str, target: str | None = None) -> None:
+        alerts.append(
+            {
+                "alert_id": alert_id,
+                "severity": level,
+                "scope": scope,
+                "target": target,
+                "title": title,
+                "detail": detail,
+                "recommendation": recommendation,
+                "generated_at": _utc_now(),
+            }
+        )
+
+    if openstack_status.get("state") != "completed":
+        push(
+            "health-openstack-api",
+            "critical",
+            "OpenStack control-plane inventory is unavailable",
+            openstack_status.get("error") or openstack_status.get("message") or "OpenStack API request failed.",
+            "openstack",
+            openstack_status.get("recommendation") or "Review Keystone and Nova service state, then retry inventory loading.",
+        )
+
+    if host_row.get("disk_severity") in {"warning", "critical"}:
+        push(
+            "health-host-disk",
+            host_row["disk_severity"],
+            "Host root filesystem pressure detected",
+            f"Host {host_row.get('hostname')} is using {host_row.get('root_use_pct', 'not_available')} of root storage.",
+            "host",
+            "Free host storage before launching additional forensic preservation or OpenStack workloads.",
+            target=host_row.get("hostname"),
+        )
+    if host_row.get("memory_severity") in {"warning", "critical"}:
+        push(
+            "health-host-memory",
+            host_row["memory_severity"],
+            "Host memory pressure detected",
+            f"Host {host_row.get('hostname')} has {host_row.get('mem_avail_mb', 'not_available')} MB available RAM.",
+            "host",
+            "Release memory-intensive workloads before starting additional heavy DFIR acquisition or scenario work.",
+            target=host_row.get("hostname"),
+        )
+    if host_row.get("cpu_severity") in {"warning", "critical"}:
+        push(
+            "health-host-cpu",
+            host_row["cpu_severity"],
+            "Host CPU load is elevated",
+            f"Host {host_row.get('hostname')} reports loadavg {host_row.get('loadavg', 'not_available')}.",
+            "host",
+            "Reduce concurrent load or wait for the host to stabilize before starting new preservation or OpenStack operations.",
+            target=host_row.get("hostname"),
+        )
+
+    for row in node_rows:
+        name = row.get("name") or row.get("id")
+        if row.get("error"):
+            if row.get("source") == "not_available":
+                continue
+            push(
+                f"health-node-unreachable-{row.get('id')}",
+                "critical",
+                "Node probe failed or no metrics are available",
+                f"Node {name} could not provide current health telemetry. Detail: {row.get('error')}",
+                "node",
+                "Open Node Health, verify SSH reachability, free space and OpenStack instance state before continuing.",
+                target=name,
+            )
+            continue
+        if row.get("disk_severity") in {"warning", "critical"}:
+            push(
+                f"health-node-disk-{row.get('id')}",
+                row["disk_severity"],
+                "Node root filesystem pressure detected",
+                f"Node {name} reports root usage {row.get('disk_root_use_pct', 'not_available')}%.",
+                "node",
+                "Free node storage before preserving new heavy artifacts or maintaining long-running security services.",
+                target=name,
+            )
+        if row.get("memory_severity") in {"warning", "critical"}:
+            push(
+                f"health-node-memory-{row.get('id')}",
+                row["memory_severity"],
+                "Node memory pressure detected",
+                f"Node {name} reports available memory {row.get('memory_available_mb', 'not_available')} MB.",
+                "node",
+                "Reduce workload pressure or clean long-lived analysis processes before continuing heavy acquisition.",
+                target=name,
+            )
+        if row.get("cpu_severity") in {"warning", "critical"}:
+            push(
+                f"health-node-cpu-{row.get('id')}",
+                row["cpu_severity"],
+                "Node CPU usage is elevated",
+                f"Node {name} reports CPU usage {row.get('cpu_usage_pct', 'not_available')}%.",
+                "node",
+                "Review the node process list from Node Health before launching additional tasks.",
+                target=name,
+            )
+    alerts.sort(key=lambda item: (_severity_rank(item.get("severity")), item.get("title", "")), reverse=True)
+    return alerts
+
+
+def _health_state_from_alerts(alerts: list[dict], openstack_status: dict) -> str:
+    if openstack_status.get("state") != "completed":
+        return "failed"
+    if any(alert.get("severity") == "critical" for alert in alerts):
+        return "failed"
+    if alerts:
+        return "partial"
+    return "completed"
+
+
+def build_node_health_summary(*, refresh_node_metrics: bool = False, max_probe_age_seconds: int = 180) -> dict:
+    inventory_error = None
+    cache_fallback = False
+    try:
+        nodes = _list_nodes()
+    except Exception as exc:
+        inventory_error = str(exc)
+        nodes = _inventory_nodes_from_health_cache()
+        cache_fallback = bool(nodes)
+
+    summary = _local_host_summary(nodes)
+    host_row = _host_health_row(summary)
+
+    node_rows: list[dict] = []
+    if nodes:
+        if refresh_node_metrics:
+            workers = max(1, min(4, len(nodes)))
+            with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="node-health-probe") as pool:
+                future_map = {
+                    pool.submit(_probe_cached_or_refresh, node, refresh=True, max_age_seconds=max_probe_age_seconds): node
+                    for node in nodes
+                }
+                for future in as_completed(future_map):
+                    node = future_map[future]
+                    try:
+                        node_rows.append(future.result())
+                    except Exception as exc:
+                        node_rows.append(_node_metrics_row(node, None, source="probe_failed", stale=True, error=str(exc)))
+            node_rows.sort(key=lambda row: row.get("name") or "")
+        else:
+            node_rows = [
+                _probe_cached_or_refresh(node, refresh=False, max_age_seconds=max_probe_age_seconds)
+                for node in nodes
+            ]
+
+    openstack_status = _openstack_runtime_status(nodes, inventory_error, cache_fallback=cache_fallback)
+    alerts = _build_health_alerts(openstack_status, host_row, node_rows)
+    payload = {
+        "generated_at": _utc_now(),
+        "overall_state": _health_state_from_alerts(alerts, openstack_status),
+        "openstack": openstack_status,
+        "host": host_row,
+        "nodes": node_rows,
+        "alerts": alerts,
+        "alert_count": len(alerts),
+        "inventory_nodes": nodes,
+        "artifacts": {
+            "health_summary_cache": _relative_repo_path(HEALTH_SUMMARY_CACHE_PATH),
+            "probe_cache_dir": _relative_repo_path(PROBE_CACHE_DIR),
+            "openstack_health_dir": _relative_repo_path(OPENSTACK_HEALTH_DIR),
+            "openstack_restart_script": _relative_repo_path(OPENSTACK_RESTART_SCRIPT_PATH),
+            "openstack_restart_jobs_dir": _relative_repo_path(OPENSTACK_RESTART_JOBS_DIR),
+        },
+    }
+    _write_json(HEALTH_SUMMARY_CACHE_PATH, payload)
+    return payload
+
+
+def _openstack_restart_job_dir(job_id: str) -> Path:
+    return OPENSTACK_RESTART_JOBS_DIR / _safe_slug(job_id)
+
+
+def _write_openstack_restart_status(job_dir: Path, payload: dict) -> None:
+    _write_json(job_dir / "status.json", payload)
 
 
 def _node_time_sync_summary(instance_id: str, node: dict | None = None) -> dict:
@@ -1059,16 +1451,23 @@ def node_health_view():
 
 @node_health_bp.route("/api/node-health/nodes", methods=["GET"])
 def node_health_nodes():
-    nodes = _list_nodes()
+    inventory_error = None
+    try:
+        nodes = _list_nodes()
+    except Exception as exc:
+        inventory_error = str(exc)
+        nodes = _inventory_nodes_from_health_cache()
     graph = _network_graph(nodes)
     summary = _local_host_summary(nodes)
     return jsonify(
         {
-            "generated_at": subprocess.run(["date", "-u", "+%Y-%m-%dT%H:%M:%SZ"], capture_output=True, text=True).stdout.strip(),
+            "generated_at": _utc_now(),
             "nodes": nodes,
             "graph": graph,
             "summary": summary,
             "count": len(nodes),
+            "inventory_state": "stale_fallback" if inventory_error else "completed",
+            "inventory_error": inventory_error,
         }
     )
 
@@ -1078,23 +1477,213 @@ def node_health_probe(instance_id: str):
     node = _find_node(instance_id)
     if not node:
         return jsonify({"error": f"Instance not found: {instance_id}"}), 404
-    result = _run_remote_script_capture(node, PROBE_SCRIPT_PATH, timeout=120)
-    if result.returncode != 0:
+    try:
+        payload = _probe_node_live(node, timeout=120)
+    except Exception as exc:
         return jsonify(
             {
                 "error": "Remote probe failed",
                 "node": node,
-                "stdout": result.stdout,
-                "stderr": result.stderr,
-                "returncode": result.returncode,
+                "detail": str(exc),
             }
         ), 500
     return jsonify(
         {
             "node": node,
-            "probe": _parse_probe_output(result.stdout),
-            "stdout": result.stdout,
+            "probe": payload["probe"],
+            "stdout": payload["stdout"],
+            "generated_at": payload["generated_at"],
         }
+    )
+
+
+@node_health_bp.route("/api/node-health/health-summary", methods=["GET"])
+def node_health_summary():
+    refresh = str(request.args.get("refresh", "0")).lower() in {"1", "true", "yes", "on"}
+    if not refresh:
+        cached = _read_json(HEALTH_SUMMARY_CACHE_PATH)
+        if isinstance(cached, dict) and cached:
+            return jsonify(cached)
+    try:
+        payload = build_node_health_summary(refresh_node_metrics=refresh)
+    except Exception as exc:
+        cached = _read_json(HEALTH_SUMMARY_CACHE_PATH) or {}
+        if cached:
+            cached["overall_state"] = "partial"
+            cached["generated_at"] = _utc_now()
+            cached["summary_error"] = str(exc)
+            return jsonify(cached), 200
+        return jsonify({"error": str(exc), "overall_state": "failed"}), 500
+    return jsonify(payload)
+
+
+@node_health_bp.route("/api/node-health/openstack/status", methods=["GET"])
+def node_health_openstack_status():
+    refresh = str(request.args.get("refresh", "0")).lower() in {"1", "true", "yes", "on"}
+    if not refresh:
+        cached = _read_json(HEALTH_SUMMARY_CACHE_PATH)
+        if isinstance(cached, dict) and cached:
+            payload = cached
+        else:
+            payload = build_node_health_summary(refresh_node_metrics=False)
+    else:
+        payload = build_node_health_summary(refresh_node_metrics=True)
+    return jsonify(
+        {
+            "generated_at": payload.get("generated_at"),
+            "overall_state": payload.get("overall_state"),
+            "openstack": payload.get("openstack"),
+            "alerts": payload.get("alerts", []),
+            "alert_count": payload.get("alert_count", 0),
+            "artifacts": payload.get("artifacts", {}),
+        }
+    )
+
+
+@node_health_bp.route("/api/node-health/alerts", methods=["GET"])
+def node_health_alerts():
+    refresh = str(request.args.get("refresh", "0")).lower() in {"1", "true", "yes", "on"}
+    limit_raw = request.args.get("limit")
+    try:
+        limit = int(limit_raw) if limit_raw is not None else None
+    except Exception:
+        limit = None
+    if not refresh:
+        cached = _read_json(HEALTH_SUMMARY_CACHE_PATH)
+        if isinstance(cached, dict) and cached:
+            payload = cached
+        else:
+            payload = build_node_health_summary(refresh_node_metrics=False)
+    else:
+        payload = build_node_health_summary(refresh_node_metrics=True)
+    alerts = list(payload.get("alerts") or [])
+    if limit and limit > 0:
+        alerts = alerts[:limit]
+    return jsonify(
+        {
+            "generated_at": payload.get("generated_at"),
+            "overall_state": payload.get("overall_state"),
+            "source_backend": "node_health",
+            "alerts": alerts,
+            "alert_count": len(payload.get("alerts") or []),
+            "preview_count": len(alerts),
+            "related_view_default": "node_health",
+        }
+    )
+
+
+@node_health_bp.route("/api/node-health/alerts/<alert_id>", methods=["GET"])
+def node_health_alert_detail(alert_id: str):
+    payload = _read_json(HEALTH_SUMMARY_CACHE_PATH)
+    if not isinstance(payload, dict) or not payload:
+        payload = build_node_health_summary(refresh_node_metrics=False)
+    for alert in (payload.get("alerts") or []):
+        if alert.get("alert_id") == alert_id:
+            return jsonify(
+                {
+                    "generated_at": payload.get("generated_at"),
+                    "source_backend": "node_health",
+                    "alert": {
+                        **alert,
+                        "related_view": "node_health",
+                        "related_action_label": "Open Node Health",
+                    },
+                    "openstack": payload.get("openstack"),
+                    "host": payload.get("host"),
+                }
+            )
+    return jsonify({"error": f"Health alert not found: {alert_id}"}), 404
+
+
+@node_health_bp.route("/api/node-health/openstack/restart/stream", methods=["GET"])
+def node_health_openstack_restart_stream():
+    job_id = f"openstack-restart-{uuid.uuid4().hex[:12]}"
+    job_dir = _openstack_restart_job_dir(job_id)
+    stdout_path = job_dir / "stdout.log"
+    stderr_path = job_dir / "stderr.log"
+    metadata_path = job_dir / "metadata.json"
+
+    def generate():
+        job_dir.mkdir(parents=True, exist_ok=True)
+        metadata = {
+            "job_id": job_id,
+            "generated_at": _utc_now(),
+            "script_path": _relative_repo_path(OPENSTACK_RESTART_SCRIPT_PATH),
+            "job_dir": _relative_repo_path(job_dir),
+            "purpose": "Restart OpenStack services from the Node Health dashboard when control-plane health is degraded.",
+        }
+        _write_json(metadata_path, metadata)
+        status = {
+            "job_id": job_id,
+            "status": "running",
+            "started_at": _utc_now(),
+            "completed_at": None,
+            "script_path": _relative_repo_path(OPENSTACK_RESTART_SCRIPT_PATH),
+            "job_dir": _relative_repo_path(job_dir),
+            "stdout_path": _relative_repo_path(stdout_path),
+            "stderr_path": _relative_repo_path(stderr_path),
+            "message": "Restarting OpenStack services from Node Health.",
+        }
+        _write_openstack_restart_status(job_dir, status)
+
+        if not OPENSTACK_RESTART_SCRIPT_PATH.exists():
+            status["status"] = "failed"
+            status["completed_at"] = _utc_now()
+            status["message"] = "OpenStack restart script not found."
+            _write_openstack_restart_status(job_dir, status)
+            yield "data: [ERROR] OpenStack restart script not found.\n\n"
+            yield "event: done\ndata: restart_failed\n\n"
+            return
+
+        yield f"data: [SYSTEM] job_id={job_id}\n\n"
+        yield f"data: [SYSTEM] script={_relative_repo_path(OPENSTACK_RESTART_SCRIPT_PATH)}\n\n"
+        try:
+            with stdout_path.open("w", encoding="utf-8") as stdout_fh, stderr_path.open("w", encoding="utf-8") as stderr_fh:
+                proc = subprocess.Popen(
+                    ["bash", str(OPENSTACK_RESTART_SCRIPT_PATH)],
+                    cwd=str(REPO_ROOT),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    bufsize=1,
+                )
+                assert proc.stdout is not None
+                for line in iter(proc.stdout.readline, ""):
+                    if not line:
+                        continue
+                    stdout_fh.write(line)
+                    stdout_fh.flush()
+                    yield f"data: {line.rstrip()}\n\n"
+                rc = proc.wait()
+            status["completed_at"] = _utc_now()
+            status["returncode"] = rc
+            status["status"] = "completed" if rc == 0 else "failed"
+            status["message"] = (
+                "OpenStack services restart completed."
+                if rc == 0
+                else "OpenStack services restart failed. Review stdout/stderr logs from the Node Health runtime job."
+            )
+            _write_openstack_restart_status(job_dir, status)
+            yield f"data: [EXIT CODE] {rc}\n\n"
+            yield "event: done\ndata: restart_finished\n\n"
+        except Exception as exc:
+            stderr_path.parent.mkdir(parents=True, exist_ok=True)
+            stderr_path.write_text(str(exc), encoding="utf-8")
+            status["status"] = "failed"
+            status["completed_at"] = _utc_now()
+            status["message"] = str(exc)
+            _write_openstack_restart_status(job_dir, status)
+            yield f"data: [ERROR] {str(exc)}\n\n"
+            yield "event: done\ndata: restart_failed\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
 
 

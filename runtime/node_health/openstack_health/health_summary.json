@@ -1,0 +1,563 @@
+{
+  "generated_at": "2026-06-30T11:04:02.244060Z",
+  "overall_state": "failed",
+  "openstack": {
+    "state": "completed",
+    "status_label": "OpenStack inventory loaded",
+    "inventory_loaded": true,
+    "cache_fallback": false,
+    "instance_count": 5,
+    "message": "OpenStack control-plane inventory is reachable and the current node list loaded correctly.",
+    "error": null,
+    "recommendation": null
+  },
+  "host": {
+    "hostname": "nics-lab-VMware20-1",
+    "date_utc": "2026-06-30T11:04:02Z",
+    "loadavg": "13.23 14.41 13.84",
+    "cpu_load_ratio": 1.654,
+    "cpu_severity": "critical",
+    "mem_total_mb": 64303,
+    "mem_used_mb": 41492,
+    "mem_avail_mb": 22811,
+    "memory_usage_pct": 64.53,
+    "memory_severity": "ok",
+    "root_total_bytes": 420495998976,
+    "root_used_bytes": 251294281728,
+    "root_avail_bytes": 149916491776,
+    "root_use_pct": "63%",
+    "disk_severity": "ok",
+    "overall_severity": "critical"
+  },
+  "nodes": [
+    {
+      "id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "name": "FUXA_Instance",
+      "role": "scada",
+      "status": "ACTIVE",
+      "ssh_target_ip": "10.0.2.9",
+      "source": "cache",
+      "stale": false,
+      "error": null,
+      "generated_at": "2026-06-30T11:02:59.357476Z",
+      "cache_age_seconds": 62.88,
+      "cpu_usage_pct": 13.3,
+      "cpu_severity": "ok",
+      "memory_usage_pct": 39.08,
+      "memory_available_mb": 388,
+      "memory_severity": "ok",
+      "disk_root_use_pct": 88,
+      "disk_root_avail_bytes": 1305485312,
+      "disk_severity": "warning",
+      "overall_severity": "warning"
+    },
+    {
+      "id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
+      "name": "PLC_Instance",
+      "role": "plc",
+      "status": "ACTIVE",
+      "ssh_target_ip": "10.0.2.22",
+      "source": "cache",
+      "stale": false,
+      "error": null,
+      "generated_at": "2026-06-30T11:03:23.090878Z",
+      "cache_age_seconds": 39.15,
+      "cpu_usage_pct": 87.5,
+      "cpu_severity": "warning",
+      "memory_usage_pct": 33.44,
+      "memory_available_mb": 463,
+      "memory_severity": "ok",
+      "disk_root_use_pct": 73,
+      "disk_root_avail_bytes": 2792230912,
+      "disk_severity": "ok",
+      "overall_severity": "warning"
+    },
+    {
+      "id": "fd472bac-f010-4bf9-9a15-89e95998f4f1",
+      "name": "attack 2",
+      "role": "attacker",
+      "status": "ACTIVE",
+      "ssh_target_ip": "10.0.2.214",
+      "source": "cache",
+      "stale": false,
+      "error": null,
+      "generated_at": "2026-06-30T11:02:57.568082Z",
+      "cache_age_seconds": 64.67,
+      "cpu_usage_pct": 100.0,
+      "cpu_severity": "critical",
+      "memory_usage_pct": 20.01,
+      "memory_available_mb": 1583,
+      "memory_severity": "ok",
+      "disk_root_use_pct": 21,
+      "disk_root_avail_bytes": 15995076608,
+      "disk_severity": "ok",
+      "overall_severity": "critical"
+    },
+    {
+      "id": "995d7668-24d6-4d21-92fe-83fdf61cdc05",
+      "name": "monitor 1",
+      "role": "monitor",
+      "status": "ACTIVE",
+      "ssh_target_ip": "10.0.2.136",
+      "source": "cache",
+      "stale": false,
+      "error": null,
+      "generated_at": "2026-06-30T11:03:00.263683Z",
+      "cache_age_seconds": 61.98,
+      "cpu_usage_pct": 9.5,
+      "cpu_severity": "ok",
+      "memory_usage_pct": 14.14,
+      "memory_available_mb": 6502,
+      "memory_severity": "ok",
+      "disk_root_use_pct": 16,
+      "disk_root_avail_bytes": 70179844096,
+      "disk_severity": "ok",
+      "overall_severity": "ok"
+    },
+    {
+      "id": "16583180-627d-4c40-bd65-aa9db704d75c",
+      "name": "victim 3",
+      "role": "victim",
+      "status": "ACTIVE",
+      "ssh_target_ip": "10.0.2.172",
+      "source": "cache",
+      "stale": false,
+      "error": null,
+      "generated_at": "2026-06-30T11:02:58.259284Z",
+      "cache_age_seconds": 63.98,
+      "cpu_usage_pct": 100.0,
+      "cpu_severity": "critical",
+      "memory_usage_pct": 18.8,
+      "memory_available_mb": 1607,
+      "memory_severity": "ok",
+      "disk_root_use_pct": 42,
+      "disk_root_avail_bytes": 11726802944,
+      "disk_severity": "ok",
+      "overall_severity": "critical"
+    }
+  ],
+  "alerts": [
+    {
+      "alert_id": "health-node-cpu-fd472bac-f010-4bf9-9a15-89e95998f4f1",
+      "severity": "critical",
+      "scope": "node",
+      "target": "attack 2",
+      "title": "Node CPU usage is elevated",
+      "detail": "Node attack 2 reports CPU usage 100.0%.",
+      "recommendation": "Review the node process list from Node Health before launching additional tasks.",
+      "generated_at": "2026-06-30T11:04:02.244040Z"
+    },
+    {
+      "alert_id": "health-node-cpu-16583180-627d-4c40-bd65-aa9db704d75c",
+      "severity": "critical",
+      "scope": "node",
+      "target": "victim 3",
+      "title": "Node CPU usage is elevated",
+      "detail": "Node victim 3 reports CPU usage 100.0%.",
+      "recommendation": "Review the node process list from Node Health before launching additional tasks.",
+      "generated_at": "2026-06-30T11:04:02.244047Z"
+    },
+    {
+      "alert_id": "health-host-cpu",
+      "severity": "critical",
+      "scope": "host",
+      "target": "nics-lab-VMware20-1",
+      "title": "Host CPU load is elevated",
+      "detail": "Host nics-lab-VMware20-1 reports loadavg 13.23 14.41 13.84.",
+      "recommendation": "Reduce concurrent load or wait for the host to stabilize before starting new preservation or OpenStack operations.",
+      "generated_at": "2026-06-30T11:04:02.243988Z"
+    },
+    {
+      "alert_id": "health-node-disk-a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "severity": "warning",
+      "scope": "node",
+      "target": "FUXA_Instance",
+      "title": "Node root filesystem pressure detected",
+      "detail": "Node FUXA_Instance reports root usage 88%.",
+      "recommendation": "Free node storage before preserving new heavy artifacts or maintaining long-running security services.",
+      "generated_at": "2026-06-30T11:04:02.244016Z"
+    },
+    {
+      "alert_id": "health-node-cpu-8c0c86c9-2c69-424b-9080-f6c07d798787",
+      "severity": "warning",
+      "scope": "node",
+      "target": "PLC_Instance",
+      "title": "Node CPU usage is elevated",
+      "detail": "Node PLC_Instance reports CPU usage 87.5%.",
+      "recommendation": "Review the node process list from Node Health before launching additional tasks.",
+      "generated_at": "2026-06-30T11:04:02.244033Z"
+    }
+  ],
+  "alert_count": 5,
+  "inventory_nodes": [
+    {
+      "id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "name": "FUXA_Instance",
+      "status": "ACTIVE",
+      "role": "scada",
+      "os": "Ubuntu Linux",
+      "image_name": "ubuntu-22.04",
+      "ssh_user": "ubuntu",
+      "ip_private": "192.168.100.28",
+      "ip_floating": "10.0.2.9",
+      "ssh_target_ip": "10.0.2.9",
+      "networks": [
+        {
+          "network": "net_private_01",
+          "ip": "192.168.100.28",
+          "type": "fixed",
+          "mac": "fa:16:3e:26:0c:58"
+        },
+        {
+          "network": "net_private_01",
+          "ip": "10.0.2.9",
+          "type": "floating",
+          "mac": "fa:16:3e:26:0c:58"
+        }
+      ],
+      "availability_zone": "nova",
+      "flavor": "FUXA_FALVOR",
+      "tool_inventory": {
+        "source_files": [
+          "tools-installer-tmp/fuxa_instance_tools.json",
+          "tools-installer/installed/a495cfe7-b55b-41d0-95bf-78f9093f7fe2.json"
+        ],
+        "tools": [
+          {
+            "id": "wazuh_agent",
+            "display_name": "Wazuh Agent",
+            "category": "agent",
+            "inventory_status": "installed",
+            "installed_at": "2026-06-21 21:43:11",
+            "expected_artifacts": []
+          },
+          {
+            "id": "suricata",
+            "display_name": "Suricata IDS",
+            "category": "ids",
+            "inventory_status": "installed",
+            "installed_at": "2026-06-21 21:43:11",
+            "expected_artifacts": []
+          }
+        ],
+        "counts": {
+          "agent": 1,
+          "ids": 1
+        },
+        "total": 2
+      }
+    },
+    {
+      "id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
+      "name": "PLC_Instance",
+      "status": "ACTIVE",
+      "role": "plc",
+      "os": "Ubuntu Linux",
+      "image_name": "ubuntu-22.04",
+      "ssh_user": "ubuntu",
+      "ip_private": "192.168.100.252",
+      "ip_floating": "10.0.2.22",
+      "ssh_target_ip": "10.0.2.22",
+      "networks": [
+        {
+          "network": "net_private_01",
+          "ip": "192.168.100.252",
+          "type": "fixed",
+          "mac": "fa:16:3e:99:f8:f8"
+        },
+        {
+          "network": "net_private_01",
+          "ip": "10.0.2.22",
+          "type": "floating",
+          "mac": "fa:16:3e:99:f8:f8"
+        }
+      ],
+      "availability_zone": "nova",
+      "flavor": "PLC_FLAVOR",
+      "tool_inventory": {
+        "source_files": [
+          "tools-installer-tmp/plc_instance_tools.json",
+          "tools-installer/installed/8c0c86c9-2c69-424b-9080-f6c07d798787.json"
+        ],
+        "tools": [
+          {
+            "id": "wazuh_agent",
+            "display_name": "Wazuh Agent",
+            "category": "agent",
+            "inventory_status": "installed",
+            "installed_at": "2026-06-14 22:57:25",
+            "expected_artifacts": []
+          },
+          {
+            "id": "wazuh_fim_realtime",
+            "display_name": "Wazuh FIM Realtime",
+            "category": "fim",
+            "inventory_status": "installed",
+            "installed_at": "2026-06-14 22:57:25",
+            "expected_artifacts": [
+              "/var/ossec/etc/ossec.conf"
+            ]
+          },
+          {
+            "id": "suricata",
+            "display_name": "Suricata IDS",
+            "category": "ids",
+            "inventory_status": "installed",
+            "installed_at": "2026-06-14 22:57:25",
+            "expected_artifacts": []
+          },
+          {
+            "id": "rollback_wazuh_suricata_integration",
+            "display_name": "Wazuh-Suricata Integration",
+            "category": "integration",
+            "inventory_status": "installed",
+            "installed_at": "2026-06-14 22:57:25",
+            "expected_artifacts": [
+              "/var/ossec/etc/ossec.conf",
+              "/var/ossec/logs/ossec.log"
+            ]
+          },
+          {
+            "id": "rollback_suricata_modbus_register_detection",
+            "display_name": "Suricata Modbus Register Rules",
+            "category": "rule_pack",
+            "inventory_status": "installed",
+            "installed_at": "2026-06-14 22:57:25",
+            "expected_artifacts": [
+              "nics-modbus-register-manipulation.rules"
+            ]
+          },
+          {
+            "id": "rollback_suricata_ping_detection",
+            "display_name": "Suricata Ping Detection Rules",
+            "category": "rule_pack",
+            "inventory_status": "installed",
+            "installed_at": "2026-06-14 22:57:25",
+            "expected_artifacts": [
+              "nics-ping.rules"
+            ]
+          }
+        ],
+        "counts": {
+          "agent": 1,
+          "fim": 1,
+          "ids": 1,
+          "integration": 1,
+          "rule_pack": 2
+        },
+        "total": 6
+      }
+    },
+    {
+      "id": "16583180-627d-4c40-bd65-aa9db704d75c",
+      "name": "victim 3",
+      "status": "ACTIVE",
+      "role": "victim",
+      "os": "Debian Linux",
+      "image_name": "debian-12",
+      "ssh_user": "debian",
+      "ip_private": "192.168.100.164",
+      "ip_floating": "10.0.2.172",
+      "ssh_target_ip": "10.0.2.172",
+      "networks": [
+        {
+          "network": "net_private_01",
+          "ip": "192.168.100.164",
+          "type": "fixed",
+          "mac": "fa:16:3e:0a:3e:ae"
+        },
+        {
+          "network": "net_private_01",
+          "ip": "10.0.2.172",
+          "type": "floating",
+          "mac": "fa:16:3e:0a:3e:ae"
+        }
+      ],
+      "availability_zone": "nova",
+      "flavor": "T_1CPU_2GB",
+      "tool_inventory": {
+        "source_files": [
+          "tools-installer-tmp/victim_3_tools.json",
+          "tools-installer/installed/16583180-627d-4c40-bd65-aa9db704d75c.json"
+        ],
+        "tools": [
+          {
+            "id": "caldera_agent",
+            "display_name": "Caldera Agent",
+            "category": "agent",
+            "inventory_status": "installed",
+            "installed_at": "2026-03-27 12:48:00",
+            "expected_artifacts": []
+          },
+          {
+            "id": "wazuh_agent",
+            "display_name": "Wazuh Agent",
+            "category": "agent",
+            "inventory_status": "installed",
+            "installed_at": "2026-03-27 12:48:00",
+            "expected_artifacts": []
+          },
+          {
+            "id": "suricata",
+            "display_name": "Suricata IDS",
+            "category": "ids",
+            "inventory_status": "installed",
+            "installed_at": "2026-03-27 12:48:00",
+            "expected_artifacts": []
+          },
+          {
+            "id": "nmap",
+            "display_name": "Nmap",
+            "category": "other",
+            "inventory_status": "installed",
+            "installed_at": "2026-03-27 12:48:00",
+            "expected_artifacts": []
+          }
+        ],
+        "counts": {
+          "agent": 2,
+          "ids": 1,
+          "other": 1
+        },
+        "total": 4
+      }
+    },
+    {
+      "id": "fd472bac-f010-4bf9-9a15-89e95998f4f1",
+      "name": "attack 2",
+      "status": "ACTIVE",
+      "role": "attacker",
+      "os": "Debian Linux",
+      "image_name": "debian-12",
+      "ssh_user": "debian",
+      "ip_private": "192.168.100.5",
+      "ip_floating": "10.0.2.214",
+      "ssh_target_ip": "10.0.2.214",
+      "networks": [
+        {
+          "network": "net_private_01",
+          "ip": "192.168.100.5",
+          "type": "fixed",
+          "mac": "fa:16:3e:1f:d2:fd"
+        },
+        {
+          "network": "net_private_01",
+          "ip": "10.0.2.214",
+          "type": "floating",
+          "mac": "fa:16:3e:1f:d2:fd"
+        }
+      ],
+      "availability_zone": "nova",
+      "flavor": "T_1CPU_2GB",
+      "tool_inventory": {
+        "source_files": [
+          "tools-installer-tmp/attack_2_tools.json",
+          "tools-installer/installed/fd472bac-f010-4bf9-9a15-89e95998f4f1.json"
+        ],
+        "tools": [
+          {
+            "id": "caldera_ot_plugins",
+            "display_name": "Caldera OT Plugins",
+            "category": "orchestrator",
+            "inventory_status": "installed",
+            "installed_at": "2026-03-24 15:01:26",
+            "expected_artifacts": []
+          },
+          {
+            "id": "caldera",
+            "display_name": "MITRE Caldera",
+            "category": "orchestrator",
+            "inventory_status": "installed",
+            "installed_at": "2026-03-24 15:01:26",
+            "expected_artifacts": []
+          },
+          {
+            "id": "mbpoll",
+            "display_name": "mbpoll",
+            "category": "other",
+            "inventory_status": "installed",
+            "installed_at": "2026-03-24 15:01:26",
+            "expected_artifacts": []
+          },
+          {
+            "id": "nmap",
+            "display_name": "Nmap",
+            "category": "other",
+            "inventory_status": "installed",
+            "installed_at": "2026-03-24 15:01:26",
+            "expected_artifacts": []
+          }
+        ],
+        "counts": {
+          "orchestrator": 2,
+          "other": 2
+        },
+        "total": 4
+      }
+    },
+    {
+      "id": "995d7668-24d6-4d21-92fe-83fdf61cdc05",
+      "name": "monitor 1",
+      "status": "ACTIVE",
+      "role": "monitor",
+      "os": "Ubuntu Linux",
+      "image_name": "ubuntu-22.04",
+      "ssh_user": "ubuntu",
+      "ip_private": "192.168.100.139",
+      "ip_floating": "10.0.2.136",
+      "ssh_target_ip": "10.0.2.136",
+      "networks": [
+        {
+          "network": "net_private_01",
+          "ip": "192.168.100.139",
+          "type": "fixed",
+          "mac": "fa:16:3e:6e:b6:65"
+        },
+        {
+          "network": "net_private_01",
+          "ip": "10.0.2.136",
+          "type": "floating",
+          "mac": "fa:16:3e:6e:b6:65"
+        }
+      ],
+      "availability_zone": "nova",
+      "flavor": "M_4CPU_8GB",
+      "tool_inventory": {
+        "source_files": [
+          "tools-installer-tmp/monitor_1_tools.json",
+          "tools-installer/installed/995d7668-24d6-4d21-92fe-83fdf61cdc05.json"
+        ],
+        "tools": [
+          {
+            "id": "nmap",
+            "display_name": "Nmap",
+            "category": "other",
+            "inventory_status": "installed",
+            "installed_at": "2026-04-07 13:02:54",
+            "expected_artifacts": []
+          },
+          {
+            "id": "wazuh",
+            "display_name": "Wazuh Manager",
+            "category": "siem",
+            "inventory_status": "installed",
+            "installed_at": "2026-01-23 10:25:14",
+            "expected_artifacts": []
+          }
+        ],
+        "counts": {
+          "other": 1,
+          "siem": 1
+        },
+        "total": 2
+      }
+    }
+  ],
+  "artifacts": {
+    "health_summary_cache": "runtime/node_health/openstack_health/health_summary.json",
+    "probe_cache_dir": "runtime/node_health/probe_cache",
+    "openstack_health_dir": "app_core/infrastructure/node_health/openstack_health",
+    "openstack_restart_script": "app_core/infrastructure/node_health/openstack_health/restart_openstack_services.sh",
+    "openstack_restart_jobs_dir": "runtime/node_health/openstack_health/restart_jobs"
+  }
+}

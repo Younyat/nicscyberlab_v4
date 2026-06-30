@@ -87,6 +87,9 @@
     grid-template-columns: 330px 1fr auto;
     gap: 14px;
     align-items: stretch;
+    position: relative;
+    z-index: 4000;
+    overflow: visible;
   }
 
   .brand-card,
@@ -226,6 +229,13 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    position: relative;
+    z-index: 4010;
+    overflow: visible;
+  }
+  #theme-switcher-mount {
+    position: relative;
+    z-index: 4020;
   }
 
   .lang-card select {
@@ -829,6 +839,71 @@
     font-size: 11px;
     font-weight: 700;
   }
+  .health-note-bar {
+    margin-top: 14px;
+    border: 1px solid rgba(248, 113, 113, 0.24);
+    background:
+      linear-gradient(135deg, rgba(127, 29, 29, 0.12), rgba(3, 10, 23, 0.9)),
+      rgba(3, 10, 23, 0.92);
+    border-radius: 18px;
+    padding: 12px 14px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 14px;
+    align-items: center;
+    cursor: pointer;
+    transition: border-color 180ms ease, transform 180ms ease;
+  }
+  .health-note-bar:hover {
+    border-color: rgba(248, 113, 113, 0.42);
+    transform: translateY(-1px);
+  }
+  .health-note-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: #f87171;
+    box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.42);
+    animation: pulseAlert 2s infinite;
+  }
+  .health-note-title {
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: rgba(226, 232, 240, 0.76);
+  }
+  .health-note-body strong {
+    display: block;
+    color: rgba(248, 250, 252, 0.96);
+    font-size: 13px;
+    font-weight: 900;
+  }
+  .health-note-body span {
+    display: block;
+    margin-top: 4px;
+    color: rgba(148, 163, 184, 0.84);
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .health-note-meta {
+    text-align: right;
+  }
+  .health-note-meta strong {
+    display: block;
+    color: rgba(248, 250, 252, 0.96);
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .health-note-meta span {
+    display: block;
+    margin-top: 4px;
+    color: rgba(148, 163, 184, 0.82);
+    font-size: 11px;
+    font-weight: 700;
+  }
 
   .donut {
     width: 110px;
@@ -1050,6 +1125,82 @@
     flex-direction: column;
     gap: 12px;
     pointer-events: none;
+  }
+  .health-bell-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    z-index: 4025;
+  }
+  .health-bell-btn {
+    position: relative;
+    width: 46px;
+    height: 46px;
+    border-radius: 16px;
+    border: 1px solid rgba(248, 113, 113, 0.24);
+    background: linear-gradient(180deg, rgba(127,29,29,0.18), rgba(2,8,23,0.72));
+    color: rgba(254, 202, 202, 0.96);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 900;
+    cursor: pointer;
+  }
+  .health-bell-btn.has-unread {
+    box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.18), 0 0 22px rgba(239, 68, 68, 0.18);
+  }
+  .health-bell-count {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #ef4444;
+    color: white;
+    font-size: 11px;
+    font-weight: 900;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(2,8,23,0.92);
+  }
+  .health-bell-count.visible {
+    display: inline-flex;
+  }
+  .health-bell-panel {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 0;
+    width: 420px;
+    max-width: min(92vw, 420px);
+    border-radius: 22px;
+    border: 1px solid rgba(248, 113, 113, 0.22);
+    background: rgba(2, 8, 23, 0.94);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 28px 80px rgba(0,0,0,0.42);
+    padding: 14px;
+    display: none;
+    z-index: 35000;
+  }
+  .health-bell-panel.open {
+    display: block;
+  }
+  .health-bell-item {
+    width: 100%;
+    border: 1px solid rgba(148,163,184,0.14);
+    border-radius: 16px;
+    background: rgba(15,23,42,0.68);
+    padding: 12px;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .health-bell-item.unread {
+    border-color: rgba(248,113,113,0.28);
+    background: rgba(127,29,29,0.12);
   }
 
   .rt-toast {
@@ -1649,6 +1800,24 @@
       </div>
 
       <div class="lang-card">
+        <div class="health-bell-wrap">
+          <button id="healthAlertBell" type="button" class="health-bell-btn" aria-label="Open health alerts" title="Open health alerts">🔔</button>
+          <span id="healthAlertBellCount" class="health-bell-count">0</span>
+          <div id="healthAlertBellPanel" class="health-bell-panel">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <div class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Health Alerts</div>
+                <div id="healthBellPanelTitle" class="mt-2 text-lg font-black text-white">No unread health alerts</div>
+              </div>
+              <button id="healthBellMarkRead" type="button" class="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-[11px] font-black uppercase tracking-[0.2em] text-red-200">Mark Read</button>
+            </div>
+            <div id="healthBellPreview" class="mt-4 space-y-3"></div>
+            <div class="mt-4 flex flex-wrap gap-3">
+              <button id="healthBellOpenCenter" type="button" class="rounded-xl border border-sky-500/40 bg-sky-500/10 px-4 py-2 text-sm font-black text-sky-200 hover:bg-sky-500/20">More Details</button>
+              <button id="healthBellOpenNodeHealth" type="button" class="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-black text-white hover:border-sky-500/60">Open Node Health</button>
+            </div>
+          </div>
+        </div>
         <div id="theme-switcher-mount"></div>
         <select onchange="changeLang(this.value)">
           <option value="es" class="bg-slate-900">ESPAÑOL</option>
@@ -1817,6 +1986,20 @@
             <div class="live-alert-meta">
               <strong id="live-alert-source">Unknown</strong>
               <span id="live-alert-time">--</span>
+            </div>
+          </div>
+          <div id="openstack-health-note" class="health-note-bar" role="button" tabindex="0" onclick="openView('node_health')">
+            <div class="live-alert-head">
+              <span class="health-note-dot"></span>
+              <div class="health-note-title">OpenStack Health</div>
+            </div>
+            <div class="health-note-body">
+              <strong id="openstack-health-title">Node health telemetry not loaded yet</strong>
+              <span id="openstack-health-detail">Click to open Node Health and inspect OpenStack services, host pressure and per-node resource state.</span>
+            </div>
+            <div class="health-note-meta">
+              <strong id="openstack-health-source">Unknown</strong>
+              <span id="openstack-health-time">--</span>
             </div>
           </div>
         </section>
@@ -3256,8 +3439,124 @@
       time.textContent = briefTime || "--";
     }
 
+    const HEALTH_ALERT_READ_KEY = "nics-health-alerts-read";
+    const HEALTH_ALERT_FOCUS_KEY = "nics-health-alert-focus";
+    let homeHealthAlertCache = [];
+
+    function homeLoadHealthReadSet() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(HEALTH_ALERT_READ_KEY) || "[]");
+        return new Set(Array.isArray(parsed) ? parsed : []);
+      } catch {
+        return new Set();
+      }
+    }
+
+    function homeSaveHealthReadSet(set) {
+      try {
+        localStorage.setItem(HEALTH_ALERT_READ_KEY, JSON.stringify([...set]));
+      } catch {}
+    }
+
+    function homeMarkHealthRead(ids) {
+      const read = homeLoadHealthReadSet();
+      (ids || []).forEach(id => {
+        if (id) read.add(id);
+      });
+      homeSaveHealthReadSet(read);
+    }
+
+    function homeRenderHealthBell(alerts) {
+      homeHealthAlertCache = Array.isArray(alerts) ? alerts : [];
+      const bell = document.getElementById("healthAlertBell");
+      const count = document.getElementById("healthAlertBellCount");
+      const panel = document.getElementById("healthAlertBellPanel");
+      const title = document.getElementById("healthBellPanelTitle");
+      const preview = document.getElementById("healthBellPreview");
+      if (!bell || !count || !panel || !title || !preview) return;
+
+      const read = homeLoadHealthReadSet();
+      const unread = homeHealthAlertCache.filter(alert => !read.has(alert.alert_id));
+      count.textContent = String(unread.length);
+      count.classList.toggle("visible", unread.length > 0);
+      bell.classList.toggle("has-unread", unread.length > 0);
+      title.textContent = unread.length
+        ? `${unread.length} unread health alert${unread.length === 1 ? "" : "s"}`
+        : "No unread health alerts";
+
+      const shown = homeHealthAlertCache.slice(0, 5);
+      preview.innerHTML = shown.length ? shown.map(alert => {
+        const isUnread = !read.has(alert.alert_id);
+        return `
+          <button type="button" data-alert-id="${rtEscape(alert.alert_id || "")}" class="health-bell-item ${isUnread ? "unread" : ""}">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span class="panel-status ${homeStatusClass(String(alert.severity || "unknown").toLowerCase() === "critical" ? "failed" : "partial")}">${rtEscape(homeDisplayStatus(alert.severity || "unknown"))}</span>
+              <span style="font-size:10px;color:rgba(148,163,184,0.78);text-transform:uppercase;letter-spacing:.16em;">${rtEscape(alert.scope || "health")}</span>
+              ${isUnread ? `<span style="font-size:10px;color:#fecaca;text-transform:uppercase;letter-spacing:.16em;font-weight:900;">NEW</span>` : ""}
+            </div>
+            <div style="margin-top:8px;font-weight:900;color:rgba(248,250,252,0.96);">${rtEscape(alert.title || "Health alert")}</div>
+            <div style="margin-top:6px;font-size:11px;color:rgba(148,163,184,0.82);">${rtEscape(alert.target || "platform")} · ${rtEscape(alert.generated_at || "--")}</div>
+          </button>
+        `;
+      }).join("") : `<div class="panel-empty">No recent health alerts are available.</div>`;
+
+      preview.querySelectorAll(".health-bell-item").forEach(item => {
+        item.addEventListener("click", () => {
+          const alertId = item.dataset.alertId;
+          if (alertId) {
+            localStorage.setItem(HEALTH_ALERT_FOCUS_KEY, alertId);
+            homeMarkHealthRead([alertId]);
+          }
+          panel.classList.remove("open");
+          openView("health_alerts");
+        });
+      });
+    }
+
+    function homeRenderNodeHealth(summary) {
+      const nodeStateEl = document.getElementById("wf-node-health");
+      const title = document.getElementById("openstack-health-title");
+      const detail = document.getElementById("openstack-health-detail");
+      const source = document.getElementById("openstack-health-source");
+      const time = document.getElementById("openstack-health-time");
+      const note = document.getElementById("openstack-health-note");
+      if (nodeStateEl) {
+        const state = summary?.overall_state || "unknown";
+        nodeStateEl.textContent = homeDisplayStatus(state);
+        nodeStateEl.className = `side-state ${homeStatusClass(state === "completed" ? "completed" : (state === "partial" ? "partial" : "failed"))}`;
+      }
+      if (!title || !detail || !source || !time || !note) return;
+
+      const openstack = summary?.openstack || {};
+      const alerts = Array.isArray(summary?.alerts) ? summary.alerts : [];
+      const topAlert = alerts[0] || null;
+      const state = summary?.overall_state || "unknown";
+      title.textContent = openstack.status_label || "OpenStack and node health state unavailable";
+      detail.textContent = topAlert
+        ? `${topAlert.title} | ${topAlert.detail}`
+        : (openstack.message || "No current OpenStack or resource health alert is active.");
+      source.textContent = openstack.inventory_loaded ? "Node Health OK" : "Node Health Degraded";
+      time.textContent = summary?.generated_at || "--";
+      note.style.borderColor = state === "completed" ? "rgba(16,185,129,0.24)" : "rgba(248,113,113,0.24)";
+      note.style.background = state === "completed"
+        ? "linear-gradient(135deg, rgba(6,78,59,0.12), rgba(3,10,23,0.9)), rgba(3,10,23,0.92)"
+        : "linear-gradient(135deg, rgba(127,29,29,0.12), rgba(3,10,23,0.9)), rgba(3,10,23,0.92)";
+      homeRenderHealthBell(alerts);
+    }
+
+    async function refreshHomeNodeHealth(force = false) {
+      if (!force && document.hidden) return;
+      try {
+        const payload = await homeFetchJson(`/api/node-health/health-summary${force ? "?refresh=1" : ""}`);
+        homeRenderNodeHealth(payload);
+      } catch (_) {
+        // Preserve previous health note state if summary refresh fails.
+      }
+    }
+
     const HOME_FULL_REFRESH_MS = 45000;
     const HOME_ALERT_REFRESH_MS = 12000;
+    const HOME_HEALTH_REFRESH_MS = 30000;
     let homeSummaryInFlight = false;
     const EXP_JOB_STORAGE_KEY = "nics-foc-experimentation-active-job";
     let expJobPollTimer = null;
@@ -3371,6 +3670,43 @@
       });
       expPollIndicator().catch(() => {});
       expJobPollTimer = setInterval(() => expPollIndicator().catch(() => {}), 2500);
+    }
+
+    function homeInitHealthBell() {
+      const bell = document.getElementById("healthAlertBell");
+      const panel = document.getElementById("healthAlertBellPanel");
+      const markRead = document.getElementById("healthBellMarkRead");
+      const openCenter = document.getElementById("healthBellOpenCenter");
+      const openNodeHealth = document.getElementById("healthBellOpenNodeHealth");
+      if (!bell || !panel) return;
+
+      bell.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        panel.classList.toggle("open");
+      });
+      document.addEventListener("click", (ev) => {
+        if (!panel.contains(ev.target) && ev.target !== bell) {
+          panel.classList.remove("open");
+        }
+      });
+      if (markRead) {
+        markRead.addEventListener("click", () => {
+          homeMarkHealthRead(homeHealthAlertCache.map(alert => alert.alert_id));
+          homeRenderHealthBell(homeHealthAlertCache);
+        });
+      }
+      if (openCenter) {
+        openCenter.addEventListener("click", () => {
+          panel.classList.remove("open");
+          openView("health_alerts");
+        });
+      }
+      if (openNodeHealth) {
+        openNodeHealth.addEventListener("click", () => {
+          panel.classList.remove("open");
+          openView("node_health");
+        });
+      }
     }
 
     function homeBindSidebarNavigation() {
@@ -3550,8 +3886,10 @@
 
     document.addEventListener("DOMContentLoaded", () => {
       expInitIndicator();
+      homeInitHealthBell();
       homeBindSidebarNavigation();
       loadHomeOperationalSummary(true).catch(() => {});
+      refreshHomeNodeHealth(false).catch(() => {});
 
       setInterval(() => {
         const monitoring = document.getElementById("summary-monitoring");
@@ -3570,10 +3908,15 @@
         loadHomeOperationalSummary().catch(() => {});
       }, HOME_FULL_REFRESH_MS);
 
+      setInterval(() => {
+        refreshHomeNodeHealth().catch(() => {});
+      }, HOME_HEALTH_REFRESH_MS);
+
       document.addEventListener("visibilitychange", () => {
         if (!document.hidden) {
           loadHomeOperationalSummary(true).catch(() => {});
           refreshHomeLiveAlert(true).catch(() => {});
+          refreshHomeNodeHealth(false).catch(() => {});
         }
       });
     });

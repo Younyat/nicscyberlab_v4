@@ -11,6 +11,7 @@
     .terminal-scroll::-webkit-scrollbar { width: 6px; }
     .terminal-scroll::-webkit-scrollbar-track { background: #020617; }
     .terminal-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+    .health-alert-rail { display: grid; gap: 12px; }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
@@ -26,13 +27,32 @@
         </div>
         <div class="flex flex-wrap gap-3">
           <button id="nh-refresh-nodes" class="rounded-xl bg-sky-600 px-4 py-2 text-sm font-black text-white hover:bg-sky-500">Refresh Nodes</button>
+          <button id="nh-refresh-health" class="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm font-black text-red-200 hover:bg-red-500/20">Refresh Fleet Health</button>
           <button id="nh-refresh-selected" class="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-black text-white hover:border-sky-500/60">Refresh Selected Node</button>
           <button id="nh-measure-clock" class="rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-2 text-sm font-black text-cyan-200 hover:bg-cyan-500/20">Measure Clock Offset</button>
           <button id="nh-fix-time-sync" class="rounded-xl border border-fuchsia-500/40 bg-fuchsia-500/10 px-4 py-2 text-sm font-black text-fuchsia-200 hover:bg-fuchsia-500/20">Fix Time Synchronization</button>
           <button id="nh-cleanup-selected" class="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm font-black text-amber-300 hover:bg-amber-500/20">Safe Disk Cleanup</button>
+          <button id="nh-restart-openstack" class="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm font-black text-red-200 hover:bg-red-500/20">Restart OpenStack Services</button>
         </div>
       </div>
     </header>
+
+    <section class="rounded-2xl border border-red-500/20 bg-red-500/5 p-5 shadow-xl">
+      <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div class="min-w-0">
+          <div class="text-xs uppercase tracking-[0.35em] text-red-300 font-black">Health Alerts</div>
+          <h2 class="mt-2 text-xl font-black text-white">OpenStack and Resource Health Signals</h2>
+          <p class="mt-2 text-sm text-slate-300">This view keeps the technical health source and remediation controls. The full unread alert workflow is handled from the global health-alert bell and its dedicated alert center.</p>
+        </div>
+        <div id="nh-openstack-health-card" class="min-w-[320px] rounded-xl border border-slate-800 bg-slate-950/70 p-4 text-sm text-slate-300">
+          Loading OpenStack service health.
+        </div>
+      </div>
+      <div class="mt-4 flex flex-wrap gap-3">
+        <button type="button" id="nh-open-health-alert-center" class="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm font-black text-red-200 hover:bg-red-500/20">Open Health Alert Center</button>
+      </div>
+      <div id="nh-health-alerts" class="health-alert-rail mt-4"></div>
+    </section>
 
     <section class="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
       <div class="rounded-2xl border border-slate-800 bg-slate-900/85 p-5 shadow-xl">
@@ -140,8 +160,19 @@
         <pre id="nh-console" class="terminal-scroll mt-4 h-[520px] overflow-auto rounded-xl border border-slate-800 bg-black p-4 text-xs text-emerald-400"></pre>
       </div>
     </section>
+
+    <section class="rounded-2xl border border-slate-800 bg-slate-900/85 p-5 shadow-xl">
+      <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <h2 class="text-lg font-black text-sky-300">Fleet Resource Monitor</h2>
+          <p class="text-sm text-slate-400">Host and per-node CPU, memory and disk pressure are summarized here to prevent silent resource exhaustion before preservation or analysis runs.</p>
+        </div>
+        <div id="nh-fleet-meta" class="text-xs text-slate-500">Waiting for health summary.</div>
+      </div>
+      <div id="nh-fleet-table" class="mt-4 text-sm text-slate-300">No fleet metrics loaded yet.</div>
+    </section>
   </div>
 
-  <script src="js/node_health.js?v=20260623-node-health-time-sync-1"></script>
+  <script src="js/node_health.js?v=20260630-node-health-openstack-health-1"></script>
 </body>
 </html>

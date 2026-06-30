@@ -14,6 +14,8 @@ from ..attack import ssh_launcher as attack_launcher
 from ..attack.catalog import find_attack_by_id
 from ..attack.executor import stream_attack_execution, stream_local_attack_execution
 from ..forensics.forensics_api import (
+    _active_preservation_guard,
+    _clear_active_preservation_state,
     _dfir_create_case_internal,
     _dfir_ssh_user_for_role,
     _resolve_dfir_targets_from_openstack,
@@ -394,7 +396,19 @@ def _run_real_level_b_execution(job_id: str, job_path: Path, campaign_id: str, c
     # Step 8 -- forensic_case_created. Always a brand-new case; never reuses
     # or links a previous case as evidence.
     _phase(job_id, job_path, "forensic_case_created", "Create new forensic case", "running", 40.0)
-    case_dir = _dfir_create_case_internal(run_id=execution_id)
+    preservation_guard = _active_preservation_guard()
+    if not preservation_guard.get("allowed"):
+        reason = (
+            f"{preservation_guard.get('reason')} "
+            f"Current preservation case: {preservation_guard.get('case_id') or 'not_available'}."
+        )
+        _fail(job_id, job_path, "forensic_case_created", "Create new forensic case", 40.0, reason, final_status="blocked_active_preservation")
+        return
+    try:
+        case_dir = _dfir_create_case_internal(run_id=execution_id, source="level_b_orchestrator")
+    except RuntimeError as exc:
+        _fail(job_id, job_path, "forensic_case_created", "Create new forensic case", 40.0, str(exc), final_status="blocked_active_preservation")
+        return
     case_id = _case_id_for_case_dir(case_dir)
     _phase(job_id, job_path, "forensic_case_created", "Create new forensic case", "completed", 42.0, f"Created {case_id} at {case_dir}.")
     trigger_time_utc = (
@@ -445,13 +459,14 @@ def _run_real_level_b_execution(job_id: str, job_path: Path, campaign_id: str, c
 
     _phase(job_id, job_path, "disk_acquisition_started", "Acquire disk (Kolla/libvirt)", "running", 66.0)
     update_acquisition_profile(case_dir, run_id=execution_id, merge_fields={"disk_started_utc": utc_now()})
-    disk_result = acquire_disk(case_dir, target.get("vm_id"), "nova_libvirt", run_id=execution_id)
+    disk_result = acquire_disk(case_dir, target.get("vm_id"), "nova_libvirt", run_id=execution_id, noninteractive=True)
     if disk_result.get("ok"):
         _phase(job_id, job_path, "disk_acquisition_completed", "Disk acquisition completed", "completed", 72.0, f"Disk image preserved: {disk_result.get('disk_raw')}.")
     else:
         _phase(job_id, job_path, "disk_acquisition_completed", "Disk acquisition completed", "completed_with_degradation", 72.0, disk_result.get("error") or disk_result.get("stderr") or "Disk acquisition was not available in this environment (treated as degraded, not fatal, per the disk-acquisition-if-applicable policy).")
 
     _phase(job_id, job_path, "preservation_completed", "Preservation completed", "completed", 74.0, "Chain-of-custody entries were appended by each acquisition step.")
+    _clear_active_preservation_state(case_dir, run_id=execution_id, final_state="completed", reason="preservation_completed_for_level_b_execution")
 
     # Step 10 -- multilayer analysis, FOC/causal reconstruction, executive
     # summary. Reuses the existing single-call chain instead of orchestrating
