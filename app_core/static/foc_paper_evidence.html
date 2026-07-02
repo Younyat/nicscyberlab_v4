@@ -155,6 +155,18 @@
         </section>
 
         <section class="glass rounded-[28px] p-6">
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">FORGE-VI Audit</div>
+          <h2 class="text-2xl font-black mt-2">Level B Table Reconstruction</h2>
+          <p class="mt-3 text-sm text-slate-300">Generate a reporting-only audit over the already preserved Level B artifacts. This path does not run attacks, acquisition, teardown, or new analysis. It reconstructs paper-ready tables, a data availability matrix, and a gap report from the current retained artifacts.</p>
+          <div class="mt-5 flex gap-3 flex-wrap">
+            <button id="paper-run-level-b-table-reconstruction-btn" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Generate FORGE-VI Level B Table Reconstruction Report</button>
+            <button id="paper-level-b-table-reconstruction-refresh-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Refresh Reconstruction Reports</button>
+          </div>
+          <div id="paper-level-b-table-reconstruction-summary" class="mt-4 text-sm text-slate-300">Loading existing Level B table reconstruction reports…</div>
+          <div id="paper-level-b-table-reconstruction-list" class="space-y-3 mt-5 text-sm text-slate-300">Loading existing Level B table reconstruction reports…</div>
+        </section>
+
+        <section class="glass rounded-[28px] p-6">
           <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Generated Packages</div>
           <h2 class="text-2xl font-black mt-2">Paper Evidence Reports</h2>
           <div id="paper-reports-list" class="space-y-3 mt-5 text-sm text-slate-300">Loading report packages…</div>

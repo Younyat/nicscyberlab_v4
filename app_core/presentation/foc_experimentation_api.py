@@ -122,6 +122,20 @@ def _forensics_preflight_api():
     }
 
 
+def _forge_vi_table_reconstruction_api():
+    from app_core.infrastructure.forensics.scripts.forge_vi_levelb_table_reconstruction import (
+        generate_report_bundle,
+        get_generated_report,
+        list_generated_reports,
+    )
+
+    return {
+        "generate_report_bundle": generate_report_bundle,
+        "get_generated_report": get_generated_report,
+        "list_generated_reports": list_generated_reports,
+    }
+
+
 def _infer_case_id_from_job(payload: dict) -> str | None:
     case_id = str((payload or {}).get("current_case_id") or "").strip()
     if case_id:
@@ -842,6 +856,26 @@ def api_foc_paper_evidence_level_c_run():
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
     return jsonify(job), 202
+
+
+@experimentation_bp.route("/api/foc/paper-evidence/level-b/table-reconstruction/run", methods=["POST"])
+def api_foc_paper_evidence_level_b_table_reconstruction_run():
+    payload = _forge_vi_table_reconstruction_api()["generate_report_bundle"]()
+    return jsonify(payload), 201
+
+
+@experimentation_bp.route("/api/foc/paper-evidence/level-b/table-reconstruction/reports", methods=["GET"])
+def api_foc_paper_evidence_level_b_table_reconstruction_reports():
+    items = _forge_vi_table_reconstruction_api()["list_generated_reports"]()
+    return jsonify({"reports": items}), 200
+
+
+@experimentation_bp.route("/api/foc/paper-evidence/level-b/table-reconstruction/reports/<report_id>", methods=["GET"])
+def api_foc_paper_evidence_level_b_table_reconstruction_report(report_id: str):
+    payload = _forge_vi_table_reconstruction_api()["get_generated_report"](report_id)
+    if not payload:
+        return jsonify({"error": "report_not_found", "report_id": report_id}), 404
+    return jsonify(payload), 200
 
 
 @experimentation_bp.route("/api/foc/paper-evidence/reports/<report_id>", methods=["GET"])

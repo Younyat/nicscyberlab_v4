@@ -1497,9 +1497,113 @@
   }
 
   body.dfir-locked #dfir-auto-overlay,
-  body.dfir-locked #dfir-auto-overlay * {
+  body.dfir-locked #dfir-auto-overlay *,
+  body.dfir-locked #dfir-auto-decision-overlay,
+  body.dfir-locked #dfir-auto-decision-overlay * {
     pointer-events: auto;
     user-select: auto;
+  }
+
+  #dfir-auto-decision-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 20020;
+    background: rgba(2, 6, 23, 0.60);
+    backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .dfir-auto-decision-card {
+    width: 740px;
+    max-width: 92vw;
+    border-radius: 2rem;
+    border: 1px solid rgba(248,113,113,0.22);
+    background: rgba(255,255,255,0.97);
+    box-shadow: 0 40px 120px rgba(0,0,0,0.45);
+    overflow: hidden;
+  }
+
+  .dfir-auto-decision-body {
+    padding: 22px 24px 14px;
+    color: rgba(15,23,42,0.88);
+  }
+
+  .dfir-auto-decision-kicker {
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: rgba(127,29,29,0.88);
+  }
+
+  .dfir-auto-decision-main {
+    margin-top: 10px;
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    color: rgba(15,23,42,0.96);
+    line-height: 1.05;
+  }
+
+  .dfir-auto-decision-note {
+    margin-top: 14px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: rgba(51,65,85,0.95);
+  }
+
+  .dfir-auto-decision-grid {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .dfir-auto-decision-tile {
+    border-radius: 18px;
+    border: 1px solid rgba(148,163,184,0.20);
+    background: rgba(248,250,252,0.96);
+    padding: 14px 16px;
+  }
+
+  .dfir-auto-decision-label {
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: rgba(100,116,139,0.92);
+  }
+
+  .dfir-auto-decision-value {
+    margin-top: 8px;
+    font-size: 13px;
+    font-weight: 800;
+    color: rgba(15,23,42,0.96);
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  .dfir-auto-decision-actions {
+    padding: 16px 24px 24px;
+    border-top: 1px solid rgba(148,163,184,0.16);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  .dfir-auto-btn.danger {
+    border-color: rgba(239,68,68,0.30);
+    background: rgba(239,68,68,0.10);
+    color: rgba(153,27,27,0.96);
+  }
+
+  .dfir-auto-btn.primary {
+    border-color: rgba(14,165,233,0.32);
+    background: rgba(14,165,233,0.10);
+    color: rgba(12,74,110,0.96);
   }
 
   #dfirAutoBtn.dfir-off {
@@ -1520,6 +1624,13 @@
     background: rgba(239,68,68,0.12);
     color: rgba(127,29,29,0.95);
     box-shadow: 0 0 0 2px rgba(239,68,68,0.18);
+  }
+
+  #dfirAutoBtn.dfir-pending {
+    border-color: rgba(245,158,11,0.95);
+    background: rgba(245,158,11,0.14);
+    color: rgba(120,53,15,0.95);
+    box-shadow: 0 0 0 2px rgba(245,158,11,0.18);
   }
 
   #copilotPopup.error {
@@ -1734,6 +1845,43 @@
       <pre id="dfir-auto-terminal" class="dfir-auto-terminal"></pre>
       <div class="dfir-auto-foot">
         <button id="dfir-auto-close" class="dfir-auto-btn" disabled>CLOSE</button>
+      </div>
+    </div>
+  </div>
+  <div id="dfir-auto-decision-overlay" style="display:none;">
+    <div class="dfir-auto-decision-card">
+      <div class="dfir-auto-head">
+        <div class="dfir-auto-title">DFIR AUTO POLICY</div>
+        <div id="dfir-auto-decision-status" class="dfir-auto-status">DECISION REQUIRED</div>
+      </div>
+      <div class="dfir-auto-decision-body">
+        <div class="dfir-auto-decision-kicker">Forensic Intervention Gate</div>
+        <div id="dfir-auto-decision-main" class="dfir-auto-decision-main">New forensic case requires operator approval</div>
+        <div id="dfir-auto-decision-note" class="dfir-auto-decision-note">A preserved case already exists. Choose how DFIR AUTO should proceed.</div>
+        <div class="dfir-auto-decision-grid">
+          <div class="dfir-auto-decision-tile">
+            <div class="dfir-auto-decision-label">Alert</div>
+            <div id="dfir-auto-decision-alert" class="dfir-auto-decision-value">--</div>
+          </div>
+          <div class="dfir-auto-decision-tile">
+            <div class="dfir-auto-decision-label">Existing Case</div>
+            <div id="dfir-auto-decision-case" class="dfir-auto-decision-value">--</div>
+          </div>
+          <div class="dfir-auto-decision-tile">
+            <div class="dfir-auto-decision-label">Severity</div>
+            <div id="dfir-auto-decision-severity" class="dfir-auto-decision-value">--</div>
+          </div>
+          <div class="dfir-auto-decision-tile">
+            <div class="dfir-auto-decision-label">Policy State</div>
+            <div id="dfir-auto-decision-policy" class="dfir-auto-decision-value">--</div>
+          </div>
+        </div>
+      </div>
+      <div class="dfir-auto-decision-actions">
+        <button id="dfir-auto-keep-only-btn" class="dfir-auto-btn">KEEP PREVIOUS ONLY</button>
+        <button id="dfir-auto-replace-btn" class="dfir-auto-btn danger">DELETE PREVIOUS AND CREATE NEW</button>
+        <button id="dfir-auto-coexist-btn" class="dfir-auto-btn primary">CREATE NEW AND KEEP PREVIOUS</button>
+        <button id="dfir-auto-decision-close" class="dfir-auto-btn">CLOSE</button>
       </div>
     </div>
   </div>
@@ -2686,7 +2834,7 @@
           rtPushToast(ev);
 
           if (DFIR.auto && String(ev.forensics || "").toUpperCase() === "YES") {
-            if (!DFIR.running) startDfiroAutoSSE();
+            dfirHandleAutoAlert(ev);
           }
         };
 
@@ -2791,9 +2939,18 @@
       const df = document.getElementById("dfirAutoBtn");
       if (df) df.addEventListener("click", dfirToggleAuto);
       dfirLoadAuto();
+      dfirCheckPendingDecision();
 
       const closeBtn = document.getElementById("dfir-auto-close");
       if (closeBtn) closeBtn.addEventListener("click", dfirOverlayClose);
+      const decisionCloseBtn = document.getElementById("dfir-auto-decision-close");
+      if (decisionCloseBtn) decisionCloseBtn.addEventListener("click", dfirDecisionOverlayClose);
+      const coexistBtn = document.getElementById("dfir-auto-coexist-btn");
+      if (coexistBtn) coexistBtn.addEventListener("click", () => dfirSubmitDecision("coexist_with_previous_case"));
+      const replaceBtn = document.getElementById("dfir-auto-replace-btn");
+      if (replaceBtn) replaceBtn.addEventListener("click", () => dfirSubmitDecision("replace_previous_case"));
+      const keepOnlyBtn = document.getElementById("dfir-auto-keep-only-btn");
+      if (keepOnlyBtn) keepOnlyBtn.addEventListener("click", () => dfirSubmitDecision("keep_previous_case_only"));
     });
 
     (function hookFetchToEnsureMonitoring() {
@@ -3036,7 +3193,10 @@
 
     const DFIR = {
       auto: false,
-      running: false
+      running: false,
+      decisionPending: false,
+      pendingDecision: null,
+      lastPolicyAt: 0
     };
 
     let DFIR_ES = null;
@@ -3064,29 +3224,196 @@
       btn.classList.remove(
         "border-blue-500",
         "border-emerald-500", "bg-emerald-600", "text-white",
-        "border-rose-500", "bg-rose-600"
+        "border-rose-500", "bg-rose-600",
+        "dfir-off", "dfir-on", "dfir-running", "dfir-pending"
       );
 
       if (DFIR.running) {
         btn.textContent = "DFIR AUTO: RUNNING";
-        btn.classList.add("border-blue-500");
+        btn.classList.add("dfir-running");
+        return;
+      }
+
+      if (DFIR.decisionPending) {
+        btn.textContent = "DFIR AUTO: DECISION";
+        btn.classList.add("dfir-pending");
         return;
       }
 
       if (DFIR.auto) {
         btn.textContent = "DFIR AUTO: ON";
-        btn.classList.add("border-emerald-500", "bg-emerald-600", "text-white");
+        btn.classList.add("dfir-on");
       } else {
         btn.textContent = "DFIR AUTO: OFF";
-        btn.classList.add("border-rose-500", "bg-rose-600", "text-white");
+        btn.classList.add("dfir-off");
       }
     }
 
     function dfirToggleAuto() {
-      if (DFIR.running) return;
+      if (DFIR.running || DFIR.decisionPending) return;
       DFIR.auto = !DFIR.auto;
       dfirSaveAuto();
       dfirRenderBtn();
+    }
+
+    function dfirDefaultStreamParams() {
+      return {
+        run_id: "R1",
+        traffic_seconds: 20,
+        mem_mode: "build",
+        container_name: "nova_libvirt"
+      };
+    }
+
+    function dfirDecisionOverlayOpen() {
+      document.body.classList.add("dfir-locked");
+      const ov = document.getElementById("dfir-auto-decision-overlay");
+      if (ov) ov.style.display = "flex";
+    }
+
+    function dfirDecisionOverlayClose() {
+      const ov = document.getElementById("dfir-auto-decision-overlay");
+      if (ov) ov.style.display = "none";
+      if (!DFIR.running) document.body.classList.remove("dfir-locked");
+    }
+
+    function dfirRenderDecisionModal(payload, mode = "decision_required") {
+      DFIR.pendingDecision = payload?.decision || null;
+      DFIR.decisionPending = mode === "decision_required";
+      dfirRenderBtn();
+
+      const decision = payload?.decision || {};
+      const alert = decision.alert || {};
+      const previousCase = decision?.context?.previous_case || {};
+      const runningJobs = decision?.context?.running_scientific_jobs || [];
+
+      const status = document.getElementById("dfir-auto-decision-status");
+      const main = document.getElementById("dfir-auto-decision-main");
+      const note = document.getElementById("dfir-auto-decision-note");
+      const alertEl = document.getElementById("dfir-auto-decision-alert");
+      const caseEl = document.getElementById("dfir-auto-decision-case");
+      const sevEl = document.getElementById("dfir-auto-decision-severity");
+      const policyEl = document.getElementById("dfir-auto-decision-policy");
+      const coexistBtn = document.getElementById("dfir-auto-coexist-btn");
+      const replaceBtn = document.getElementById("dfir-auto-replace-btn");
+      const keepBtn = document.getElementById("dfir-auto-keep-only-btn");
+
+      if (status) status.textContent = mode === "decision_required" ? "DECISION REQUIRED" : (payload?.status || "INFO").replaceAll("_", " ").toUpperCase();
+      if (main) {
+        main.textContent = mode === "decision_required"
+          ? "New forensic case requires operator approval"
+          : "DFIR AUTO did not launch a new forensic case";
+      }
+      if (note) note.textContent = payload?.message || "DFIR AUTO policy state updated.";
+      if (alertEl) alertEl.textContent = `${alert.signature || "--"} | ${alert.src || "--"} -> ${alert.dst || "--"}`;
+      if (caseEl) {
+        if (previousCase.case_id) {
+          caseEl.textContent = `${previousCase.case_id} | ${previousCase.case_dir || "--"}`;
+        } else if (runningJobs.length) {
+          caseEl.textContent = runningJobs.map((job) => `${job.level} ${job.campaign_id || job.job_id}`).join(" | ");
+        } else {
+          caseEl.textContent = "No previous preserved case";
+        }
+      }
+      if (sevEl) sevEl.textContent = `${alert.severity || "--"} | score ${alert.score ?? "--"} | DFIR ${alert.forensics || "--"}`;
+      if (policyEl) policyEl.textContent = mode === "decision_required" ? "operator_prompt_outside_scientific_run" : (payload?.reason || payload?.status || "informational");
+
+      const disableChoices = mode !== "decision_required";
+      [coexistBtn, replaceBtn, keepBtn].forEach((btn) => {
+        if (btn) btn.disabled = disableChoices;
+      });
+
+      dfirDecisionOverlayOpen();
+    }
+
+    async function dfirCheckPendingDecision() {
+      try {
+        const res = await fetch("/api/dfir/orchestrator/auto/pending", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.pending && data?.decision) {
+          dfirRenderDecisionModal(data, "decision_required");
+        }
+      } catch {}
+    }
+
+    async function dfirHandleAutoAlert(ev) {
+      if (!DFIR.auto || DFIR.running || DFIR.decisionPending) return;
+      const now = Date.now();
+      if (now - DFIR.lastPolicyAt < 3000) return;
+      DFIR.lastPolicyAt = now;
+      try {
+        const res = await fetch("/api/dfir/orchestrator/auto/plan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...dfirDefaultStreamParams(),
+            operator_hint: "index_dfir_auto",
+            alert: ev
+          })
+        });
+        const data = await res.json();
+        if (data?.status === "approved" && data?.stream_url) {
+          startDfiroAutoSSE(data.stream_url, data.message || "DFIR AUTO policy approved immediate launch.");
+          return;
+        }
+        if (data?.status === "decision_required") {
+          dfirRenderDecisionModal(data, "decision_required");
+          return;
+        }
+        if (data?.status === "blocked") {
+          dfirRenderDecisionModal(data, "blocked");
+        }
+      } catch (err) {
+        dfirOverlayOpen();
+        dfirOverlayAppend(`[ERROR] DFIR AUTO planning failed: ${String(err)}`);
+        dfirOverlayFinish(false, {});
+      }
+    }
+
+    async function dfirSubmitDecision(action) {
+      const decision = DFIR.pendingDecision;
+      if (!decision?.decision_id) return;
+      const coexistBtn = document.getElementById("dfir-auto-coexist-btn");
+      const replaceBtn = document.getElementById("dfir-auto-replace-btn");
+      const keepBtn = document.getElementById("dfir-auto-keep-only-btn");
+      [coexistBtn, replaceBtn, keepBtn].forEach((btn) => {
+        if (btn) btn.disabled = true;
+      });
+      try {
+        const res = await fetch("/api/dfir/orchestrator/auto/decision", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            decision_id: decision.decision_id,
+            action,
+            operator_hint: "index_dfir_auto"
+          })
+        });
+        const data = await res.json();
+        if (data?.status === "approved" && data?.stream_url) {
+          DFIR.pendingDecision = null;
+          DFIR.decisionPending = false;
+          dfirDecisionOverlayClose();
+          dfirRenderBtn();
+          startDfiroAutoSSE(data.stream_url, data.message || "DFIR AUTO policy approved by operator.");
+          return;
+        }
+        if (data?.status === "suppressed" || data?.status === "blocked") {
+          DFIR.pendingDecision = null;
+          DFIR.decisionPending = false;
+          dfirRenderBtn();
+          dfirRenderDecisionModal(data, "blocked");
+          return;
+        }
+      } catch (err) {
+        const note = document.getElementById("dfir-auto-decision-note");
+        if (note) note.textContent = `Decision submission failed: ${String(err)}`;
+      } finally {
+        [coexistBtn, replaceBtn, keepBtn].forEach((btn) => {
+          if (btn && !DFIR.decisionPending) btn.disabled = true;
+        });
+      }
     }
 
     function dfirOverlayOpen() {
@@ -3135,18 +3462,28 @@
       } catch {}
 
       DFIR_ES = null;
+      if (!DFIR.decisionPending) {
+        document.body.classList.remove("dfir-locked");
+      }
     }
 
-    function startDfiroAutoSSE() {
+    function startDfiroAutoSSE(customUrl, policyMessage) {
       if (DFIR.running) return;
+      DFIR.pendingDecision = null;
+      DFIR.decisionPending = false;
       DFIR.running = true;
+      dfirRenderBtn();
 
-      const url =
+      const url = customUrl || (
         "/api/dfir/orchestrator/auto/stream" +
-        "?run_id=R1&traffic_seconds=20&mem_mode=build&container_name=nova_libvirt";
+        "?run_id=R1&traffic_seconds=20&mem_mode=build&container_name=nova_libvirt"
+      );
 
       dfirOverlayOpen();
       dfirOverlayAppend(`[SISTEMA] Connecting: ${url}`);
+      if (policyMessage) {
+        dfirOverlayAppend(`[POLICY] ${policyMessage}`);
+      }
 
       try {
         if (DFIR_ES) DFIR_ES.close();
@@ -3186,6 +3523,7 @@
 
         DFIR_ES = null;
         DFIR.running = false;
+        dfirRenderBtn();
       });
 
       DFIR_ES.onerror = async () => {
@@ -3216,6 +3554,7 @@
 
         DFIR_ES = null;
         DFIR.running = false;
+        dfirRenderBtn();
       };
     }
 

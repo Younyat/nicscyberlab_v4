@@ -1,0 +1,54 @@
+{
+  "report_type": "level_a_scientific_comparison_report",
+  "definition": "Scientific comparison of repeated read-only Level A executions over the same preserved case.",
+  "source_case_id": "not_available",
+  "source_campaign_id": "not_available",
+  "scenario_id": "not_available",
+  "number_of_repetitions": 0,
+  "execution_ids": [],
+  "comparison_status": "not_available",
+  "comparison_type": "not_available",
+  "summary_metrics": {
+    "mean_cpr": "not_available",
+    "std_cpr": "not_available",
+    "mean_weighted_cpr": "not_available",
+    "std_weighted_cpr": "not_available",
+    "max_delta_cpr": "not_available",
+    "max_delta_weighted_cpr": "not_available",
+    "max_support_rank_shift": "not_available"
+  },
+  "per_repetition_metric_table": [],
+  "per_repetition_relation_table": [],
+  "stable_profiles": {
+    "cpr": false,
+    "weighted_cpr": false,
+    "claimability_class": false,
+    "hypothesis_support_level": false
+  },
+  "degradation_reasons": [],
+  "hard_failures": [],
+  "stable_limitations": [],
+  "drifted_metrics": [],
+  "scientific_position": {
+    "comparison_type": "not_available",
+    "comparison_status": "not_available",
+    "is_direct_level_a_repeatability_evidence": false,
+    "drift_detected": false,
+    "stable_degradation_detected": false,
+    "what_is_stable": [],
+    "what_remains_degraded": [],
+    "what_is_not_proven": [
+      "attack repeatability",
+      "acquisition repeatability",
+      "trigger repeatability",
+      "scenario redeployment reproducibility",
+      "complete causality"
+    ]
+  },
+  "source_artifacts": {
+    "comparability_result": "not_available",
+    "comparison_matrix": "not_available",
+    "comparability_report": "not_available",
+    "level_a_report": "level_a_report.json"
+  }
+}

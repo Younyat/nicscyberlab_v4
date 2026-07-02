@@ -2126,3 +2126,269 @@ Traceback (most recent call last):
   File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/session.py", line 1118, in request
     raise exceptions.from_response(resp, method, url)
 keystoneauth1.exceptions.http.InternalServerError: Internal Server Error (HTTP 500)
+2026-07-02 10:37:07,745 - WARNING - Dashboard OpenStack inventory sync failed: Internal Server Error (HTTP 500)
+Traceback (most recent call last):
+  File "/home/younes/nicscyberlab_v3/app_core/presentation/api.py", line 1754, in _collect_openstack_inventory_summary
+    for server in conn.compute.servers():
+                  ^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/openstack/service_description.py", line 94, in __get__
+    proxy = self._make_proxy(instance)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/openstack/service_description.py", line 292, in _make_proxy
+    found_version = temp_adapter.get_api_major_version()
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/adapter.py", line 403, in get_api_major_version
+    return self.session.get_api_major_version(auth or self.auth, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/session.py", line 1478, in get_api_major_version
+    return auth.get_api_major_version(self, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/base.py", line 573, in get_api_major_version
+    data = get_endpoint_data(discover_versions=discover_versions)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/base.py", line 296, in get_endpoint_data
+    service_catalog = self.get_access(session).service_catalog
+                      ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/base.py", line 139, in get_access
+    self.auth_ref = self.get_auth_ref(session)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/generic/base.py", line 224, in get_auth_ref
+    return plugin.get_auth_ref(session)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/v3/base.py", line 240, in get_auth_ref
+    resp = session.post(
+           ^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/session.py", line 1334, in post
+    return self.request(url, 'POST', **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/session.py", line 1118, in request
+    raise exceptions.from_response(resp, method, url)
+keystoneauth1.exceptions.http.InternalServerError: Internal Server Error (HTTP 500)
+2026-07-02 10:38:37,768 - WARNING - Dashboard OpenStack inventory sync failed: Internal Server Error (HTTP 500)
+Traceback (most recent call last):
+  File "/home/younes/nicscyberlab_v3/app_core/presentation/api.py", line 1754, in _collect_openstack_inventory_summary
+    for server in conn.compute.servers():
+                  ^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/openstack/service_description.py", line 94, in __get__
+    proxy = self._make_proxy(instance)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/openstack/service_description.py", line 292, in _make_proxy
+    found_version = temp_adapter.get_api_major_version()
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/adapter.py", line 403, in get_api_major_version
+    return self.session.get_api_major_version(auth or self.auth, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/session.py", line 1478, in get_api_major_version
+    return auth.get_api_major_version(self, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/base.py", line 573, in get_api_major_version
+    data = get_endpoint_data(discover_versions=discover_versions)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/base.py", line 296, in get_endpoint_data
+    service_catalog = self.get_access(session).service_catalog
+                      ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/base.py", line 139, in get_access
+    self.auth_ref = self.get_auth_ref(session)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/generic/base.py", line 224, in get_auth_ref
+    return plugin.get_auth_ref(session)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/v3/base.py", line 240, in get_auth_ref
+    resp = session.post(
+           ^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/session.py", line 1334, in post
+    return self.request(url, 'POST', **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/session.py", line 1118, in request
+    raise exceptions.from_response(resp, method, url)
+keystoneauth1.exceptions.http.InternalServerError: Internal Server Error (HTTP 500)
+2026-07-02 10:40:07,752 - WARNING - Dashboard OpenStack inventory sync failed: Internal Server Error (HTTP 500)
+Traceback (most recent call last):
+  File "/home/younes/nicscyberlab_v3/app_core/presentation/api.py", line 1754, in _collect_openstack_inventory_summary
+    for server in conn.compute.servers():
+                  ^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/openstack/service_description.py", line 94, in __get__
+    proxy = self._make_proxy(instance)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/openstack/service_description.py", line 292, in _make_proxy
+    found_version = temp_adapter.get_api_major_version()
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/adapter.py", line 403, in get_api_major_version
+    return self.session.get_api_major_version(auth or self.auth, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/session.py", line 1478, in get_api_major_version
+    return auth.get_api_major_version(self, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/base.py", line 573, in get_api_major_version
+    data = get_endpoint_data(discover_versions=discover_versions)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/base.py", line 296, in get_endpoint_data
+    service_catalog = self.get_access(session).service_catalog
+                      ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/base.py", line 139, in get_access
+    self.auth_ref = self.get_auth_ref(session)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/generic/base.py", line 224, in get_auth_ref
+    return plugin.get_auth_ref(session)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/v3/base.py", line 240, in get_auth_ref
+    resp = session.post(
+           ^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/session.py", line 1334, in post
+    return self.request(url, 'POST', **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/session.py", line 1118, in request
+    raise exceptions.from_response(resp, method, url)
+keystoneauth1.exceptions.http.InternalServerError: Internal Server Error (HTTP 500)
+2026-07-02 10:46:07,819 - WARNING - Dashboard OpenStack inventory sync failed: Internal Server Error (HTTP 500)
+Traceback (most recent call last):
+  File "/home/younes/nicscyberlab_v3/app_core/presentation/api.py", line 1754, in _collect_openstack_inventory_summary
+    for server in conn.compute.servers():
+                  ^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/openstack/service_description.py", line 94, in __get__
+    proxy = self._make_proxy(instance)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/openstack/service_description.py", line 292, in _make_proxy
+    found_version = temp_adapter.get_api_major_version()
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/adapter.py", line 403, in get_api_major_version
+    return self.session.get_api_major_version(auth or self.auth, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/session.py", line 1478, in get_api_major_version
+    return auth.get_api_major_version(self, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/base.py", line 573, in get_api_major_version
+    data = get_endpoint_data(discover_versions=discover_versions)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/base.py", line 296, in get_endpoint_data
+    service_catalog = self.get_access(session).service_catalog
+                      ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/base.py", line 139, in get_access
+    self.auth_ref = self.get_auth_ref(session)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/generic/base.py", line 224, in get_auth_ref
+    return plugin.get_auth_ref(session)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/v3/base.py", line 240, in get_auth_ref
+    resp = session.post(
+           ^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/session.py", line 1334, in post
+    return self.request(url, 'POST', **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/session.py", line 1118, in request
+    raise exceptions.from_response(resp, method, url)
+keystoneauth1.exceptions.http.InternalServerError: Internal Server Error (HTTP 500)
+2026-07-02 10:50:37,744 - WARNING - Dashboard OpenStack inventory sync failed: Internal Server Error (HTTP 500)
+Traceback (most recent call last):
+  File "/home/younes/nicscyberlab_v3/app_core/presentation/api.py", line 1754, in _collect_openstack_inventory_summary
+    for server in conn.compute.servers():
+                  ^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/openstack/service_description.py", line 94, in __get__
+    proxy = self._make_proxy(instance)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/openstack/service_description.py", line 292, in _make_proxy
+    found_version = temp_adapter.get_api_major_version()
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/adapter.py", line 403, in get_api_major_version
+    return self.session.get_api_major_version(auth or self.auth, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/session.py", line 1478, in get_api_major_version
+    return auth.get_api_major_version(self, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/base.py", line 573, in get_api_major_version
+    data = get_endpoint_data(discover_versions=discover_versions)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/base.py", line 296, in get_endpoint_data
+    service_catalog = self.get_access(session).service_catalog
+                      ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/base.py", line 139, in get_access
+    self.auth_ref = self.get_auth_ref(session)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/generic/base.py", line 224, in get_auth_ref
+    return plugin.get_auth_ref(session)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/v3/base.py", line 240, in get_auth_ref
+    resp = session.post(
+           ^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/session.py", line 1334, in post
+    return self.request(url, 'POST', **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/session.py", line 1118, in request
+    raise exceptions.from_response(resp, method, url)
+keystoneauth1.exceptions.http.InternalServerError: Internal Server Error (HTTP 500)
+2026-07-02 10:58:07,837 - WARNING - Dashboard OpenStack inventory sync failed: Internal Server Error (HTTP 500)
+Traceback (most recent call last):
+  File "/home/younes/nicscyberlab_v3/app_core/presentation/api.py", line 1754, in _collect_openstack_inventory_summary
+    for server in conn.compute.servers():
+                  ^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/openstack/service_description.py", line 94, in __get__
+    proxy = self._make_proxy(instance)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/openstack/service_description.py", line 292, in _make_proxy
+    found_version = temp_adapter.get_api_major_version()
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/adapter.py", line 403, in get_api_major_version
+    return self.session.get_api_major_version(auth or self.auth, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/session.py", line 1478, in get_api_major_version
+    return auth.get_api_major_version(self, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/base.py", line 573, in get_api_major_version
+    data = get_endpoint_data(discover_versions=discover_versions)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/base.py", line 296, in get_endpoint_data
+    service_catalog = self.get_access(session).service_catalog
+                      ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/base.py", line 139, in get_access
+    self.auth_ref = self.get_auth_ref(session)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/generic/base.py", line 224, in get_auth_ref
+    return plugin.get_auth_ref(session)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/v3/base.py", line 240, in get_auth_ref
+    resp = session.post(
+           ^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/session.py", line 1334, in post
+    return self.request(url, 'POST', **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/session.py", line 1118, in request
+    raise exceptions.from_response(resp, method, url)
+keystoneauth1.exceptions.http.InternalServerError: Internal Server Error (HTTP 500)
+2026-07-02 11:01:07,747 - WARNING - Dashboard OpenStack inventory sync failed: Internal Server Error (HTTP 500)
+Traceback (most recent call last):
+  File "/home/younes/nicscyberlab_v3/app_core/presentation/api.py", line 1754, in _collect_openstack_inventory_summary
+    for server in conn.compute.servers():
+                  ^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/openstack/service_description.py", line 94, in __get__
+    proxy = self._make_proxy(instance)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/openstack/service_description.py", line 292, in _make_proxy
+    found_version = temp_adapter.get_api_major_version()
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/adapter.py", line 403, in get_api_major_version
+    return self.session.get_api_major_version(auth or self.auth, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/session.py", line 1478, in get_api_major_version
+    return auth.get_api_major_version(self, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/base.py", line 573, in get_api_major_version
+    data = get_endpoint_data(discover_versions=discover_versions)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/base.py", line 296, in get_endpoint_data
+    service_catalog = self.get_access(session).service_catalog
+                      ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/base.py", line 139, in get_access
+    self.auth_ref = self.get_auth_ref(session)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/generic/base.py", line 224, in get_auth_ref
+    return plugin.get_auth_ref(session)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/identity/v3/base.py", line 240, in get_auth_ref
+    resp = session.post(
+           ^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/session.py", line 1334, in post
+    return self.request(url, 'POST', **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/younes/Desktop/Openstack/myenv/lib/python3.12/site-packages/keystoneauth1/session.py", line 1118, in request
+    raise exceptions.from_response(resp, method, url)
+keystoneauth1.exceptions.http.InternalServerError: Internal Server Error (HTTP 500)

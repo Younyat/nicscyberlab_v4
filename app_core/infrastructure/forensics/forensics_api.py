@@ -7,8 +7,10 @@ import logging
 import threading
 import subprocess
 import shutil
+import uuid
 from datetime import datetime, timezone
 from flask import current_app
+from urllib.parse import urlencode
 
 from flask import Blueprint, request, jsonify, Response, send_from_directory
 import openstack
@@ -60,9 +62,12 @@ TOOLS_TMP_DIR = os.path.join(REPO_ROOT, "tools-installer-tmp")
 INSTALLED_DIR = os.path.join(REPO_ROOT, "tools-installer", "installed")
 
 EVIDENCE_ROOT = os.path.join(REPO_ROOT, "app_core", "infrastructure", "forensics", "evidence_store")
+CAMPAIGNS_ROOT = Path(EVIDENCE_ROOT) / "repetition_campaigns"
+DFIR_AUTO_DECISIONS_ROOT = Path(EVIDENCE_ROOT) / "_dfir_auto_decisions"
 
 
 os.makedirs(EVIDENCE_ROOT, exist_ok=True)
+DFIR_AUTO_DECISIONS_ROOT.mkdir(parents=True, exist_ok=True)
 
 
 # ============================================================
@@ -122,6 +127,21 @@ def _load_active_preservation_state() -> dict:
         if not os.path.isfile(ACTIVE_PRESERVATION_PTR):
             return {}
         payload = json.loads(Path(ACTIVE_PRESERVATION_PTR).read_text(encoding="utf-8"))
+        return payload if isinstance(payload, dict) else {}
+    except Exception:
+        return {}
+
+
+def _write_json_file(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    tmp.replace(path)
+
+
+def _read_json_file(path: Path) -> dict:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
         return payload if isinstance(payload, dict) else {}
     except Exception:
         return {}
@@ -262,6 +282,190 @@ def _active_preservation_guard(max_recent_seconds: int = 900) -> dict:
         "age_seconds": round(age_seconds, 3) if age_seconds is not None else None,
         "policy_state": "blocked_active_preservation",
     }
+
+
+def _scientific_job_payloads() -> list[dict]:
+    payloads: list[dict] = []
+    seen_job_ids: set[str] = set()
+    for job_path in CAMPAIGNS_ROOT.glob("CMP-*/jobs/*.json"):
+        payload = _read_json_file(job_path)
+        job_id = str(payload.get("job_id") or "").strip()
+        if not job_id or job_id in seen_job_ids:
+            continue
+        seen_job_ids.add(job_id)
+        payloads.append(payload)
+    return payloads
+
+
+def _running_scientific_jobs() -> list[dict]:
+    running_statuses = {"queued", "running", "cancel_requested"}
+    items: list[dict] = []
+    for payload in _scientific_job_payloads():
+        status = str(payload.get("status") or "").strip().lower()
+        if status not in running_statuses:
+            continue
+        meta = payload.get("meta") or {}
+        items.append(
+            {
+                "job_id": str(payload.get("job_id") or ""),
+                "title": str(payload.get("title") or "Scientific workflow"),
+                "status": status,
+                "campaign_id": str(meta.get("campaign_id") or ""),
+                "level": str(meta.get("level") or payload.get("level") or "unknown").strip().upper() or "UNKNOWN",
+                "current_phase": str(payload.get("current_phase_label") or payload.get("current_phase") or "running"),
+            }
+        )
+    return items
+
+
+def _list_case_dirs() -> list[Path]:
+    root = Path(EVIDENCE_ROOT)
+    items: list[Path] = []
+    if not root.exists():
+        return items
+    for item in root.iterdir():
+        if item.is_dir() and item.name.startswith("CASE-"):
+            items.append(item.resolve())
+    items.sort(key=lambda path: path.name, reverse=True)
+    return items
+
+
+def _preferred_existing_case() -> dict | None:
+    active_case = _read_active_case_dir().strip()
+    active_path = Path(active_case).resolve() if active_case else None
+    candidates = [case_path for case_path in _list_case_dirs() if not _case_preservation_in_progress(str(case_path))]
+    if active_path and active_path in candidates:
+        preferred = active_path
+    elif candidates:
+        preferred = candidates[0]
+    else:
+        return None
+    manifest = _read_manifest(str(preferred)) if (preferred / "manifest.json").is_file() else {}
+    return {
+        "case_dir": str(preferred),
+        "case_id": preferred.name,
+        "created_at": manifest.get("created_at"),
+        "artifacts_count": len(list(manifest.get("artifacts") or [])),
+        "is_active_pointer": bool(active_path and active_path == preferred),
+    }
+
+
+def _sanitize_dfir_alert_payload(payload: dict | None) -> dict:
+    data = payload if isinstance(payload, dict) else {}
+    return {
+        "ts": str(data.get("ts") or "").strip() or None,
+        "severity": str(data.get("severity") or "UNKNOWN").strip().upper() or "UNKNOWN",
+        "score": data.get("score"),
+        "forensics": str(data.get("forensics") or "").strip().upper() or None,
+        "signature": str(data.get("signature") or "DFIR Alert").strip() or "DFIR Alert",
+        "src": str(data.get("src") or "--").strip() or "--",
+        "dst": str(data.get("dst") or "--").strip() or "--",
+        "kind": str(data.get("kind") or "Detection alert").strip() or "Detection alert",
+        "raw": str(data.get("raw") or "").strip() or None,
+    }
+
+
+def _new_dfir_auto_decision_id() -> str:
+    return f"dfir-auto-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:8]}"
+
+
+def _decision_path(decision_id: str) -> Path:
+    return DFIR_AUTO_DECISIONS_ROOT / f"{decision_id}.json"
+
+
+def _find_pending_dfir_auto_decision() -> dict | None:
+    for path in sorted(DFIR_AUTO_DECISIONS_ROOT.glob("dfir-auto-*.json"), reverse=True):
+        payload = _read_json_file(path)
+        if str(payload.get("status") or "") == "pending_user_choice":
+            payload.setdefault("decision_path", str(path))
+            return payload
+    return None
+
+
+def _write_dfir_auto_decision(payload: dict) -> dict:
+    decision_id = str(payload.get("decision_id") or "").strip()
+    if not decision_id:
+        decision_id = _new_dfir_auto_decision_id()
+        payload["decision_id"] = decision_id
+    payload["updated_at_utc"] = _utc_now_iso()
+    path = _decision_path(decision_id)
+    _write_json_file(path, payload)
+    payload["decision_path"] = str(path)
+    return payload
+
+
+def _create_dfir_auto_decision(*, status: str, alert: dict, operator: str, stream_params: dict, context: dict, message: str, recommended_action: str | None = None) -> dict:
+    payload = {
+        "decision_id": _new_dfir_auto_decision_id(),
+        "kind": "dfir_auto_case_creation_decision",
+        "status": status,
+        "created_at_utc": _utc_now_iso(),
+        "updated_at_utc": _utc_now_iso(),
+        "operator": operator,
+        "alert": alert,
+        "observed_alerts": [{"ts_utc": _utc_now_iso(), "alert": alert}],
+        "stream_params": stream_params,
+        "context": context,
+        "message": message,
+        "recommended_action": recommended_action,
+        "decision_source": "index_dfir_auto",
+    }
+    return _write_dfir_auto_decision(payload)
+
+
+def _build_dfir_auto_stream_url(*, stream_params: dict, decision_id: str | None = None, decision_resolution: str | None = None, alert: dict | None = None) -> str:
+    query = {
+        "run_id": str(stream_params.get("run_id") or "R1"),
+        "traffic_seconds": int(stream_params.get("traffic_seconds") or 20),
+        "mem_mode": str(stream_params.get("mem_mode") or "build"),
+        "container_name": str(stream_params.get("container_name") or "nova_libvirt"),
+    }
+    if decision_id:
+        query["decision_id"] = decision_id
+    if decision_resolution:
+        query["decision_resolution"] = decision_resolution
+    alert = alert or {}
+    for key, query_key in {
+        "severity": "alert_severity",
+        "signature": "alert_signature",
+        "src": "alert_src",
+        "dst": "alert_dst",
+        "kind": "alert_kind",
+        "forensics": "forensics",
+    }.items():
+        value = alert.get(key)
+        if value:
+            query[query_key] = str(value)
+    if alert.get("score") is not None:
+        query["alert_score"] = str(alert.get("score"))
+    return "/api/dfir/orchestrator/auto/stream?" + urlencode(query)
+
+
+def _delete_existing_case_for_dfir(case_dir: str) -> dict:
+    target = Path(os.path.abspath(case_dir))
+    if not target.is_dir():
+        return {"deleted": False, "reason": "case_not_found", "case_dir": str(target)}
+    guard = _active_preservation_guard()
+    if not guard.get("allowed") and os.path.abspath(str(guard.get("case_dir") or "")) == str(target):
+        return {"deleted": False, "reason": "active_preservation_in_progress", "case_dir": str(target)}
+    try:
+        active_case = _read_active_case_dir().strip()
+        if active_case and os.path.abspath(active_case) == str(target):
+            Path(ACTIVE_CASE_PTR).write_text("", encoding="utf-8")
+    except Exception:
+        pass
+    size_before = 0
+    try:
+        for root, _dirs, files in os.walk(target):
+            for file_name in files:
+                try:
+                    size_before += os.path.getsize(os.path.join(root, file_name))
+                except Exception:
+                    pass
+    except Exception:
+        pass
+    shutil.rmtree(target)
+    return {"deleted": True, "case_dir": str(target), "freed_bytes_estimated": size_before}
 
 
 os.makedirs(TOOLS_TMP_DIR, exist_ok=True)
@@ -4349,6 +4553,206 @@ def _detect_ssh_key_path() -> str:
     return ""
 
 
+@forensics_bp.route("/api/dfir/orchestrator/auto/pending", methods=["GET"])
+def api_dfir_orchestrator_auto_pending():
+    pending = _find_pending_dfir_auto_decision()
+    if not pending:
+        return jsonify({"pending": False}), 200
+    return jsonify({"pending": True, "decision": pending}), 200
+
+
+@forensics_bp.route("/api/dfir/orchestrator/auto/plan", methods=["POST"])
+def api_dfir_orchestrator_auto_plan():
+    data = request.get_json(force=True, silent=True) or {}
+    operator = str(data.get("operator_hint") or "index_dfir_auto").strip() or "index_dfir_auto"
+    alert = _sanitize_dfir_alert_payload(data.get("alert") or {})
+    stream_params = {
+        "run_id": str(data.get("run_id") or "R1").strip() or "R1",
+        "traffic_seconds": int(data.get("traffic_seconds") or 20),
+        "mem_mode": str(data.get("mem_mode") or "build").strip() or "build",
+        "container_name": str(data.get("container_name") or "nova_libvirt").strip() or "nova_libvirt",
+    }
+
+    active_guard = _active_preservation_guard()
+    if not active_guard.get("allowed"):
+        decision = _create_dfir_auto_decision(
+            status="blocked_active_preservation",
+            alert=alert,
+            operator=operator,
+            stream_params=stream_params,
+            context={"active_preservation": active_guard},
+            message=str(active_guard.get("reason") or "Active preservation is already running."),
+            recommended_action="wait_for_current_preservation",
+        )
+        return jsonify(
+            {
+                "status": "blocked",
+                "reason": "active_preservation_in_progress",
+                "message": decision["message"],
+                "decision": decision,
+            }
+        ), 200
+
+    running_jobs = _running_scientific_jobs()
+    if running_jobs:
+        message = (
+            "DFIR AUTO did not open a new case because a scientific repetition workflow is currently running. "
+            "During Level A/B/C execution, new background auto-preservation must not coexist with campaign-controlled cases."
+        )
+        decision = _create_dfir_auto_decision(
+            status="blocked_by_scientific_run",
+            alert=alert,
+            operator=operator,
+            stream_params=stream_params,
+            context={"running_scientific_jobs": running_jobs},
+            message=message,
+            recommended_action="wait_for_scientific_workflow_completion",
+        )
+        return jsonify(
+            {
+                "status": "blocked",
+                "reason": "scientific_workflow_running",
+                "message": message,
+                "decision": decision,
+                "running_jobs": running_jobs,
+            }
+        ), 200
+
+    existing_pending = _find_pending_dfir_auto_decision()
+    if existing_pending:
+        observed = list(existing_pending.get("observed_alerts") or [])
+        observed.append({"ts_utc": _utc_now_iso(), "alert": alert})
+        existing_pending["observed_alerts"] = observed[-20:]
+        existing_pending = _write_dfir_auto_decision(existing_pending)
+        return jsonify(
+            {
+                "status": "decision_required",
+                "message": str(existing_pending.get("message") or "A DFIR AUTO decision is already pending."),
+                "decision": existing_pending,
+            }
+        ), 200
+
+    previous_case = _preferred_existing_case()
+    if previous_case:
+        message = (
+            f"A preserved forensic case already exists ({previous_case['case_id']}). "
+            "Because no Level A/B/C workflow is currently running, operator approval is required before DFIR AUTO creates another case."
+        )
+        decision = _create_dfir_auto_decision(
+            status="pending_user_choice",
+            alert=alert,
+            operator=operator,
+            stream_params=stream_params,
+            context={"previous_case": previous_case},
+            message=message,
+            recommended_action="prompt_operator_for_case_conflict_resolution",
+        )
+        return jsonify(
+            {
+                "status": "decision_required",
+                "message": message,
+                "decision": decision,
+                "options": [
+                    "coexist_with_previous_case",
+                    "replace_previous_case",
+                    "keep_previous_case_only",
+                ],
+            }
+        ), 200
+
+    decision = _create_dfir_auto_decision(
+        status="approved_without_previous_case",
+        alert=alert,
+        operator=operator,
+        stream_params=stream_params,
+        context={"previous_case": None},
+        message="No preserved case conflict exists. DFIR AUTO may create a new case immediately.",
+        recommended_action="launch_now",
+    )
+    return jsonify(
+        {
+            "status": "approved",
+            "message": decision["message"],
+            "decision": decision,
+            "stream_url": _build_dfir_auto_stream_url(
+                stream_params=stream_params,
+                decision_id=str(decision.get("decision_id") or ""),
+                decision_resolution="launch_now",
+                alert=alert,
+            ),
+        }
+    ), 200
+
+
+@forensics_bp.route("/api/dfir/orchestrator/auto/decision", methods=["POST"])
+def api_dfir_orchestrator_auto_decision():
+    data = request.get_json(force=True, silent=True) or {}
+    decision_id = str(data.get("decision_id") or "").strip()
+    action = str(data.get("action") or "").strip()
+    operator = str(data.get("operator_hint") or "index_dfir_auto").strip() or "index_dfir_auto"
+    if not decision_id:
+        return jsonify({"error": "decision_id_required"}), 400
+    decision = _read_json_file(_decision_path(decision_id))
+    if not decision:
+        return jsonify({"error": "decision_not_found"}), 404
+    if str(decision.get("status") or "") != "pending_user_choice":
+        return jsonify({"error": "decision_not_pending", "decision": decision}), 409
+
+    previous_case = ((decision.get("context") or {}).get("previous_case") or {})
+    alert = decision.get("alert") or {}
+    stream_params = decision.get("stream_params") or {}
+
+    if action == "keep_previous_case_only":
+        decision["status"] = "user_kept_previous_case_only"
+        decision["operator"] = operator
+        decision["resolution"] = action
+        decision["message"] = (
+            f"The operator kept the existing case {previous_case.get('case_id') or 'not_available'} and explicitly suppressed new case creation."
+        )
+        decision = _write_dfir_auto_decision(decision)
+        return jsonify({"status": "suppressed", "decision": decision, "message": decision["message"]}), 200
+
+    if action == "replace_previous_case":
+        deleted = _delete_existing_case_for_dfir(str(previous_case.get("case_dir") or ""))
+        if not deleted.get("deleted"):
+            decision["status"] = "blocked_previous_case_replacement"
+            decision["operator"] = operator
+            decision["resolution"] = action
+            decision["message"] = (
+                f"DFIR AUTO could not replace the previous case because deletion failed: {deleted.get('reason') or 'unknown'}."
+            )
+            decision["replace_previous_case_result"] = deleted
+            decision = _write_dfir_auto_decision(decision)
+            return jsonify({"status": "blocked", "decision": decision, "message": decision["message"]}), 409
+        decision["replace_previous_case_result"] = deleted
+        resolution = "replace_previous_case"
+    elif action == "coexist_with_previous_case":
+        resolution = "coexist_with_previous_case"
+    else:
+        return jsonify({"error": "invalid_action"}), 400
+
+    decision["status"] = "approved_by_operator"
+    decision["operator"] = operator
+    decision["resolution"] = resolution
+    decision["message"] = (
+        "The operator approved a new DFIR AUTO case outside scientific repetition mode."
+    )
+    decision = _write_dfir_auto_decision(decision)
+    return jsonify(
+        {
+            "status": "approved",
+            "decision": decision,
+            "stream_url": _build_dfir_auto_stream_url(
+                stream_params=stream_params,
+                decision_id=decision_id,
+                decision_resolution=resolution,
+                alert=alert,
+            ),
+            "message": decision["message"],
+        }
+    ), 200
+
+
 
 
 
@@ -4366,6 +4770,19 @@ def api_dfir_orchestrator_auto_stream():
     mem_mode = (request.args.get("mem_mode") or "build").strip() or "build"
     container_name = (request.args.get("container_name") or "nova_libvirt").strip() or "nova_libvirt"
     alert_ts_utc = (request.args.get("alert_ts_utc") or "").strip()
+    decision_id = (request.args.get("decision_id") or "").strip()
+    decision_resolution = (request.args.get("decision_resolution") or "").strip()
+    alert_meta = _sanitize_dfir_alert_payload(
+        {
+            "severity": request.args.get("alert_severity"),
+            "score": request.args.get("alert_score"),
+            "signature": request.args.get("alert_signature"),
+            "src": request.args.get("alert_src"),
+            "dst": request.args.get("alert_dst"),
+            "kind": request.args.get("alert_kind"),
+            "forensics": request.args.get("forensics"),
+        }
+    )
 
     ssh_key = _resolve_ssh_key_path(request.args.get("ssh_key", ""))
     if not ssh_key:
@@ -4405,7 +4822,23 @@ def api_dfir_orchestrator_auto_stream():
                 yield emit("[SISTEMA] DFIR AUTO started. Lock acquired.")
                 yield emit(f"[SISTEMA] ssh_key resolved: {ssh_key}")
 
-                # 1) Crear CASE aquí
+                # 1) Resolver targets antes de crear el caso para no dejar
+                # casos abortados vacios si OpenStack falla.
+                try:
+                    targets = _resolve_dfir_targets_from_openstack(["fuxa", "plc", "victim"])
+                except Exception as exc:
+                    yield emit(f"[ERROR] target resolution failed: {exc}")
+                    payload = {"result": "error", "exit_code": 10, "case_dir": None, "reason": "target_resolution_failed", "details": str(exc)}
+                    yield f"event: done\ndata: {json.dumps(payload)}\n\n"
+                    return
+                targets_ok = [t for t in (targets or []) if (t.get("vm_id") and t.get("vm_ip"))]
+                if not targets_ok:
+                    yield emit("[ERROR] No targets resolvable: fuxa plc victim")
+                    payload = {"result": "error", "exit_code": 1, "case_dir": None, "reason": "no_targets"}
+                    yield f"event: done\ndata: {json.dumps(payload)}\n\n"
+                    return
+
+                # 2) Crear CASE aqui
                 try:
                     case_dir = _dfir_create_case_internal(run_id=run_id, source="dfir_auto_orchestrator")
                 except RuntimeError as exc:
@@ -4415,19 +4848,35 @@ def api_dfir_orchestrator_auto_stream():
                     yield f"event: done\ndata: {json.dumps(payload)}\n\n"
                     return
                 yield emit(f"[SISTEMA] Case created: {case_dir}")
+                if decision_id:
+                    _append_case_event(
+                        case_dir,
+                        "dfir_auto_decision_applied",
+                        run_id=run_id,
+                        meta={
+                            "decision_id": decision_id,
+                            "decision_resolution": decision_resolution or None,
+                            "alert": alert_meta,
+                        },
+                    )
+                    _append_custody_entry(
+                        case_dir,
+                        "dfir_auto_decision_applied",
+                        "forensics_api",
+                        run_id=run_id,
+                        details={
+                            "decision_id": decision_id,
+                            "decision_resolution": decision_resolution or None,
+                            "alert_severity": alert_meta.get("severity"),
+                            "alert_signature": alert_meta.get("signature"),
+                        },
+                    )
+                    _register_custody_artifact(case_dir)
+                    _write_case_digest(case_dir, run_id=run_id)
 
-                # 2) Anclar alert timestamp dentro del CASE
+                # 3) Anclar alert timestamp dentro del CASE
                 alert_ts = _get_or_set_alert_ts(case_dir, run_id=run_id, provided_alert_ts_utc=alert_ts_utc)
                 yield emit(f"[SISTEMA] Alert anchor ts_utc={alert_ts}")
-
-                # 3) Resolver targets
-                targets = _resolve_dfir_targets_from_openstack(["fuxa", "plc", "victim"])
-                targets_ok = [t for t in (targets or []) if (t.get("vm_id") and t.get("vm_ip"))]
-                if not targets_ok:
-                    yield emit("[ERROR] No targets resolvable: fuxa plc victim")
-                    payload = {"result": "error", "exit_code": 1, "case_dir": case_dir, "reason": "no_targets"}
-                    yield f"event: done\ndata: {json.dumps(payload)}\n\n"
-                    return
 
                 yield emit("[SISTEMA] Targets:")
                 for t in targets_ok:

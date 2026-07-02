@@ -5,6 +5,7 @@
     cases: [],
     campaigns: [],
     reports: [],
+    tableReconstructionReports: [],
     cleanupInventory: [],
     cleanupLevelFilter: "ALL",
     selectedCaseId: new URLSearchParams(window.location.search).get("case_id") || "",
@@ -330,6 +331,40 @@
     });
   }
 
+  function renderTableReconstructionReports() {
+    const summary = byId("paper-level-b-table-reconstruction-summary");
+    const root = byId("paper-level-b-table-reconstruction-list");
+    if (!summary || !root) return;
+    const reports = state.tableReconstructionReports || [];
+    if (!reports.length) {
+      summary.innerHTML = "No FORGE-VI Level B table reconstruction reports were generated yet.";
+      root.innerHTML = '<div class="glass-soft rounded-2xl p-4">No reconstruction reports available.</div>';
+      return;
+    }
+    summary.innerHTML = `
+      <div>Reconstruction reports: <span class="mono">${esc(reports.length)}</span></div>
+      <div class="mt-2">Latest conclusion: <span class="font-black">${esc(reports[0]?.conclusion || "not_available")}</span></div>
+    `;
+    root.innerHTML = reports.map((report) => `
+      <div class="glass-soft rounded-2xl p-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Report ID</div><div class="font-black mt-2 mono">${esc(report.report_id)}</div></div>
+          <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Generated at</div><div class="font-black mt-2">${esc(report.generated_at || "not_available")}</div></div>
+          <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Accepted Level B Cases</div><div class="font-black mt-2">${esc(report.accepted_level_b_cases ?? "not_available")}</div></div>
+          <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Conclusion</div><div class="font-black mt-2">${esc(report.conclusion || "not_available")}</div></div>
+        </div>
+        <div class="mt-3"><span class="font-black">Output dir:</span> <span class="mono break-all">${esc(report.output_dir || "not_available")}</span></div>
+        <div class="mt-2"><span class="font-black">Markdown path:</span> <span class="mono break-all">${esc(report.report_markdown_path || "not_available")}</span></div>
+        <div class="flex gap-3 flex-wrap mt-4">
+          <button type="button" class="text-cyan-300 underline paper-table-reconstruction-open-btn" data-report-id="${esc(report.report_id)}">Open .md Report</button>
+        </div>
+      </div>
+    `).join("");
+    document.querySelectorAll(".paper-table-reconstruction-open-btn").forEach((btn) => {
+      btn.addEventListener("click", () => openTableReconstructionReport(btn.dataset.reportId));
+    });
+  }
+
   function ensureOverlay() {
     let root = byId("paper-evidence-overlay");
     if (root) return root;
@@ -397,6 +432,37 @@
           <summary class="font-black cursor-pointer">Limitations Report</summary>
           <pre class="whitespace-pre-wrap break-words text-xs text-slate-200 mono mt-4">${esc(JSON.stringify(payload.paper_limitations_report || {}, null, 2))}</pre>
         </details>
+      </div>
+    `;
+    root.style.display = "block";
+  }
+
+  async function openTableReconstructionReport(reportId) {
+    const payload = await getJson(`/api/foc/paper-evidence/level-b/table-reconstruction/reports/${encodeURIComponent(reportId)}`);
+    const root = ensureOverlay();
+    byId("paper-evidence-overlay-title").textContent = `FORGE-VI Level B Table Reconstruction · ${reportId}`;
+    byId("paper-evidence-overlay-body").innerHTML = `
+      <div class="space-y-4">
+        <div class="text-sm text-slate-300">
+          <div><span class="font-black">Conclusion:</span> ${esc(payload.metadata?.conclusion || "not_available")}</div>
+          <div class="mt-2"><span class="font-black">Accepted Level B cases:</span> <span class="mono">${esc(payload.metadata?.accepted_level_b_cases ?? "not_available")}</span></div>
+          <div class="mt-2"><span class="font-black">Output dir:</span> <span class="mono break-all">${esc(payload.output_dir || "not_available")}</span></div>
+        </div>
+        <details class="glass-soft rounded-2xl p-4" open>
+          <summary class="font-black cursor-pointer">FORGE-VI_LevelB_Table_Reconstruction_Report.md</summary>
+          <pre class="whitespace-pre-wrap break-words text-xs text-slate-200 mono mt-4">${esc(payload.report_markdown || "not_available")}</pre>
+        </details>
+        <details class="glass-soft rounded-2xl p-4">
+          <summary class="font-black cursor-pointer">FORGE-VI_LevelB_Table_Gap_Report.md</summary>
+          <pre class="whitespace-pre-wrap break-words text-xs text-slate-200 mono mt-4">${esc(payload.gap_report_markdown || "not_available")}</pre>
+        </details>
+        <details class="glass-soft rounded-2xl p-4">
+          <summary class="font-black cursor-pointer">FORGE-VI_LevelB_Table_Values.json</summary>
+          <pre class="whitespace-pre-wrap break-words text-xs text-slate-200 mono mt-4">${esc(JSON.stringify(payload.values_json || {}, null, 2))}</pre>
+        </details>
+        <div class="text-xs text-slate-500 mono break-all">
+          CSV path: ${esc(payload.availability_matrix_csv_path || "not_available")}
+        </div>
       </div>
     `;
     root.style.display = "block";
@@ -479,6 +545,39 @@
     const root = byId("paper-reports-root");
     if (root && payload.root) root.textContent = payload.root;
     renderReports();
+  }
+
+  async function loadTableReconstructionReports() {
+    const payload = await getJson("/api/foc/paper-evidence/level-b/table-reconstruction/reports");
+    state.tableReconstructionReports = payload.reports || [];
+    renderTableReconstructionReports();
+  }
+
+  async function runTableReconstruction() {
+    const button = byId("paper-run-level-b-table-reconstruction-btn");
+    const summary = byId("paper-level-b-table-reconstruction-summary");
+    if (button) button.disabled = true;
+    if (summary) summary.innerHTML = "Generating FORGE-VI Level B table reconstruction report from existing artifacts…";
+    try {
+      const payload = await getJson("/api/foc/paper-evidence/level-b/table-reconstruction/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      await loadTableReconstructionReports();
+      if (summary) {
+        summary.innerHTML = `
+          <div class="text-cyan-300 font-black">Reconstruction report generated.</div>
+          <div class="mt-2 mono break-all">${esc(payload.output_dir || "not_available")}</div>
+          <div class="mt-2">${esc(payload.conclusion || "not_available")}</div>
+        `;
+      }
+      await openTableReconstructionReport(payload.report_id);
+    } catch (error) {
+      if (summary) summary.innerHTML = `<span class="text-red-300">${esc(error.message || "Could not generate the reconstruction report.")}</span>`;
+    } finally {
+      if (button) button.disabled = false;
+    }
   }
 
   async function loadCleanupInventory() {
@@ -634,12 +733,15 @@
     });
     byId("paper-run-level-a-btn")?.addEventListener("click", runLevelA);
     byId("paper-run-level-b-btn")?.addEventListener("click", runLevelB);
+    byId("paper-run-level-b-table-reconstruction-btn")?.addEventListener("click", runTableReconstruction);
+    byId("paper-level-b-table-reconstruction-refresh-btn")?.addEventListener("click", loadTableReconstructionReports);
     byId("paper-create-level-b-campaign-btn")?.addEventListener("click", createTemporaryLevelBCampaign);
     byId("paper-refresh-btn")?.addEventListener("click", async () => {
       await loadCases();
       await loadCampaigns();
       await loadLevelBPreflight();
       await loadReports();
+      await loadTableReconstructionReports();
       await loadCleanupInventory();
     });
     byId("paper-cleanup-refresh-btn")?.addEventListener("click", loadCleanupInventory);
@@ -656,6 +758,7 @@
     await loadCampaigns();
     await loadLevelBPreflight();
     await loadReports();
+    await loadTableReconstructionReports();
     await loadCleanupInventory();
   }
 
