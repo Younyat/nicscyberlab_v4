@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-06-29T08:43:49.899964+00:00",
+  "generated_at": "2026-07-01T23:54:19.620352+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
-  "case_count": 10,
+  "case_count": 1,
   "cases": [
     {
-      "case_id": "case-643ce64e",
-      "case_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260628-133923",
-      "trigger_alert_id": "alr-738b7ed4",
+      "case_id": "case-4c1f8e4b",
+      "case_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260701-231052",
+      "trigger_alert_id": "alr-a39b3493",
       "trigger_signature": "NICS CyberLab ICS Modbus write multiple registers",
       "triggering_alert_name": "NICS CyberLab ICS Modbus write multiple registers",
       "triggering_alert_rule_id": "910836102",
@@ -22,9 +22,9 @@
       "trigger_type": "alert",
       "trigger_detector": "suricata",
       "trigger_selection_method": "fallback_prior_alert",
-      "trigger_selection_score": 365,
-      "trigger_selection_reason": "confirmed_correlation,high_severity,ot_write_signal,forensics_recommended,original_suricata,network_protocol",
-      "candidate_triggers_evaluated": 3856,
+      "trigger_selection_score": 395,
+      "trigger_selection_reason": "confirmed_correlation,high_severity,ot_write_signal,forensics_recommended,original_suricata,network_protocol,temporal_distant",
+      "candidate_triggers_evaluated": 10202,
       "stronger_trigger_available": false,
       "profile_used": "dfir_orchestration",
       "target_nodes": [
@@ -75,516 +75,75 @@
         "vol3_execution_report.json"
       ],
       "artifact_count": 114,
-      "start_time": "2026-06-28T13:39:45Z",
-      "end_time": "2026-06-28T13:57:24Z",
-      "latency_alert_to_start_seconds": 252353.327,
-      "latency_start_to_sealed_seconds": 1059.0,
+      "start_time": "2026-07-01T23:10:54Z",
+      "end_time": "2026-07-01T23:29:22Z",
+      "latency_alert_to_start_seconds": 2176.261,
+      "latency_start_to_sealed_seconds": 1108.0,
       "result": "completed",
       "pipeline_event_references": [
-        "app_core/infrastructure/forensics/evidence_store/CASE-20260628-133923/metadata/pipeline_events.jsonl"
-      ]
-    },
-    {
-      "case_id": "case-c39cd889",
-      "case_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062741",
-      "trigger_alert_id": "alr-8e6b7f1f",
-      "trigger_signature": "NICS CyberLab ICS Modbus write multiple registers",
-      "triggering_alert_name": "NICS CyberLab ICS Modbus write multiple registers",
-      "triggering_alert_rule_id": "910836102",
-      "triggering_alert_severity": "HIGH",
-      "triggering_alert_original_sensor": "suricata",
-      "triggering_alert_collector": "wazuh",
-      "triggering_alert_protocol": "TCP",
-      "triggering_alert_mitre": [
-        "T1692.001",
-        "T0836"
-      ],
-      "trigger_type": "alert",
-      "trigger_detector": "suricata",
-      "trigger_selection_method": "fallback_prior_alert",
-      "trigger_selection_score": 365,
-      "trigger_selection_reason": "confirmed_correlation,high_severity,ot_write_signal,forensics_recommended,original_suricata,network_protocol",
-      "candidate_triggers_evaluated": 4602,
-      "stronger_trigger_available": false,
-      "profile_used": "dfir_orchestration",
-      "target_nodes": [
-        "node-c800d431",
-        "node-e1ac03b8",
-        "node-f9ca9bfc"
-      ],
-      "expected_artifacts": [
-        "custody_log"
-      ],
-      "acquired_artifacts": [
-        "acquisition_profile",
-        "case_digest",
-        "custody_log",
-        "ir_input",
-        "ir_snapshot",
-        "time_sync"
-      ],
-      "artifact_count": 29,
-      "start_time": "2026-06-29T06:27:57Z",
-      "end_time": null,
-      "latency_alert_to_start_seconds": 59881.121,
-      "latency_start_to_sealed_seconds": null,
-      "result": "completed",
-      "pipeline_event_references": [
-        "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062741/metadata/pipeline_events.jsonl"
-      ]
-    },
-    {
-      "case_id": "case-da6e309c",
-      "case_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062822",
-      "trigger_alert_id": "alr-8e6b7f1f",
-      "trigger_signature": "NICS CyberLab ICS Modbus write multiple registers",
-      "triggering_alert_name": "NICS CyberLab ICS Modbus write multiple registers",
-      "triggering_alert_rule_id": "910836102",
-      "triggering_alert_severity": "HIGH",
-      "triggering_alert_original_sensor": "suricata",
-      "triggering_alert_collector": "wazuh",
-      "triggering_alert_protocol": "TCP",
-      "triggering_alert_mitre": [
-        "T1692.001",
-        "T0836"
-      ],
-      "trigger_type": "alert",
-      "trigger_detector": "suricata",
-      "trigger_selection_method": "fallback_prior_alert",
-      "trigger_selection_score": 365,
-      "trigger_selection_reason": "confirmed_correlation,high_severity,ot_write_signal,forensics_recommended,original_suricata,network_protocol",
-      "candidate_triggers_evaluated": 4602,
-      "stronger_trigger_available": false,
-      "profile_used": "dfir_orchestration",
-      "target_nodes": [
-        "node-c800d431",
-        "node-e1ac03b8",
-        "node-f9ca9bfc"
-      ],
-      "expected_artifacts": [
-        "custody_log"
-      ],
-      "acquired_artifacts": [
-        "acquisition_profile",
-        "case_digest",
-        "custody_log",
-        "ir_input",
-        "ir_snapshot",
-        "time_sync"
-      ],
-      "artifact_count": 29,
-      "start_time": "2026-06-29T06:28:23Z",
-      "end_time": null,
-      "latency_alert_to_start_seconds": 59907.121,
-      "latency_start_to_sealed_seconds": null,
-      "result": "completed",
-      "pipeline_event_references": [
-        "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062822/metadata/pipeline_events.jsonl"
-      ]
-    },
-    {
-      "case_id": "case-369f59d5",
-      "case_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062825",
-      "trigger_alert_id": "alr-8e6b7f1f",
-      "trigger_signature": "NICS CyberLab ICS Modbus write multiple registers",
-      "triggering_alert_name": "NICS CyberLab ICS Modbus write multiple registers",
-      "triggering_alert_rule_id": "910836102",
-      "triggering_alert_severity": "HIGH",
-      "triggering_alert_original_sensor": "suricata",
-      "triggering_alert_collector": "wazuh",
-      "triggering_alert_protocol": "TCP",
-      "triggering_alert_mitre": [
-        "T1692.001",
-        "T0836"
-      ],
-      "trigger_type": "alert",
-      "trigger_detector": "suricata",
-      "trigger_selection_method": "fallback_prior_alert",
-      "trigger_selection_score": 365,
-      "trigger_selection_reason": "confirmed_correlation,high_severity,ot_write_signal,forensics_recommended,original_suricata,network_protocol",
-      "candidate_triggers_evaluated": 4602,
-      "stronger_trigger_available": false,
-      "profile_used": "dfir_orchestration",
-      "target_nodes": [
-        "node-c800d431",
-        "node-e1ac03b8",
-        "node-f9ca9bfc"
-      ],
-      "expected_artifacts": [
-        "custody_log"
-      ],
-      "acquired_artifacts": [
-        "acquisition_profile",
-        "case_digest",
-        "custody_log",
-        "ir_input",
-        "ir_snapshot",
-        "time_sync"
-      ],
-      "artifact_count": 29,
-      "start_time": "2026-06-29T06:28:26Z",
-      "end_time": null,
-      "latency_alert_to_start_seconds": 59910.121,
-      "latency_start_to_sealed_seconds": null,
-      "result": "completed",
-      "pipeline_event_references": [
-        "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062825/metadata/pipeline_events.jsonl"
-      ]
-    },
-    {
-      "case_id": "case-c8ade0d8",
-      "case_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062828",
-      "trigger_alert_id": "alr-8e6b7f1f",
-      "trigger_signature": "NICS CyberLab ICS Modbus write multiple registers",
-      "triggering_alert_name": "NICS CyberLab ICS Modbus write multiple registers",
-      "triggering_alert_rule_id": "910836102",
-      "triggering_alert_severity": "HIGH",
-      "triggering_alert_original_sensor": "suricata",
-      "triggering_alert_collector": "wazuh",
-      "triggering_alert_protocol": "TCP",
-      "triggering_alert_mitre": [
-        "T1692.001",
-        "T0836"
-      ],
-      "trigger_type": "alert",
-      "trigger_detector": "suricata",
-      "trigger_selection_method": "fallback_prior_alert",
-      "trigger_selection_score": 365,
-      "trigger_selection_reason": "confirmed_correlation,high_severity,ot_write_signal,forensics_recommended,original_suricata,network_protocol",
-      "candidate_triggers_evaluated": 4602,
-      "stronger_trigger_available": false,
-      "profile_used": "dfir_orchestration",
-      "target_nodes": [
-        "node-c800d431",
-        "node-e1ac03b8",
-        "node-f9ca9bfc"
-      ],
-      "expected_artifacts": [
-        "custody_log"
-      ],
-      "acquired_artifacts": [
-        "acquisition_profile",
-        "case_digest",
-        "custody_log",
-        "ir_input",
-        "ir_snapshot",
-        "time_sync"
-      ],
-      "artifact_count": 29,
-      "start_time": "2026-06-29T06:28:29Z",
-      "end_time": null,
-      "latency_alert_to_start_seconds": 59913.121,
-      "latency_start_to_sealed_seconds": null,
-      "result": "completed",
-      "pipeline_event_references": [
-        "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062828/metadata/pipeline_events.jsonl"
-      ]
-    },
-    {
-      "case_id": "case-ce6e1e0f",
-      "case_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062845",
-      "trigger_alert_id": "alr-8e6b7f1f",
-      "trigger_signature": "NICS CyberLab ICS Modbus write multiple registers",
-      "triggering_alert_name": "NICS CyberLab ICS Modbus write multiple registers",
-      "triggering_alert_rule_id": "910836102",
-      "triggering_alert_severity": "HIGH",
-      "triggering_alert_original_sensor": "suricata",
-      "triggering_alert_collector": "wazuh",
-      "triggering_alert_protocol": "TCP",
-      "triggering_alert_mitre": [
-        "T1692.001",
-        "T0836"
-      ],
-      "trigger_type": "alert",
-      "trigger_detector": "suricata",
-      "trigger_selection_method": "fallback_prior_alert",
-      "trigger_selection_score": 365,
-      "trigger_selection_reason": "confirmed_correlation,high_severity,ot_write_signal,forensics_recommended,original_suricata,network_protocol",
-      "candidate_triggers_evaluated": 4605,
-      "stronger_trigger_available": false,
-      "profile_used": "dfir_orchestration",
-      "target_nodes": [
-        "node-c800d431",
-        "node-e1ac03b8",
-        "node-f9ca9bfc"
-      ],
-      "expected_artifacts": [
-        "custody_log"
-      ],
-      "acquired_artifacts": [
-        "acquisition_profile",
-        "case_digest",
-        "custody_log",
-        "ir_input",
-        "ir_snapshot",
-        "time_sync"
-      ],
-      "artifact_count": 29,
-      "start_time": "2026-06-29T06:28:46Z",
-      "end_time": null,
-      "latency_alert_to_start_seconds": 59930.121,
-      "latency_start_to_sealed_seconds": null,
-      "result": "completed",
-      "pipeline_event_references": [
-        "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062845/metadata/pipeline_events.jsonl"
-      ]
-    },
-    {
-      "case_id": "case-6b5274b1",
-      "case_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062848",
-      "trigger_alert_id": "alr-8e6b7f1f",
-      "trigger_signature": "NICS CyberLab ICS Modbus write multiple registers",
-      "triggering_alert_name": "NICS CyberLab ICS Modbus write multiple registers",
-      "triggering_alert_rule_id": "910836102",
-      "triggering_alert_severity": "HIGH",
-      "triggering_alert_original_sensor": "suricata",
-      "triggering_alert_collector": "wazuh",
-      "triggering_alert_protocol": "TCP",
-      "triggering_alert_mitre": [
-        "T1692.001",
-        "T0836"
-      ],
-      "trigger_type": "alert",
-      "trigger_detector": "suricata",
-      "trigger_selection_method": "fallback_prior_alert",
-      "trigger_selection_score": 365,
-      "trigger_selection_reason": "confirmed_correlation,high_severity,ot_write_signal,forensics_recommended,original_suricata,network_protocol",
-      "candidate_triggers_evaluated": 4605,
-      "stronger_trigger_available": false,
-      "profile_used": "dfir_orchestration",
-      "target_nodes": [
-        "node-c800d431",
-        "node-e1ac03b8",
-        "node-f9ca9bfc"
-      ],
-      "expected_artifacts": [
-        "custody_log"
-      ],
-      "acquired_artifacts": [
-        "acquisition_profile",
-        "case_digest",
-        "custody_log",
-        "ir_input",
-        "ir_snapshot",
-        "time_sync"
-      ],
-      "artifact_count": 29,
-      "start_time": "2026-06-29T06:28:50Z",
-      "end_time": null,
-      "latency_alert_to_start_seconds": 59934.121,
-      "latency_start_to_sealed_seconds": null,
-      "result": "completed",
-      "pipeline_event_references": [
-        "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062848/metadata/pipeline_events.jsonl"
-      ]
-    },
-    {
-      "case_id": "case-17ea4b81",
-      "case_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062851",
-      "trigger_alert_id": "alr-8e6b7f1f",
-      "trigger_signature": "NICS CyberLab ICS Modbus write multiple registers",
-      "triggering_alert_name": "NICS CyberLab ICS Modbus write multiple registers",
-      "triggering_alert_rule_id": "910836102",
-      "triggering_alert_severity": "HIGH",
-      "triggering_alert_original_sensor": "suricata",
-      "triggering_alert_collector": "wazuh",
-      "triggering_alert_protocol": "TCP",
-      "triggering_alert_mitre": [
-        "T1692.001",
-        "T0836"
-      ],
-      "trigger_type": "alert",
-      "trigger_detector": "suricata",
-      "trigger_selection_method": "fallback_prior_alert",
-      "trigger_selection_score": 365,
-      "trigger_selection_reason": "confirmed_correlation,high_severity,ot_write_signal,forensics_recommended,original_suricata,network_protocol",
-      "candidate_triggers_evaluated": 4605,
-      "stronger_trigger_available": false,
-      "profile_used": "dfir_orchestration",
-      "target_nodes": [
-        "node-c800d431",
-        "node-e1ac03b8",
-        "node-f9ca9bfc"
-      ],
-      "expected_artifacts": [
-        "custody_log"
-      ],
-      "acquired_artifacts": [
-        "acquisition_profile",
-        "case_digest",
-        "custody_log",
-        "ir_input",
-        "ir_snapshot",
-        "time_sync"
-      ],
-      "artifact_count": 29,
-      "start_time": "2026-06-29T06:28:52Z",
-      "end_time": null,
-      "latency_alert_to_start_seconds": 59936.121,
-      "latency_start_to_sealed_seconds": null,
-      "result": "completed",
-      "pipeline_event_references": [
-        "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062851/metadata/pipeline_events.jsonl"
-      ]
-    },
-    {
-      "case_id": "case-d708740f",
-      "case_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062903",
-      "trigger_alert_id": "alr-8e6b7f1f",
-      "trigger_signature": "NICS CyberLab ICS Modbus write multiple registers",
-      "triggering_alert_name": "NICS CyberLab ICS Modbus write multiple registers",
-      "triggering_alert_rule_id": "910836102",
-      "triggering_alert_severity": "HIGH",
-      "triggering_alert_original_sensor": "suricata",
-      "triggering_alert_collector": "wazuh",
-      "triggering_alert_protocol": "TCP",
-      "triggering_alert_mitre": [
-        "T1692.001",
-        "T0836"
-      ],
-      "trigger_type": "alert",
-      "trigger_detector": "suricata",
-      "trigger_selection_method": "fallback_prior_alert",
-      "trigger_selection_score": 365,
-      "trigger_selection_reason": "confirmed_correlation,high_severity,ot_write_signal,forensics_recommended,original_suricata,network_protocol",
-      "candidate_triggers_evaluated": 4605,
-      "stronger_trigger_available": false,
-      "profile_used": "dfir_orchestration",
-      "target_nodes": [
-        "node-c800d431",
-        "node-e1ac03b8",
-        "node-f9ca9bfc"
-      ],
-      "expected_artifacts": [
-        "custody_log"
-      ],
-      "acquired_artifacts": [
-        "acquisition_profile",
-        "case_digest",
-        "custody_log",
-        "ir_input",
-        "ir_snapshot",
-        "time_sync"
-      ],
-      "artifact_count": 29,
-      "start_time": "2026-06-29T06:29:04Z",
-      "end_time": null,
-      "latency_alert_to_start_seconds": 59948.121,
-      "latency_start_to_sealed_seconds": null,
-      "result": "completed",
-      "pipeline_event_references": [
-        "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062903/metadata/pipeline_events.jsonl"
-      ]
-    },
-    {
-      "case_id": "case-5b4a0312",
-      "case_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062907",
-      "trigger_alert_id": "alr-8e6b7f1f",
-      "trigger_signature": "NICS CyberLab ICS Modbus write multiple registers",
-      "triggering_alert_name": "NICS CyberLab ICS Modbus write multiple registers",
-      "triggering_alert_rule_id": "910836102",
-      "triggering_alert_severity": "HIGH",
-      "triggering_alert_original_sensor": "suricata",
-      "triggering_alert_collector": "wazuh",
-      "triggering_alert_protocol": "TCP",
-      "triggering_alert_mitre": [
-        "T1692.001",
-        "T0836"
-      ],
-      "trigger_type": "alert",
-      "trigger_detector": "suricata",
-      "trigger_selection_method": "fallback_prior_alert",
-      "trigger_selection_score": 365,
-      "trigger_selection_reason": "confirmed_correlation,high_severity,ot_write_signal,forensics_recommended,original_suricata,network_protocol",
-      "candidate_triggers_evaluated": 4605,
-      "stronger_trigger_available": false,
-      "profile_used": "dfir_orchestration",
-      "target_nodes": [
-        "node-c800d431",
-        "node-e1ac03b8",
-        "node-f9ca9bfc"
-      ],
-      "expected_artifacts": [
-        "custody_log"
-      ],
-      "acquired_artifacts": [
-        "acquisition_profile",
-        "case_digest",
-        "custody_log",
-        "ir_input",
-        "ir_snapshot",
-        "time_sync"
-      ],
-      "artifact_count": 29,
-      "start_time": "2026-06-29T06:29:08Z",
-      "end_time": null,
-      "latency_alert_to_start_seconds": 59952.121,
-      "latency_start_to_sealed_seconds": null,
-      "result": "completed",
-      "pipeline_event_references": [
-        "app_core/infrastructure/forensics/evidence_store/CASE-20260629-062907/metadata/pipeline_events.jsonl"
+        "app_core/infrastructure/forensics/evidence_store/CASE-20260701-231052/metadata/pipeline_events.jsonl"
       ]
     }
   ],
   "primary_evidence": [
     {
-      "artifact_id": "art-b9b62bcf",
+      "artifact_id": "art-3352af19",
       "artifact_type": "memory_lime",
-      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260628-133923/memory/memdump_10.0.2.9_20260628_133946Z.lime",
-      "case_id": "case-643ce64e",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260701-231052/memory/memdump_10.0.2.9_20260701_231054Z.lime",
+      "case_id": "case-4c1f8e4b",
       "related_node_id": "node-e1ac03b8",
       "related_instance_id": "inst-a495cfe7",
-      "sha256": "9b53fb48bf4e4469cb65616a53bf269ca675975abdc89b0f61612aa54f6d217d",
+      "sha256": "fd81bd4ba1295058b066c1889a36352cdcff0e4b86e979afd22e2d2e7345553f",
       "is_primary_evidence": true
     },
     {
-      "artifact_id": "art-84f71893",
+      "artifact_id": "art-0375d18f",
       "artifact_type": "memory_lime",
-      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260628-133923/memory/memdump_10.0.2.22_20260628_134127Z.lime",
-      "case_id": "case-643ce64e",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260701-231052/memory/memdump_10.0.2.22_20260701_231237Z.lime",
+      "case_id": "case-4c1f8e4b",
       "related_node_id": "node-f9ca9bfc",
       "related_instance_id": "inst-8c0c86c9",
-      "sha256": "bd89da88d979c3430a99ade35a9d3b64bab334c61c2fbad227d06611baad9329",
+      "sha256": "6364605c77d0fa44924f8cedbe177677484453fb98f14ba717822a4c2768ece8",
       "is_primary_evidence": true
     },
     {
-      "artifact_id": "art-80132fba",
+      "artifact_id": "art-c3f7ac6f",
       "artifact_type": "memory_lime",
-      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260628-133923/memory/memdump_10.0.2.172_20260628_134323Z.lime",
-      "case_id": "case-643ce64e",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260701-231052/memory/memdump_10.0.2.172_20260701_231433Z.lime",
+      "case_id": "case-4c1f8e4b",
       "related_node_id": "node-c800d431",
       "related_instance_id": "inst-16583180",
-      "sha256": "2163fd32af8c5bdd18acaa2363df0ec5bac95cce91c4da5697331d2630e2166b",
+      "sha256": "2f95ff57597f533fb3e0a58094d2d7bd76cc5a8e5c280d3599bac6e86c4dd8fe",
       "is_primary_evidence": true
     },
     {
-      "artifact_id": "art-bfeb18ce",
+      "artifact_id": "art-7f136efe",
       "artifact_type": "disk_raw",
-      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260628-133923/disk/a495cfe7-b55b-41d0-95bf-78f9093f7fe2_20260628_134531Z.disk.final.raw",
-      "case_id": "case-643ce64e",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260701-231052/disk/a495cfe7-b55b-41d0-95bf-78f9093f7fe2_20260701_231645Z.disk.final.raw",
+      "case_id": "case-4c1f8e4b",
       "related_node_id": "node-e1ac03b8",
       "related_instance_id": "inst-a495cfe7",
-      "sha256": "685bf8792f6bcda1f75c57818da732e05be44764353051d22d43fe69be71c8e0",
+      "sha256": "e9da6cca55745148971803a939519d151bddc39639b5159f2d6cfac6be9cd407",
       "is_primary_evidence": true
     },
     {
-      "artifact_id": "art-f3c7a199",
+      "artifact_id": "art-21719ee7",
       "artifact_type": "disk_raw",
-      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260628-133923/disk/8c0c86c9-2c69-424b-9080-f6c07d798787_20260628_134839Z.disk.final.raw",
-      "case_id": "case-643ce64e",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260701-231052/disk/8c0c86c9-2c69-424b-9080-f6c07d798787_20260701_231951Z.disk.final.raw",
+      "case_id": "case-4c1f8e4b",
       "related_node_id": "node-f9ca9bfc",
       "related_instance_id": "inst-8c0c86c9",
-      "sha256": "36c2ed8a1f97d16da4e096fbf90e8b93d7f328ea0c44e707411ae4bba95ee1b4",
+      "sha256": "2ad6e096a40380aa63b318d651337d715456679aa5891ed377a055144a7a95da",
       "is_primary_evidence": true
     },
     {
-      "artifact_id": "art-71ae6496",
+      "artifact_id": "art-dd3eb9e7",
       "artifact_type": "disk_raw",
-      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260628-133923/disk/16583180-627d-4c40-bd65-aa9db704d75c_20260628_135134Z.disk.final.raw",
-      "case_id": "case-643ce64e",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260701-231052/disk/16583180-627d-4c40-bd65-aa9db704d75c_20260701_232301Z.disk.final.raw",
+      "case_id": "case-4c1f8e4b",
       "related_node_id": "node-c800d431",
       "related_instance_id": "inst-16583180",
-      "sha256": "931ff2644e78699ae4c278281d4382c50fe6b902537dd31b39f63159bc2f7332",
+      "sha256": "17ef5f682959957a40dd1df84d6051d2616f8e8f7e4676de86e5cf00e0069636",
       "is_primary_evidence": true
     }
   ],
@@ -592,10 +151,10 @@
     "network": 20,
     "disk": 10,
     "memory": 11,
-    "logs": 235,
-    "ot_state": 369
+    "logs": 258,
+    "ot_state": 539
   },
   "trigger_quality_summary": {
-    "strong": 10
+    "strong": 1
   }
 }

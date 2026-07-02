@@ -106,7 +106,13 @@ def _read_active_case_dir() -> str:
         if not raw:
             return ""
         case_dir = os.path.abspath(raw)
-        return case_dir if os.path.isdir(case_dir) else ""
+        if os.path.isdir(case_dir):
+            return case_dir
+        try:
+            Path(ACTIVE_CASE_PTR).unlink(missing_ok=True)
+        except Exception:
+            pass
+        return ""
     except Exception:
         return ""
 
@@ -1936,6 +1942,36 @@ def _run_script(script_path: str, args: list, cwd: str = None, timeout: int = 60
     return (proc.returncode, proc.stdout, proc.stderr)
 
 
+def _sudo_nopasswd_for_disk_helper(script_path: str) -> tuple[bool, str]:
+    try:
+        probe = subprocess.run(
+            ["sudo", "-n", "-l"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            stdin=subprocess.DEVNULL,
+            timeout=10,
+        )
+    except Exception:
+        return False, ""
+
+    output = f"{probe.stdout}\n{probe.stderr}".strip()
+    helper_markers = [
+        script_path,
+        f"/bin/bash {script_path}",
+        f"bash {script_path}",
+    ]
+    allowed = False
+    for line in output.splitlines():
+        upper = line.upper()
+        if "NOPASSWD" not in upper:
+            continue
+        if any(marker in line for marker in helper_markers):
+            allowed = True
+            break
+    return allowed, output
+
+
 def disk_acquisition_preflight(container_name: str = "nova_libvirt", *, require_stable_noninteractive: bool = False) -> dict:
     blockers: list[str] = []
     warnings: list[str] = []
@@ -1947,6 +1983,7 @@ def disk_acquisition_preflight(container_name: str = "nova_libvirt", *, require_
     sudo_noninteractive_ok = privilege_mode == "root"
     sudo_nopasswd_granted = privilege_mode == "root"
     sudo_list_output = ""
+    helper_sudo_probe_ok = privilege_mode == "root"
 
     if not os.path.isfile(script_path):
         blockers.append("disk_acquisition_script_missing")
@@ -1956,46 +1993,67 @@ def disk_acquisition_preflight(container_name: str = "nova_libvirt", *, require_
         blockers.append("qemu_img_not_available")
 
     if privilege_mode != "root":
+        # Probe order: try the script-specific NOPASSWD rule FIRST because a
+        # dedicated Cmnd_Alias rule (e.g. /etc/sudoers.d/nicscyberlab-acquire-disk)
+        # only covers that exact command -- "sudo -n true" will keep failing even
+        # when the real acquisition command works without a password.  Only fall
+        # back to the generic "sudo -n true" check if the script probe itself fails.
         try:
-            probe = subprocess.run(
-                ["sudo", "-n", "true"],
+            helper_probe = subprocess.run(
+                ["sudo", "-n", "/bin/bash", script_path, "__nics_probe__"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
                 stdin=subprocess.DEVNULL,
                 timeout=10,
             )
-            sudo_noninteractive_ok = probe.returncode == 0
+            combined = f"{helper_probe.stdout}\n{helper_probe.stderr}".lower()
+            script_nopasswd_ok = (
+                helper_probe.returncode in {0, 1}
+                and "password is required" not in combined
+                and "a password is required" not in combined
+                and "not allowed" not in combined
+                and "sorry" not in combined
+            )
         except Exception:
-            sudo_noninteractive_ok = False
+            script_nopasswd_ok = False
 
-        if sudo_noninteractive_ok:
+        if script_nopasswd_ok:
+            # Dedicated NOPASSWD rule for the acquisition script is in place.
+            sudo_noninteractive_ok = True
+            sudo_nopasswd_granted = True
+            helper_sudo_probe_ok = True
+        else:
+            # No dedicated rule -- fall back to checking a generic cached credential.
             try:
                 probe = subprocess.run(
-                    ["sudo", "-n", "-l"],
+                    ["sudo", "-n", "true"],
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     text=True,
                     stdin=subprocess.DEVNULL,
                     timeout=10,
                 )
-                sudo_list_output = f"{probe.stdout}\n{probe.stderr}"
-                if probe.returncode == 0 and "NOPASSWD" in sudo_list_output.upper():
-                    sudo_nopasswd_granted = True
+                sudo_noninteractive_ok = probe.returncode == 0
             except Exception:
-                sudo_list_output = ""
+                sudo_noninteractive_ok = False
+
+            if sudo_noninteractive_ok:
+                sudo_nopasswd_granted, sudo_list_output = _sudo_nopasswd_for_disk_helper(script_path)
 
         if not sudo_noninteractive_ok:
             blockers.append("sudo_noninteractive_unavailable")
         elif require_stable_noninteractive and not sudo_nopasswd_granted:
-            blockers.append("sudo_nopasswd_not_granted_for_stable_level_b_batches")
+            blockers.append("sudo_nopasswd_not_granted_for_disk_helper")
             warnings.append(
-                "Current sudo access may depend on a temporary cached credential. "
-                "That is not stable enough for multi-repetition Level B batches because nested analysis can outlive the sudo timestamp."
+                "Current sudo access may depend on a temporary cached credential or an unrelated NOPASSWD rule. "
+                "That is not stable enough for multi-repetition Level B batches because nested analysis can outlive the sudo timestamp. "
+                "The disk acquisition helper itself needs a dedicated NOPASSWD rule."
             )
 
     docker_access_ok = False
-    if docker_path:
+    should_probe_docker = bool(docker_path) and (privilege_mode == "root" or (sudo_noninteractive_ok and not require_stable_noninteractive))
+    if should_probe_docker:
         docker_cmd = ["docker", "ps"] if privilege_mode == "root" else ["sudo", "-n", "docker", "ps"]
         try:
             probe = subprocess.run(
@@ -2011,6 +2069,12 @@ def disk_acquisition_preflight(container_name: str = "nova_libvirt", *, require_
                 blockers.append("docker_access_unavailable")
         except Exception:
             blockers.append("docker_access_unavailable")
+    elif docker_path and require_stable_noninteractive and sudo_nopasswd_granted:
+        docker_access_ok = True
+    elif docker_path and privilege_mode != "root" and not sudo_noninteractive_ok:
+        warnings.append(
+            "Docker access was not probed because stable non-interactive sudo/root privileges are not currently available."
+        )
 
     return {
         "ok": not blockers,
@@ -2025,6 +2089,7 @@ def disk_acquisition_preflight(container_name: str = "nova_libvirt", *, require_
         "script_path": script_path,
         "container_name": container_name,
         "sudo_list_excerpt": sudo_list_output[:1000] if sudo_list_output else "",
+        "helper_sudo_probe_ok": helper_sudo_probe_ok,
     }
 
 
@@ -2301,14 +2366,51 @@ def acquire_disk(case_dir: str, vm_id: str, container_name: str = "nova_libvirt"
     env = os.environ.copy()
     if noninteractive:
         env["NICS_DFIR_SUDO_NONINTERACTIVE"] = "1"
-    rc, out, err = _run_script(
-        script,
-        [case_dir, vm_id, container_name],
-        cwd=REPO_ROOT,
-        timeout=60 * 60,
-        stdin_devnull=bool(noninteractive),
-        env=env,
-    )
+    try:
+        rc, out, err = _run_script(
+            script,
+            [case_dir, vm_id, container_name],
+            cwd=REPO_ROOT,
+            timeout=60 * 60,
+            stdin_devnull=bool(noninteractive),
+            env=env,
+        )
+    except OSError as exc:
+        if getattr(exc, "errno", None) == 28:
+            no_space_message = (
+                "Disk acquisition failed because the evidence filesystem ran out of space during transient disk conversion. "
+                "The helper may need temporary space for overlay qcow2 + backing raw + final raw at the same time."
+            )
+            _append_case_event(
+                case_dir,
+                "disk_failed",
+                run_id=run_id,
+                meta={"vm_id": vm_id, "container": container_name, "reason": no_space_message, "errno": 28},
+            )
+            _append_custody_entry(
+                case_dir,
+                "acquire_failed",
+                "forensics_api",
+                run_id=run_id,
+                outcome="error",
+                details={"kind": "disk", "vm_id": vm_id, "errno": 28, "reason": no_space_message},
+            )
+            _register_custody_artifact(case_dir)
+            _write_case_digest(case_dir, run_id=run_id)
+            return {
+                "ok": False,
+                "result": "error",
+                "exit_code": 28,
+                "error": "insufficient_storage_during_disk_acquisition",
+                "msg": no_space_message,
+                "errno": 28,
+                "stdout": "",
+                "stderr": str(exc),
+                "preflight": preflight,
+                "disk_raw": None,
+                "sha256": None,
+            }
+        raise
     t1 = time.time()
 
     disk_rel = None
@@ -2355,10 +2457,19 @@ def acquire_disk(case_dir: str, vm_id: str, container_name: str = "nova_libvirt"
     _register_custody_artifact(case_dir)
     _write_case_digest(case_dir, run_id=run_id)
 
+    error_message = None
+    combined_output = f"{out}\n{err}".lower()
+    if rc != 0:
+        if "no space left on device" in combined_output or "insufficient free space for transient disk conversion" in combined_output:
+            error_message = "insufficient_storage_during_disk_acquisition"
+        else:
+            error_message = f"disk_acquisition_failed_exit_{rc}"
+
     return {
         "ok": rc == 0,
         "result": "ok" if rc == 0 else "error",
         "exit_code": rc,
+        "error": error_message,
         "stdout": out,
         "stderr": err,
         "preflight": preflight,
@@ -2375,14 +2486,15 @@ def api_forensics_acquire_disk():
     container_name = data.get("container_name", "nova_libvirt")
     run_id = (data.get("run_id") or "R1").strip()
     alert_ts_utc = (data.get("alert_ts_utc") or "").strip()
+    noninteractive = bool(data.get("noninteractive"))
 
     if not _is_safe_case_dir(case_dir):
         return jsonify({"error": "case_dir inválido"}), 400
     if not vm_id:
         return jsonify({"error": "vm_id requerido"}), 400
 
-    out = acquire_disk(case_dir, vm_id, container_name, run_id=run_id, alert_ts_utc=alert_ts_utc)
-    status = 200 if out.get("ok") else 500
+    out = acquire_disk(case_dir, vm_id, container_name, run_id=run_id, alert_ts_utc=alert_ts_utc, noninteractive=noninteractive)
+    status = 200 if out.get("ok") else (507 if out.get("error") == "insufficient_storage_during_disk_acquisition" or out.get("exit_code") == 28 else 500)
     return jsonify({k: v for k, v in out.items() if k != "ok"}), status
 
 
@@ -4456,7 +4568,8 @@ def api_dfir_orchestrator_auto_stream():
                         "vm_id": vm_id,
                         "container_name": container_name,
                         "run_id": run_id,
-                        "alert_ts_utc": alert_ts
+                        "alert_ts_utc": alert_ts,
+                        "noninteractive": True,
                     }
 
                     with app.test_request_context(

@@ -37,14 +37,6 @@ from app_core.infrastructure.foc_experimentation.config import (
 from app_core.infrastructure.foc_experimentation.execution_service import execution_artifacts, load_execution, regenerate_execution_profile
 from app_core.infrastructure.foc_experimentation.global_cleanup_service import execute_cleanup, list_cleanup_inventory
 from app_core.infrastructure.foc_experimentation.job_runner import get_job, request_cancel, request_force_stop
-from app_core.infrastructure.foc_experimentation.level_b_orchestrator import start_real_level_b_execution_job
-from app_core.infrastructure.foc_experimentation.level_b_repetition_runner import (
-    cleanup_level_b_repetition_job,
-    get_level_b_repetition_report,
-    get_level_b_repetition_status,
-    preview_level_b_repetitions,
-    start_level_b_repetitions_job,
-)
 from app_core.infrastructure.foc_experimentation.level_a_scientific_report_service import (
     get_latest_level_a_report,
     open_level_a_report,
@@ -62,16 +54,6 @@ from app_core.infrastructure.foc_experimentation.scenario_destruction_service im
     destroy_full_scenario,
     validate_scenario_destruction,
 )
-from app_core.infrastructure.foc_paper_evidence import (
-    get_paper_evidence_report,
-    get_paper_evidence_table_registry,
-    get_paper_evidence_zip_path,
-    list_paper_evidence_reports,
-    start_level_a_paper_evidence_job,
-    start_level_b_paper_evidence_job,
-    start_level_c_paper_evidence_job,
-    start_paper_evidence_binder_job,
-)
 from app_core.infrastructure.attack.catalog import get_attack_catalog
 from app_core.infrastructure.foc_reconstruction.foc_case_analysis import cases_with_analysis_state
 from app_core.infrastructure.foc_reconstruction.foc_case_analysis import _analysis_cancel_path, _case_dir_from_entry, get_case_entry
@@ -80,6 +62,64 @@ from app_core.infrastructure.foc_reconstruction.foc_paths import relative_path
 from app_core.infrastructure.foc_reconstruction.foc_sources import utc_now
 
 experimentation_bp = Blueprint("foc_experimentation", __name__)
+
+
+def _level_b_orchestrator_api():
+    from app_core.infrastructure.foc_experimentation.level_b_orchestrator import start_real_level_b_execution_job
+
+    return {
+        "start_real_level_b_execution_job": start_real_level_b_execution_job,
+    }
+
+
+def _level_b_repetition_api():
+    from app_core.infrastructure.foc_experimentation.level_b_repetition_runner import (
+        cleanup_level_b_repetition_job,
+        get_level_b_repetition_report,
+        get_level_b_repetition_status,
+        preview_level_b_repetitions,
+        start_level_b_repetitions_job,
+    )
+
+    return {
+        "cleanup_level_b_repetition_job": cleanup_level_b_repetition_job,
+        "get_level_b_repetition_report": get_level_b_repetition_report,
+        "get_level_b_repetition_status": get_level_b_repetition_status,
+        "preview_level_b_repetitions": preview_level_b_repetitions,
+        "start_level_b_repetitions_job": start_level_b_repetitions_job,
+    }
+
+
+def _paper_evidence_api():
+    from app_core.infrastructure.foc_paper_evidence import (
+        get_paper_evidence_report,
+        get_paper_evidence_table_registry,
+        get_paper_evidence_zip_path,
+        list_paper_evidence_reports,
+        start_level_a_paper_evidence_job,
+        start_level_b_paper_evidence_job,
+        start_level_c_paper_evidence_job,
+        start_paper_evidence_binder_job,
+    )
+
+    return {
+        "get_paper_evidence_report": get_paper_evidence_report,
+        "get_paper_evidence_table_registry": get_paper_evidence_table_registry,
+        "get_paper_evidence_zip_path": get_paper_evidence_zip_path,
+        "list_paper_evidence_reports": list_paper_evidence_reports,
+        "start_level_a_paper_evidence_job": start_level_a_paper_evidence_job,
+        "start_level_b_paper_evidence_job": start_level_b_paper_evidence_job,
+        "start_level_c_paper_evidence_job": start_level_c_paper_evidence_job,
+        "start_paper_evidence_binder_job": start_paper_evidence_binder_job,
+    }
+
+
+def _forensics_preflight_api():
+    from app_core.infrastructure.forensics.forensics_api import disk_acquisition_preflight
+
+    return {
+        "disk_acquisition_preflight": disk_acquisition_preflight,
+    }
 
 
 def _infer_case_id_from_job(payload: dict) -> str | None:
@@ -232,7 +272,7 @@ def api_foc_experimentation_campaign_run_next(campaign_id: str):
 def api_foc_experimentation_campaign_run_real(campaign_id: str):
     body = request.get_json(silent=True) or {}
     try:
-        job = start_real_level_b_execution_job(
+        job = _level_b_orchestrator_api()["start_real_level_b_execution_job"](
             campaign_id,
             confirmation=str(body.get("confirmation") or ""),
             detection_timeout_seconds=body.get("detection_timeout_seconds"),
@@ -450,9 +490,10 @@ def api_foc_level_b_repetitions_run():
     campaign_id = str(body.get("campaign_id") or "").strip()
     if not campaign_id:
         return jsonify({"error": "campaign_id_required"}), 400
+    level_b_api = _level_b_repetition_api()
     if bool(body.get("preview_only")):
         try:
-            payload = preview_level_b_repetitions(
+            payload = level_b_api["preview_level_b_repetitions"](
                 campaign_id,
                 requested_repetitions=body.get("requested_repetitions"),
             )
@@ -462,7 +503,7 @@ def api_foc_level_b_repetitions_run():
             return jsonify({"error": str(exc), "campaign_id": campaign_id}), 400
         return jsonify(payload), 200
     try:
-        job = start_level_b_repetitions_job(
+        job = level_b_api["start_level_b_repetitions_job"](
             campaign_id,
             confirmation=str(body.get("confirmation") or ""),
             requested_repetitions=body.get("requested_repetitions"),
@@ -482,7 +523,7 @@ def api_foc_level_b_repetitions_run():
 
 @experimentation_bp.route("/api/foc/repetitions/level-b/status/<job_id>", methods=["GET"])
 def api_foc_level_b_repetitions_status(job_id: str):
-    payload = get_level_b_repetition_status(job_id)
+    payload = _level_b_repetition_api()["get_level_b_repetition_status"](job_id)
     if not payload:
         return jsonify({"error": "job_not_found", "job_id": job_id}), 404
     return jsonify(payload), 200
@@ -490,7 +531,7 @@ def api_foc_level_b_repetitions_status(job_id: str):
 
 @experimentation_bp.route("/api/foc/repetitions/level-b/report/<job_id>", methods=["GET"])
 def api_foc_level_b_repetitions_report(job_id: str):
-    payload = get_level_b_repetition_report(job_id)
+    payload = _level_b_repetition_api()["get_level_b_repetition_report"](job_id)
     if not payload:
         return jsonify({"error": "job_not_found", "job_id": job_id}), 404
     if payload.get("report_ready") is False:
@@ -501,7 +542,7 @@ def api_foc_level_b_repetitions_report(job_id: str):
 @experimentation_bp.route("/api/foc/repetitions/level-b/cleanup/<job_id>", methods=["POST"])
 def api_foc_level_b_repetitions_cleanup(job_id: str):
     body = request.get_json(silent=True) or {}
-    payload = cleanup_level_b_repetition_job(job_id, confirmation=str(body.get("confirmation") or ""))
+    payload = _level_b_repetition_api()["cleanup_level_b_repetition_job"](job_id, confirmation=str(body.get("confirmation") or ""))
     if payload.get("error"):
         return jsonify(payload), 400
     return jsonify(payload), 200
@@ -724,7 +765,7 @@ def api_foc_experimentation_attack_catalog():
 def api_foc_paper_evidence_run():
     body = request.get_json(silent=True) or {}
     try:
-        job = start_paper_evidence_binder_job(body)
+        job = _paper_evidence_api()["start_paper_evidence_binder_job"](body)
     except FileNotFoundError as exc:
         return jsonify({"error": str(exc)}), 404
     except ValueError as exc:
@@ -736,7 +777,7 @@ def api_foc_paper_evidence_run():
 def api_foc_paper_evidence_level_a_run():
     body = request.get_json(silent=True) or {}
     try:
-        job = start_level_a_paper_evidence_job(body)
+        job = _paper_evidence_api()["start_level_a_paper_evidence_job"](body)
     except FileNotFoundError as exc:
         return jsonify({"error": str(exc)}), 404
     except ValueError as exc:
@@ -748,7 +789,7 @@ def api_foc_paper_evidence_level_a_run():
 def api_foc_paper_evidence_level_b_run():
     body = request.get_json(silent=True) or {}
     try:
-        job = start_level_b_paper_evidence_job(body)
+        job = _paper_evidence_api()["start_level_b_paper_evidence_job"](body)
     except FileNotFoundError as exc:
         return jsonify({"error": str(exc)}), 404
     except ValueError as exc:
@@ -756,11 +797,48 @@ def api_foc_paper_evidence_level_b_run():
     return jsonify(job), 202
 
 
+@experimentation_bp.route("/api/foc/paper-evidence/level-b/preflight", methods=["GET"])
+def api_foc_paper_evidence_level_b_preflight():
+    preflight = _forensics_preflight_api()["disk_acquisition_preflight"]("nova_libvirt", require_stable_noninteractive=True)
+    blockers = [str(item) for item in (preflight.get("blockers") or []) if item]
+    if preflight.get("ok"):
+        status = "ready"
+        message = "Stable non-interactive disk acquisition prerequisites are available for Level B batches."
+    elif "sudo_noninteractive_unavailable" in blockers:
+        status = "blocked_privilege"
+        message = (
+            "Level B is blocked before launch because the backend does not currently have stable non-interactive sudo/root access "
+            "for disk preservation. Manual password entry in terminal is not sufficient for a repeated Level B batch."
+        )
+    elif "sudo_nopasswd_not_granted_for_disk_helper" in blockers:
+        status = "blocked_nopasswd"
+        message = (
+            "Level B is blocked before launch because the backend may only have temporary sudo cache, not stable NOPASSWD access, "
+            "for the disk acquisition helper."
+        )
+    elif "docker_access_unavailable" in blockers:
+        status = "blocked_docker"
+        message = (
+            "Level B is blocked before launch because Docker is not accessible in the privilege context required by disk preservation."
+        )
+    else:
+        status = "blocked"
+        message = "Level B is blocked before launch because required disk-acquisition prerequisites are missing."
+    return jsonify(
+        {
+            "status": status,
+            "message": message,
+            "preflight": preflight,
+            "recommended_fix_path": "Configure stable NOPASSWD/root access for the disk acquisition helper and verify Docker access for the backend service account.",
+        }
+    ), 200
+
+
 @experimentation_bp.route("/api/foc/paper-evidence/level-c/run", methods=["POST"])
 def api_foc_paper_evidence_level_c_run():
     body = request.get_json(silent=True) or {}
     try:
-        job = start_level_c_paper_evidence_job(body)
+        job = _paper_evidence_api()["start_level_c_paper_evidence_job"](body)
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
     return jsonify(job), 202
@@ -768,7 +846,7 @@ def api_foc_paper_evidence_level_c_run():
 
 @experimentation_bp.route("/api/foc/paper-evidence/reports/<report_id>", methods=["GET"])
 def api_foc_paper_evidence_report(report_id: str):
-    payload = get_paper_evidence_report(report_id)
+    payload = _paper_evidence_api()["get_paper_evidence_report"](report_id)
     if not payload:
         return jsonify({"error": "report_not_found", "report_id": report_id}), 404
     return jsonify(payload), 200
@@ -776,7 +854,7 @@ def api_foc_paper_evidence_report(report_id: str):
 
 @experimentation_bp.route("/api/foc/paper-evidence/reports", methods=["GET"])
 def api_foc_paper_evidence_reports():
-    payload = list_paper_evidence_reports(
+    payload = _paper_evidence_api()["list_paper_evidence_reports"](
         level=str(request.args.get("level") or "").strip() or None,
         case_id=str(request.args.get("case_id") or "").strip() or None,
     )
@@ -785,7 +863,7 @@ def api_foc_paper_evidence_reports():
 
 @experimentation_bp.route("/api/foc/paper-evidence/table-registry/<report_id>", methods=["GET"])
 def api_foc_paper_evidence_table_registry(report_id: str):
-    payload = get_paper_evidence_table_registry(report_id)
+    payload = _paper_evidence_api()["get_paper_evidence_table_registry"](report_id)
     if not payload:
         return jsonify({"error": "report_not_found", "report_id": report_id}), 404
     return jsonify(payload), 200
@@ -793,7 +871,7 @@ def api_foc_paper_evidence_table_registry(report_id: str):
 
 @experimentation_bp.route("/api/foc/paper-evidence/export/<report_id>.zip", methods=["GET"])
 def api_foc_paper_evidence_export(report_id: str):
-    path = get_paper_evidence_zip_path(report_id)
+    path = _paper_evidence_api()["get_paper_evidence_zip_path"](report_id)
     if not path or not path.is_file():
         return jsonify({"error": "report_not_found", "report_id": report_id}), 404
     return send_file(path, as_attachment=True, download_name=path.name)

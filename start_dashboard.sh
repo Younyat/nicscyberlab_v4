@@ -19,8 +19,53 @@ PORT=5001
 TIMEOUT=20000
 
 APP_PATH="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
-VENV_PYTHON="/home/younes/Desktop/Openstack/myenv/bin/python3.12"
 SCENARIO_CAPTURE_PID=""
+
+# --- Python venv resolution ---
+# Override con variable de entorno: export NICS_VENV_PYTHON=/ruta/a/python
+# Si no se define, se busca el intérprete en orden de preferencia dentro del venv.
+#
+# Candidatos de raíz del venv, en orden (primero que exista gana):
+#   1. $NICS_VENV_ROOT  (variable de entorno externa)
+#   2. $HOME/Desktop/Openstack/myenv  (ubicación original, portable vía $HOME)
+#   3. $APP_PATH/.venv  (venv local al repositorio)
+#   4. $APP_PATH/venv
+_resolve_venv_python() {
+    # Si ya viene un binario explícito, lo validamos y usamos directamente.
+    if [ -n "${NICS_VENV_PYTHON:-}" ]; then
+        if [ -x "$NICS_VENV_PYTHON" ]; then
+            echo "$NICS_VENV_PYTHON"
+            return 0
+        fi
+        echo "[WARN] NICS_VENV_PYTHON=$NICS_VENV_PYTHON no es ejecutable — buscando candidatos automáticos..." >&2
+    fi
+
+    local candidates=(
+        "${NICS_VENV_ROOT:-}"
+        "$HOME/Desktop/Openstack/myenv"
+        "$APP_PATH/.venv"
+        "$APP_PATH/venv"
+        "$APP_PATH/myenv"
+    )
+    local versions=(python3.12 python3.11 python3.10 python3.9 python3)
+
+    for root in "${candidates[@]}"; do
+        [ -z "$root" ] && continue
+        for ver in "${versions[@]}"; do
+            local candidate="$root/bin/$ver"
+            if [ -x "$candidate" ]; then
+                echo "$candidate"
+                return 0
+            fi
+        done
+    done
+    return 1
+}
+
+if ! VENV_PYTHON="$(_resolve_venv_python)"; then
+    # No se encontró ningún venv. Saldremos en la sección [1/6] con mensaje claro.
+    VENV_PYTHON=""
+fi
 
 # -----------------------------
 # UTILS
@@ -83,11 +128,21 @@ else
     exit 1
 fi
 
-if [ ! -f "$VENV_PYTHON" ]; then
-    err "No se encuentra el Python del venv: $VENV_PYTHON"
+if [ -z "$VENV_PYTHON" ] || [ ! -x "$VENV_PYTHON" ]; then
+    err "No se encontró Python en ningún venv conocido."
+    err "Candidatos probados:"
+    err "  \$HOME/Desktop/Openstack/myenv  ->  $HOME/Desktop/Openstack/myenv"
+    err "  \$APP_PATH/.venv               ->  $APP_PATH/.venv"
+    err "  \$APP_PATH/venv                ->  $APP_PATH/venv"
+    err ""
+    err "Opciones para resolverlo:"
+    err "  a) export NICS_VENV_PYTHON=/ruta/exacta/al/bin/python3.x"
+    err "  b) export NICS_VENV_ROOT=/ruta/al/directorio/venv"
+    err "  c) Crea un venv en $APP_PATH/.venv con: python3 -m venv $APP_PATH/.venv"
     exit 1
 else
-    ok "VENV Python detectado: $VENV_PYTHON"
+    VENV_VERSION="$("$VENV_PYTHON" --version 2>&1 || echo 'desconocida')"
+    ok "VENV Python detectado: $VENV_PYTHON  ($VENV_VERSION)"
 fi
 
 # -----------------------------
@@ -118,6 +173,64 @@ if ! command -v getcap >/dev/null 2>&1; then
     info "Instálalo si quieres ver capacidades: sudo apt install libcap2-bin"
 else
     ok "getcap disponible."
+fi
+
+# -----------------------------
+# [2.8/6] DFIR DISK ACQUISITION – PRIVILEGIOS PERMANENTES
+# -----------------------------
+section "[2.8/6] Privilegios para adquisición de disco forense (DFIR)"
+
+DISK_ACQ_SCRIPT="$APP_PATH/app_core/infrastructure/forensics/scripts/acquire_disk_kolla_libvirt.sh"
+DISK_SUDOERS_DEST="/etc/sudoers.d/nicscyberlab-acquire-disk"
+DISK_SUDOERS_USER="$(whoami)"
+
+if [ ! -f "$DISK_ACQ_SCRIPT" ]; then
+    warn "Script de disco forense no encontrado: $DISK_ACQ_SCRIPT"
+    warn "La adquisición de disco DFIR no estará disponible."
+elif sudo -n /bin/bash "$DISK_ACQ_SCRIPT" __nics_probe__ >/dev/null 2>&1; then
+    ok "Regla NOPASSWD para adquisición de disco ya activa — no se pedirá contraseña."
+else
+    info "La adquisición de disco requiere contraseña actualmente (o el timestamp ha expirado)."
+    info "Instalando regla sudoers permanente para $DISK_SUDOERS_USER ..."
+    info "Se pedirá la contraseña UNA SOLA VEZ. Las próximas ejecuciones no la requerirán."
+
+    # Escribir regla en fichero temporal con expansión de variables
+    _DISK_TMP="$(mktemp /tmp/.nicscyberlab-disk-sudoers.XXXXXX)"
+    cat > "$_DISK_TMP" << SUDOERS_BLOCK
+# nicscyberlab_v3 -- DFIR disk acquisition
+# Auto-generado por start_dashboard.sh -- NO editar manualmente
+# Permite al usuario del servidor web adquirir disco sin contraseña
+# para flujos Level B / DFIR automatizados. Solo aplica a ese script.
+Defaults!NICS_DFIR_DISK_HELPER !requiretty
+Cmnd_Alias NICS_DFIR_DISK_HELPER = /bin/bash ${DISK_ACQ_SCRIPT} *
+
+${DISK_SUDOERS_USER} ALL=(root) NOPASSWD: NICS_DFIR_DISK_HELPER
+SUDOERS_BLOCK
+
+    set +e
+    sudo install -m 440 -o root -g root "$_DISK_TMP" "$DISK_SUDOERS_DEST"
+    _INSTALL_RC=$?
+    set -e
+    rm -f "$_DISK_TMP"
+
+    if [ "$_INSTALL_RC" -eq 0 ]; then
+        ok "Regla instalada en $DISK_SUDOERS_DEST"
+        # Verificación final: el script ya debe funcionar sin contraseña
+        if sudo -n /bin/bash "$DISK_ACQ_SCRIPT" __nics_probe__ >/dev/null 2>&1; then
+            ok "Verificación OK — adquisición de disco funcionará sin contraseña en todas las ejecuciones futuras."
+        else
+            warn "Regla instalada pero la verificación aún falla. Intenta relanzar start_dashboard.sh."
+        fi
+    else
+        warn "Instalación de regla sudoers cancelada o fallida (contraseña incorrecta o permisos)."
+        warn "La adquisición de disco pedirá contraseña cada ~15 min (sudo timestamp)."
+        warn "Para instalarlo manualmente ejecuta:"
+        warn "  sudo install -m 440 -o root -g root <(cat <<EOF"
+        warn "  Defaults!NICS_DFIR_DISK_HELPER !requiretty"
+        warn "  Cmnd_Alias NICS_DFIR_DISK_HELPER = /bin/bash ${DISK_ACQ_SCRIPT} *"
+        warn "  ${DISK_SUDOERS_USER} ALL=(root) NOPASSWD: NICS_DFIR_DISK_HELPER"
+        warn "  EOF) $DISK_SUDOERS_DEST"
+    fi
 fi
 
 # -----------------------------

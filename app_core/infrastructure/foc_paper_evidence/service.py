@@ -27,11 +27,6 @@ from app_core.infrastructure.foc_experimentation.job_runner import (
 from app_core.infrastructure.foc_experimentation.level_a_scientific_report_service import (
     start_level_a_scientific_report_job,
 )
-from app_core.infrastructure.foc_experimentation.level_b_repetition_runner import (
-    get_level_b_repetition_report,
-    preview_level_b_repetitions,
-    start_level_b_repetitions_job,
-)
 from app_core.infrastructure.foc_reconstruction.evidence_lifecycle_dashboard import (
     load_evidence_lifecycle_dashboard,
 )
@@ -61,6 +56,20 @@ TERMINAL_JOB_STATUSES = {
     "cancelled",
     "stopped",
 }
+
+
+def _level_b_repetition_api():
+    from app_core.infrastructure.foc_experimentation.level_b_repetition_runner import (
+        get_level_b_repetition_report,
+        preview_level_b_repetitions,
+        start_level_b_repetitions_job,
+    )
+
+    return {
+        "get_level_b_repetition_report": get_level_b_repetition_report,
+        "preview_level_b_repetitions": preview_level_b_repetitions,
+        "start_level_b_repetitions_job": start_level_b_repetitions_job,
+    }
 
 
 def _json_load(path: Path | None):
@@ -455,8 +464,9 @@ def _build_level_b_outputs(
     generate_latex: bool,
     generate_zip: bool,
 ) -> dict:
+    level_b_api = _level_b_repetition_api()
     child_job_id = str(child_job_payload.get("job_id") or "")
-    child_report_payload = get_level_b_repetition_report(child_job_id) or {}
+    child_report_payload = level_b_api["get_level_b_repetition_report"](child_job_id) or {}
     level_b_report = dict(child_report_payload.get("report_json") or {})
     if not level_b_report:
         raise RuntimeError("level_b_report_not_ready")
@@ -1264,6 +1274,7 @@ def _run_level_a_paper_evidence_job(job_id: str, job_path: Path, body: dict) -> 
 
 
 def _run_level_b_paper_evidence_job(job_id: str, job_path: Path, body: dict) -> None:
+    level_b_api = _level_b_repetition_api()
     campaign_id = str(body.get("campaign_id") or "").strip()
     if not campaign_id:
         raise ValueError("campaign_id_required_for_level_b_paper_evidence")
@@ -1294,7 +1305,7 @@ def _run_level_b_paper_evidence_job(job_id: str, job_path: Path, body: dict) -> 
     report_dir.mkdir(parents=True, exist_ok=True)
     _write_json(report_dir / "paper_capability_audit.json", build_capability_audit())
     raise_if_cancelled(job_id, job_path)
-    preview = preview_level_b_repetitions(campaign_id, requested_repetitions=requested_repetitions)
+    preview = level_b_api["preview_level_b_repetitions"](campaign_id, requested_repetitions=requested_repetitions)
     if not preview.get("ready"):
         raise ValueError(str(preview.get("error") or "level_b_preview_not_ready"))
     update_job(
@@ -1313,7 +1324,7 @@ def _run_level_b_paper_evidence_job(job_id: str, job_path: Path, body: dict) -> 
             progress_percent=10.0,
         ),
     )
-    child_job = start_level_b_repetitions_job(
+    child_job = level_b_api["start_level_b_repetitions_job"](
         campaign_id,
         confirmation="OK",
         requested_repetitions=requested_repetitions,

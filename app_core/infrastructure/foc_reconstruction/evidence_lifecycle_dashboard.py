@@ -1573,16 +1573,136 @@ def _update_phase(job: dict, case_dir: Path, phase_name: str, status: str, **ext
     _set_job(job, case_dir, phases=phases)
 
 
+def _resolve_case_dir_from_job_payload(payload: dict) -> Path | None:
+    case_path = Path(str(payload.get("case_path") or ""))
+    if not case_path.is_absolute():
+        repo_root = Path(__file__).resolve().parents[3]
+        case_path = (repo_root / case_path).resolve() if str(case_path) else case_path
+    if case_path.is_dir():
+        return case_path
+    case_id = str(payload.get("case_id") or "")
+    entry = get_case_entry(case_id) if case_id else None
+    if entry:
+        case_dir = _case_dir_from_entry(entry)
+        if case_dir.is_dir():
+            return case_dir
+    return None
+
+
+def _recover_stale_lifecycle_job(payload: dict, case_dir: Path) -> dict:
+    status = str(payload.get("status") or "").lower()
+    if status not in {"running", "queued"}:
+        return payload
+    job_id = str(payload.get("job_id") or "")
+    with _JOB_LOCK:
+        worker = _RUNNING_JOB_THREADS.get(job_id)
+    if worker and worker.is_alive():
+        return payload
+
+    support_report = case_dir / "derived" / "evidence_support" / "hypothesis_support_report.json"
+    executive_summary = _summary_path(case_dir)
+    if not support_report.exists():
+        return payload
+
+    phases = list(payload.get("phases") or [])
+    now = utc_now()
+    support_payload = _json_load(support_report) or {}
+    support_level = str(support_payload.get("global_support_level") or "unknown")
+    support_detail = f"Hypothesis support generated with global support level {support_level}."
+    support_phase = next((item for item in phases if item.get("name") == "run_evidence_based_hypothesis_support"), None)
+    if support_phase:
+        support_phase["status"] = "completed"
+        support_phase["label"] = support_phase.get("label") or "Run evidence-based hypothesis support"
+        support_phase["detail"] = support_detail
+        support_phase["artifact_path"] = relative_path(support_report)
+        support_phase["finished_at"] = support_phase.get("finished_at") or _mtime_iso(support_report) or now
+    else:
+        phases.append(
+            {
+                "name": "run_evidence_based_hypothesis_support",
+                "status": "completed",
+                "started_at": payload.get("updated_at") or now,
+                "finished_at": _mtime_iso(support_report) or now,
+                "label": "Run evidence-based hypothesis support",
+                "detail": support_detail,
+                "artifact_path": relative_path(support_report),
+            }
+        )
+
+    generated_artifacts = list(dict.fromkeys(list(payload.get("generated_artifacts") or []) + [relative_path(support_report)]))
+    current_phase = "run_evidence_based_hypothesis_support"
+    current_label = "Run evidence-based hypothesis support"
+    current_detail = support_detail
+    progress = 92
+
+    if executive_summary.exists():
+        summary_detail = "Executive summary and lifecycle dashboard snapshot generated."
+        summary_phase = next((item for item in phases if item.get("name") == "generate_executive_summary"), None)
+        if summary_phase:
+            summary_phase["status"] = "completed"
+            summary_phase["label"] = summary_phase.get("label") or "Generate executive summary and lifecycle dashboard snapshot"
+            summary_phase["detail"] = summary_detail
+            summary_phase["artifact_path"] = relative_path(executive_summary)
+            summary_phase["finished_at"] = summary_phase.get("finished_at") or _mtime_iso(executive_summary) or now
+        else:
+            phases.append(
+                {
+                    "name": "generate_executive_summary",
+                    "status": "completed",
+                    "started_at": _mtime_iso(support_report) or payload.get("updated_at") or now,
+                    "finished_at": _mtime_iso(executive_summary) or now,
+                    "label": "Generate executive summary and lifecycle dashboard snapshot",
+                    "detail": summary_detail,
+                    "artifact_path": relative_path(executive_summary),
+                }
+            )
+        generated_artifacts = list(dict.fromkeys(generated_artifacts + [relative_path(executive_summary)]))
+        current_phase = "completed"
+        current_label = "Generate executive summary and lifecycle dashboard snapshot"
+        current_detail = summary_detail
+        progress = 100
+
+    warnings = list(payload.get("warnings") or [])
+    for phase in phases:
+        if str(phase.get("status") or "").lower() in {"degraded", "blocked", "partial"}:
+            detail = str(phase.get("detail") or "").strip()
+            if detail and detail not in warnings:
+                warnings.append(detail)
+
+    final_status = "completed_with_degradation" if warnings else "completed"
+    if payload.get("errors"):
+        final_status = "failed"
+
+    _set_job(
+        payload,
+        case_dir,
+        status=final_status,
+        finished_at=payload.get("finished_at") or _mtime_iso(executive_summary if executive_summary.exists() else support_report) or now,
+        current_phase=current_phase,
+        current_phase_label=current_label,
+        current_phase_detail=current_detail,
+        progress_percent=progress,
+        phases=phases,
+        warnings=warnings,
+        generated_artifacts=generated_artifacts,
+    )
+    return payload
+
+
 def get_lifecycle_job(job_id: str) -> dict | None:
     with _JOB_LOCK:
         payload = _JOBS.get(job_id)
     if payload:
+        case_dir = _resolve_case_dir_from_job_payload(payload)
+        if case_dir is not None:
+            payload = _recover_stale_lifecycle_job(payload, case_dir)
         return payload
     case_root = Path(__file__).resolve().parents[1] / "forensics" / "evidence_store"
     for case_dir in case_root.glob("CASE-*"):
         candidate = _job_path(case_dir, job_id)
         payload = _json_load(candidate)
         if isinstance(payload, dict):
+            payload = _recover_stale_lifecycle_job(payload, case_dir)
             return payload
     return None
 

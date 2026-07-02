@@ -118,6 +118,72 @@ def _comparison_registry_entry(result_card_id: str | None) -> dict | None:
     return next((item for item in registry.get("entries", []) if item.get("result_card_id") == result_card_id), None)
 
 
+def _ensure_comparison_registry_entry(result_card: dict | None) -> tuple[dict | None, bool]:
+    if not isinstance(result_card, dict):
+        return None, False
+    existing = _comparison_registry_entry(result_card.get("result_card_id"))
+    if isinstance(existing, dict):
+        return existing, False
+    try:
+        from .comparison_registry import append_to_registry
+
+        registry = append_to_registry(result_card)
+        repaired = next(
+            (item for item in registry.get("entries", []) if item.get("result_card_id") == result_card.get("result_card_id")),
+            None,
+        )
+        return repaired, isinstance(repaired, dict)
+    except Exception:
+        return None, False
+
+
+def _load_case_reconstruction_metrics(original_case_path: Path | None) -> dict | None:
+    return _json_load(original_case_path / "derived/reconstruction/reconstruction_metrics.json") if original_case_path else None
+
+
+def _load_case_causal_status(original_case_path: Path | None) -> dict | None:
+    return _json_load(original_case_path / "derived/reconstruction/causal_status.json") if original_case_path else None
+
+
+def _repair_causal_summary(
+    causal_summary: dict | None,
+    *,
+    original_case_path: Path | None,
+    case_id: str | None,
+) -> tuple[dict, list[str]]:
+    summary = dict(causal_summary or {})
+    repairs: list[str] = []
+    has_metrics = summary.get("cpr") is not None and summary.get("weighted_cpr") is not None
+    if has_metrics:
+        return summary, repairs
+
+    metrics = _load_case_reconstruction_metrics(original_case_path)
+    status_payload = _load_case_causal_status(original_case_path)
+    if isinstance(metrics, dict):
+        summary.setdefault("status", "completed_with_degradation" if metrics.get("main_limitation") else "completed")
+        summary["expected_edges"] = metrics.get("expected_edges")
+        summary["recovered_edges"] = metrics.get("recovered_edges")
+        summary["degraded_edges"] = metrics.get("degraded_edges")
+        summary["ambiguous_edges"] = metrics.get("ambiguous_edges")
+        summary["missing_edges"] = metrics.get("missing_edges")
+        summary["cpr"] = metrics.get("causal_path_recoverability", metrics.get("cpr"))
+        summary["weighted_cpr"] = metrics.get("weighted_cpr")
+        summary["reconstruction_confidence"] = metrics.get("reconstruction_confidence")
+        summary["main_limitation"] = metrics.get("main_limitation")
+        if summary.get("cpr") is not None and summary.get("weighted_cpr") is not None:
+            repairs.append(
+                f"Causal metrics were recovered from {relative_path(original_case_path / 'derived/reconstruction/reconstruction_metrics.json')}"
+                if original_case_path
+                else "Causal metrics were recovered from preserved reconstruction metrics."
+            )
+    if isinstance(status_payload, dict):
+        summary["status"] = status_payload.get("status") or status_payload.get("state") or summary.get("status")
+        summary["main_limitation"] = summary.get("main_limitation") or status_payload.get("reason")
+    if case_id and repairs:
+        summary.setdefault("repair_note", f"Causal metrics for {case_id} were inferred from preserved reconstruction outputs because the execution profile had not been refreshed after lifecycle completion.")
+    return summary, repairs
+
+
 def _bool_check(key: str, ok: bool, why: str, fix: str, auto: bool = False) -> dict:
     return {
         "key": key,
@@ -166,11 +232,17 @@ def _case_cleanup_context(execution_id: str, *, campaign_id: str | None = None) 
         or execution.get("run_case_path")
     )
     original_case_path = (Path.cwd() / original_case_rel).resolve() if original_case_rel else None
-    comparison_entry = _comparison_registry_entry((result_card or {}).get("result_card_id"))
+    comparison_entry, comparison_registry_repaired = _ensure_comparison_registry_entry(result_card)
     preservation_summary = (result_card or {}).get("preservation_summary") or ((comparison_profile or {}).get("preservation") or {})
     chain_of_custody_summary = (case_result_card or {}).get("chain_of_custody_summary") or {}
     analysis_summary = (comparison_profile or {}).get("multilayer_analysis") or {}
-    causal_summary = (comparison_profile or {}).get("causal_reconstruction") or {}
+    causal_summary, causal_repairs = _repair_causal_summary(
+        (comparison_profile or {}).get("causal_reconstruction") or {},
+        original_case_path=original_case_path,
+        case_id=case_id,
+    )
+    if isinstance(comparison_profile, dict):
+        comparison_profile["causal_reconstruction"] = causal_summary
     uncertainty_summary = (comparison_profile or {}).get("uncertainty") or {}
     hypothesis_summary = (comparison_profile or {}).get("hypothesis_support") or {}
     final_conclusion = (comparison_profile or {}).get("final_conclusion") or {}
@@ -303,6 +375,14 @@ def _case_cleanup_context(execution_id: str, *, campaign_id: str | None = None) 
         "checks": checks,
         "missing_required": missing_required,
         "preserved_hashes": original_hashes,
+        "auto_repairs": [
+            *(
+                ["Comparison registry entry was auto-registered from the preserved forensic result card."]
+                if comparison_registry_repaired
+                else []
+            ),
+            *causal_repairs,
+        ],
     }
 
 
@@ -461,6 +541,19 @@ def delete_generated_case_artifacts(
     else:
         shutil.rmtree(original_case_path)
 
+    causal_summary = (comparison_profile or {}).get("causal_reconstruction") or {}
+    if isinstance(result_card, dict):
+        if result_card.get("CPR") is None and causal_summary.get("cpr") is not None:
+            result_card["CPR"] = causal_summary.get("cpr")
+        if result_card.get("Weighted_CPR") is None and causal_summary.get("weighted_cpr") is not None:
+            result_card["Weighted_CPR"] = causal_summary.get("weighted_cpr")
+        if result_card.get("recovered_edges") is None and causal_summary.get("recovered_edges") is not None:
+            result_card["recovered_edges"] = causal_summary.get("recovered_edges")
+        if result_card.get("degraded_edges") is None and causal_summary.get("degraded_edges") is not None:
+            result_card["degraded_edges"] = causal_summary.get("degraded_edges")
+        if result_card.get("missing_edges") is None and causal_summary.get("missing_edges") is not None:
+            result_card["missing_edges"] = causal_summary.get("missing_edges")
+
     result_card["heavy_artifacts_retained"] = action_type == "archive_case_directory"
     result_card["heavy_artifacts_location"] = relative_path(archive_target) if archive_target else None
     result_card["lightweight_case_bundle_path"] = lightweight_bundle.get("bundle_root")
@@ -494,12 +587,19 @@ def delete_generated_case_artifacts(
             "heavy_artifacts_location_before_action": original_case_rel,
             "heavy_artifacts_location_after_action": relative_path(archive_target) if archive_target else None,
             "cleanup_status": "completed",
-            "cleanup_warnings": [],
+            "cleanup_warnings": list(context.get("auto_repairs") or []),
         }
     )
 
+    _write_json(base / "forensic_comparison_profile.json", comparison_profile)
     _write_json(base / "forensic_result_card.json", result_card)
     _write_json(base / "execution_manifest.json", execution_manifest)
+    try:
+        from .comparison_registry import append_to_registry
+
+        append_to_registry(result_card)
+    except Exception:
+        pass
     if context.get("case_result_card_path"):
         _write_json(Path.cwd() / context["case_result_card_path"], case_result_card)
     append_retention_manifest(manifest)

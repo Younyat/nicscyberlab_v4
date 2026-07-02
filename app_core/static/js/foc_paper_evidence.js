@@ -11,6 +11,7 @@
     selectedCampaignId: "",
     activeJobId: null,
     pollTimer: null,
+    levelBPreflight: null,
   };
 
   const byId = (id) => document.getElementById(id);
@@ -118,6 +119,39 @@
         <div><span class="font-black">State:</span> ${esc(campaign.state || "not_available")}</div>
       </div>
     `;
+  }
+
+  function renderLevelBPreflight() {
+    const root = byId("paper-level-b-preflight");
+    const button = byId("paper-run-level-b-btn");
+    const payload = state.levelBPreflight;
+    if (!root || !button) return;
+    if (!payload) {
+      root.innerHTML = "Loading Level B disk-acquisition preflight…";
+      button.disabled = false;
+      button.title = "";
+      return;
+    }
+    const preflight = payload.preflight || {};
+    const blockers = Array.isArray(preflight.blockers) ? preflight.blockers : [];
+    const warnings = Array.isArray(preflight.warnings) ? preflight.warnings : [];
+    const ready = String(payload.status || "") === "ready";
+    root.innerHTML = `
+      <div class="space-y-2">
+        <div><span class="font-black ${ready ? "text-emerald-300" : "text-red-300"}">Level B disk preflight:</span> ${esc(payload.status || "unknown")}</div>
+        <div>${esc(payload.message || "No Level B preflight message available.")}</div>
+        <div><span class="font-black">Privilege mode:</span> <span class="mono">${esc(preflight.privilege_mode || "not_available")}</span></div>
+        <div><span class="font-black">sudo -n available:</span> <span class="mono">${esc(preflight.sudo_noninteractive_ok)}</span></div>
+        <div><span class="font-black">NOPASSWD stable:</span> <span class="mono">${esc(preflight.sudo_nopasswd_granted)}</span></div>
+        <div><span class="font-black">Docker access:</span> <span class="mono">${esc(preflight.docker_access_ok)}</span></div>
+        <div><span class="font-black">qemu-img available:</span> <span class="mono">${esc(preflight.qemu_img_available)}</span></div>
+        ${blockers.length ? `<div><span class="font-black text-red-300">Blockers:</span> <span class="mono">${esc(blockers.join(", "))}</span></div>` : ""}
+        ${warnings.length ? `<div><span class="font-black text-amber-300">Warnings:</span> ${esc(warnings.join(" | "))}</div>` : ""}
+        <div><span class="font-black">Fix path:</span> ${esc(payload.recommended_fix_path || "not_available")}</div>
+      </div>
+    `;
+    button.disabled = !ready;
+    button.title = ready ? "" : (payload.message || "Level B launch is blocked by disk-acquisition preflight.");
   }
 
   function renderJob(payload) {
@@ -383,6 +417,20 @@
     renderCampaignSummary();
   }
 
+  async function loadLevelBPreflight() {
+    try {
+      state.levelBPreflight = await getJson("/api/foc/paper-evidence/level-b/preflight");
+    } catch (error) {
+      state.levelBPreflight = {
+        status: "error",
+        message: error.message || "Could not load Level B preflight.",
+        preflight: {},
+        recommended_fix_path: "Review backend disk-acquisition prerequisites and retry.",
+      };
+    }
+    renderLevelBPreflight();
+  }
+
   async function ensureLevelBCampaign() {
     let campaign = selectedCampaign();
     if (campaign) return campaign;
@@ -590,6 +638,7 @@
     byId("paper-refresh-btn")?.addEventListener("click", async () => {
       await loadCases();
       await loadCampaigns();
+      await loadLevelBPreflight();
       await loadReports();
       await loadCleanupInventory();
     });
@@ -605,6 +654,7 @@
     byId("paper-cases-delete-btn")?.addEventListener("click", deleteSelectedCases);
     await loadCases();
     await loadCampaigns();
+    await loadLevelBPreflight();
     await loadReports();
     await loadCleanupInventory();
   }

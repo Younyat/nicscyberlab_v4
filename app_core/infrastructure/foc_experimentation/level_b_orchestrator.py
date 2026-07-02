@@ -102,13 +102,35 @@ def _sha256_path(path) -> str:
 
 
 def _case_id_for_case_dir(case_dir: str) -> str:
-    # Mirrors app_core.infrastructure.foc_reconstruction.foc_case_analysis
-    # ._list_case_entries()'s fallback synthesis rule
-    # (case-<sha1(dirname)[:8]>) so the freshly created case is resolvable by
-    # get_case_entry()/load_case_bundle(case_id=...) and by
-    # start_full_lifecycle_job(case_id=...) even before any case index is
-    # regenerated.
-    name = Path(case_dir).name
+    case_path = Path(case_dir).resolve()
+    for candidate in (
+        case_path / "analysis" / "analysis_status.json",
+        case_path / "analysis" / "forensic_analysis_report.json",
+        case_path / "analysis" / "forensic_analysis_manifest.json",
+        case_path / "derived" / "reconstruction" / "causal_status.json",
+    ):
+        payload = _json_load(candidate)
+        if isinstance(payload, dict):
+            value = str(payload.get("case_id") or "").strip()
+            if value:
+                return value
+
+    try:
+        cases_index = _json_load(Path("foc-reconstruction") / "indexes" / "cases_index.json") or {}
+        for entry in list(cases_index.get("cases") or []):
+            raw_path = str((entry or {}).get("path") or "").strip()
+            if not raw_path:
+                continue
+            entry_path = (Path.cwd() / raw_path).resolve() if not Path(raw_path).is_absolute() else Path(raw_path).resolve()
+            if entry_path == case_path:
+                value = str((entry or {}).get("case_id") or "").strip()
+                if value:
+                    return value
+    except Exception:
+        pass
+
+    # Fallback synthesis rule used by FOC when no richer on-disk identity is available.
+    name = case_path.name
     return f"case-{hashlib.sha1(name.encode('utf-8')).hexdigest()[:8]}"
 
 

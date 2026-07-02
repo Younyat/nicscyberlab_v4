@@ -15,6 +15,7 @@ PAPER_EVIDENCE_ROOT = EVIDENCE_STORE_ROOT.parent / "paper_evidence"
 VALIDATION_REPORTS_ROOT = EVIDENCE_STORE_ROOT / "validation_reports"
 GLOBAL_CLEANUP_ROOT = EVIDENCE_STORE_ROOT / "_cleanup_audit"
 ACTIVE_CASE_PTR = EVIDENCE_STORE_ROOT / "_active_case.txt"
+FULL_SCENARIO_CAPTURES_ROOT = EVIDENCE_STORE_ROOT.parent.parent / "ics_traffic" / "captures" / "full_scenario_captures"
 
 
 def _write_json(path: Path, payload) -> None:
@@ -333,8 +334,42 @@ def _special_items() -> list[dict]:
     return items
 
 
+def _scenario_capture_items() -> list[dict]:
+    items: list[dict] = []
+    if not FULL_SCENARIO_CAPTURES_ROOT.exists():
+        return items
+    blocked = bool(_running_campaign_ids())
+    reason = "Scenario capture cleanup is blocked while a campaign job is still running." if blocked else None
+    for day_dir in sorted(FULL_SCENARIO_CAPTURES_ROOT.glob("[0-9]" * 8)):
+        if not day_dir.is_dir():
+            continue
+        items.append(
+            _item(
+                item_id=f"scenario_capture_day:{day_dir.name}",
+                item_type="scenario_capture_day",
+                label=f"Full scenario captures / {day_dir.name}",
+                path=day_dir,
+                deletable=not blocked,
+                reason=reason,
+                extra={
+                    "evaluation_level": "n/a",
+                    "capture_date": day_dir.name,
+                },
+            )
+        )
+    return items
+
+
 def list_cleanup_inventory() -> dict:
-    items = _special_items() + _campaign_items() + _case_items() + _scientific_report_items() + _validation_report_items() + _paper_evidence_items()
+    items = (
+        _special_items()
+        + _scenario_capture_items()
+        + _campaign_items()
+        + _case_items()
+        + _scientific_report_items()
+        + _validation_report_items()
+        + _paper_evidence_items()
+    )
     removable = [item for item in items if item.get("deletable")]
     return {
         "generated_at": utc_now(),

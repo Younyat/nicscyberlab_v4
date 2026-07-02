@@ -1,0 +1,533 @@
+{
+  "job_id": "exp-ea9bbe1fcad6",
+  "job_type": "paper_evidence_level_b",
+  "title": "Generate Level B Paper Evidence Report",
+  "status": "completed_with_degradation",
+  "requested_at": "2026-07-01T22:23:46.560560+00:00",
+  "started_at": "2026-07-01T22:23:46.565581+00:00",
+  "finished_at": "2026-07-01T23:57:00.614599+00:00",
+  "current_phase": "completed",
+  "progress_percent": 100.0,
+  "warnings": [],
+  "errors": [],
+  "generated_artifacts": [],
+  "meta": {
+    "report_id": "paper-b-2026-07-01T222346.558650_0000",
+    "level": "B",
+    "case_id": null,
+    "scenario_id": null,
+    "n_repetitions": 2,
+    "workflow": "paper_evidence"
+  },
+  "job_path": "/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/paper_evidence/paper-b-2026-07-01T222346.558650_0000/paper-b-2026-07-01T222346.558650_0000-job.json",
+  "current_phase_label": "Completed",
+  "current_phase_detail": "Paper evidence package written to app_core/infrastructure/forensics/paper_evidence/paper-b-CMP-20260701-222337-722B-2026-07-01T222346.578218_0000.",
+  "phase_statuses": [
+    {
+      "phase_key": "starting",
+      "phase_label": "Starting",
+      "status": "running",
+      "detail": "Preparing experimentation job runner.",
+      "updated_at": "2026-07-01T22:23:46.565598+00:00",
+      "progress_percent": 1.0
+    },
+    {
+      "phase_key": "audit_existing_capabilities",
+      "phase_label": "Audit existing scientific capabilities",
+      "status": "running",
+      "detail": "Recording what the existing FOC views, endpoints, artifacts, and metrics already support before the paper-evidence run starts.",
+      "updated_at": "2026-07-01T22:23:46.578654+00:00",
+      "progress_percent": 5.0
+    },
+    {
+      "phase_key": "prepare_level_b_batch",
+      "phase_label": "Prepare Level B batch",
+      "status": "running",
+      "detail": "Launching the existing Level B repetition workflow for campaign CMP-20260701-222337-722B with 2 requested repetitions and 2 nested Level A repetitions per case.",
+      "updated_at": "2026-07-01T22:23:50.383937+00:00",
+      "progress_percent": 10.0
+    },
+    {
+      "phase_key": "level_a_runtime",
+      "phase_label": "Run nested Level B scientific workflow",
+      "status": "completed_with_degradation",
+      "detail": "Level B repetition workflow finished. Report: app_core/infrastructure/forensics/evidence_store/validation_reports/level_b_repetition_report_2026-07-01T222350.386527_0000",
+      "updated_at": "2026-07-01T23:57:00.585698+00:00",
+      "progress_percent": 85.0
+    },
+    {
+      "phase_key": "assemble_paper_package",
+      "phase_label": "Assemble paper evidence package",
+      "status": "running",
+      "detail": "Collecting the nested Level B outputs, capability audit, table registry, metrics summary, and reviewer-facing interpretation.",
+      "updated_at": "2026-07-01T23:57:00.587517+00:00",
+      "progress_percent": 88.0
+    },
+    {
+      "phase_key": "completed",
+      "phase_label": "Completed",
+      "status": "completed_with_degradation",
+      "detail": "Paper evidence package written to app_core/infrastructure/forensics/paper_evidence/paper-b-CMP-20260701-222337-722B-2026-07-01T222346.578218_0000.",
+      "updated_at": "2026-07-01T23:57:00.615640+00:00",
+      "progress_percent": 100.0
+    }
+  ],
+  "report_id": "paper-b-CMP-20260701-222337-722B-2026-07-01T222346.578218_0000",
+  "report_output_path": "app_core/infrastructure/forensics/paper_evidence/paper-b-CMP-20260701-222337-722B-2026-07-01T222346.578218_0000",
+  "current_child_job_id": "exp-3c88d90d7cd5",
+  "nested_phase_statuses": [
+    {
+      "phase_key": "starting",
+      "phase_label": "Starting",
+      "status": "running",
+      "detail": "Preparing experimentation job runner.",
+      "updated_at": "2026-07-01T22:23:50.385324+00:00",
+      "progress_percent": 1.0
+    },
+    {
+      "phase_key": "prepare_level_b_job",
+      "phase_label": "Prepare Level B job",
+      "status": "running",
+      "detail": "Preparing Level B batch execution, runtime workspace, and deterministic scientific progress plan.",
+      "updated_at": "2026-07-01T22:23:50.387125+00:00",
+      "progress_percent": 0.0
+    },
+    {
+      "phase_key": "prepare_level_b_job",
+      "phase_label": "Prepare Level B job",
+      "status": "completed",
+      "detail": "Prepared Level B batch job for campaign CMP-20260701-222337-722B.",
+      "updated_at": "2026-07-01T22:23:50.387783+00:00",
+      "progress_percent": 3.33
+    },
+    {
+      "phase_key": "optional_cleanup",
+      "phase_label": "Clean previous heavy cases",
+      "status": "running",
+      "detail": "Inspecting and deleting previous heavy forensic cases before launching the independent Level B repetitions. This is mandatory so two heavy cases never coexist.",
+      "updated_at": "2026-07-01T22:23:50.388414+00:00",
+      "progress_percent": 3.33
+    },
+    {
+      "phase_key": "optional_cleanup",
+      "phase_label": "Clean previous heavy cases",
+      "status": "completed",
+      "detail": "Mandatory cleanup completed. Estimated freed space: 0.00 B. Actual freed space: 0.00 B. Deleted cases: 0.",
+      "updated_at": "2026-07-01T22:23:50.393636+00:00",
+      "progress_percent": 6.67
+    },
+    {
+      "phase_key": "resolve_active_scenario",
+      "phase_label": "Resolve active scenario",
+      "status": "running",
+      "detail": "Resolving the already deployed scenario that will host all 2 independent Level B repetitions.",
+      "updated_at": "2026-07-01T22:23:50.394360+00:00",
+      "progress_percent": 6.67
+    },
+    {
+      "phase_key": "resolve_active_scenario",
+      "phase_label": "Resolve active scenario",
+      "status": "completed",
+      "detail": "Resolved target PLC_Instance (10.0.2.22) and monitor monitor 1 (10.0.2.136).",
+      "updated_at": "2026-07-01T22:23:51.110857+00:00",
+      "progress_percent": 10.0
+    },
+    {
+      "phase_key": "verify_plc_target",
+      "phase_label": "Verify PLC target",
+      "status": "running",
+      "detail": "Checking that the selected target is really the PLC node used by the controlled OT register-modification profile.",
+      "updated_at": "2026-07-01T22:23:51.115374+00:00",
+      "progress_percent": 10.0
+    },
+    {
+      "phase_key": "verify_plc_target",
+      "phase_label": "Verify PLC target",
+      "status": "completed",
+      "detail": "PLC target verified: PLC_Instance (10.0.2.22).",
+      "updated_at": "2026-07-01T22:23:51.116225+00:00",
+      "progress_percent": 13.33
+    },
+    {
+      "phase_key": "enable_dfir_mode",
+      "phase_label": "Enable DFIR mode",
+      "status": "running",
+      "detail": "Verifying that DFIR mode is ON before the first OT attack is launched.",
+      "updated_at": "2026-07-01T22:23:51.117103+00:00",
+      "progress_percent": 13.33
+    },
+    {
+      "phase_key": "enable_dfir_mode",
+      "phase_label": "Enable DFIR mode",
+      "status": "completed",
+      "detail": "DFIR mode verified ON. Browser mode transitioned from unknown to on.",
+      "updated_at": "2026-07-01T22:23:51.117935+00:00",
+      "progress_percent": 16.67
+    },
+    {
+      "phase_key": "verify_disk_acquisition",
+      "phase_label": "Verify disk acquisition prerequisites",
+      "status": "running",
+      "detail": "Checking whether disk preservation can run in stable non-interactive mode for a long Level B batch.",
+      "updated_at": "2026-07-01T22:23:51.118766+00:00",
+      "progress_percent": 16.67
+    },
+    {
+      "phase_key": "verify_disk_acquisition",
+      "phase_label": "Verify disk acquisition prerequisites",
+      "status": "completed",
+      "detail": "Stable non-interactive disk acquisition prerequisites verified for Level B batch execution.",
+      "updated_at": "2026-07-01T22:23:51.149822+00:00",
+      "progress_percent": 20.0
+    },
+    {
+      "phase_key": "repetition_1_start",
+      "phase_label": "Start repetition 1/2",
+      "status": "running",
+      "detail": "Execution workspace EXEC-0001 created. Starting independent Level B repetition 1 of 2.",
+      "updated_at": "2026-07-01T22:23:51.164503+00:00",
+      "progress_percent": 20.0
+    },
+    {
+      "phase_key": "repetition_1_start",
+      "phase_label": "Start repetition 1/2",
+      "status": "completed",
+      "detail": "Independent Level B repetition 1 has started with execution EXEC-0001.",
+      "updated_at": "2026-07-01T22:23:51.165527+00:00",
+      "progress_percent": 23.5
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.22 (attempt 1/10).",
+      "updated_at": "2026-07-01T22:23:51.170011+00:00",
+      "progress_percent": 23.5
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed",
+      "detail": "Attack completed successfully (attempt 1/10). Output directory: /home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260701T222352Z_T0831_MANIPULATION_OF_CONTROL_MODBUS.",
+      "updated_at": "2026-07-01T22:24:13.294737+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "running",
+      "detail": "Watching monitor 10.0.2.136 for a HIGH/CRITICAL alert matching the OT attack profile (attempt 1/10).",
+      "updated_at": "2026-07-01T22:24:13.299941+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "completed_with_degradation",
+      "detail": "No exact alert match was recognized by the Level B matcher within the configured timeout (attempt 1/10), but DFIR had already opened forensic case case-c12fe8f6 at app_core/infrastructure/forensics/evidence_store/CASE-20260701-222406. Re-arming another attack would violate the single-heavy-case invariant, so the batch is adopting that case instead of launching another attempt.",
+      "updated_at": "2026-07-01T22:34:18.326228+00:00",
+      "progress_percent": 30.5
+    },
+    {
+      "phase_key": "repetition_1_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "completed_with_degradation",
+      "detail": "Automatic forensic preservation has already started for case case-c12fe8f6 even though the explicit Level B alert matcher did not align perfectly with the observed alert taxonomy. The workflow will adopt the background DFIR case and continue with analysis instead of launching another case.",
+      "updated_at": "2026-07-01T22:34:18.328961+00:00",
+      "progress_percent": 34.0
+    },
+    {
+      "phase_key": "repetition_1_acquisition",
+      "phase_label": "Run automatic acquisition",
+      "status": "running",
+      "detail": "Creating a fresh forensic case and starting volatility-first DFIR acquisition: memory first, rolling-PCAP context import second, disk third.",
+      "updated_at": "2026-07-01T22:34:18.330969+00:00",
+      "progress_percent": 34.0
+    },
+    {
+      "phase_key": "repetition_1_acquisition",
+      "phase_label": "Run automatic acquisition",
+      "status": "running",
+      "detail": "A background DFIR preservation case already exists for this repetition. Reusing case case-c12fe8f6 and refusing to create a second heavy case. Source: active_preservation_guard_detected_case.",
+      "updated_at": "2026-07-01T22:34:18.334439+00:00",
+      "progress_percent": 34.0
+    },
+    {
+      "phase_key": "repetition_1_acquisition",
+      "phase_label": "Run automatic acquisition",
+      "status": "completed_with_degradation",
+      "detail": "Background DFIR preservation reused case case-c12fe8f6. Memory=ok; network_import preserved=15 pending=5; disk=missing.",
+      "updated_at": "2026-07-01T22:44:22.320013+00:00",
+      "progress_percent": 37.5
+    },
+    {
+      "phase_key": "repetition_1_seal",
+      "phase_label": "Seal and register case",
+      "status": "running",
+      "detail": "Finalizing custody/digest state so the new case can feed the scientific analysis and reconstruction pipeline.",
+      "updated_at": "2026-07-01T22:44:22.324567+00:00",
+      "progress_percent": 37.5
+    },
+    {
+      "phase_key": "repetition_1_seal",
+      "phase_label": "Seal and register case",
+      "status": "completed",
+      "detail": "Case case-c12fe8f6 is registered for downstream analysis.",
+      "updated_at": "2026-07-01T22:44:22.326884+00:00",
+      "progress_percent": 41.0
+    },
+    {
+      "phase_key": "repetition_1_analysis",
+      "phase_label": "Run multilayer analysis",
+      "status": "running",
+      "detail": "Running the existing preserved-case lifecycle backend over case-c12fe8f6.",
+      "updated_at": "2026-07-01T22:44:22.333729+00:00",
+      "progress_percent": 41.0
+    },
+    {
+      "phase_key": "repetition_1_analysis",
+      "phase_label": "Run multilayer analysis",
+      "status": "completed_with_degradation",
+      "detail": "Lifecycle analysis finished with warnings or scientific degradation.",
+      "updated_at": "2026-07-01T22:45:14.498105+00:00",
+      "progress_percent": 44.5
+    },
+    {
+      "phase_key": "repetition_1_reconstruction",
+      "phase_label": "Run reconstruction/dependency analysis",
+      "status": "running",
+      "detail": "Attaching the fresh case back into the repetition workspace and generating the normalized comparison/result-card outputs.",
+      "updated_at": "2026-07-01T22:45:14.503484+00:00",
+      "progress_percent": 44.5
+    },
+    {
+      "phase_key": "repetition_1_reconstruction",
+      "phase_label": "Run reconstruction/dependency analysis",
+      "status": "completed_with_degradation",
+      "detail": "Execution EXEC-0001 now points to case case-c12fe8f6 with comparison family family-f1f256319c8f7c60.",
+      "updated_at": "2026-07-01T22:45:14.834989+00:00",
+      "progress_percent": 48.0
+    },
+    {
+      "phase_key": "repetition_1_store",
+      "phase_label": "Store repetition result",
+      "status": "running",
+      "detail": "Launching nested Level A scientific report for case case-c12fe8f6 using 2 dry-run repetitions inside child campaign CMP-20260701-224514-CB26.",
+      "updated_at": "2026-07-01T22:45:14.838438+00:00",
+      "progress_percent": 48.0
+    },
+    {
+      "phase_key": "repetition_1_cleanup",
+      "phase_label": "Clean heavy generated case",
+      "status": "running",
+      "detail": "Cleaning heavy artifacts for case case-c12fe8f6 after nested Level A analysis so the next Level B repetition can create a fresh case without coexisting heavy cases.",
+      "updated_at": "2026-07-01T23:10:32.384660+00:00",
+      "progress_percent": 48.0
+    },
+    {
+      "phase_key": "repetition_1_cleanup",
+      "phase_label": "Clean heavy generated case",
+      "status": "completed",
+      "detail": "Heavy generated case case-c12fe8f6 was cleaned after nested Level A analysis. Lightweight retained bundle: app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260701-222337-722B/level_B/EXEC-0001/retained_case_lightweight_bundle/case-c12fe8f6/lightweight_case_bundle_manifest.json.",
+      "updated_at": "2026-07-01T23:10:38.376797+00:00",
+      "progress_percent": 51.5
+    },
+    {
+      "phase_key": "repetition_1_store",
+      "phase_label": "Store repetition result",
+      "status": "completed_with_degradation",
+      "detail": "Stored repetition 1/2 result with status partial and case case-c12fe8f6.",
+      "updated_at": "2026-07-01T23:10:38.378603+00:00",
+      "progress_percent": 55.0
+    },
+    {
+      "phase_key": "repetition_2_start",
+      "phase_label": "Start repetition 2/2",
+      "status": "running",
+      "detail": "Execution workspace EXEC-0002 created. Starting independent Level B repetition 2 of 2.",
+      "updated_at": "2026-07-01T23:10:38.391864+00:00",
+      "progress_percent": 55.0
+    },
+    {
+      "phase_key": "repetition_2_start",
+      "phase_label": "Start repetition 2/2",
+      "status": "completed",
+      "detail": "Independent Level B repetition 2 has started with execution EXEC-0002.",
+      "updated_at": "2026-07-01T23:10:38.394243+00:00",
+      "progress_percent": 58.5
+    },
+    {
+      "phase_key": "repetition_2_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.22 (attempt 1/10).",
+      "updated_at": "2026-07-01T23:10:38.396704+00:00",
+      "progress_percent": 58.5
+    },
+    {
+      "phase_key": "repetition_2_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed",
+      "detail": "Attack completed successfully (attempt 1/10). Output directory: /home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260701T231039Z_T0831_MANIPULATION_OF_CONTROL_MODBUS.",
+      "updated_at": "2026-07-01T23:11:00.149419+00:00",
+      "progress_percent": 62.0
+    },
+    {
+      "phase_key": "repetition_2_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "running",
+      "detail": "Watching monitor 10.0.2.136 for a HIGH/CRITICAL alert matching the OT attack profile (attempt 1/10).",
+      "updated_at": "2026-07-01T23:11:00.158287+00:00",
+      "progress_percent": 62.0
+    },
+    {
+      "phase_key": "repetition_2_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "completed_with_degradation",
+      "detail": "No exact alert match was recognized by the Level B matcher within the configured timeout (attempt 1/10), but DFIR had already opened forensic case case-35437759 at app_core/infrastructure/forensics/evidence_store/CASE-20260701-231052. Re-arming another attack would violate the single-heavy-case invariant, so the batch is adopting that case instead of launching another attempt.",
+      "updated_at": "2026-07-01T23:21:05.181685+00:00",
+      "progress_percent": 65.5
+    },
+    {
+      "phase_key": "repetition_2_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "completed_with_degradation",
+      "detail": "Automatic forensic preservation has already started for case case-35437759 even though the explicit Level B alert matcher did not align perfectly with the observed alert taxonomy. The workflow will adopt the background DFIR case and continue with analysis instead of launching another case.",
+      "updated_at": "2026-07-01T23:21:05.188241+00:00",
+      "progress_percent": 69.0
+    },
+    {
+      "phase_key": "repetition_2_acquisition",
+      "phase_label": "Run automatic acquisition",
+      "status": "running",
+      "detail": "Creating a fresh forensic case and starting volatility-first DFIR acquisition: memory first, rolling-PCAP context import second, disk third.",
+      "updated_at": "2026-07-01T23:21:05.195586+00:00",
+      "progress_percent": 69.0
+    },
+    {
+      "phase_key": "repetition_2_acquisition",
+      "phase_label": "Run automatic acquisition",
+      "status": "running",
+      "detail": "A background DFIR preservation case already exists for this repetition. Reusing case case-35437759 and refusing to create a second heavy case. Source: active_preservation_guard_detected_case.",
+      "updated_at": "2026-07-01T23:21:05.205862+00:00",
+      "progress_percent": 69.0
+    },
+    {
+      "phase_key": "repetition_2_acquisition",
+      "phase_label": "Run automatic acquisition",
+      "status": "completed_with_degradation",
+      "detail": "Background DFIR preservation reused case case-35437759. Memory=ok; network_import preserved=20 pending=5; disk=missing.",
+      "updated_at": "2026-07-01T23:29:25.493224+00:00",
+      "progress_percent": 72.5
+    },
+    {
+      "phase_key": "repetition_2_seal",
+      "phase_label": "Seal and register case",
+      "status": "running",
+      "detail": "Finalizing custody/digest state so the new case can feed the scientific analysis and reconstruction pipeline.",
+      "updated_at": "2026-07-01T23:29:25.495998+00:00",
+      "progress_percent": 72.5
+    },
+    {
+      "phase_key": "repetition_2_seal",
+      "phase_label": "Seal and register case",
+      "status": "completed",
+      "detail": "Case case-35437759 is registered for downstream analysis.",
+      "updated_at": "2026-07-01T23:29:25.501260+00:00",
+      "progress_percent": 76.0
+    },
+    {
+      "phase_key": "repetition_2_analysis",
+      "phase_label": "Run multilayer analysis",
+      "status": "running",
+      "detail": "Running the existing preserved-case lifecycle backend over case-35437759.",
+      "updated_at": "2026-07-01T23:29:25.513156+00:00",
+      "progress_percent": 76.0
+    },
+    {
+      "phase_key": "repetition_2_analysis",
+      "phase_label": "Run multilayer analysis",
+      "status": "completed_with_degradation",
+      "detail": "Lifecycle analysis finished with warnings or scientific degradation.",
+      "updated_at": "2026-07-01T23:31:26.170663+00:00",
+      "progress_percent": 79.5
+    },
+    {
+      "phase_key": "repetition_2_reconstruction",
+      "phase_label": "Run reconstruction/dependency analysis",
+      "status": "running",
+      "detail": "Attaching the fresh case back into the repetition workspace and generating the normalized comparison/result-card outputs.",
+      "updated_at": "2026-07-01T23:31:26.173357+00:00",
+      "progress_percent": 79.5
+    },
+    {
+      "phase_key": "repetition_2_reconstruction",
+      "phase_label": "Run reconstruction/dependency analysis",
+      "status": "completed_with_degradation",
+      "detail": "Execution EXEC-0002 now points to case case-35437759 with comparison family family-4b8dd77a459e2d8b.",
+      "updated_at": "2026-07-01T23:31:26.269961+00:00",
+      "progress_percent": 83.0
+    },
+    {
+      "phase_key": "repetition_2_store",
+      "phase_label": "Store repetition result",
+      "status": "running",
+      "detail": "Launching nested Level A scientific report for case case-35437759 using 2 dry-run repetitions inside child campaign CMP-20260701-233126-2A87.",
+      "updated_at": "2026-07-01T23:31:26.275938+00:00",
+      "progress_percent": 83.0
+    },
+    {
+      "phase_key": "repetition_2_cleanup",
+      "phase_label": "Clean heavy generated case",
+      "status": "running",
+      "detail": "Cleaning heavy artifacts for case case-35437759 after nested Level A analysis so the next Level B repetition can create a fresh case without coexisting heavy cases.",
+      "updated_at": "2026-07-01T23:56:53.126457+00:00",
+      "progress_percent": 83.0
+    },
+    {
+      "phase_key": "repetition_2_cleanup",
+      "phase_label": "Clean heavy generated case",
+      "status": "completed",
+      "detail": "Heavy generated case case-35437759 was cleaned after nested Level A analysis. Lightweight retained bundle: app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260701-222337-722B/level_B/EXEC-0002/retained_case_lightweight_bundle/case-35437759/lightweight_case_bundle_manifest.json.",
+      "updated_at": "2026-07-01T23:56:58.644159+00:00",
+      "progress_percent": 86.5
+    },
+    {
+      "phase_key": "repetition_2_store",
+      "phase_label": "Store repetition result",
+      "status": "completed_with_degradation",
+      "detail": "Stored repetition 2/2 result with status partial and case case-35437759.",
+      "updated_at": "2026-07-01T23:56:58.648027+00:00",
+      "progress_percent": 90.0
+    },
+    {
+      "phase_key": "generate_report",
+      "phase_label": "Generate Level B report",
+      "status": "running",
+      "detail": "Aggregating per-repetition timing, acquisition, reconstruction, warnings, blockers, and case outputs into the final Level B validation report bundle.",
+      "updated_at": "2026-07-01T23:56:58.664763+00:00",
+      "progress_percent": 90.0
+    },
+    {
+      "phase_key": "generate_report",
+      "phase_label": "Generate Level B report",
+      "status": "completed",
+      "detail": "Level B report bundle written to app_core/infrastructure/forensics/evidence_store/validation_reports/level_b_repetition_report_2026-07-01T222350.386527_0000.",
+      "updated_at": "2026-07-01T23:56:58.706585+00:00",
+      "progress_percent": 95.0
+    },
+    {
+      "phase_key": "complete",
+      "phase_label": "Complete",
+      "status": "completed",
+      "detail": "Level B repetition workflow finished: completed=0, partial=2, failed=0.",
+      "updated_at": "2026-07-01T23:56:58.711479+00:00",
+      "progress_percent": 100.0
+    }
+  ],
+  "nested_current_phase_label": "Complete",
+  "nested_current_phase_detail": "Level B repetition workflow finished. Report: app_core/infrastructure/forensics/evidence_store/validation_reports/level_b_repetition_report_2026-07-01T222350.386527_0000",
+  "nested_progress_percent": 100.0,
+  "paper_evidence_manifest_path": "app_core/infrastructure/forensics/paper_evidence/paper-b-CMP-20260701-222337-722B-2026-07-01T222346.578218_0000/paper_evidence_manifest.json",
+  "allow_post_stop_update": true
+}

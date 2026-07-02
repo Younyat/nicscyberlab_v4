@@ -973,10 +973,75 @@ def _list_case_entries() -> list[dict]:
     return out
 
 
+def _case_alias_ids_for_dir(case_dir: Path) -> set[str]:
+    aliases: set[str] = set()
+    default_id = f"case-{hashlib.sha1(case_dir.name.encode('utf-8')).hexdigest()[:8]}"
+    aliases.add(default_id)
+
+    candidate_files = [
+        case_dir / "analysis" / "analysis_status.json",
+        case_dir / "analysis" / "forensic_analysis_report.json",
+        case_dir / "analysis" / "forensic_analysis_manifest.json",
+        case_dir / "derived" / "reconstruction" / "causal_status.json",
+    ]
+    for path in candidate_files:
+        payload = _json_load(path)
+        if isinstance(payload, dict):
+            value = str(payload.get("case_id") or "").strip()
+            if value:
+                aliases.add(value)
+
+    jobs_dir = case_dir / "derived" / "executive" / "jobs"
+    if jobs_dir.is_dir():
+        for path in jobs_dir.glob("*.json"):
+            payload = _json_load(path)
+            if isinstance(payload, dict):
+                value = str(payload.get("case_id") or "").strip()
+                if value:
+                    aliases.add(value)
+    return aliases
+
+
 def get_case_entry(case_id: str) -> dict | None:
-    for entry in _list_case_entries():
-        if str(entry.get("case_id")) == str(case_id):
+    requested = str(case_id or "").strip()
+    if not requested:
+        return None
+
+    entries = _list_case_entries()
+    for entry in entries:
+        if str(entry.get("case_id")) == requested:
             return entry
+
+    for entry in entries:
+        raw_path = str(entry.get("path") or "").strip()
+        if not raw_path:
+            continue
+        case_dir = project_path(*Path(raw_path).parts) if not Path(raw_path).is_absolute() else Path(raw_path)
+        case_dir = case_dir.resolve()
+        if not case_dir.exists() or not case_dir.is_dir():
+            continue
+        aliases = _case_alias_ids_for_dir(case_dir)
+        if requested in aliases:
+            patched = dict(entry)
+            patched["case_id"] = requested
+            return patched
+
+    for case_dir in sorted(CASE_ROOT.glob("CASE-*")):
+        case_dir = case_dir.resolve()
+        aliases = _case_alias_ids_for_dir(case_dir)
+        if requested not in aliases:
+            continue
+        return {
+            "case_id": requested,
+            "source_case_name": case_dir.name,
+            "path": relative_path(case_dir),
+            "artifacts_count": 0,
+            "manifest_path": f"{relative_path(case_dir)}/manifest.json",
+            "pipeline_path": f"{relative_path(case_dir)}/metadata/pipeline_events.jsonl",
+            "custody_path": f"{relative_path(case_dir)}/chain_of_custody.log",
+            "target_node_ids": [],
+            "target_instance_ids": [],
+        }
     return None
 
 
@@ -3045,6 +3110,29 @@ def load_time_sync_status(case_id: str) -> dict:
     summary = _time_sync_summary(case_dir)
     policy = _time_sync_policy(case_dir, fix_time=False, maintenance_override=False)
     if payload:
+        raw_status = str(payload.get("status") or "").lower()
+        with _TIME_SYNC_STATE_LOCK:
+            running_thread = _RUNNING_TIME_SYNC.get(case_id)
+            thread_alive = bool(running_thread and running_thread.is_alive())
+        # Recover stale "running" state when the measurement outputs already exist
+        # but no worker thread remains alive to finalize the status file.
+        if raw_status == "running" and not thread_alive and (summary.get("generated_at_utc") or summary.get("nodes_ok") is not None):
+            payload.update(
+                {
+                    "status": "completed",
+                    "current_step": "completed",
+                    "reason": summary.get("reason") or "Time synchronization outputs are present; recovered stale running state.",
+                    "finished_at": payload.get("finished_at") or utc_now(),
+                    "progress_percent": 100,
+                    "summary": summary,
+                    "output_paths": {
+                        key: relative_path(path)
+                        for key, path in _time_sync_artifact_paths(case_dir).items()
+                        if key not in {"status"} and path.exists()
+                    },
+                }
+            )
+            _write_time_sync_status(case_dir, payload)
         merged = {
             "case_id": case_id,
             "source_case_name": entry.get("source_case_name"),
