@@ -377,7 +377,14 @@ def load_execution_audits() -> list[ExecutionAudit]:
 def accepted_execution_ids(audits: list[ExecutionAudit]) -> set[str]:
     accepted: set[str] = set()
     for audit in audits:
-        if audit.level_b_report:
+        status = str(
+            audit.level_b_report.get("execution_status")
+            or audit.execution_manifest.get("status")
+            or ""
+        ).strip().lower()
+        has_bundle = bool(audit.bundle_root and audit.bundle_root.exists())
+        failed_status = status in {"failed", "error", "not_started"}
+        if audit.level_b_report and has_bundle and not failed_status:
             accepted.add(audit.execution_id)
     return accepted
 
@@ -676,6 +683,7 @@ def build_table4(audits: list[ExecutionAudit]) -> list[dict]:
         findings = (audit.integrity_report.get("findings") or {})
         missing = list(findings.get("missing_artifacts") or [])
         custody_valid = findings.get("custody_chain_valid")
+        manifest_present = bool(audit.bundle_root and (audit.bundle_root / "manifest.json").is_file())
         manifest_artifacts = latest_manifest_by_rel(audit)
         has_primary_manifest = any(top_level_category(str(item.get("rel_path") or "")) != "derived" for item in manifest_artifacts)
         bundle_counts = bundle_counts_by_category(audit)
@@ -687,7 +695,7 @@ def build_table4(audits: list[ExecutionAudit]) -> list[dict]:
         rows.append(
             {
                 "case_id": audit.case_id,
-                "manifest_present": bool(audit.bundle_root and (audit.bundle_root / "manifest.json").is_file()),
+                "manifest_present": manifest_present,
                 "manifest_verification_status": manifest_verification_status(audit),
                 "manifest_verified_artifacts": findings.get("hash_validated_artifacts", not_available()),
                 "manifest_failed_artifacts": not_available("not separately computed by current pipeline"),
@@ -696,7 +704,7 @@ def build_table4(audits: list[ExecutionAudit]) -> list[dict]:
                 "custody_chain_verification_status": "valid" if custody_valid is True else ("failed" if custody_valid is False else not_available()),
                 "custody_event_count": findings.get("custody_events", not_available()),
                 "hash_chain_errors": not_available("not separately computed by current pipeline"),
-                "primary_derived_separation_verified": has_primary and has_derived,
+                "primary_derived_separation_verified": (has_primary and has_derived) if manifest_present else not_available("not verifiable without preserved manifest"),
                 "provenance": source_refs(
                     [
                         (rel(audit.bundle_root / "analysis" / "01_integrity_custody" / "integrity_custody_report.json") if audit.bundle_root else "", "findings.hash_validated_artifacts/missing_artifacts/custody_chain_valid/custody_events"),
@@ -832,6 +840,7 @@ def invariant_row(audit: ExecutionAudit) -> dict:
     else:
         network_status = not_available()
     return {
+        "execution_id": audit.execution_id,
         "case_id": audit.case_id,
         "network_evidence_preservation_status": network_status,
         "network_evidence_refs": source_refs([(rel(audit.bundle_root / "network" / "traffic_preserved" / "network_context_manifest.json") if audit.bundle_root else "", "summary.preserved_segments/preserved_total_bytes/network_context_window.trigger_time_utc")]),
@@ -859,10 +868,11 @@ def build_table8_aggregate(case_rows: list[dict], accepted: set[str]) -> list[di
         ("Manifest and custody verification", "manifest_and_custody_verification_status"),
     ]
     rows: list[dict] = []
-    denominator = len(case_rows)
+    accepted_case_rows = [row for row in case_rows if str(row.get("execution_id") or "") in accepted]
+    denominator = len(accepted_case_rows)
     for invariant_id, field in invariants:
-        passed = [row["case_id"] for row in case_rows if str(row.get(field) or "") == "directly observed"]
-        failed = [row["case_id"] for row in case_rows if str(row.get(field) or "") != "directly observed"]
+        passed = [row["case_id"] for row in accepted_case_rows if str(row.get(field) or "") == "directly observed"]
+        failed = [row["case_id"] for row in accepted_case_rows if str(row.get(field) or "") != "directly observed"]
         reason = ""
         if invariant_id == "Industrial / OT evidence preservation" and failed:
             reason = "No preserved OT export was found for the current Level B cases."
@@ -889,6 +899,37 @@ def build_table9_case(audits: list[ExecutionAudit]) -> list[dict]:
         metrics = audit.reconstruction_metrics
         hypothesis = audit.hypothesis_support_report
         relation_rows = relation_rows_for_audit(audit)
+        reconstruction_available = bool(
+            relation_rows
+            or metrics.get("expected_edges") is not None
+            or list((audit.causal_graph.get("edges") or []))
+        )
+        if not reconstruction_available:
+            rows.append(
+                {
+                    "case_id": audit.case_id,
+                    "expected_causal_relations_count": not_available("not evaluated because reconstruction artifacts are unavailable"),
+                    "recovered_relations_count": not_available("not evaluated because reconstruction artifacts are unavailable"),
+                    "degraded_relations_count": not_available("not evaluated because reconstruction artifacts are unavailable"),
+                    "ambiguous_relations_count": not_available("not evaluated because reconstruction artifacts are unavailable"),
+                    "missing_relations_count": not_available("not evaluated because reconstruction artifacts are unavailable"),
+                    "CPR": not_available("not evaluated because reconstruction artifacts are unavailable"),
+                    "WCPR": not_available("not evaluated because reconstruction artifacts are unavailable"),
+                    "recoverability_label": not_available("not evaluated because reconstruction artifacts are unavailable"),
+                    "scientific_confidence": not_available("not evaluated because reconstruction artifacts are unavailable"),
+                    "hypothesis_support_level": not_available("not evaluated because reconstruction artifacts are unavailable"),
+                    "temporal_confidence": not_available("not evaluated because reconstruction artifacts are unavailable"),
+                    "integrity_completeness": not_available("not evaluated because reconstruction artifacts are unavailable"),
+                    "provenance": source_refs(
+                        [
+                            (rel(audit.bundle_root / "derived" / "reconstruction" / "reconstruction_metrics.json") if audit.bundle_root else "", "expected_edges/recovered_edges/degraded_edges/ambiguous_edges/missing_edges/causal_path_recoverability/weighted_cpr/recoverability_label/temporal_confidence_state/integrity_verification_ratio"),
+                            (rel(audit.bundle_root / "derived" / "reconstruction" / "causal_status.json") if audit.bundle_root else "", "scientific_confidence"),
+                            (rel(audit.bundle_root / "derived" / "evidence_support" / "hypothesis_support_report.json") if audit.bundle_root else "", "global_support_level"),
+                        ]
+                    ),
+                }
+            )
+            continue
         degraded_count = sum(1 for item in relation_rows if str(item.get("relation_state") or "") == "degraded")
         ambiguous_count = sum(1 for item in relation_rows if str(item.get("relation_state") or "") == "ambiguous")
         missing_count = sum(1 for item in relation_rows if str(item.get("relation_state") or "") == "missing")
@@ -919,6 +960,63 @@ def build_table9_case(audits: list[ExecutionAudit]) -> list[dict]:
     return rows
 
 
+def methodological_relation_text(text: Any) -> str:
+    raw = str(text or "").strip()
+    if not raw:
+        return not_available()
+    if " should " in raw:
+        subject, predicate = raw.rstrip(".").split(" should ", 1)
+        lowered_subject = subject[:1].lower() + subject[1:] if subject else subject
+        return f"The ground-truth model specifies that {lowered_subject} is expected to {predicate}."
+    return raw
+
+
+def case_root_candidates(audit: ExecutionAudit) -> list[str]:
+    candidates = [
+        str(audit.execution_manifest.get("source_case_path") or "").strip(),
+        str(audit.execution_manifest.get("run_case_path") or "").strip(),
+        str(audit.retention_manifest.get("original_case_path") or "").strip(),
+        str(audit.retention_manifest.get("heavy_artifacts_location") or "").strip(),
+        str(audit.forensic_result_card.get("original_case_path") or "").strip(),
+    ]
+    seen: list[str] = []
+    for candidate in candidates:
+        if candidate and candidate not in seen:
+            seen.append(candidate)
+    return seen
+
+
+def reanchor_case_ref(ref_text: str, audit: ExecutionAudit) -> str:
+    ref = str(ref_text or "").strip()
+    if not ref:
+        return ref
+    if ref.startswith("foc-reconstruction/"):
+        return ref
+    path_part, fragment = (ref.split("#", 1) + [""])[:2]
+    for case_root in case_root_candidates(audit):
+        if not case_root:
+            continue
+        prefix = case_root.rstrip("/")
+        if path_part == prefix or path_part.startswith(prefix + "/"):
+            suffix = path_part[len(prefix):].lstrip("/")
+            if audit.bundle_root:
+                candidate = audit.bundle_root / suffix
+                if candidate.exists():
+                    anchored = rel(candidate)
+                    return f"{anchored}#{fragment}" if fragment else anchored
+            annotated = f"{path_part} (original source-case path for {audit.case_id})"
+            return f"{annotated}#{fragment}" if fragment else annotated
+    return ref
+
+
+def normalized_evidence_refs(audit: ExecutionAudit, graph: dict) -> str:
+    refs = [str(item).strip() for item in list(graph.get("evidence_refs") or []) if str(item).strip()]
+    if refs:
+        return "; ".join(reanchor_case_ref(item, audit) for item in refs)
+    required = [str(item).strip() for item in list(graph.get("required_evidence") or []) if str(item).strip()]
+    return "; ".join(required) or not_available()
+
+
 def relation_rows_for_audit(audit: ExecutionAudit) -> list[dict]:
     rows: list[dict] = []
     expected_edges = {str(item.get("edge_id") or ""): item for item in list(audit.ground_truth.get("expected_edges") or []) if str(item.get("edge_id") or "")}
@@ -943,10 +1041,10 @@ def relation_rows_for_audit(audit: ExecutionAudit) -> list[dict]:
             {
                 "case_id": audit.case_id,
                 "relation_id": edge_id,
-                "relation_description": str(edge.get("meaning") or not_available()),
+                "relation_description": methodological_relation_text(edge.get("meaning")),
                 "relation_state": support_status,
                 "relation_weight": edge.get("weight", not_available()),
-                "evidence_refs": "; ".join(list(graph.get("evidence_refs") or [])) or "; ".join(list(graph.get("required_evidence") or [])) or not_available(),
+                "evidence_refs": normalized_evidence_refs(audit, graph),
                 "timestamp_available": "yes" if has_timestamp_refs else "not available in current artifacts",
                 "timestamp_resolvable": "yes" if temporal_status in {"supported", "not_required"} else ("no" if temporal_status else not_available()),
                 "integrity_verified": integrity_verified,
@@ -1033,6 +1131,319 @@ def relation_required_to_become_recovered(edge: dict, graph: dict, state: str, a
     return "; ".join(seen)
 
 
+def pcap_artifact_count_for_audit(audit: ExecutionAudit) -> int:
+    count = 0
+    for artifact in dedupe_manifest_artifacts(audit.manifest):
+        rel_path = str(artifact.get("rel_path") or "")
+        lowered = rel_path.lower()
+        if not lowered.startswith("network/"):
+            continue
+        if lowered.endswith(".pcap") or lowered.endswith(".pcapng"):
+            count += 1
+    return count
+
+
+def accepted_audits(audits: list[ExecutionAudit], accepted_ids: set[str]) -> list[ExecutionAudit]:
+    return [audit for audit in audits if audit.execution_id in accepted_ids]
+
+
+def relation_gap_root_cause_row(audit: ExecutionAudit, row: dict, edge: dict, graph: dict) -> dict:
+    relation_id = str(row.get("relation_id") or "")
+    state = str(row.get("relation_state") or "")
+    network_manifest_path = rel(audit.bundle_root / "network" / "traffic_preserved" / "network_context_manifest.json") if audit.bundle_root else ""
+    network_findings_path = rel(audit.bundle_root / "analysis" / "03_network" / "network_findings.json") if audit.bundle_root else ""
+    ot_findings_path = rel(audit.bundle_root / "analysis" / "06_ot" / "ot_findings.json") if audit.bundle_root else ""
+    manifest_path = rel(audit.bundle_root / "manifest.json") if audit.bundle_root else ""
+    acquisition_profile_path = rel(CAMPAIGNS_ROOT / audit.campaign_id / "level_B" / audit.execution_id / "acquisition_profile.json")
+    bundle_manifest_path = rel(audit.bundle_root / "lightweight_case_bundle_manifest.json") if audit.bundle_root else ""
+    alert_corr_ref = "foc-reconstruction/attestations/alert_correlation.json"
+    detect_att_ref = "foc-reconstruction/attestations/detection_attestation.json"
+    attack_att_ref = "foc-reconstruction/attestations/attack_attestation.json"
+    case_manifest_link_ref = "foc-reconstruction/attestations/case_manifest_link.json"
+    pipeline_events_path = rel(audit.bundle_root / "metadata" / "pipeline_events.jsonl") if audit.bundle_root else ""
+    pcap_count = pcap_artifact_count_for_audit(audit)
+    preserved_segments = int((((audit.network_context_manifest or {}).get("summary") or {}).get("preserved_segments")) or 0)
+    source_ts = str(edge.get("source_timestamp_ref") or "").strip() or "source timestamp"
+    target_ts = str(edge.get("target_timestamp_ref") or "").strip() or "target timestamp"
+
+    default = {
+        "relation_id": relation_id,
+        "relation_state": state,
+        "root_cause": relation_state_reason(edge, graph, state, audit),
+        "affected_pipeline_stage": "causal reconstruction synthesis",
+        "existing_evidence_checked": row.get("observed_evidence_refs") if "observed_evidence_refs" in row else row.get("evidence_refs", not_available()),
+        "missing_evidence": relation_required_to_become_recovered(edge, graph, state, audit),
+        "issue_class": "analysis-side",
+        "timestamp_diagnostic": f"Timestamp availability={row.get('timestamp_available', not_available())}; timestamp resolvable={row.get('timestamp_resolvable', not_available())}.",
+        "exact_correction_needed": relation_required_to_become_recovered(edge, graph, state, audit),
+    }
+
+    if relation_id in {"edge_attack_execution_to_ot_write", "edge_ot_write_to_network_modbus_write"}:
+        return {
+            **default,
+            "root_cause": (
+                f"Current preserved artifacts contain network context metadata only. The retained bundle reports "
+                f"`preserved_segments={preserved_segments}` and the preserved PCAP count is {pcap_count}, so there is no packet-level "
+                "Modbus evidence available to confirm function/register/value."
+            ),
+            "affected_pipeline_stage": "network preservation / lightweight bundle retention",
+            "existing_evidence_checked": source_refs(
+                [
+                    (network_manifest_path, "summary.preserved_segments/preserved_total_bytes/network_context_window.trigger_time_utc"),
+                    (network_findings_path, "network_modbus_observation / packet-level findings"),
+                ]
+            ),
+            "missing_evidence": "preserved packet-level network_modbus_observation or raw PCAP/PCAPNG containing the Modbus write",
+            "issue_class": "preservation-side",
+            "timestamp_diagnostic": "The causal break occurs before timestamp ordering: packet-level network evidence is absent in the preserved artifact layer.",
+            "exact_correction_needed": "Preserve raw PCAP or packet segments for the attack window, retain them in the lightweight bundle, run the Modbus packet parser, and rerun Level B because preservation/comparability changes.",
+        }
+
+    if relation_id == "edge_ot_write_to_plc_state_observation":
+        return {
+            **default,
+            "root_cause": (
+                "The OT analysis stage did not receive any preserved OT input. `ot_findings.json` records "
+                "`status=skipped_no_ot_export`, `input_artifacts=[]`, and `not_executed_reason=No OT export files were found for this case.` "
+                "The retained manifest exposes no `industrial/*` artifact, and the lightweight bundle manifest copies no OT export artifact. "
+                "Current artifacts therefore localize the break at preserved-input availability to OT analysis, but they do not prove whether "
+                "upstream OT acquisition never produced an export or whether an export was dropped before manifest/bundle retention."
+            ),
+            "affected_pipeline_stage": "OT preserved-input availability to OT analysis",
+            "existing_evidence_checked": source_refs(
+                [
+                    (ot_findings_path, "status/input_artifacts/not_executed_reason"),
+                    (acquisition_profile_path, "OT export related acquisition fields"),
+                    (pipeline_events_path, "OT export or industrial preservation events"),
+                    (manifest_path, "industrial/* entries"),
+                    (bundle_manifest_path, "copied bundle contents / OT export presence"),
+                ]
+            ),
+            "missing_evidence": "preserved OT export artifact, explicit OT acquisition/export event trail, and indexed OT analysis outputs",
+            "issue_class": "acquisition-side + preservation-side",
+            "timestamp_diagnostic": "Timestamp recovery is blocked because OT analysis had no preserved OT input artifact to timestamp or interpret.",
+            "exact_correction_needed": "Emit explicit OT acquisition/export events, preserve the OT export in the primary manifest, retain it in the lightweight bundle, and rerun Level B after that preservation change.",
+        }
+
+    if relation_id in {"edge_network_modbus_write_to_detection_surface", "edge_detection_surface_to_alert_observation"}:
+        return {
+            **default,
+            "root_cause": (
+                f"Supporting artifacts exist, but the preserved package does not expose a resolvable normalized timestamp chain for "
+                f"`{source_ts}` -> `{target_ts}` under current reconstruction criteria."
+            ),
+            "affected_pipeline_stage": "timestamp normalization / causal timeline indexing",
+            "existing_evidence_checked": row.get("observed_evidence_refs") if "observed_evidence_refs" in row else row.get("evidence_refs", not_available()),
+            "missing_evidence": f"normalized UTC fields or explicit ordering evidence for `{source_ts}` and `{target_ts}`",
+            "issue_class": "analysis-side",
+            "timestamp_diagnostic": f"The relation is degraded because `{source_ts}` and/or `{target_ts}` are not resolvable to an ordered UTC pair in the current attestation set.",
+            "exact_correction_needed": f"Expose normalized timestamp fields in {attack_att_ref}, {detect_att_ref}, or {alert_corr_ref} (as applicable) and rerun reconstruction over the preserved artifacts; rerun Level B only if those timestamps are not preserved anywhere in the current package.",
+        }
+
+    if relation_id in {"edge_alert_observation_to_forensic_case", "edge_forensic_case_to_preserved_case_evidence"}:
+        return {
+            **default,
+            "root_cause": (
+                "The preserved package contains alert correlation, manifest, and custody evidence, but it does not preserve or index an explicit "
+                "`forensic_intervention` artifact linking the alert to the intervention start and the preserved case."
+            ),
+            "affected_pipeline_stage": "forensic orchestration provenance / alert-to-case linkage",
+            "existing_evidence_checked": source_refs(
+                [
+                    (alert_corr_ref, "alert linkage"),
+                    (case_manifest_link_ref, "case linkage"),
+                    (manifest_path, "manifest presence"),
+                    (rel(audit.bundle_root / "chain_of_custody.log") if audit.bundle_root else "", "custody presence"),
+                    (pipeline_events_path, "alert / dfir_orchestration_* events"),
+                ]
+            ),
+            "missing_evidence": "explicit forensic_intervention artifact or event with case_id, intervention_started_at, and alert-to-case linkage",
+            "issue_class": "preservation-side + analysis-side",
+            "timestamp_diagnostic": "The chain breaks at the intervention layer: alert evidence exists, but the intervention event is not preserved/indexed as a causal artifact.",
+            "exact_correction_needed": "Persist an explicit forensic_intervention artifact/event and link it into reconstruction inputs; rerun Level B if preservation changes are required to capture that artifact.",
+        }
+
+    return default
+
+
+def build_gap_root_cause_rows(audits: list[ExecutionAudit], accepted_ids: set[str]) -> list[dict]:
+    accepted_items = accepted_audits(audits, accepted_ids)
+    sample = accepted_items[0] if accepted_items else (audits[0] if audits else None)
+    sample_network_manifest = rel(sample.bundle_root / "network" / "traffic_preserved" / "network_context_manifest.json") if sample and sample.bundle_root else ""
+    sample_ot_findings = rel(sample.bundle_root / "analysis" / "06_ot" / "ot_findings.json") if sample and sample.bundle_root else ""
+    sample_manifest = rel(sample.bundle_root / "manifest.json") if sample and sample.bundle_root else ""
+    sample_integrity = rel(sample.bundle_root / "analysis" / "01_integrity_custody" / "integrity_custody_report.json") if sample and sample.bundle_root else ""
+    sample_alerts = rel(sample.bundle_root / "analysis" / "07_alerts" / "alert_findings.json") if sample and sample.bundle_root else ""
+    sample_pipeline = rel(sample.bundle_root / "metadata" / "pipeline_events.jsonl") if sample and sample.bundle_root else ""
+    sample_network_findings = rel(sample.bundle_root / "analysis" / "03_network" / "network_findings.json") if sample and sample.bundle_root else ""
+    sample_pcap_count = pcap_artifact_count_for_audit(sample) if sample else 0
+    sample_preserved_segments = int((((sample.network_context_manifest or {}).get("summary") or {}).get("preserved_segments")) or 0) if sample else 0
+
+    return [
+        {
+            "missing_data": f"accepted Level B denominator beyond n={len(accepted_items)}",
+            "affected_table_or_metric": "Tables 1, 6, 8B, 10 and final Level B paper claims",
+            "table_can_be_generated_now": True,
+            "data_can_be_recovered_from_existing_artifacts": False,
+            "final_claim_defensible_now": False,
+            "root_cause": "The current campaign registry contains fewer accepted Level B executions than the final intended denominator.",
+            "affected_pipeline_stage": "campaign execution completeness",
+            "existing_evidence_checked": source_refs(
+                [
+                    (rel(CAMPAIGNS_ROOT / sample.campaign_id / "campaign_manifest.json") if sample else "", "status/execution_count"),
+                    (rel(CAMPAIGNS_ROOT / sample.campaign_id / "level_B" / sample.execution_id / "execution_manifest.json") if sample else "", "status/case_id/run_case_path"),
+                ]
+            ),
+            "missing_evidence": "additional accepted Level B repetitions up to the final denominator",
+            "issue_class": "acquisition-side",
+            "exact_correction_needed": "Fix the execution blocker, then run a fresh homogeneous Level B campaign to the final intended denominator; do not pool post-fix runs with the current preliminary set.",
+            "requires_only_reporting_fix": False,
+            "requires_analysis_code_change": False,
+            "requires_acquisition_code_change": False,
+            "requires_repeating_level_b": True,
+        },
+        {
+            "missing_data": "packet-level Modbus confirmation",
+            "affected_table_or_metric": "Table 2, causal relations tied to network_modbus_observation, and final incident-specification claims",
+            "table_can_be_generated_now": True,
+            "data_can_be_recovered_from_existing_artifacts": False,
+            "final_claim_defensible_now": False,
+            "root_cause": f"The preserved package retains network context only. The accepted case reports `preserved_segments={sample_preserved_segments}` and `pcap_artifact_count={sample_pcap_count}`, so packet-level Modbus evidence is not preserved in the current artifact set.",
+            "affected_pipeline_stage": "network preservation / packet retention",
+            "existing_evidence_checked": source_refs(
+                [
+                    (sample_network_manifest, "summary.preserved_segments/preserved_total_bytes/network_context_window.trigger_time_utc"),
+                    (sample_network_findings, "network_modbus_observation"),
+                ]
+            ),
+            "missing_evidence": "raw PCAP/PCAPNG or preserved packet-level Modbus observation confirming function/register/value",
+            "issue_class": "preservation-side",
+            "exact_correction_needed": "Keep declared Modbus fields marked as declared-only; to make packet-level claims defensible, preserve real PCAP/packet artifacts and rerun Level B after that preservation change.",
+            "requires_only_reporting_fix": False,
+            "requires_analysis_code_change": False,
+            "requires_acquisition_code_change": True,
+            "requires_repeating_level_b": True,
+        },
+        {
+            "missing_data": "OT export and OT-derived timestamps",
+            "affected_table_or_metric": "Tables 5, 6, 8A, 8B, 9 and final industrial/OT claims",
+            "table_can_be_generated_now": True,
+            "data_can_be_recovered_from_existing_artifacts": False,
+            "final_claim_defensible_now": False,
+            "root_cause": "The OT analysis stage records `status=skipped_no_ot_export` and `input_artifacts=[]`. The retained manifest exposes no `industrial/*` artifact and the lightweight bundle manifest copies no OT export. Current artifacts therefore show that OT evidence is already absent at preserved-input availability to OT analysis, but they do not prove whether upstream acquisition never produced an export or whether an export was discarded before manifest/bundle retention.",
+            "affected_pipeline_stage": "OT preserved-input availability to analysis",
+            "existing_evidence_checked": source_refs(
+                [
+                    (sample_ot_findings, "status/input_artifacts/not_executed_reason"),
+                    (rel(CAMPAIGNS_ROOT / sample.campaign_id / "level_B" / sample.execution_id / "acquisition_profile.json") if sample else "", "OT export related acquisition fields"),
+                    (sample_pipeline, "OT export / industrial preservation events"),
+                    (sample_manifest, "industrial/* entries"),
+                    (rel(sample.bundle_root / "lightweight_case_bundle_manifest.json") if sample and sample.bundle_root else "", "copied bundle contents / OT export presence"),
+                ]
+            ),
+            "missing_evidence": "preserved OT export artifact, explicit OT acquisition/export event trail, OT analysis outputs, and OT timestamp fields",
+            "issue_class": "acquisition-side + preservation-side",
+            "exact_correction_needed": "Emit explicit OT acquisition/export events, preserve OT export in the primary manifest, retain it in the lightweight bundle, and rerun Level B because the preserved evidence boundary changes.",
+            "requires_only_reporting_fix": False,
+            "requires_analysis_code_change": False,
+            "requires_acquisition_code_change": True,
+            "requires_repeating_level_b": True,
+        },
+        {
+            "missing_data": "defensible Wazuh trigger mapping",
+            "affected_table_or_metric": "Table 2, Table 8A trigger-alert semantics, and final detector-binding claims",
+            "table_can_be_generated_now": True,
+            "data_can_be_recovered_from_existing_artifacts": False,
+            "final_claim_defensible_now": False,
+            "root_cause": "Current artifacts preserve alert summaries and trigger profile metadata, but they do not preserve a raw-alert-to-case binding that supports a defensible Wazuh rule/alert mapping.",
+            "affected_pipeline_stage": "alert binding persistence / detector provenance",
+            "existing_evidence_checked": source_refs(
+                [
+                    (sample_alerts, "findings.top_rules/top_signatures"),
+                    (rel(CAMPAIGNS_ROOT / sample.campaign_id / "level_B" / sample.execution_id / "detection_trigger_profile.json") if sample else "", "selected_trigger*"),
+                    (sample_pipeline, "alert event"),
+                ]
+            ),
+            "missing_evidence": "raw Wazuh alert binding with stable rule/alert identifiers linked to the preserved case",
+            "issue_class": "preservation-side + analysis-side",
+            "exact_correction_needed": "Persist the raw alert-to-case binding and then expose it in reporting; rerun Level B if new preservation is required to capture those raw bindings.",
+            "requires_only_reporting_fix": False,
+            "requires_analysis_code_change": True,
+            "requires_acquisition_code_change": True,
+            "requires_repeating_level_b": True,
+        },
+        {
+            "missing_data": "full manifest/custody verification semantics",
+            "affected_table_or_metric": "Table 4, manifest/custody sections, and final integrity claims",
+            "table_can_be_generated_now": True,
+            "data_can_be_recovered_from_existing_artifacts": False,
+            "final_claim_defensible_now": False,
+            "root_cause": "The current integrity output is partial: large artifacts are skipped and the report does not separate verified, skipped, failed-hash, and missing artifact classes with a fully explicit taxonomy.",
+            "affected_pipeline_stage": "integrity verification reporting",
+            "existing_evidence_checked": source_refs(
+                [
+                    (sample_integrity, "findings.hash_validated_artifacts/hash_skipped_large_or_nohash/missing_artifacts/custody_chain_valid"),
+                    (sample_manifest, "manifest entries"),
+                ]
+            ),
+            "missing_evidence": "explicit failed-hash counts and a full verification pass over skipped large artifacts if final full-verification claims are needed",
+            "issue_class": "analysis-side",
+            "exact_correction_needed": "Keep current wording as partial verification; integrity verification is partial because large artifacts were skipped, and custody-chain validity does not imply full byte-level rehash of every artifact. Extend integrity reporting to emit verified/skipped/failed/missing counters and perform a full rehash pass before making full-verification claims.",
+            "requires_only_reporting_fix": False,
+            "requires_analysis_code_change": True,
+            "requires_acquisition_code_change": False,
+            "requires_repeating_level_b": False,
+        },
+        {
+            "missing_data": "explicit forensic_intervention linkage",
+            "affected_table_or_metric": "Causal relations edge_alert_observation_to_forensic_case and edge_forensic_case_to_preserved_case_evidence",
+            "table_can_be_generated_now": True,
+            "data_can_be_recovered_from_existing_artifacts": False,
+            "final_claim_defensible_now": False,
+            "root_cause": "The package preserves alert, manifest, and custody evidence but not an explicit forensic intervention artifact that links alert reception to intervention start and preserved case creation.",
+            "affected_pipeline_stage": "forensic orchestration provenance",
+            "existing_evidence_checked": source_refs(
+                [
+                    ("foc-reconstruction/attestations/alert_correlation.json", "alert linkage"),
+                    ("foc-reconstruction/attestations/case_manifest_link.json", "case linkage"),
+                    (sample_manifest, "manifest presence"),
+                    (sample_pipeline, "dfir_orchestration events"),
+                ]
+            ),
+            "missing_evidence": "forensic_intervention artifact/event with case_id and intervention timestamps",
+            "issue_class": "preservation-side + analysis-side",
+            "exact_correction_needed": "Persist and index a forensic_intervention event/artifact; rerun Level B if capturing that artifact changes preservation/comparability.",
+            "requires_only_reporting_fix": False,
+            "requires_analysis_code_change": True,
+            "requires_acquisition_code_change": True,
+            "requires_repeating_level_b": True,
+        },
+        {
+            "missing_data": "resolvable causal timestamps for degraded relations",
+            "affected_table_or_metric": "Causal relations edge_network_modbus_write_to_detection_surface and edge_detection_surface_to_alert_observation",
+            "table_can_be_generated_now": True,
+            "data_can_be_recovered_from_existing_artifacts": False,
+            "final_claim_defensible_now": False,
+            "root_cause": "Supporting attestation artifacts exist, but the current package does not expose a normalized UTC ordering that resolves attack -> detection and detection -> alert edges under current reconstruction rules.",
+            "affected_pipeline_stage": "timestamp normalization / causal timeline indexing",
+            "existing_evidence_checked": source_refs(
+                [
+                    ("foc-reconstruction/attestations/attack_attestation.json", "attack_completed_at or equivalent"),
+                    ("foc-reconstruction/attestations/detection_attestation.json", "detection_observed_at or equivalent"),
+                    ("foc-reconstruction/attestations/alert_correlation.json", "alert_observed_at or equivalent"),
+                ]
+            ),
+            "missing_evidence": "resolvable normalized UTC timestamps for the attack, detection, and alert steps",
+            "issue_class": "analysis-side",
+            "exact_correction_needed": "Expose normalized timestamps in attestation/timeline outputs and rerun reconstruction over preserved artifacts; rerun Level B only if those timestamps are not preserved anywhere in the current package.",
+            "requires_only_reporting_fix": False,
+            "requires_analysis_code_change": True,
+            "requires_acquisition_code_change": False,
+            "requires_repeating_level_b": False,
+        },
+    ]
+
+
 def build_case_specific_causal_sections(audits: list[ExecutionAudit], tables: dict[str, list[dict]]) -> list[str]:
     lines: list[str] = ["## Case-specific Causal Path and Metric Interpretation", ""]
     table5_by_case = {row["case_id"]: row for row in tables["table5"]}
@@ -1046,6 +1457,7 @@ def build_case_specific_causal_sections(audits: list[ExecutionAudit], tables: di
         total_edges = max(int(audit.reconstruction_metrics.get("expected_edges") or 0), 1)
         total_weight = sum(float(item.get("weight") or 0.0) for item in expected_edges.values()) or 1.0
         detail_rows: list[dict] = []
+        root_cause_rows: list[dict] = []
         for row in relation_rows:
             edge = expected_edges.get(str(row.get("relation_id") or "")) or {}
             graph = graph_edges.get(str(row.get("relation_id") or "")) or {}
@@ -1066,6 +1478,8 @@ def build_case_specific_causal_sections(audits: list[ExecutionAudit], tables: di
                     "required_evidence_to_become_recovered": relation_required_to_become_recovered(edge, graph, state, audit),
                 }
             )
+            if state != "recovered":
+                root_cause_rows.append(relation_gap_root_cause_row(audit, row, edge, graph))
         lines.extend(
             [
                 f"### {audit.case_id}",
@@ -1085,13 +1499,38 @@ def build_case_specific_causal_sections(audits: list[ExecutionAudit], tables: di
                         "contribution_to_WCPR",
                         "required_evidence_to_become_recovered",
                     ],
-                ),
+                )
+                if detail_rows
+                else "_Relation-level reconstruction was not evaluated because reconstruction artifacts are unavailable for this case._",
                 "",
             ]
         )
+        if root_cause_rows:
+            lines.extend(
+                [
+                    f"#### Root-Cause Inspection for {audit.case_id}",
+                    "",
+                    markdown_table(
+                        root_cause_rows,
+                        [
+                            "relation_id",
+                            "relation_state",
+                            "root_cause",
+                            "affected_pipeline_stage",
+                            "existing_evidence_checked",
+                            "missing_evidence",
+                            "issue_class",
+                            "timestamp_diagnostic",
+                            "exact_correction_needed",
+                        ],
+                    ),
+                    "",
+                ]
+            )
         t9 = table9_by_case.get(audit.case_id, {})
         t8 = table8_by_case.get(audit.case_id, {})
         t5 = table5_by_case.get(audit.case_id, {})
+        reconstruction_evaluated = bool(relation_rows) and is_available_value(t9.get("expected_causal_relations_count"))
         recovered_ids = [row["relation_id"] for row in relation_rows if str(row.get("relation_state") or "") == "recovered"]
         degraded_ids = [row["relation_id"] for row in relation_rows if str(row.get("relation_state") or "") == "degraded"]
         missing_ids = [row["relation_id"] for row in relation_rows if str(row.get("relation_state") or "") == "missing"]
@@ -1100,52 +1539,60 @@ def build_case_specific_causal_sections(audits: list[ExecutionAudit], tables: di
             {
                 "metric": "CPR",
                 "case_value": t9.get("CPR"),
-                "case_specific_interpretation": f"Recovered relations / expected relations = {t9.get('recovered_relations_count')} / {t9.get('expected_causal_relations_count')}. Recovered relation ids: {', '.join(recovered_ids) or 'none'}.",
+                "case_specific_interpretation": (
+                    f"Recovered relations / expected relations = {t9.get('recovered_relations_count')} / {t9.get('expected_causal_relations_count')}. Recovered relation ids: {', '.join(recovered_ids) or 'none'}."
+                    if reconstruction_evaluated
+                    else "Not evaluated because reconstruction artifacts are unavailable for this case."
+                ),
             },
             {
                 "metric": "WCPR",
                 "case_value": t9.get("WCPR"),
-                "case_specific_interpretation": "Sum of weights of recovered relations divided by the total expected relation weight. Only recovered relations contribute positive weight.",
+                "case_specific_interpretation": (
+                    "Weighted CPR in the current preserved methodology is the recovered-edge weight divided by the total expected edge weight. Degraded and ambiguous edges affect reconstruction confidence, but they do not contribute positive weight to the raw WCPR ratio in the preserved pipeline. Treat this as a conservative pipeline-specific WCPR variant unless the final paper formula explicitly defines the same recovered-only weighting."
+                    if reconstruction_evaluated
+                    else "Not evaluated because reconstruction artifacts are unavailable for this case."
+                ),
             },
             {
                 "metric": "recovered_relations_count",
                 "case_value": t9.get("recovered_relations_count"),
-                "case_specific_interpretation": f"Relations fully supported and temporally/classificationally resolved: {', '.join(recovered_ids) or 'none'}.",
+                "case_specific_interpretation": f"Relations fully supported and temporally/classificationally resolved: {', '.join(recovered_ids) or 'none'}." if relation_rows else "Not evaluated because reconstruction artifacts are unavailable for this case.",
             },
             {
                 "metric": "degraded_relations_count",
                 "case_value": t9.get("degraded_relations_count"),
-                "case_specific_interpretation": f"Partially supported relations: {', '.join(degraded_ids) or 'none'}. These typically lack resolvable temporal ordering or another full-support condition.",
+                "case_specific_interpretation": f"Partially supported relations: {', '.join(degraded_ids) or 'none'}. These typically lack resolvable temporal ordering or another full-support condition." if relation_rows else "Not evaluated because reconstruction artifacts are unavailable for this case.",
             },
             {
                 "metric": "missing_relations_count",
                 "case_value": t9.get("missing_relations_count"),
-                "case_specific_interpretation": f"Relations with required evidence absent from current artifacts: {', '.join(missing_ids) or 'none'}.",
+                "case_specific_interpretation": f"Relations with required evidence absent from current artifacts: {', '.join(missing_ids) or 'none'}." if relation_rows else "Not evaluated because reconstruction artifacts are unavailable for this case.",
             },
             {
                 "metric": "ambiguous_relations_count",
                 "case_value": t9.get("ambiguous_relations_count"),
-                "case_specific_interpretation": f"Relations with unresolved multiple interpretations: {', '.join(ambiguous_ids) or 'none'}.",
+                "case_specific_interpretation": f"Relations with unresolved multiple interpretations: {', '.join(ambiguous_ids) or 'none'}." if relation_rows else "Not evaluated because reconstruction artifacts are unavailable for this case.",
             },
             {
                 "metric": "temporal_confidence",
                 "case_value": t9.get("temporal_confidence"),
-                "case_specific_interpretation": "Comes from reconstruction metrics and reflects how well the preserved timestamps support causal ordering across the expected chain.",
+                "case_specific_interpretation": "Comes from reconstruction metrics and reflects how well the preserved timestamps support causal ordering across the expected chain." if reconstruction_evaluated else "Not evaluated because reconstruction artifacts are unavailable for this case.",
             },
             {
                 "metric": "integrity_completeness",
                 "case_value": t9.get("integrity_completeness"),
-                "case_specific_interpretation": "Case-wide integrity verification ratio derived from manifest/hash verification; it does not imply that every relation-specific artifact was sufficient to recover the relation.",
+                "case_specific_interpretation": "Case-wide integrity verification ratio derived from manifest/hash verification; it does not imply that every relation-specific artifact was sufficient to recover the relation." if reconstruction_evaluated else "Not evaluated because reconstruction artifacts are unavailable for this case.",
             },
             {
                 "metric": "scientific_confidence",
                 "case_value": t9.get("scientific_confidence"),
-                "case_specific_interpretation": "Overall scientific confidence from causal_status, reflecting the quality of the cross-layer reconstruction under current evidence limitations.",
+                "case_specific_interpretation": "Overall scientific confidence from causal_status, reflecting the quality of the cross-layer reconstruction under current evidence limitations." if reconstruction_evaluated else "Not evaluated because reconstruction artifacts are unavailable for this case.",
             },
             {
                 "metric": "hypothesis_support_level",
                 "case_value": t9.get("hypothesis_support_level"),
-                "case_specific_interpretation": "Global support level from hypothesis_support_report across the expected causal claims for this case.",
+                "case_specific_interpretation": "Global support level from hypothesis_support_report across the expected causal claims for this case." if reconstruction_evaluated else "Not evaluated because reconstruction artifacts are unavailable for this case.",
             },
             {
                 "metric": "preservation checks",
@@ -1154,8 +1601,8 @@ def build_case_specific_causal_sections(audits: list[ExecutionAudit], tables: di
             },
             {
                 "metric": "timing metrics",
-                "case_value": f"T_first={t5.get('T_first_sealed_s')}s; T_case={t5.get('T_case_sealed_s')}s",
-                "case_specific_interpretation": f"Trigger={t5.get('trigger_time_utc')}; memory preserved at {t5.get('memory_preserved_utc')}; disk preserved at {t5.get('disk_snapshot_preserved_utc')}; industrial export remains unavailable in current artifacts.",
+                "case_value": f"T_first={metric_display(t5.get('T_first_sealed_s'))}s; T_case={metric_display(t5.get('T_case_sealed_s'))}s" if is_available_value(t5.get("T_first_sealed_s")) or is_available_value(t5.get("T_case_sealed_s")) else not_available(),
+                "case_specific_interpretation": f"Trigger={metric_display(t5.get('trigger_time_utc'))}; memory preserved at {metric_display(t5.get('memory_preserved_utc'))}; disk preserved at {metric_display(t5.get('disk_snapshot_preserved_utc'))}; industrial export remains unavailable in current artifacts.",
             },
         ]
         lines.extend(
@@ -1187,9 +1634,9 @@ def build_table10(audits: list[ExecutionAudit]) -> list[dict]:
             "missing_data": "source_node_id, explicit Wazuh alert/rule mapping, packet-confirmed Modbus register/value precision; current network context manifests do not confirm packet-level Modbus observations because preserved_segments=0",
             "requires_only_report_aggregation": False,
             "requires_analysis_code_change": True,
-            "requires_acquisition_code_change": False,
+            "requires_acquisition_code_change": True,
             "requires_repeating_level_b": True,
-            "recommendation": "The declared incident can be reported now, but network context alone must not be presented as confirmed Modbus packet evidence. Defensible packet-level Modbus confirmation and detector cross-mapping would need stronger preserved network evidence and a fresh rerun.",
+            "recommendation": "The table can be generated now with declared-but-not-confirmed fields, but current artifacts do not preserve packet-level Modbus evidence or a defensible Wazuh binding. Final claims would require stronger preserved network/alert evidence and a fresh rerun.",
         },
         {
             "paper_table_or_metric": "Table 3: preserved artifacts summary",
@@ -1219,7 +1666,7 @@ def build_table10(audits: list[ExecutionAudit]) -> list[dict]:
             "requires_analysis_code_change": False,
             "requires_acquisition_code_change": True,
             "requires_repeating_level_b": True,
-            "recommendation": "Generate now with unavailable markers for OT-export timings; preserving OT exports in future runs would require acquisition changes and reruns.",
+            "recommendation": "Generate now with unavailable OT-export fields, but those timings cannot be recovered from current artifacts because OT export was not preserved. Final recovery requires OT preservation changes and a fresh rerun.",
         },
         {
             "paper_table_or_metric": "Table 6: operational aggregates",
@@ -1229,7 +1676,7 @@ def build_table10(audits: list[ExecutionAudit]) -> list[dict]:
             "requires_analysis_code_change": False,
             "requires_acquisition_code_change": True,
             "requires_repeating_level_b": True,
-            "recommendation": "Compute aggregates over available values and report the real denominator.",
+            "recommendation": "Compute aggregates over available values and report the real denominator, but do not imply that unavailable OT-derived values are recoverable from the current artifact set.",
         },
         {
             "paper_table_or_metric": "Table 7: time synchronization",
@@ -1249,7 +1696,7 @@ def build_table10(audits: list[ExecutionAudit]) -> list[dict]:
             "requires_analysis_code_change": False,
             "requires_acquisition_code_change": True,
             "requires_repeating_level_b": True,
-            "recommendation": "Generate the checks now, but keep network context separate from packet-level Modbus confirmation and make the OT-preservation gap explicit instead of forcing a pass.",
+            "recommendation": "Generate the checks now, but keep network context separate from packet-level Modbus confirmation and make explicit that OT-preservation failures are unrecoverable from the current artifacts.",
         },
         {
             "paper_table_or_metric": "Table 9: causal reconstruction and relation states",
@@ -1467,7 +1914,7 @@ def markdown_table(rows: list[dict], columns: list[str]) -> str:
     return "\n".join([header, divider, *body])
 
 
-def overall_conclusion(table10_rows: list[dict]) -> str:
+def preliminary_table_conclusion(table10_rows: list[dict]) -> str:
     can_all = all(bool(row.get("can_be_generated_from_current_artifacts")) for row in table10_rows)
     missing_any = any(str(row.get("missing_data") or "").strip() for row in table10_rows)
     if can_all and not missing_any:
@@ -1477,26 +1924,22 @@ def overall_conclusion(table10_rows: list[dict]) -> str:
     return "Option C: not enough; requires pipeline/reporting changes and rerunning Level B"
 
 
-def build_gap_report(table10_rows: list[dict]) -> tuple[str, list[dict]]:
-    rows: list[dict] = []
-    for row in table10_rows:
-        missing = str(row.get("missing_data") or "").strip()
-        if not missing:
-            continue
-        rows.append(
-            {
-                "missing_data": missing,
-                "affected_table_or_metric": row["paper_table_or_metric"],
-                "why_it_matters": row["recommendation"],
-                "can_be_recovered_from_existing_artifacts": bool(row.get("requires_only_report_aggregation")),
-                "requires_only_reporting_fix": bool(row.get("requires_only_report_aggregation")),
-                "requires_analysis_code_change": bool(row.get("requires_analysis_code_change")),
-                "requires_acquisition_code_change": bool(row.get("requires_acquisition_code_change")),
-                "requires_repeating_level_b": bool(row.get("requires_repeating_level_b")),
-                "recommendation": row["recommendation"],
-            }
-        )
-    return overall_conclusion(table10_rows), rows
+def final_claim_conclusion(audits: list[ExecutionAudit], accepted_ids: set[str], table10_rows: list[dict]) -> str:
+    if len(accepted_ids) < 6:
+        return "Option C: current artifacts are not sufficient for final Level B paper claims."
+    if any(bool(row.get("requires_repeating_level_b")) for row in table10_rows):
+        return "Option C: current artifacts are not sufficient for final Level B paper claims."
+    if any(bool(row.get("requires_acquisition_code_change")) for row in table10_rows):
+        return "Option C: current artifacts are not sufficient for final Level B paper claims."
+    return "Option A: current artifacts are sufficient for final Level B paper claims."
+
+
+def build_gap_report(audits: list[ExecutionAudit], accepted_ids: set[str], table10_rows: list[dict]) -> tuple[str, str, list[dict]]:
+    return (
+        preliminary_table_conclusion(table10_rows),
+        final_claim_conclusion(audits, accepted_ids, table10_rows),
+        build_gap_root_cause_rows(audits, accepted_ids),
+    )
 
 
 def write_json(path: Path, payload: Any) -> None:
@@ -1519,7 +1962,7 @@ def write_csv(path: Path, rows: list[dict]) -> None:
 def render_report(audits: list[ExecutionAudit], tables: dict[str, list[dict]], output_dir: Path) -> str:
     accepted = accepted_execution_ids(audits)
     table10_rows = tables["table10"]
-    conclusion = overall_conclusion(table10_rows)
+    conclusion = preliminary_table_conclusion(table10_rows)
     data_scope = [
         f"- Campaigns scanned: {', '.join(sorted({audit.campaign_id for audit in audits})) or 'none'}",
         f"- Level B executions found: {len(audits)}",
@@ -1540,7 +1983,7 @@ def render_report(audits: list[ExecutionAudit], tables: dict[str, list[dict]], o
         "## Technical Conclusion",
         conclusion,
         "",
-        "Current Level B artifacts are usable for preliminary reporting over n=2 accepted cases, but they are not sufficient to support a final N_B=6 evaluation.",
+        f"Current Level B artifacts are usable for preliminary reporting over n={len(accepted)} accepted cases, but they are not sufficient to support a final N_B=6 evaluation.",
         "",
         "## Interpretation Guardrails",
         "- Memory and disk preservation succeeded for the accepted Level B cases and must be read as real preserved host evidence.",
@@ -1681,20 +2124,41 @@ def generate_report_bundle() -> dict[str, Any]:
     availability_matrix = build_availability_matrix(audits, tables)
     write_csv(output_dir / "FORGE-VI_LevelB_Data_Availability_Matrix.csv", availability_matrix)
 
-    conclusion, gap_rows = build_gap_report(tables["table10"])
+    preliminary_option, final_option, gap_rows = build_gap_report(audits, accepted, tables["table10"])
     gap_md = "\n".join(
         [
             "# FORGE-VI Level B Table Gap Report",
             "",
             f"Generated at: `{utc_now_iso()}`",
             "",
-            "## Conclusion",
-            conclusion,
+            "## Decision Mapping",
+            f"- Preliminary table-generation status: **{preliminary_option}**",
+            f"- Final-claim status: **{final_option}**",
             "",
-            "## Gaps",
+            "Option B and Option C are intentionally allowed to coexist in this package.",
+            "- `Option B` means the current artifacts are sufficient to generate preliminary tables with explicit `not available` markers and audit caveats.",
+            "- `Option C` means those same artifacts are still not sufficient for final paper claims, because key evidence is absent, partial, or not scientifically defendible.",
+            "",
+            "## Root-Cause Gap Inspection",
             markdown_table(
                 gap_rows,
-                ["missing_data", "affected_table_or_metric", "why_it_matters", "can_be_recovered_from_existing_artifacts", "requires_only_reporting_fix", "requires_analysis_code_change", "requires_acquisition_code_change", "requires_repeating_level_b", "recommendation"],
+                [
+                    "missing_data",
+                    "affected_table_or_metric",
+                    "table_can_be_generated_now",
+                    "data_can_be_recovered_from_existing_artifacts",
+                    "final_claim_defensible_now",
+                    "root_cause",
+                    "affected_pipeline_stage",
+                    "existing_evidence_checked",
+                    "missing_evidence",
+                    "issue_class",
+                    "exact_correction_needed",
+                    "requires_only_reporting_fix",
+                    "requires_analysis_code_change",
+                    "requires_acquisition_code_change",
+                    "requires_repeating_level_b",
+                ],
             ) if gap_rows else "- No gaps detected in the current audit scope.",
         ]
     ) + "\n"
@@ -1713,7 +2177,8 @@ def generate_report_bundle() -> dict[str, Any]:
         "gap_report_markdown": gap_md,
         "values_json_path": rel(output_dir / "FORGE-VI_LevelB_Table_Values.json"),
         "availability_matrix_csv_path": rel(output_dir / "FORGE-VI_LevelB_Data_Availability_Matrix.csv"),
-        "conclusion": conclusion,
+        "conclusion": preliminary_option,
+        "final_claim_conclusion": final_option,
         "accepted_level_b_cases": len(accepted),
         "campaign_ids": sorted({audit.campaign_id for audit in audits}),
     }

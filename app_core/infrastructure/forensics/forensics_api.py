@@ -76,6 +76,7 @@ DFIR_AUTO_DECISIONS_ROOT.mkdir(parents=True, exist_ok=True)
 
 ACTIVE_CASE_PTR = os.path.join(EVIDENCE_ROOT, "_active_case.txt")
 ACTIVE_PRESERVATION_PTR = os.path.join(EVIDENCE_ROOT, "_active_preservation.json")
+STALE_PLACEHOLDER_CASE_MIN_AGE_SECONDS = 30
 
 def set_active_case_dir(case_dir: str) -> None:
     """
@@ -241,6 +242,30 @@ def _case_preservation_in_progress(case_dir: str) -> bool:
     return False
 
 
+def _clear_active_case_pointer_if_matches(case_dir: str) -> None:
+    try:
+        current = _read_active_case_dir()
+        if current and os.path.abspath(current) == os.path.abspath(case_dir):
+            Path(ACTIVE_CASE_PTR).write_text("", encoding="utf-8")
+    except Exception:
+        pass
+
+
+def _is_abandoned_placeholder_case(case_dir: str, *, min_age_seconds: int = STALE_PLACEHOLDER_CASE_MIN_AGE_SECONDS) -> bool:
+    if not case_dir or not os.path.isdir(case_dir):
+        return False
+    manifest_path = os.path.join(case_dir, "manifest.json")
+    custody_path = os.path.join(case_dir, "chain_of_custody.log")
+    events_path = _events_path(case_dir)
+    if os.path.isfile(manifest_path) or os.path.isfile(custody_path) or os.path.isfile(events_path):
+        return False
+    try:
+        age_seconds = max(0.0, time.time() - os.path.getmtime(case_dir))
+    except Exception:
+        return False
+    return age_seconds >= float(min_age_seconds)
+
+
 def _active_preservation_guard(max_recent_seconds: int = 900) -> dict:
     current = _load_active_preservation_state()
     if not current:
@@ -256,6 +281,15 @@ def _active_preservation_guard(max_recent_seconds: int = 900) -> dict:
     if not case_dir or not os.path.isdir(case_dir):
         _clear_active_preservation_state(case_dir=case_dir or None, run_id=run_id, final_state="stale_cleared", reason="preservation_case_directory_missing")
         return {"allowed": True, "active": False, "reason": None, "stale_lock_cleared": True}
+
+    if _is_abandoned_placeholder_case(case_dir):
+        _clear_active_case_pointer_if_matches(case_dir)
+        try:
+            shutil.rmtree(case_dir)
+        except Exception:
+            pass
+        _clear_active_preservation_state(case_dir=case_dir, run_id=run_id, final_state="stale_cleared", reason="placeholder_case_pruned_without_manifest_or_events")
+        return {"allowed": True, "active": False, "reason": None, "stale_lock_cleared": True, "placeholder_case_pruned": True}
 
     if _case_event_present(case_dir, "dfir_orchestration_done"):
         _clear_active_preservation_state(case_dir=case_dir, run_id=run_id, final_state="completed", reason="dfir_orchestration_done_recorded")

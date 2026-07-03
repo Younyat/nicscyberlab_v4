@@ -53,7 +53,7 @@ trap "kill $KEEPALIVE_PID 2>/dev/null" EXIT
 #  - jq filtra grupos y emite 1 JSON por evento (compacto)
 # ------------------------------------------------------------
 REMOTE_COMMAND=$(cat <<'EOF'
-sudo stdbuf -oL tail -f __REMOTE_PATH__ | jq --unbuffered -c '
+sudo stdbuf -oL tail -n 0 -F __REMOTE_PATH__ | jq --unbuffered -c '
   # filtrar solo lo que interesa
   select(.rule.groups[]? | . == "suricata" or . == "syscheck" or . == "authentication_failed") |
 

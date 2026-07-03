@@ -184,6 +184,11 @@ def create_campaign(payload: dict) -> dict:
         "name": manifest["name"],
         "description": manifest["description"],
         "repetitions": max(int(payload.get("repetitions") or 3), 1),
+        "nested_level_a_repetitions": (
+            max(int(payload.get("nested_level_a_repetitions") or payload.get("repetitions") or 3), 1)
+            if level == "B"
+            else None
+        ),
         "scenario_id": manifest["scenario_id"],
         "base_case_id": payload.get("base_case_id"),
         "base_case_path": payload.get("base_case_path"),
@@ -298,6 +303,7 @@ def build_campaign_proposal(case_id: str | None = None, level: str | None = None
         "delta_wcpr_allowed": 0.10,
         "baseline_window_seconds": 60,
         "number_of_repetitions": {"A": 3, "B": 3, "C": 1}.get(normalized_level, 3),
+        "nested_level_a_repetitions": {"A": None, "B": 3, "C": None}.get(normalized_level),
         "methodological_notes": "Controlled repetition campaign for evaluating forensic reconstruction comparability under documented experimental conditions.",
         "ground_truth_seal_mode": "reuse_if_available" if normalized_level == "A" else "generate_before_attack",
         "comparison_profile_after_each_run": True,

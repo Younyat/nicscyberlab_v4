@@ -5,6 +5,7 @@ import json
 import os
 import time
 import uuid
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from .config import campaign_config_path, campaign_dir, campaign_manifest_path, rel
@@ -64,6 +65,8 @@ DEFAULT_DETECTION_TIMEOUT_SECONDS = 600
 DEFAULT_LIFECYCLE_POLL_SECONDS = 3.0
 DEFAULT_LIFECYCLE_TIMEOUT_SECONDS = 3600
 PREFERRED_TARGET_ROLE_ORDER = ["plc", "scada", "victim", "fuxa"]
+ALERT_MATCH_MAX_PRE_SECONDS = 30
+ALERT_MATCH_MAX_POST_SECONDS = 300
 
 
 def _json_load(path: Path):
@@ -224,7 +227,47 @@ def _launch_attack(attack: dict, target_ip: str, target_role: str, ssh_key: str 
     return result
 
 
-def _build_alert_matcher(attack: dict):
+def _parse_alert_dt(value: str | None) -> datetime | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        if raw.endswith("Z"):
+            return datetime.fromisoformat(raw.replace("Z", "+00:00")).astimezone(timezone.utc)
+        if len(raw) >= 5 and raw[-5] in {"+", "-"} and raw[-3] != ":":
+            raw = raw[:-2] + ":" + raw[-2:]
+        return datetime.fromisoformat(raw).astimezone(timezone.utc)
+    except Exception:
+        return None
+
+
+def _alert_is_within_attack_window(
+    alert_payload: dict,
+    *,
+    attack_started_utc: str | None = None,
+    attack_completed_utc: str | None = None,
+    max_pre_seconds: int = ALERT_MATCH_MAX_PRE_SECONDS,
+    max_post_seconds: int = ALERT_MATCH_MAX_POST_SECONDS,
+) -> bool:
+    if not attack_started_utc and not attack_completed_utc:
+        return True
+    primary = (alert_payload or {}).get("primary") or {}
+    alert_dt = _parse_alert_dt(primary.get("ts_utc") or primary.get("timestamp"))
+    attack_started_dt = _parse_alert_dt(attack_started_utc)
+    attack_completed_dt = _parse_alert_dt(attack_completed_utc) or attack_started_dt
+    if not alert_dt or not attack_started_dt or not attack_completed_dt:
+        return False
+    earliest = attack_started_dt - timedelta(seconds=int(max_pre_seconds))
+    latest = attack_completed_dt + timedelta(seconds=int(max_post_seconds))
+    return earliest <= alert_dt <= latest
+
+
+def _build_alert_matcher(
+    attack: dict,
+    *,
+    attack_started_utc: str | None = None,
+    attack_completed_utc: str | None = None,
+):
     expected_alert_tokens = {
         str(item).strip().lower().replace("_", " ")
         for item in (attack.get("expected_alerts") or [])
@@ -236,6 +279,12 @@ def _build_alert_matcher(attack: dict):
         triage = out.get("triage") or {}
         primary = out.get("primary") or {}
         if triage.get("severity") not in {"HIGH", "CRITICAL"} or not triage.get("recommend_forensics"):
+            return False
+        if not _alert_is_within_attack_window(
+            out,
+            attack_started_utc=attack_started_utc,
+            attack_completed_utc=attack_completed_utc,
+        ):
             return False
         raw = primary.get("raw") or {}
         raw_data = raw.get("data") or {}
@@ -399,7 +448,11 @@ def _run_real_level_b_execution(job_id: str, job_path: Path, campaign_id: str, c
 
     # Step 7 -- detection_waiting -> detection_observed / failed_detection.
     _phase(job_id, job_path, "detection_waiting", "Wait for real detection", "running", 30.0, f"Watching {monitor.get('vm_ip')} for an alert matching this attack for up to {detection_timeout_seconds}s.")
-    matcher = _build_alert_matcher(attack)
+    matcher = _build_alert_matcher(
+        attack,
+        attack_started_utc=attack_started_utc,
+        attack_completed_utc=attack_completed_utc,
+    )
     session = run_monitor_session(
         monitor.get("vm_ip"),
         ssh_user="ubuntu",

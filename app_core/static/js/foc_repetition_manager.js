@@ -1224,6 +1224,28 @@
     }
   }
 
+  function syncNestedLevelAField() {
+    const field = byId("nested-level-a-repetitions-field");
+    const input = byId("nested-level-a-repetitions-input");
+    if (!field || !input) return;
+    const level = currentLevel();
+    const show = level === "B";
+    field.classList.toggle("hidden", !show);
+    if (!show) {
+      input.value = "";
+      return;
+    }
+    if (!String(input.value || "").trim()) {
+      input.value = String(
+        state.selectedCampaignDetail?.config?.nested_level_a_repetitions
+        || state.proposal?.nested_level_a_repetitions
+        || state.proposal?.number_of_repetitions
+        || byId("repetitions-input")?.value
+        || 3
+      );
+    }
+  }
+
   function renderLevelExplanation() {
     const panel = byId("level-explanation-panel");
     if (!panel) return;
@@ -1252,6 +1274,7 @@
     syncLinkedCaseField();
     syncScenarioIdHelp();
     syncAttackProfileField();
+    syncNestedLevelAField();
     renderLevelStory();
     renderStoryline();
     renderCampaignStoryPanel();
@@ -1436,6 +1459,7 @@
     panel.innerHTML = `
       <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Default repetitions</div><div class="font-black mt-2">${esc(p.number_of_repetitions ?? "not_available")}</div></div>
+        ${level === "B" ? `<div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Nested Level A repetitions</div><div class="font-black mt-2">${esc(p.nested_level_a_repetitions ?? p.number_of_repetitions ?? "not_available")}</div></div>` : ""}
         <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Baseline threshold</div><div class="font-black mt-2">${esc(p.baseline_threshold ?? "0.15")}</div></div>
         <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Delta WCPR allowed</div><div class="font-black mt-2">${esc(p.delta_wcpr_allowed ?? "0.10")}</div></div>
         <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Baseline window</div><div class="font-black mt-2">${esc(p.baseline_window_seconds ?? "60")}s</div></div>
@@ -1608,6 +1632,7 @@
     setFieldValue("campaign-name-input", proposal.campaign_name, { force });
     setFieldValue("scenario-id-input", proposal.scenario_id === "not_available" ? "" : proposal.scenario_id, { force });
     setFieldValue("repetitions-input", proposal.number_of_repetitions, { force });
+    setFieldValue("nested-level-a-repetitions-input", proposal.nested_level_a_repetitions ?? proposal.number_of_repetitions, { force });
     setFieldValue("notes-input", proposal.methodological_notes, { force });
     setFieldValue("baseline-threshold-input", proposal.baseline_threshold, { force });
     setFieldValue("delta-wcpr-input", proposal.delta_wcpr_allowed, { force });
@@ -1640,6 +1665,16 @@
       baseline_window_seconds: Number(byId("baseline-window-input")?.value || state.proposal?.baseline_window_seconds || 60),
       delta_wcpr_allowed: Number(byId("delta-wcpr-input")?.value || state.proposal?.delta_wcpr_allowed || 0.10),
       repetitions: Number(byId("repetitions-input")?.value || state.proposal?.number_of_repetitions || 3),
+      nested_level_a_repetitions: level === "B"
+        ? Number(
+          byId("nested-level-a-repetitions-input")?.value
+          || state.selectedCampaignDetail?.config?.nested_level_a_repetitions
+          || state.proposal?.nested_level_a_repetitions
+          || byId("repetitions-input")?.value
+          || state.proposal?.number_of_repetitions
+          || 3
+        )
+        : undefined,
       source_mode: LEVEL_META[level]?.sourceMode,
       requested_comparison_family_id: state.recommendedFamily?.comparison_family_id || undefined,
       attack_id: String(byId("attack-profile-select")?.value || "").trim() || state.recommendedFamily?.attack_profile_id || undefined,
@@ -3159,6 +3194,9 @@
     const cfg = state.selectedCampaignDetail?.config || {};
     const requestedLevel = String(level || campaign.level || "A").toUpperCase();
     const requestedRepetitions = Math.max(Number(byId("repetitions-input")?.value || cfg.repetitions || state.proposal?.number_of_repetitions || 6), 1);
+    const nestedLevelARepetitions = requestedLevel === "B"
+      ? Math.max(Number(byId("nested-level-a-repetitions-input")?.value || cfg.nested_level_a_repetitions || state.proposal?.nested_level_a_repetitions || requestedRepetitions), 1)
+      : undefined;
     const payload = {
       level: requestedLevel,
       case_id: cfg.base_case_id || cfg.run_case_id || null,
@@ -3167,6 +3205,7 @@
       acquisition_profile_id: cfg.acquisition_profile_id || null,
       trigger_policy_id: cfg.trigger_policy_id || null,
       n_repetitions: requestedRepetitions,
+      nested_level_a_repetitions: nestedLevelARepetitions,
       dry_run: true,
       generate_latex: true,
       generate_zip: true,
@@ -3267,6 +3306,7 @@
     const campaign = selectedCampaign();
     if (!campaign) return;
     const requestedRepetitions = Math.max(Number(byId("repetitions-input")?.value || state.selectedCampaignDetail?.config?.repetitions || state.proposal?.number_of_repetitions || 3), 1);
+    const nestedLevelARepetitions = Math.max(Number(byId("nested-level-a-repetitions-input")?.value || state.selectedCampaignDetail?.config?.nested_level_a_repetitions || state.proposal?.nested_level_a_repetitions || requestedRepetitions), 1);
     let preview;
     try {
       preview = await getJson("/api/foc/repetitions/level-b/run", {
@@ -3275,6 +3315,7 @@
         body: JSON.stringify({
           campaign_id: campaign.campaign_id,
           requested_repetitions: requestedRepetitions,
+          nested_level_a_repetitions: nestedLevelARepetitions,
           preview_only: true,
         }),
       });
@@ -3304,14 +3345,14 @@
       `Run Level B Repetitions · ${campaign.campaign_id}`,
       `
         <div class="space-y-4 text-sm text-slate-300">
-          <div>This workflow will run ${esc(preview.requested_repetitions || requestedRepetitions)} independent repetitions of the same OT register-modification attack in the same deployed scenario. After each new Level B case is preserved and analyzed, it will also launch ${esc(preview.nested_level_a_repetitions || Math.max(requestedRepetitions, 2))} nested Level A dry-run repetitions over that preserved case and include both levels of comparability in the final report.</div>
+          <div>This workflow will run ${esc(preview.requested_repetitions || requestedRepetitions)} independent repetitions of the same OT register-modification attack in the same deployed scenario. After each new Level B case is preserved and analyzed, it will also launch ${esc(preview.nested_level_a_repetitions || nestedLevelARepetitions)} nested Level A dry-run repetitions over that preserved case and include both levels of comparability in the final report.</div>
           <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
             <div><span class="font-black">Scenario:</span> <span class="mono">${esc(preview.scenario_id || "not_available")}</span></div>
             <div class="mt-2"><span class="font-black">Attack:</span> <span class="mono">${esc(preview.attack_profile_id || "not_available")}</span> · ${esc(preview.attack_name || "not_available")}</div>
             <div class="mt-2"><span class="font-black">Target verified:</span> <span class="mono">${esc(preview.resolved_target?.vm_name || "not_available")}</span> (${esc(preview.resolved_target?.vm_ip || "not_available")})</div>
             <div class="mt-2"><span class="font-black">Monitor:</span> <span class="mono">${esc(preview.resolved_monitor?.vm_name || "not_available")}</span> (${esc(preview.resolved_monitor?.vm_ip || "not_available")})</div>
             <div class="mt-2"><span class="font-black">Requested Level B repetitions:</span> <span class="mono">${esc(preview.requested_repetitions || requestedRepetitions)}</span></div>
-            <div class="mt-2"><span class="font-black">Nested Level A repetitions per new case:</span> <span class="mono">${esc(preview.nested_level_a_repetitions || Math.max(requestedRepetitions, 2))}</span></div>
+            <div class="mt-2"><span class="font-black">Nested Level A repetitions per new case:</span> <span class="mono">${esc(preview.nested_level_a_repetitions || nestedLevelARepetitions)}</span></div>
           </div>
           <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
             <div class="font-black">Safe cleanup before run</div>
@@ -3368,6 +3409,7 @@
               body: JSON.stringify({
                 campaign_id: campaign.campaign_id,
                 requested_repetitions: requestedRepetitions,
+                nested_level_a_repetitions: nestedLevelARepetitions,
                 cleanup_old_cases: !!cleanupBox?.checked,
                 confirmation: "OK",
                 dfir_mode_before: before,
@@ -3423,7 +3465,7 @@
   }
 
   function bindFieldListeners() {
-    ["source-case-select", "scenario-id-input", "campaign-name-input", "repetitions-input", "notes-input", "baseline-threshold-input", "delta-wcpr-input", "baseline-window-input", "description-input", "attack-profile-select"].forEach((id) => {
+    ["source-case-select", "scenario-id-input", "campaign-name-input", "repetitions-input", "nested-level-a-repetitions-input", "notes-input", "baseline-threshold-input", "delta-wcpr-input", "baseline-window-input", "description-input", "attack-profile-select"].forEach((id) => {
       const node = byId(id);
       if (!node) return;
       node.addEventListener("input", markFieldDirty);

@@ -403,8 +403,18 @@ def import_continuous_network_context(
     acquisition_dt = _parse_utc(acquisition_started_utc or profile.get("acquisition_started_utc") or profile.get("case_created_utc")) or _utc_now()
     memory_completed_dt = _parse_utc(memory_completed_utc or profile.get("memory_completed_utc")) or _utc_now()
     window_anchor = trigger_dt or acquisition_dt
-    window_start = window_anchor - timedelta(seconds=int(pre_context_seconds))
-    window_end = memory_completed_dt + timedelta(seconds=int(post_context_seconds))
+    window_start_anchor = window_anchor
+    window_end_anchor = memory_completed_dt
+    window_normalization = "standard"
+    if window_end_anchor < window_start_anchor:
+        # Keep the window usable even if an inconsistent trigger arrives after
+        # memory preservation. This should be rare and diagnostic, but it must
+        # not collapse network preservation to an empty inverted range.
+        window_start_anchor = window_end_anchor
+        window_end_anchor = window_anchor
+        window_normalization = "normalized_inverted_window_trigger_after_memory"
+    window_start = window_start_anchor - timedelta(seconds=int(pre_context_seconds))
+    window_end = window_end_anchor + timedelta(seconds=int(post_context_seconds))
 
     update_acquisition_profile(case_path, run_id=run_id, merge_fields={
         "network_context_window": {
@@ -414,6 +424,7 @@ def import_continuous_network_context(
             "case_window_end_utc": window_end.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "anchor_time_utc": window_anchor.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "anchor_kind": "trigger_time_utc" if trigger_dt else "acquisition_started_utc",
+            "window_normalization": window_normalization,
         },
     })
 
@@ -501,6 +512,7 @@ def import_continuous_network_context(
             "memory_completed_utc": memory_completed_utc or profile.get("memory_completed_utc"),
             "pre_context_seconds": int(pre_context_seconds),
             "post_context_seconds": int(post_context_seconds),
+            "window_normalization": window_normalization,
         },
         "preserved_segments": preserved_entries,
         "pending_segments": pending_entries,

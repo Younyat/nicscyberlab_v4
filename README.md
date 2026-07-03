@@ -219,7 +219,103 @@ For this reason, the platform separates:
 - the **execution** of integrity and custody validation
 - from the **result** of case-wide integrity completeness
 
+---
+
+## 2.2. Current scientific reporting status
+
+The current reporting stack already supports a stricter and more scientifically explicit interpretation of repeated **Level B** executions and nested **Level A over Level B** analysis runs.
+
+### What is already achieved
+
+- **Level B and nested Level A repetition counts are now independent**
+  - the platform now supports a separate `nested_level_a_repetitions` input for Level B workflows
+  - this prevents the previous ambiguity where nested Level A runs could be implicitly tied to the requested Level B repetition count
+- **Failed Level B executions are excluded from accepted scientific aggregates**
+  - unsuccessful or non-preserved Level B runs are retained for diagnostic audit
+  - they are not pooled into accepted evidence, timing, preservation, or causal-reconstruction denominators
+- **Truthful reporting now separates distinct denominator scopes**
+  - standalone Level A
+  - Level A over Level B cases
+  - accepted Level B cases
+- **Case-directory aliasing is made explicit**
+  - when a retained lightweight case bundle uses a Level B case identifier but the preserved heavy-case directory resolves to a different internal path, the report exposes that mapping explicitly instead of hiding it
+- **Network evidence is now reported conservatively**
+  - network context is distinguished from real packet-level evidence
+  - if `preserved_segments=0` and no preserved PCAP exists, Modbus function/register/value remain declared rather than observed
+- **Manifest and custody semantics are now reported conservatively**
+  - if large artifacts were skipped during integrity validation, the package uses `partial verification`
+  - it no longer overstates those cases as full verification
+- **Causal reconstruction reporting now includes root-cause inspection**
+  - relation-level `missing` and `degraded` states are no longer treated as opaque labels only
+  - the reports now explain the root cause, affected pipeline stage, evidence checked, missing evidence, and the exact correction needed
+- **Gap reports now distinguish three different questions**
+  - whether a table can be generated now
+  - whether the missing data can be recovered from existing artifacts
+  - whether a final paper claim is scientifically defensible now
+
+### What the current reports can already support
+
+- preliminary audit tables over the currently accepted Level B denominator
+- explicit causal-path interpretation for each accepted Level B case
+- nested Level A stability discussion over preserved Level B source cases
+- honest reporting of missing OT export, missing packet-level Modbus confirmation, missing raw Wazuh trigger binding, missing forensic-intervention linkage, and partial verification semantics
+
+### What is still not solved at the evidence level
+
+The current documentation improvements do **not** mean that the underlying evidence gaps are solved. At the moment, the reports still identify the following unresolved issues when they appear in a campaign:
+
+- fewer accepted Level B cases than the intended final `N_B`
+- missing preserved OT export
+- missing preserved PCAP or packet-level Modbus evidence
+- missing raw Wazuh alert-to-case binding
+- missing explicit `forensic_intervention` provenance artifact
+- partial manifest/custody verification when large-artifact skip remains enabled
+
+In short: the reporting layer is already much more truthful and scientifically defendible, but final paper claims still depend on what was actually preserved during acquisition and retention.
+
 A validation step may execute successfully while the final integrity assessment remains partial. The platform records that distinction instead of hiding it.
+
+### What is now enforced in the Level B preservation flow
+
+The platform now also applies stricter **preserve-first** behavior inside the **Level B** execution path itself, not only in the reporting layer.
+
+- **Background-case adoption is now filtered more aggressively**
+  - the runner no longer treats any recent `CASE-*` directory as reusable background evidence
+  - a candidate case must at least look like a real preserved case with `manifest.json`, `pipeline_events.jsonl`, and active or recent preservation signals
+  - this prevents empty or half-created case directories from being silently adopted as if they were valid forensic cases
+- **Trigger alerts now require temporal coherence with the executed attack**
+  - Level B no longer accepts any generic HIGH/CRITICAL Modbus write alert regardless of when it appears
+  - the matcher and fallback scorer now require the alert timestamp to stay inside a bounded window around the actual attack execution
+  - this reduces the risk of binding a preserved case to a delayed or unrelated alert and then selecting the wrong network window
+- **Stale placeholder case directories are now pruned before they can interfere with a new repetition**
+  - empty `CASE-*` directories without `manifest.json`, custody, or pipeline events are treated as abandoned placeholders rather than valid preservation state
+  - the Level B runner prunes those directories before trigger arming, and the global DFIR preservation guard also clears them if one is still pointed to as the active case
+  - this reduces the risk of a repetition getting stuck behind a non-real case or reusing a case that never became a preserved bundle
+- **Critical scientific artifacts are now persisted explicitly during Level B**
+  - `metadata/trigger_alert_binding.json`
+  - `metadata/forensic_intervention.json`
+  - `metadata/normalized_causal_timestamps.json`
+  - `metadata/critical_evidence_gate.json`
+  - each of these files is written into the case, registered in the manifest, and emitted into the pipeline-event trail
+- **A critical evidence gate now runs before a case is treated as scientifically acceptable**
+  - the gate checks for packet-level network evidence presence, OT export presence, raw trigger binding, forensic intervention, memory artifacts, disk artifacts, manifest/custody presence, and normalized timestamps
+  - if those requirements are not met, the case is marked as diagnostic/audit only instead of being treated as scientifically complete
+- **Cleanup now depends on preserved scientific metadata**
+  - heavy-case cleanup is no longer allowed unless the lightweight scientific memory includes the explicit trigger binding, forensic intervention artifact, normalized timestamps, and critical evidence gate result
+  - this reduces the risk of deleting the heavy case before the minimum scientific reconstruction metadata has been preserved
+- **The lightweight retained bundle now preserves more of the critical scientific surface**
+  - preserved PCAP/PCAPNG files under `network/traffic_preserved/full_scenario_captures/**`
+  - OT export files such as `industrial/ot_export_*.json`
+  - the explicit metadata artifacts listed above
+  - this means the retained bundle is closer to the minimum evidence set required for later scientific reconstruction
+- **Network preservation now normalizes impossible trigger windows instead of collapsing to zero selected segments**
+  - if a malformed or delayed trigger timestamp would place `case_window_start_utc` after `case_window_end_utc`, the importer records that normalization explicitly and keeps the window usable
+  - this is a defensive fallback only; the primary fix is still to bind the correct alert to the correct repetition
+- **The monitor stream now follows only newly appended alerts**
+  - the remote Wazuh monitor switched from a generic `tail -f` to a new-events-only follow mode
+  - this reduces accidental reuse of pre-existing alerts when a repetition starts listening for its trigger
+
+In short: the platform no longer relies only on truthful post-hoc reporting. It now pushes more of the scientific completeness policy into the actual **Level B** acquisition, preservation, adoption, and cleanup workflow.
 
 ### Role of multilayer forensic analysis
 

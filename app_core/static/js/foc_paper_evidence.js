@@ -13,6 +13,8 @@
     selectedCampaignId: "",
     activeJobId: null,
     activeJobLevel: null,
+    lastChildJobId: null,
+    lastChildPayload: null,
     pollTimer: null,
     levelBPreflight: null,
   };
@@ -21,6 +23,7 @@
   const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
   const levelARepetitions = () => Math.max(Number(byId("paper-level-a-repetitions-input")?.value || 6), 1);
   const levelBRepetitions = () => Math.max(Number(byId("paper-level-b-repetitions-input")?.value || 6), 1);
+  const levelBNestedLevelARepetitions = () => Math.max(Number(byId("paper-level-b-nested-level-a-repetitions-input")?.value || levelBRepetitions()), 1);
 
   async function getJson(url, options) {
     const res = await fetch(url, options);
@@ -85,10 +88,11 @@
     const lastPhase = phases.length ? phases[phases.length - 1] : null;
     const phaseLabel = payload.current_phase_label || lastPhase?.phase_label || payload.current_phase || "queued";
     const phaseStatus = lastPhase?.status || payload.status || "running";
-    const childRepCurrent = childPayload?.current_repetition ?? payload.current_repetition ?? 0;
-    const childRepTotal = childPayload?.requested_repetitions ?? childPayload?.meta?.requested_repetitions ?? payload.requested_repetitions ?? payload.meta?.requested_repetitions ?? 0;
+    const hasChildJob = Boolean(String(payload.current_child_job_id || "").trim());
+    const childRepCurrent = childPayload?.current_repetition ?? (hasChildJob ? 0 : (payload.current_repetition ?? 0));
+    const childRepTotal = childPayload?.requested_repetitions ?? childPayload?.meta?.requested_repetitions ?? (hasChildJob ? 0 : (payload.requested_repetitions ?? payload.meta?.requested_repetitions ?? 0));
     const rep = `${String(childRepCurrent)}/${String(childRepTotal)}`;
-    const caseId = childPayload?.current_case_id || payload.current_case_id || "not_available";
+    const caseId = childPayload?.current_case_id || (hasChildJob ? "not_available" : (payload.current_case_id || "not_available"));
     st.textContent = String(phaseStatus || "running").toUpperCase().replace(/[_-]+/g, " ");
     meta.textContent = `paper_job=${String(payload.job_id || "not_available")} | level_b_job=${String(childPayload?.job_id || payload.current_child_job_id || "not_available")} | repetition=${rep} | case=${String(caseId)} | paper_progress=${fmtProgress(payload.progress_percent)} | level_b_progress=${fmtProgress(childPayload?.progress_percent)}`;
     term.textContent = levelBConsoleLines(payload, childPayload, liveTrace);
@@ -836,10 +840,19 @@
       let childPayload = null;
       let liveTrace = null;
       const childJobId = String(payload.current_child_job_id || "").trim();
+      if (childJobId !== state.lastChildJobId) {
+        state.lastChildJobId = childJobId || null;
+        state.lastChildPayload = null;
+      }
       if (childJobId) {
         try {
           childPayload = await getJson(`/api/foc/experimentation/jobs/${encodeURIComponent(childJobId)}`);
-        } catch (_err) {}
+          state.lastChildPayload = childPayload;
+        } catch (_err) {
+          if (state.lastChildJobId === childJobId && state.lastChildPayload) {
+            childPayload = state.lastChildPayload;
+          }
+        }
       }
       const caseId = String(childPayload?.current_case_id || payload.current_case_id || "").trim();
       if (caseId) {
@@ -851,6 +864,8 @@
       if (isTerminal(payload.status)) {
         state.activeJobId = null;
         state.activeJobLevel = null;
+        state.lastChildJobId = null;
+        state.lastChildPayload = null;
         clearInterval(state.pollTimer);
         state.pollTimer = null;
         await loadReports();
@@ -898,11 +913,13 @@
       return;
     }
     const n = levelBRepetitions();
+    const nested = levelBNestedLevelARepetitions();
     const payload = {
       campaign_id: campaign.campaign_id,
       level: "B",
       n_repetitions: n,
       requested_repetitions: n,
+      nested_level_a_repetitions: nested,
       cleanup_old_cases: !!byId("paper-level-b-cleanup-old-cases")?.checked,
       generate_latex: !!byId("paper-generate-latex")?.checked,
       generate_zip: !!byId("paper-generate-zip")?.checked,

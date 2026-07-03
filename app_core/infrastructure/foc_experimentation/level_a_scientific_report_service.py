@@ -925,7 +925,7 @@ def _run_level_a_report_job(job_id: str, job_path: Path, campaign_id: str) -> No
     def log(event: str, **extra):
         _append_jsonl(report_generation_log, {"ts": utc_now(), "event": event, **extra})
 
-    requested_repetitions = max(int(config.get("repetitions") or 3), 2)
+    requested_repetitions = max(int(config.get("repetitions") or 3), 1)
     phase_index = 0
     phase_key, phase_label = PHASES[phase_index]
     _phase_update(job_id=job_id, job_path=job_path, phase_key=phase_key, phase_label=phase_label, phase_index=phase_index, status="running", detail="Resolving the preserved reference case configured in the selected Level A campaign.")

@@ -666,6 +666,7 @@ def api_foc_level_b_repetitions_run():
             payload = level_b_api["preview_level_b_repetitions"](
                 campaign_id,
                 requested_repetitions=body.get("requested_repetitions"),
+                requested_nested_level_a_repetitions=body.get("nested_level_a_repetitions"),
             )
         except FileNotFoundError:
             return jsonify({"error": "campaign_not_found", "campaign_id": campaign_id}), 404
@@ -677,6 +678,7 @@ def api_foc_level_b_repetitions_run():
             campaign_id,
             confirmation=str(body.get("confirmation") or ""),
             requested_repetitions=body.get("requested_repetitions"),
+            requested_nested_level_a_repetitions=body.get("nested_level_a_repetitions"),
             cleanup_old_cases=bool(body.get("cleanup_old_cases")),
             detection_timeout_seconds=body.get("detection_timeout_seconds"),
             dfir_mode_before=str(body.get("dfir_mode_before") or "unknown"),

@@ -15,6 +15,10 @@ LIGHTWEIGHT_CASE_RETAIN_PATHS: tuple[str, ...] = (
     "manifest.json",
     "chain_of_custody.log",
     "metadata/acquisition_profile.json",
+    "metadata/critical_evidence_gate.json",
+    "metadata/trigger_alert_binding.json",
+    "metadata/forensic_intervention.json",
+    "metadata/normalized_causal_timestamps.json",
     "metadata/pipeline_events.jsonl",
     "metadata/time_sync.json",
     "network/traffic_preserved/network_context_manifest.json",
@@ -45,6 +49,12 @@ LIGHTWEIGHT_CASE_RETAIN_PATHS: tuple[str, ...] = (
     "derived/evidence_support/forensic_storyline.json",
 )
 
+LIGHTWEIGHT_CASE_RETAIN_GLOBS: tuple[str, ...] = (
+    "network/traffic_preserved/full_scenario_captures/**/*.pcap",
+    "network/traffic_preserved/full_scenario_captures/**/*.pcapng",
+    "industrial/ot_export_*.json",
+)
+
 
 def _json_load(path: Path | None):
     try:
@@ -66,6 +76,7 @@ def _copy_lightweight_case_bundle(*, original_case_path: Path, execution_base: P
     bundle_root = execution_base / "retained_case_lightweight_bundle" / case_id
     copied_files: list[str] = []
     missing_files: list[str] = []
+    copied_rel_paths: set[str] = set()
     for rel_path in LIGHTWEIGHT_CASE_RETAIN_PATHS:
         source = original_case_path / rel_path
         if not source.is_file():
@@ -75,6 +86,23 @@ def _copy_lightweight_case_bundle(*, original_case_path: Path, execution_base: P
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, target)
         copied_files.append(relative_path(target))
+        copied_rel_paths.add(rel_path.replace("\\", "/"))
+    for pattern in LIGHTWEIGHT_CASE_RETAIN_GLOBS:
+        matched = False
+        for source in original_case_path.glob(pattern):
+            if not source.is_file():
+                continue
+            rel_path = source.relative_to(original_case_path).as_posix()
+            if rel_path in copied_rel_paths:
+                continue
+            target = bundle_root / rel_path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+            copied_files.append(relative_path(target))
+            copied_rel_paths.add(rel_path)
+            matched = True
+        if not matched:
+            missing_files.append(pattern)
     manifest = {
         "generated_at": utc_now(),
         "case_id": case_id,
@@ -250,6 +278,10 @@ def _case_cleanup_context(execution_id: str, *, campaign_id: str | None = None) 
         "manifest_hash": (case_result_card or {}).get("manifest_hash"),
         "case_digest_hash": (case_result_card or {}).get("case_digest_hash"),
     }
+    trigger_alert_binding_path = original_case_path / "metadata" / "trigger_alert_binding.json" if original_case_path else None
+    forensic_intervention_path = original_case_path / "metadata" / "forensic_intervention.json" if original_case_path else None
+    normalized_timestamps_path = original_case_path / "metadata" / "normalized_causal_timestamps.json" if original_case_path else None
+    critical_gate_path = original_case_path / "metadata" / "critical_evidence_gate.json" if original_case_path else None
 
     checks = [
         _bool_check(
@@ -332,6 +364,30 @@ def _case_cleanup_context(execution_id: str, *, campaign_id: str | None = None) 
             bool(original_case_path and original_case_path.exists()),
             "Heavy artifacts can only be deleted if a generated case directory really exists.",
             "Run a real Level B or Level C execution that creates a new forensic case before cleanup.",
+        ),
+        _bool_check(
+            "trigger_alert_binding",
+            bool(trigger_alert_binding_path and trigger_alert_binding_path.is_file()),
+            "The raw trigger-to-case binding must survive cleanup because later reporting and causal reconstruction depend on it.",
+            "Persist metadata/trigger_alert_binding.json before cleanup.",
+        ),
+        _bool_check(
+            "forensic_intervention",
+            bool(forensic_intervention_path and forensic_intervention_path.is_file()),
+            "The explicit forensic intervention artifact must survive cleanup because it links alert, intervention, and preserved case.",
+            "Persist metadata/forensic_intervention.json before cleanup.",
+        ),
+        _bool_check(
+            "normalized_causal_timestamps",
+            bool(normalized_timestamps_path and normalized_timestamps_path.is_file()),
+            "Normalized causal timestamps must survive cleanup because degraded relations depend on them.",
+            "Persist metadata/normalized_causal_timestamps.json before cleanup.",
+        ),
+        _bool_check(
+            "critical_evidence_gate",
+            bool(critical_gate_path and critical_gate_path.is_file()),
+            "The critical evidence gate result must survive cleanup so the case keeps its scientific-readiness classification.",
+            "Persist metadata/critical_evidence_gate.json before cleanup.",
         ),
     ]
 

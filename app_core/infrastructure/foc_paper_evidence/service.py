@@ -1279,6 +1279,7 @@ def _run_level_b_paper_evidence_job(job_id: str, job_path: Path, body: dict) -> 
     if not campaign_id:
         raise ValueError("campaign_id_required_for_level_b_paper_evidence")
     requested_repetitions = max(int(body.get("n_repetitions") or body.get("requested_repetitions") or 6), 1)
+    nested_level_a_repetitions = max(int(body.get("nested_level_a_repetitions") or requested_repetitions), 1)
     generate_latex = bool(body.get("generate_latex"))
     generate_zip = bool(body.get("generate_zip"))
     cleanup_old_cases = bool(body.get("cleanup_old_cases", True))
@@ -1305,7 +1306,11 @@ def _run_level_b_paper_evidence_job(job_id: str, job_path: Path, body: dict) -> 
     report_dir.mkdir(parents=True, exist_ok=True)
     _write_json(report_dir / "paper_capability_audit.json", build_capability_audit())
     raise_if_cancelled(job_id, job_path)
-    preview = level_b_api["preview_level_b_repetitions"](campaign_id, requested_repetitions=requested_repetitions)
+    preview = level_b_api["preview_level_b_repetitions"](
+        campaign_id,
+        requested_repetitions=requested_repetitions,
+        requested_nested_level_a_repetitions=nested_level_a_repetitions,
+    )
     if not preview.get("ready"):
         raise ValueError(str(preview.get("error") or "level_b_preview_not_ready"))
     update_job(
@@ -1328,6 +1333,7 @@ def _run_level_b_paper_evidence_job(job_id: str, job_path: Path, body: dict) -> 
         campaign_id,
         confirmation="OK",
         requested_repetitions=requested_repetitions,
+        requested_nested_level_a_repetitions=nested_level_a_repetitions,
         cleanup_old_cases=cleanup_old_cases,
         detection_timeout_seconds=body.get("detection_timeout_seconds"),
         dfir_mode_before=str(body.get("dfir_mode_before") or "unknown"),
