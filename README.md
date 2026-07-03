@@ -4418,6 +4418,398 @@ foc-reconstruction/
 
 ---
 
+## 8. FORGE-VI scientific experimentation and truthful reporting
+
+The platform now includes a dedicated **scientific experimentation and truthful reporting layer** for controlled repeatability studies. Its purpose is not to beautify results or hide uncertainty. Its purpose is to state, as precisely as possible:
+
+- what was actually executed
+- what evidence was actually preserved
+- what was only declared
+- what was computed from existing artifacts
+- what remains unavailable
+- what must be rerun if a final claim is required
+
+This layer is implemented on top of preserved artifacts, FOC outputs, experimentation workspaces, scientific reports, and comparison registries. It does **not** replace acquisition or analysis. It reads them and reports their real state.
+
+### 8.1. Scientific campaign levels
+
+FORGE-VI distinguishes three campaign levels, but the current scientifically mature scope is concentrated on **Level A** and **Level B**.
+
+- **Level A**
+  - repeated analysis and reconstruction over the **same sealed case**
+  - no new acquisition
+  - no new attack execution
+  - used to evaluate analysis and reconstruction stability over unchanged evidence
+
+- **Level B**
+  - repeated execution of the **same incident inside the same deployment**
+  - each repetition creates a **new forensic case**
+  - each resulting case can then be processed by **Level A-style analysis**
+  - used to evaluate incident-to-case repeatability inside a stable deployment
+
+- **Level C**
+  - redeployment-aware experimentation
+  - intended for destroy/redeploy/re-execute studies
+  - currently documented and scaffolded, but still outside the present final evaluation scope
+
+Very important:
+
+```text
+Level B includes Level A analysis over each generated Level B case.
+```
+
+This means the reporting layer explicitly separates:
+
+- `standalone Level A`
+- `analysis over Level B case`
+- `Level B cases`
+
+These denominators must never be silently pooled.
+
+### 8.2. Honest denominator model
+
+All scientific outputs must carry a visible denominator.
+
+The platform now explicitly distinguishes:
+
+- `N_A_total`
+- `N_A_accepted`
+- `N_A_excluded`
+- `N_A_over_Level_B_cases`
+- `N_B_total`
+- `N_B_accepted`
+- `N_B_excluded`
+
+This is a scientific requirement, not a UI detail. For example:
+
+```text
+mean ± sample standard deviation over n=2 accepted Level B cases
+```
+
+is acceptable when only two accepted Level B cases exist.
+
+By contrast:
+
+```text
+mean ± std over N_B=6
+```
+
+is not acceptable unless six accepted homogeneous Level B cases really exist.
+
+### 8.3. Truthful data categories
+
+The reporting layer uses explicit categories so declared values are never misreported as observed evidence.
+
+The current model distinguishes:
+
+- `directly observed`
+- `declared but not packet-confirmed`
+- `computed from existing artifacts`
+- `not computed by current pipeline`
+- `not available in current artifacts`
+- `not applicable under active acquisition profile`
+- `partial verification`
+- `full verification`
+
+Examples:
+
+- a Modbus function declared in the attack profile but not confirmed in preserved packets remains:
+  - `declared but not packet-confirmed`
+- a latency derived from `pipeline_events.jsonl` is:
+  - `computed from existing artifacts`
+- an OT export timing field when no OT export was preserved is:
+  - `not available in current artifacts`
+- manifest verification when large artifacts were skipped is:
+  - `partial verification`
+
+### 8.4. Truthful reporting packages
+
+The platform can now generate **truthful scientific audit packages** directly from existing artifacts, without repeating acquisition or changing the analysis engines.
+
+Current package families include:
+
+- **FORGE-VI Level B Table Reconstruction**
+  - reconstructs Level B paper tables from current artifacts
+  - generates:
+    - `FORGE-VI_LevelB_Table_Reconstruction_Report.md`
+    - `FORGE-VI_LevelB_Table_Values.json`
+    - `FORGE-VI_LevelB_Data_Availability_Matrix.csv`
+    - `FORGE-VI_LevelB_Table_Gap_Report.md`
+
+- **FORGE-VI Level A + Level B Truthful Evaluation**
+  - audits Level A and Level B together under strict scientific language
+  - generates:
+    - `FORGE-VI_LevelA_LevelB_Truthful_Evaluation_Report.md`
+    - `FORGE-VI_LevelA_LevelB_Truthful_Table_Values.json`
+    - `FORGE-VI_LevelA_LevelB_Truthful_Data_Provenance.csv`
+    - `FORGE-VI_LevelA_LevelB_Truthful_Data_Availability_Matrix.csv`
+    - `FORGE-VI_LevelA_LevelB_Truthful_Gap_Report.md`
+    - `FORGE-VI_LevelA_LevelB_Truthful_Paper_Tables.md`
+    - `FORGE-VI_LevelA_LevelB_Rerun_Readiness_Plan.md`
+
+These packages are stored under:
+
+```text
+app_core/infrastructure/forensics/evidence_store/validation_reports/
+```
+
+and are also exposed in the `FOC Paper Evidence` interface.
+
+### 8.5. What the current reporting layer can already do
+
+Without changing acquisition or analysis, the platform can already:
+
+- discover current Level A and Level B campaigns
+- distinguish standalone Level A from analysis over Level B cases
+- index Level B repetitions by campaign, repetition, run, and case
+- reconstruct incident specification from existing execution artifacts
+- summarize preserved artifacts per case
+- report manifest and custody state
+- derive timing metrics from `pipeline_events.jsonl`
+- report time synchronization state
+- report causal reconstruction summaries and relation-level states
+- report `CPR` and `Weighted CPR` from preserved reconstruction outputs
+- build gap reports, data-availability matrices, and rerun-readiness plans
+
+It can also distinguish between:
+
+- what is suitable for a **preliminary audit**
+- what is suitable for a **final paper table**
+- what requires only **reporting refinement**
+- what requires **analysis changes**
+- what requires **acquisition/preservation changes**
+- what requires a **fresh campaign**
+
+### 8.6. Evidence preservation semantics
+
+The scientific reporting layer does not collapse all evidence checks into a single green status.
+
+Instead, it separates five technical preservation dimensions:
+
+- **Network evidence preservation**
+  - preserved PCAPs
+  - rolling PCAP segments
+  - imported incident-window context
+  - hashes and provenance
+  - overlap with the incident window
+
+- **Trigger alert preservation**
+  - trigger event
+  - trigger-to-case binding
+  - normalized alert context
+  - Suricata identifiers when observed
+  - raw alert preservation state
+  - Wazuh trigger mapping state
+
+- **Industrial / OT evidence preservation**
+  - OT export
+  - PLC/SCADA state records
+  - Modbus-specific observations
+  - industrial timing and provenance
+
+- **Host evidence preservation**
+  - memory dumps
+  - disk snapshots
+  - host-level logs and provenance
+
+- **Manifest and custody verification**
+  - manifest presence
+  - custody log presence
+  - hash validation coverage
+  - skipped artifacts
+  - missing artifacts
+  - custody-chain state
+
+The platform does **not** silently convert a failed or absent OT export into a passed industrial-evidence check.
+
+### 8.7. Integrity semantics are explicit
+
+The platform now treats manifest and custody integrity as a multi-part statement rather than a binary success flag.
+
+Scientifically important distinctions include:
+
+- `manifest_verification_mode`
+- `full_rehash_performed`
+- `large_artifact_skip_enabled`
+- `manifest_verification_attempted_artifacts`
+- `manifest_verified_artifacts`
+- `manifest_missing_artifacts`
+- `custody_chain_valid`
+- `integrity_verification_ratio`
+
+This matters because:
+
+- a case may have a valid custody chain
+- and still only partial manifest verification
+- because large artifacts were skipped
+
+Therefore the reporting layer must never present:
+
+```text
+full verification
+```
+
+if the real state is:
+
+```text
+partial verification, because large artifacts were skipped
+```
+
+unless the statement is explicitly limited to custody-chain validity only.
+
+### 8.8. OT causality is constrained by preserved evidence
+
+The causal layer uses scenario ground truth as an expected model, but it does not treat ground truth as proof.
+
+This is especially important in hybrid IT/OT cases.
+
+For example:
+
+- a Modbus write may be declared in the attack profile
+- protocol presence may be observed in network artifacts
+- but if no preserved OT export or PLC/SCADA state observation exists, a relation that depends on OT state confirmation must remain:
+  - `missing`
+
+It must not be softened into:
+
+- `degraded`
+
+unless a different preserved evidence source explicitly supports that relation.
+
+This applies directly to edges such as:
+
+```text
+edge_ot_write_to_plc_state_observation
+```
+
+when the current artifacts contain no preserved OT export.
+
+### 8.9. Current scientifically verified status of the available artifacts
+
+The present artifact base has already been audited by the truthful evaluation package.
+
+At the time of this README update, the verified state is:
+
+- `N_A_total = 0`
+  - no standalone Level A campaign exists in current artifacts
+- `N_A_over_Level_B_cases = 4`
+  - two Level B cases
+  - two nested dry-run Level A analytical iterations per case
+- `N_B_accepted = 2`
+  - accepted Level B denominator remains preliminary only
+
+Therefore:
+
+```text
+The current Level B artifacts are usable for preliminary reporting over n=2 accepted cases,
+but they are not sufficient to support a final N_B=6 evaluation.
+```
+
+And the current truthful decision remains:
+
+```text
+Decision E: both fresh Level A and fresh Level B campaigns are required.
+```
+
+because:
+
+- no standalone Level A campaign exists
+- Level B accepted denominator is only `n=2`
+- OT/industrial preservation is incomplete
+- packet-level Modbus confirmation is incomplete
+- defensible Wazuh trigger mapping is incomplete
+
+### 8.10. When a fresh campaign is mandatory
+
+The platform explicitly treats some fixes as **comparability-breaking**.
+
+This means current preliminary cases must not be pooled with future post-change campaigns if the following are altered:
+
+- acquisition or preservation behavior
+- OT export preservation
+- causal relation definitions
+- relation weights
+- metadata persistence used for comparability
+- analysis or reconstruction logic that changes case metrics or relation states
+
+In those situations:
+
+- current cases remain valid as **preliminary audit artifacts**
+- but a **fresh homogeneous campaign** is required for final paper claims
+
+### 8.11. DFIR AUTO safety model during scientific execution
+
+The platform now enforces a stricter separation between:
+
+- background DFIR AUTO preservation
+- campaign-controlled scientific workflows
+
+During a running `Level A`, `Level B`, or `Level C` scientific workflow:
+
+- the operator conflict prompt for creating a second DFIR AUTO case must not appear
+- new background case creation must not silently coexist with a campaign-controlled heavy case
+
+Outside scientific execution, if DFIR AUTO detects a new alert while a preserved case already exists, the platform can explicitly ask the operator whether to:
+
+- keep the current case only
+- delete the current case and create a new one
+- allow a new case to coexist with the previous one
+
+This decision path is auditable and is intended only for non-scientific runtime, not for active A/B/C experimentation.
+
+### 8.12. Execution-mode honesty in Level A
+
+The reporting layer also makes a distinction between:
+
+- full re-execution of analytical stages
+- dry-run analytical iterations
+- linked existing case mode
+- cached or linked outputs reused read-only
+
+This matters because a Level A row that completes in a very short time may still be scientifically useful as a repeatability audit, but it must not be described as a full fresh analysis if it actually operated in:
+
+```text
+dry_run linked_existing_case
+```
+
+The truthful reporting package therefore carries fields such as:
+
+- `analysis_execution_mode`
+- `full_analysis_executed`
+- `cached_or_linked_outputs_used`
+
+### 8.13. Scientific rule of interpretation
+
+The platform now follows an explicit reporting rule:
+
+```text
+A failed or missing value is acceptable if it is real and clearly reported.
+A false success is not acceptable.
+```
+
+This rule applies to:
+
+- OT preservation
+- trigger mapping
+- Modbus packet-level confirmation
+- manifest verification
+- relation support states
+- denominator claims
+- final paper readiness decisions
+
+In practical terms, the platform is now designed to support:
+
+- operational experimentation
+- preservation and forensic analysis
+- FOC-based reconstruction
+- Level A and Level B scientific auditing
+- truthful paper-table reconstruction from existing artifacts
+- rerun-readiness planning when the current artifacts are not yet final-paper defensible
+
+This is the current scientific state of FORGE-VI inside NICS CyberLab: not a promise of perfect evidence, but a framework that makes the real state of evidence, analysis, reconstruction, and limitation explicit.
+
+---
+
 ## 📝 Acknowledgments
 
 This repository has been partially supported by the project "CiberIA: Investigación e Innovación para la Integración de Ciberseguridad e Inteligencia Artificial" (Proyecto C079/23), financed by "European Union NextGeneration-EU, the Recovery Plan, Transformation and Resilience", through INCIBE. It has also been partially supported by the project SecAI (PID2022-139268OB-I00) funded by the Spanish Ministerio de Ciencia e Innovacion, and Agencia Estatal de Investigacion.

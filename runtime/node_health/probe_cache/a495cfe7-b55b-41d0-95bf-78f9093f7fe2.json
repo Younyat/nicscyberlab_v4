@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-02T09:11:50.671352Z",
+  "generated_at": "2026-07-02T20:25:31.169210Z",
   "node": {
     "id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
     "name": "FUXA_Instance",
@@ -13,24 +13,24 @@
       "os_pretty": "Ubuntu 22.04.5 LTS",
       "kernel": "5.15.0-177-generic",
       "machine": "x86_64",
-      "date_utc": "2026-07-02T09:22:19Z",
-      "uptime_pretty": "up 6 weeks, 22 hours, 20 minutes",
-      "loadavg": "0.37 0.18 0.12",
+      "date_utc": "2026-07-02T20:36:01Z",
+      "uptime_pretty": "up 6 weeks, 1 day, 9 hours, 34 minutes",
+      "loadavg": "0.50 0.21 0.16",
       "cpu_cores": "1",
       "cpu_usage_pct": "100.00",
       "mem_total_mb": "957",
-      "mem_used_mb": "390",
-      "mem_avail_mb": "373",
+      "mem_used_mb": "382",
+      "mem_avail_mb": "381",
       "swap_total_mb": "0",
       "swap_used_mb": "0",
       "swap_free_mb": "0",
       "root_total_bytes": "10213466112",
-      "root_used_bytes": "7839158272",
-      "root_avail_bytes": "2357530624",
+      "root_used_bytes": "7848361984",
+      "root_avail_bytes": "2348326912",
       "root_use_pct": "77%",
       "root_inodes_use_pct": "20%",
-      "var_log_size_bytes": "81823662",
-      "suricata_log_size_bytes": "3371392",
+      "var_log_size_bytes": "90974807",
+      "suricata_log_size_bytes": "3793497",
       "tmp_size_bytes": "4166845",
       "var_tmp_size_bytes": "20480",
       "apt_cache_size_bytes": "8192"
@@ -58,37 +58,37 @@
       ],
       "top_cpu": [
         "    PID COMMAND         %CPU %MEM",
-        " 211105 Suricata-Main   12.0  3.3",
-        " 353483 sshd             3.0  1.0",
-        " 353485 sshd             2.0  1.0",
-        " 353575 bash             2.0  0.3",
-        " 353595 bash             2.0  0.3",
-        " 353113 systemd          0.7  0.9",
-        "   1541 FUXA             0.3  9.5"
+        " 211105 Suricata-Main   12.0  3.1",
+        " 368442 bash             3.0  0.3",
+        " 368314 sshd             2.0  1.1",
+        " 367943 systemd          0.5  0.8",
+        "   1541 FUXA             0.3  9.5",
+        " 366624 kworker/0:2-eve  0.1  0.0",
+        " 367737 kworker/0:0-mm_  0.1  0.0"
       ],
       "top_mem": [
         "    PID COMMAND         %CPU %MEM",
         "   1541 FUXA             0.3  9.5",
-        " 211105 Suricata-Main   12.0  3.3",
+        " 211105 Suricata-Main   12.0  3.1",
         "    380 multipathd       0.0  2.7",
         "   1276 npm start        0.0  2.7",
-        "    713 dockerd          0.0  2.5",
-        " 120969 systemd-journal  0.0  1.9",
-        "    591 containerd       0.0  1.6"
+        "    713 dockerd          0.0  2.4",
+        " 120969 systemd-journal  0.0  2.2",
+        "    591 containerd       0.0  1.7"
       ],
       "largest_var": [
         "11M\t/var/cache",
         "40M\t/var/lib/dpkg/info",
         "42M\t/var/lib/dpkg",
-        "73M\t/var/log/journal",
-        "73M\t/var/log/journal/a495cfe7b55b41d095bf78f9093f7fe2",
-        "78M\t/var/log",
+        "81M\t/var/log/journal",
+        "81M\t/var/log/journal/a495cfe7b55b41d095bf78f9093f7fe2",
+        "87M\t/var/log",
         "207M\t/var/lib/snapd/seed",
         "207M\t/var/lib/snapd/seed/snaps",
         "409M\t/var/lib/snapd/snaps",
         "617M\t/var/lib/snapd",
         "670M\t/var/lib",
-        "761M\t/var"
+        "769M\t/var"
       ]
     },
     "identity": {
@@ -96,9 +96,9 @@
       "os": "Ubuntu 22.04.5 LTS",
       "kernel": "5.15.0-177-generic",
       "machine": "x86_64",
-      "date_utc": "2026-07-02T09:22:19Z",
-      "uptime": "up 6 weeks, 22 hours, 20 minutes",
-      "loadavg": "0.37 0.18 0.12"
+      "date_utc": "2026-07-02T20:36:01Z",
+      "uptime": "up 6 weeks, 1 day, 9 hours, 34 minutes",
+      "loadavg": "0.50 0.21 0.16"
     },
     "cpu": {
       "cores": 1,
@@ -107,9 +107,9 @@
     },
     "memory": {
       "total_mb": 957,
-      "used_mb": 390,
-      "available_mb": 373,
-      "usage_pct": 40.75,
+      "used_mb": 382,
+      "available_mb": 381,
+      "usage_pct": 39.92,
       "swap_total_mb": 0,
       "swap_used_mb": 0,
       "swap_free_mb": 0,
@@ -118,12 +118,12 @@
     },
     "disk": {
       "root_total_bytes": 10213466112,
-      "root_used_bytes": 7839158272,
-      "root_avail_bytes": 2357530624,
+      "root_used_bytes": 7848361984,
+      "root_avail_bytes": 2348326912,
       "root_use_pct": 77,
       "root_inodes_use_pct": 20,
-      "var_log_size_bytes": 81823662,
-      "suricata_log_size_bytes": 3371392,
+      "var_log_size_bytes": 90974807,
+      "suricata_log_size_bytes": 3793497,
       "tmp_size_bytes": 4166845,
       "var_tmp_size_bytes": 20480,
       "apt_cache_size_bytes": 8192,
@@ -149,39 +149,39 @@
       ],
       "top_cpu": [
         "    PID COMMAND         %CPU %MEM",
-        " 211105 Suricata-Main   12.0  3.3",
-        " 353483 sshd             3.0  1.0",
-        " 353485 sshd             2.0  1.0",
-        " 353575 bash             2.0  0.3",
-        " 353595 bash             2.0  0.3",
-        " 353113 systemd          0.7  0.9",
-        "   1541 FUXA             0.3  9.5"
+        " 211105 Suricata-Main   12.0  3.1",
+        " 368442 bash             3.0  0.3",
+        " 368314 sshd             2.0  1.1",
+        " 367943 systemd          0.5  0.8",
+        "   1541 FUXA             0.3  9.5",
+        " 366624 kworker/0:2-eve  0.1  0.0",
+        " 367737 kworker/0:0-mm_  0.1  0.0"
       ],
       "top_mem": [
         "    PID COMMAND         %CPU %MEM",
         "   1541 FUXA             0.3  9.5",
-        " 211105 Suricata-Main   12.0  3.3",
+        " 211105 Suricata-Main   12.0  3.1",
         "    380 multipathd       0.0  2.7",
         "   1276 npm start        0.0  2.7",
-        "    713 dockerd          0.0  2.5",
-        " 120969 systemd-journal  0.0  1.9",
-        "    591 containerd       0.0  1.6"
+        "    713 dockerd          0.0  2.4",
+        " 120969 systemd-journal  0.0  2.2",
+        "    591 containerd       0.0  1.7"
       ],
       "largest_var": [
         "11M\t/var/cache",
         "40M\t/var/lib/dpkg/info",
         "42M\t/var/lib/dpkg",
-        "73M\t/var/log/journal",
-        "73M\t/var/log/journal/a495cfe7b55b41d095bf78f9093f7fe2",
-        "78M\t/var/log",
+        "81M\t/var/log/journal",
+        "81M\t/var/log/journal/a495cfe7b55b41d095bf78f9093f7fe2",
+        "87M\t/var/log",
         "207M\t/var/lib/snapd/seed",
         "207M\t/var/lib/snapd/seed/snaps",
         "409M\t/var/lib/snapd/snaps",
         "617M\t/var/lib/snapd",
         "670M\t/var/lib",
-        "761M\t/var"
+        "769M\t/var"
       ]
     }
   },
-  "stdout": "KV\thostname\tfuxa-instance\nKV\tos_pretty\tUbuntu 22.04.5 LTS\nKV\tkernel\t5.15.0-177-generic\nKV\tmachine\tx86_64\nKV\tdate_utc\t2026-07-02T09:22:19Z\nKV\tuptime_pretty\tup 6 weeks, 22 hours, 20 minutes\nKV\tloadavg\t0.37 0.18 0.12\nKV\tcpu_cores\t1\nKV\tcpu_usage_pct\t100.00\nKV\tmem_total_mb\t957\nKV\tmem_used_mb\t390\nKV\tmem_avail_mb\t373\nKV\tswap_total_mb\t0\nKV\tswap_used_mb\t0\nKV\tswap_free_mb\t0\nKV\troot_total_bytes\t10213466112\nKV\troot_used_bytes\t7839158272\nKV\troot_avail_bytes\t2357530624\nKV\troot_use_pct\t77%\nKV\troot_inodes_use_pct\t20%\nKV\tvar_log_size_bytes\t81823662\nKV\tsuricata_log_size_bytes\t3371392\nKV\ttmp_size_bytes\t4166845\nKV\tvar_tmp_size_bytes\t20480\nKV\tapt_cache_size_bytes\t8192\nSECTION\tservices\tBEGIN\nsuricata=active\nwazuh-agent=active\nwazuh-manager=inactive\nnot_installed\nzeek=inactive\nnot_installed\nsnort=inactive\nnot_installed\nopenplc=inactive\nnot_installed\ndocker=active\nSECTION\tservices\tEND\nSECTION\tfilesystems\tBEGIN\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/vda1       9.6G  7.4G  2.2G  77% /\n/dev/vda1       9.6G  7.4G  2.2G  77% /\n/dev/vda1       9.6G  7.4G  2.2G  77% /\n/dev/vda1       9.6G  7.4G  2.2G  77% /\nSECTION\tfilesystems\tEND\nSECTION\ttop_cpu\tBEGIN\n    PID COMMAND         %CPU %MEM\n 211105 Suricata-Main   12.0  3.3\n 353483 sshd             3.0  1.0\n 353485 sshd             2.0  1.0\n 353575 bash             2.0  0.3\n 353595 bash             2.0  0.3\n 353113 systemd          0.7  0.9\n   1541 FUXA             0.3  9.5\nSECTION\ttop_cpu\tEND\nSECTION\ttop_mem\tBEGIN\n    PID COMMAND         %CPU %MEM\n   1541 FUXA             0.3  9.5\n 211105 Suricata-Main   12.0  3.3\n    380 multipathd       0.0  2.7\n   1276 npm start        0.0  2.7\n    713 dockerd          0.0  2.5\n 120969 systemd-journal  0.0  1.9\n    591 containerd       0.0  1.6\nSECTION\ttop_mem\tEND\nSECTION\tlargest_var\tBEGIN\n11M\t/var/cache\n40M\t/var/lib/dpkg/info\n42M\t/var/lib/dpkg\n73M\t/var/log/journal\n73M\t/var/log/journal/a495cfe7b55b41d095bf78f9093f7fe2\n78M\t/var/log\n207M\t/var/lib/snapd/seed\n207M\t/var/lib/snapd/seed/snaps\n409M\t/var/lib/snapd/snaps\n617M\t/var/lib/snapd\n670M\t/var/lib\n761M\t/var\nSECTION\tlargest_var\tEND\n"
+  "stdout": "KV\thostname\tfuxa-instance\nKV\tos_pretty\tUbuntu 22.04.5 LTS\nKV\tkernel\t5.15.0-177-generic\nKV\tmachine\tx86_64\nKV\tdate_utc\t2026-07-02T20:36:01Z\nKV\tuptime_pretty\tup 6 weeks, 1 day, 9 hours, 34 minutes\nKV\tloadavg\t0.50 0.21 0.16\nKV\tcpu_cores\t1\nKV\tcpu_usage_pct\t100.00\nKV\tmem_total_mb\t957\nKV\tmem_used_mb\t382\nKV\tmem_avail_mb\t381\nKV\tswap_total_mb\t0\nKV\tswap_used_mb\t0\nKV\tswap_free_mb\t0\nKV\troot_total_bytes\t10213466112\nKV\troot_used_bytes\t7848361984\nKV\troot_avail_bytes\t2348326912\nKV\troot_use_pct\t77%\nKV\troot_inodes_use_pct\t20%\nKV\tvar_log_size_bytes\t90974807\nKV\tsuricata_log_size_bytes\t3793497\nKV\ttmp_size_bytes\t4166845\nKV\tvar_tmp_size_bytes\t20480\nKV\tapt_cache_size_bytes\t8192\nSECTION\tservices\tBEGIN\nsuricata=active\nwazuh-agent=active\nwazuh-manager=inactive\nnot_installed\nzeek=inactive\nnot_installed\nsnort=inactive\nnot_installed\nopenplc=inactive\nnot_installed\ndocker=active\nSECTION\tservices\tEND\nSECTION\tfilesystems\tBEGIN\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/vda1       9.6G  7.4G  2.2G  77% /\n/dev/vda1       9.6G  7.4G  2.2G  77% /\n/dev/vda1       9.6G  7.4G  2.2G  77% /\n/dev/vda1       9.6G  7.4G  2.2G  77% /\nSECTION\tfilesystems\tEND\nSECTION\ttop_cpu\tBEGIN\n    PID COMMAND         %CPU %MEM\n 211105 Suricata-Main   12.0  3.1\n 368442 bash             3.0  0.3\n 368314 sshd             2.0  1.1\n 367943 systemd          0.5  0.8\n   1541 FUXA             0.3  9.5\n 366624 kworker/0:2-eve  0.1  0.0\n 367737 kworker/0:0-mm_  0.1  0.0\nSECTION\ttop_cpu\tEND\nSECTION\ttop_mem\tBEGIN\n    PID COMMAND         %CPU %MEM\n   1541 FUXA             0.3  9.5\n 211105 Suricata-Main   12.0  3.1\n    380 multipathd       0.0  2.7\n   1276 npm start        0.0  2.7\n    713 dockerd          0.0  2.4\n 120969 systemd-journal  0.0  2.2\n    591 containerd       0.0  1.7\nSECTION\ttop_mem\tEND\nSECTION\tlargest_var\tBEGIN\n11M\t/var/cache\n40M\t/var/lib/dpkg/info\n42M\t/var/lib/dpkg\n81M\t/var/log/journal\n81M\t/var/log/journal/a495cfe7b55b41d095bf78f9093f7fe2\n87M\t/var/log\n207M\t/var/lib/snapd/seed\n207M\t/var/lib/snapd/seed/snaps\n409M\t/var/lib/snapd/snaps\n617M\t/var/lib/snapd\n670M\t/var/lib\n769M\t/var\nSECTION\tlargest_var\tEND\n"
 }

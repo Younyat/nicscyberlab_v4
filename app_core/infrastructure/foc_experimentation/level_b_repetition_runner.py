@@ -39,6 +39,7 @@ from ..forensics.forensics_api import (
     _active_preservation_guard,
     _clear_active_preservation_state,
     _dfir_create_case_internal,
+    _resolve_dfir_targets_from_openstack,
     _dfir_ssh_user_for_role,
     acquire_disk,
     acquire_memory,
@@ -570,6 +571,23 @@ def _wait_for_active_preservation_release(
     }
 
 
+def _resolve_level_b_acquisition_targets() -> list[dict]:
+    preferred_roles = ["fuxa", "plc", "victim"]
+    resolved = _resolve_dfir_targets_from_openstack(preferred_roles)
+    by_role = {
+        str(item.get("role") or "").lower(): item
+        for item in (resolved or [])
+        if item.get("vm_id") and item.get("vm_ip")
+    }
+    missing = [role for role in preferred_roles if role not in by_role]
+    if missing:
+        raise RuntimeError(
+            "Level B multi-host preservation requires fuxa, plc, and victim to be resolvable. "
+            f"Missing roles: {', '.join(missing)}."
+        )
+    return [by_role[role] for role in preferred_roles]
+
+
 def _load_campaign(campaign_id: str) -> tuple[dict, dict]:
     manifest = _json_load(campaign_manifest_path(campaign_id)) or {}
     config = _json_load(campaign_config_path(campaign_id)) or {}
@@ -732,11 +750,19 @@ def preview_level_b_repetitions(campaign_id: str, *, requested_repetitions: int 
     targets = _resolve_real_targets(attack)
     target = targets.get("target")
     monitor = targets.get("monitor")
+    try:
+        acquisition_targets = _resolve_level_b_acquisition_targets()
+        acquisition_ready = True
+        acquisition_error = ""
+    except Exception as exc:
+        acquisition_targets = []
+        acquisition_ready = False
+        acquisition_error = str(exc)
     candidates = _cleanup_candidates()
     estimated = sum(int(item.get("size_bytes") or 0) for item in candidates)
     repetitions = _resolve_repetition_count(config, requested_repetitions, default=3, minimum=1)
     return {
-        "ready": bool(target and monitor and str((target or {}).get("role") or "").lower() == "plc"),
+        "ready": bool(target and monitor and acquisition_ready and str((target or {}).get("role") or "").lower() == "plc"),
         "campaign_id": campaign_id,
         "requested_repetitions": repetitions,
         "nested_level_a_repetitions": max(repetitions, 2),
@@ -755,10 +781,11 @@ def preview_level_b_repetitions(campaign_id: str, *, requested_repetitions: int 
         },
         "resolved_target": target,
         "resolved_monitor": monitor,
+        "resolved_acquisition_targets": acquisition_targets,
         "message": (
-            f"The Level B repetition batch is ready for {repetitions} requested Level B repetitions."
-            if (target and monitor and str((target or {}).get("role") or "").lower() == "plc")
-            else "The active deployed scenario does not currently expose a resolvable PLC target and monitor pair for this attack."
+            f"The Level B repetition batch is ready for {repetitions} requested Level B repetitions with multi-host preservation over fuxa, plc, and victim."
+            if (target and monitor and acquisition_ready and str((target or {}).get("role") or "").lower() == "plc")
+            else acquisition_error or "The active deployed scenario does not currently expose a resolvable PLC target, monitor, and preservation scope over fuxa/plc/victim for this attack."
         ),
     }
 
@@ -2208,7 +2235,7 @@ def _run_single_repetition(
         )
 
     raise_if_cancelled(job_id, job_path, phase_key=f"repetition_{rep_idx}_acquisition", phase_label="Run automatic acquisition", detail="Level B repetition batch cancellation was requested before automatic acquisition.")
-    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_acquisition", phase_label="Run automatic acquisition", status="running", detail="Creating a fresh forensic case and starting volatility-first DFIR acquisition: memory first, rolling-PCAP context import second, disk third.", category="repetition", index=4, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_acquisition_status": "running", **phase_extra})
+    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_acquisition", phase_label="Run automatic acquisition", status="running", detail="Creating a fresh forensic case and starting volatility-first DFIR acquisition over fuxa, plc, and victim: memory first, rolling-PCAP context import second, disk third.", category="repetition", index=4, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_acquisition_status": "running", **phase_extra})
     trigger_time_utc = ((matched_alert.get("primary") or {}).get("ts_utc")) or ((matched_alert.get("primary") or {}).get("timestamp")) or attack_completed_at
     adopted_existing_case = False
     try:
@@ -2267,6 +2294,8 @@ def _run_single_repetition(
         else:
             case_dir = Path(_dfir_create_case_internal(run_id=execution_id, source="level_b_repetition_runner")).resolve()
             case_id = _case_id_for_case_dir(str(case_dir))
+            acquisition_targets = _resolve_level_b_acquisition_targets()
+            acquisition_roles = ", ".join(str(item.get("role") or "unknown") for item in acquisition_targets)
             initialize_volatile_first_acquisition(
                 str(case_dir),
                 run_id=execution_id,
@@ -2276,8 +2305,26 @@ def _run_single_repetition(
             )
             update_job(job_id, job_path, current_case_id=case_id)
             update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"memory_started_utc": utc_now()})
-            memory_result = acquire_memory(str(case_dir), target.get("vm_id"), target.get("vm_ip"), os.environ.get("NICS_DFIR_SSH_KEY") or os.path.expanduser("~/.ssh/my_key"), ssh_user=_dfir_ssh_user_for_role(target.get("role")), mode="build", run_id=execution_id)
+            memory_items = []
+            ssh_key = os.environ.get("NICS_DFIR_SSH_KEY") or os.path.expanduser("~/.ssh/my_key")
+            for node in acquisition_targets:
+                memory_items.append(
+                    acquire_memory(
+                        str(case_dir),
+                        node.get("vm_id"),
+                        node.get("vm_ip"),
+                        ssh_key,
+                        ssh_user=_dfir_ssh_user_for_role(node.get("role")),
+                        mode="build",
+                        run_id=execution_id,
+                    )
+                )
             update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"memory_completed_utc": utc_now()})
+            memory_result = {
+                "ok": bool(memory_items) and all(bool(item.get("ok")) for item in memory_items),
+                "result": "ok" if memory_items and all(bool(item.get("ok")) for item in memory_items) else "error",
+                "items": memory_items,
+            }
             update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"network_context_import_started_utc": utc_now()})
             try:
                 network_result = import_continuous_network_context(str(case_dir), run_id=execution_id, trigger_time_utc=trigger_time_utc)
@@ -2285,9 +2332,29 @@ def _run_single_repetition(
                 network_result = {"error": str(exc), "preserved_segments": 0, "pending_segments": 0}
             update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"network_context_import_completed_utc": utc_now()})
             update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"disk_started_utc": utc_now()})
-            disk_result = acquire_disk(str(case_dir), target.get("vm_id"), "nova_libvirt", run_id=execution_id, noninteractive=True)
+            disk_items = []
+            for node in acquisition_targets:
+                disk_items.append(
+                    acquire_disk(
+                        str(case_dir),
+                        node.get("vm_id"),
+                        "nova_libvirt",
+                        run_id=execution_id,
+                        noninteractive=True,
+                    )
+                )
             update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"disk_completed_utc": utc_now()})
-            acquisition_note = f"Case {case_id} created. Memory={memory_result.get('result')}; network_import preserved={network_result.get('preserved_segments', 0)} pending={network_result.get('pending_segments', 0)}; disk={disk_result.get('result')}."
+            disk_result = {
+                "ok": bool(disk_items) and all(bool(item.get("ok")) for item in disk_items),
+                "result": "ok" if disk_items and all(bool(item.get("ok")) for item in disk_items) else "error",
+                "items": disk_items,
+            }
+            acquisition_note = (
+                f"Case {case_id} created. Acquisition scope={acquisition_roles}. "
+                f"Memory={memory_result.get('result')} ({len(memory_items)} host(s)); "
+                f"network_import preserved={network_result.get('preserved_segments', 0)} pending={network_result.get('pending_segments', 0)}; "
+                f"disk={disk_result.get('result')} ({len(disk_items)} host(s))."
+            )
     except RuntimeError as exc:
         guard = _active_preservation_guard()
         guard_case_dir = Path(str(guard.get("case_dir") or "")).resolve() if guard.get("case_dir") else None
@@ -2619,7 +2686,15 @@ def _run_level_b_repetitions_job(
         _emit_phase(job_id, job_path, phase_key="verify_plc_target", phase_label="Verify PLC target", status="failed", detail=reason, category="setup", index=3, total_repetitions=requested_repetitions)
         update_job(job_id, job_path, status="failed", finished_at=utc_now(), current_phase="verify_plc_target", current_phase_label="Verify PLC target", current_phase_detail=reason, progress_percent=100.0, blockers=[reason])
         return
-    _emit_phase(job_id, job_path, phase_key="verify_plc_target", phase_label="Verify PLC target", status="completed", detail=f"PLC target verified: {target.get('vm_name')} ({target.get('vm_ip')}).", category="setup", index=3, total_repetitions=requested_repetitions)
+    try:
+        acquisition_targets = _resolve_level_b_acquisition_targets()
+    except Exception as exc:
+        reason = str(exc)
+        _emit_phase(job_id, job_path, phase_key="verify_plc_target", phase_label="Verify PLC target", status="failed", detail=reason, category="setup", index=3, total_repetitions=requested_repetitions)
+        update_job(job_id, job_path, status="failed", finished_at=utc_now(), current_phase="verify_plc_target", current_phase_label="Verify PLC target", current_phase_detail=reason, progress_percent=100.0, blockers=[reason])
+        return
+    acquisition_scope_detail = ", ".join(f"{item.get('role')}={item.get('vm_ip')}" for item in acquisition_targets)
+    _emit_phase(job_id, job_path, phase_key="verify_plc_target", phase_label="Verify PLC target", status="completed", detail=f"PLC target verified: {target.get('vm_name')} ({target.get('vm_ip')}). Multi-host preservation scope resolved: {acquisition_scope_detail}.", category="setup", index=3, total_repetitions=requested_repetitions)
 
     _emit_phase(job_id, job_path, phase_key="enable_dfir_mode", phase_label="Enable DFIR mode", status="running", detail="Verifying that DFIR mode is ON before the first OT attack is launched.", category="setup", index=4, total_repetitions=requested_repetitions, extra={"dfir_mode_before": dfir_mode_before, "dfir_mode_after": dfir_mode_after})
     preservation_guard = _active_preservation_guard()

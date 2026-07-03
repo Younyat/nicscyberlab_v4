@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-01T23:54:19.620352+00:00",
+  "generated_at": "2026-07-02T21:43:14.515684+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
   "answers": {
@@ -20,19 +20,19 @@
       "source": "tools_bom.json"
     },
     "attacks_executed": {
-      "value": 140,
+      "value": 152,
       "source": "attack_attestation.json"
     },
     "detection_rules_active": {
-      "value": 186,
+      "value": 208,
       "source": "detection_attestation.json"
     },
     "alerts_generated": {
-      "value": 10295,
+      "value": 11615,
       "source": "alerts_normalized.json"
     },
     "attack_alert_correlations": {
-      "value": 113058,
+      "value": 157561,
       "source": "alert_correlation_summary.json"
     },
     "forensic_interventions": {
@@ -48,7 +48,7 @@
       "source": "acquisition_profile.json"
     },
     "analysis_outputs": {
-      "value": 430,
+      "value": 478,
       "source": "forensic_analysis_manifest.json"
     },
     "causal_reconstruction_ready": {
@@ -61,6 +61,7 @@
         "detection_attestation",
         "alerts_normalized",
         "alert_correlation",
+        "acquisition_profile",
         "forensic_intervention",
         "case_manifest_link"
       ],
@@ -88,6 +89,7 @@
       "detection_attestation",
       "alerts_normalized",
       "alert_correlation",
+      "acquisition_profile",
       "forensic_intervention",
       "case_manifest_link"
     ]

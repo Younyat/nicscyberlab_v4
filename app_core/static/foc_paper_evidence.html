@@ -15,9 +15,31 @@
     .btn-secondary{background:rgba(15,23,42,.84);border:1px solid rgba(148,163,184,.16)}
     .btn-danger{background:linear-gradient(135deg,#6f3f4b,#ed8c03)}
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+    #dfir-auto-overlay{position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.55);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center}
+    .dfir-auto-card{width:980px;max-width:92vw;height:78vh;background:rgba(255,255,255,.96);border-radius:2rem;border:1px solid rgba(15,23,42,.10);box-shadow:0 40px 120px rgba(0,0,0,.45);display:flex;flex-direction:column;overflow:hidden}
+    .dfir-auto-head{padding:14px 18px;border-bottom:1px solid rgba(15,23,42,.06);display:flex;align-items:center;justify-content:space-between}
+    .dfir-auto-title{font-size:10px;font-weight:900;letter-spacing:.22em;text-transform:uppercase;color:rgba(2,6,23,.85)}
+    .dfir-auto-status{font-size:10px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:rgba(2,6,23,.70)}
+    .dfir-auto-meta{padding:10px 18px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:11px;color:rgba(2,6,23,.70);border-bottom:1px solid rgba(15,23,42,.06)}
+    .dfir-auto-terminal{flex:1;margin:0;padding:14px 18px;background:rgba(2,6,23,.96);color:rgba(56,211,159,.95);font-size:12px;overflow:auto;white-space:pre-wrap}
+    .dfir-auto-foot{padding:12px 18px;border-top:1px solid rgba(15,23,42,.06);display:flex;justify-content:flex-end;gap:10px}
+    .dfir-auto-btn{padding:10px 14px;border-radius:999px;border:1px solid rgba(15,23,42,.12);background:white;font-size:10px;font-weight:900;letter-spacing:.18em;text-transform:uppercase}
   </style>
 </head>
 <body>
+  <div id="dfir-auto-overlay">
+    <div class="dfir-auto-card">
+      <div class="dfir-auto-head">
+        <div class="dfir-auto-title">DFIR AUTO PRESERVATION</div>
+        <div id="dfir-auto-status" class="dfir-auto-status">RUNNING</div>
+      </div>
+      <div id="dfir-auto-meta" class="dfir-auto-meta">Starting...</div>
+      <pre id="dfir-auto-terminal" class="dfir-auto-terminal"></pre>
+      <div class="dfir-auto-foot">
+        <button id="dfir-auto-close" class="dfir-auto-btn" disabled>CLOSE</button>
+      </div>
+    </div>
+  </div>
   <div class="px-6 py-6 md:px-10 md:py-8 space-y-6">
     <header class="glass rounded-[30px] p-6 md:p-8">
       <div class="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
@@ -164,6 +186,18 @@
           </div>
           <div id="paper-level-b-table-reconstruction-summary" class="mt-4 text-sm text-slate-300">Loading existing Level B table reconstruction reports…</div>
           <div id="paper-level-b-table-reconstruction-list" class="space-y-3 mt-5 text-sm text-slate-300">Loading existing Level B table reconstruction reports…</div>
+        </section>
+
+        <section class="glass rounded-[28px] p-6">
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">FORGE-VI Audit</div>
+          <h2 class="text-2xl font-black mt-2">Level A + Level B Truthful Evaluation</h2>
+          <p class="mt-3 text-sm text-slate-300">Generate the second-phase truthful evaluation package over the current Level A and Level B artifacts only. This path does not rerun acquisition or analysis. It separates standalone Level A, analysis over Level B cases, and Level B case evidence, and marks missing or declared-only values explicitly.</p>
+          <div class="mt-5 flex gap-3 flex-wrap">
+            <button id="paper-run-level-a-level-b-truthful-btn" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Generate Truthful Level A + Level B Package</button>
+            <button id="paper-level-a-level-b-truthful-refresh-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Refresh Truthful Packages</button>
+          </div>
+          <div id="paper-level-a-level-b-truthful-summary" class="mt-4 text-sm text-slate-300">Loading truthful evaluation packages…</div>
+          <div id="paper-level-a-level-b-truthful-list" class="space-y-3 mt-5 text-sm text-slate-300">Loading truthful evaluation packages…</div>
         </section>
 
         <section class="glass rounded-[28px] p-6">

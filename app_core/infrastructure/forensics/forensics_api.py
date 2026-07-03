@@ -4555,6 +4555,19 @@ def _detect_ssh_key_path() -> str:
 
 @forensics_bp.route("/api/dfir/orchestrator/auto/pending", methods=["GET"])
 def api_dfir_orchestrator_auto_pending():
+    running_jobs = _running_scientific_jobs()
+    if running_jobs:
+        return jsonify(
+            {
+                "pending": False,
+                "suppressed": True,
+                "reason": "scientific_workflow_running",
+                "message": (
+                    "A DFIR AUTO case-conflict prompt is suppressed while a Level A/B/C scientific workflow is running."
+                ),
+                "running_jobs": running_jobs,
+            }
+        ), 200
     pending = _find_pending_dfir_auto_decision()
     if not pending:
         return jsonify({"pending": False}), 200

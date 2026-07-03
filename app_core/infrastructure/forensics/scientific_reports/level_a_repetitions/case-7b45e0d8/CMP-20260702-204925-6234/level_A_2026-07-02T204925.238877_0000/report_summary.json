@@ -1,0 +1,42 @@
+{
+  "case_id": "case-7b45e0d8",
+  "execution_id": "EXEC-0006",
+  "generated_execution_ids": [
+    "EXEC-0001",
+    "EXEC-0002",
+    "EXEC-0003",
+    "EXEC-0004",
+    "EXEC-0005",
+    "EXEC-0006"
+  ],
+  "campaign_id": "CMP-20260702-204925-6234",
+  "requested_repetitions": 6,
+  "completed_repetitions": 6,
+  "analysis_status": "completed",
+  "causal_status": "completed_with_degradation",
+  "comparison_status": "Not Comparable",
+  "cpr": null,
+  "weighted_cpr": 0.1301,
+  "recovered_edges": 1,
+  "degraded_edges": 3,
+  "missing_edges": 4,
+  "hypothesis_support": "moderate_support",
+  "trigger": "NICS CyberLab ICS Modbus write multiple registers",
+  "modbus_context": {
+    "source_pcap": null,
+    "packet_timestamp": null,
+    "source_ip": null,
+    "destination_ip": null,
+    "source_port": null,
+    "destination_port": null,
+    "transaction_id": null,
+    "unit_id": null,
+    "function_code": null,
+    "register_address": null,
+    "value": null,
+    "parser_or_method": "tshark io,stat summaries and derived evidence support triage",
+    "confidence_level": "missing",
+    "note": "No Modbus packet context could be loaded from the preserved network findings.",
+    "modbus_frames": 0
+  }
+}

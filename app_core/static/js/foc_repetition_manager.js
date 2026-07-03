@@ -2232,21 +2232,24 @@
     if (root) return root;
     root = document.createElement("div");
     root.id = "foc-level-b-overlay";
-    root.className = "fixed inset-0 z-[1200] bg-slate-950/55 backdrop-blur-sm p-4 md:p-8";
+    root.className = "fixed inset-0 z-[1200] bg-black/55 backdrop-blur-md p-4 md:p-8 flex items-center justify-center";
     root.innerHTML = `
-      <div class="mx-auto max-w-4xl h-full flex items-center justify-center">
-        <div class="glass rounded-[30px] p-6 w-full shadow-2xl border border-red-500/20">
-          <div class="text-center">
-            <div class="text-[11px] tracking-[0.28em] uppercase text-red-300 font-black">Level B Repetitions</div>
-            <h2 class="text-2xl font-black mt-3">Independent Incident Batch Progress</h2>
+      <div class="mx-auto max-w-5xl w-full">
+        <div class="w-full max-h-[84vh] overflow-hidden rounded-[32px] border border-slate-900/10 bg-white/95 shadow-[0_40px_120px_rgba(0,0,0,0.45)]">
+          <div class="flex items-center justify-between gap-4 border-b border-slate-900/10 px-5 py-4">
+            <div>
+              <div class="text-[10px] font-black uppercase tracking-[0.22em] text-slate-900/85">Level B Repetitions</div>
+              <div class="mt-1 text-lg font-black text-slate-900">DFIR Preservation And Scientific Execution Monitor</div>
+            </div>
+            <div id="foc-level-b-overlay-status" class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-900/70">Running</div>
           </div>
-          <div id="foc-level-b-overlay-body" class="mt-6"></div>
-          <div class="mt-6 flex items-center justify-center gap-3 flex-wrap">
-            <button id="foc-level-b-stop-btn" type="button" class="btn-danger rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Stop Current Job</button>
-            <button id="foc-level-b-force-stop-btn" type="button" class="btn-danger rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Force Stop</button>
-            <button id="foc-level-b-cleanup-btn" type="button" class="btn-danger rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Force Stop And Clean Batch</button>
-            <button id="foc-level-b-open-report-btn" type="button" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase hidden">Open Report</button>
-            <button id="foc-level-b-close-btn" type="button" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Close Window</button>
+          <div id="foc-level-b-overlay-body" class="px-5 py-4"></div>
+          <div class="flex flex-wrap justify-end gap-3 border-t border-slate-900/10 px-5 py-4">
+            <button id="foc-level-b-stop-btn" type="button" class="btn-danger rounded-full px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Stop Current Job</button>
+            <button id="foc-level-b-force-stop-btn" type="button" class="btn-danger rounded-full px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Force Stop</button>
+            <button id="foc-level-b-cleanup-btn" type="button" class="btn-danger rounded-full px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Force Stop And Clean Batch</button>
+            <button id="foc-level-b-open-report-btn" type="button" class="btn-primary rounded-full px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase hidden">Open Report</button>
+            <button id="foc-level-b-close-btn" type="button" class="btn-secondary rounded-full px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Close Window</button>
           </div>
         </div>
       </div>
@@ -2274,65 +2277,97 @@
     return root;
   }
 
+  function levelBTerminalLines(payload, phaseStatuses, nestedTrace) {
+    const lines = [];
+    lines.push("[SISTEMA] LEVEL B REAL EXECUTION MONITOR");
+    lines.push(`[JOB] ${String(payload.job_id || "not_available")}`);
+    lines.push(`[STATUS] ${String(payload.status || "running")}`);
+    lines.push(`[PROGRESS] ${payload.progress_percent != null ? `${payload.progress_percent}%` : "not_available"}`);
+    lines.push(`[REPETITION] ${String(payload.current_repetition || 0)} / ${String(payload.requested_repetitions || payload.meta?.requested_repetitions || 0)}`);
+    lines.push(`[CASE] ${String(payload.current_case_id || "not_available")}`);
+    lines.push(`[EXECUTION] ${String(payload.current_execution_id || "not_available")}`);
+    lines.push("");
+    lines.push("[PHASE TRACE]");
+    (phaseStatuses || []).slice(-14).forEach((item) => {
+      const label = item?.phase_label || item?.phase_key || "phase";
+      const status = item?.status || "unknown";
+      const progress = item?.progress_percent != null ? `${item.progress_percent}%` : "n/a";
+      const detail = formatDetail(item?.detail || "No detail available.");
+      lines.push(`- ${label} :: ${status} :: ${progress}`);
+      lines.push(`  ${detail}`);
+    });
+    if ((nestedTrace || []).length) {
+      lines.push("");
+      lines.push("[NESTED FULL EVIDENCE LIFECYCLE]");
+      nestedTrace.slice(-12).forEach((item) => {
+        const label = item?.phase_label || item?.phase_id || "phase";
+        const layer = item?.layer || "lifecycle";
+        const status = item?.status || "unknown";
+        const detail = formatDetail(item?.detail || "No detail available.");
+        lines.push(`- ${layer} :: ${label} :: ${status}`);
+        lines.push(`  ${detail}`);
+      });
+    }
+    if ((payload.warnings || []).length) {
+      lines.push("");
+      lines.push("[WARNINGS]");
+      payload.warnings.slice(-8).forEach((item) => lines.push(`- ${String(item)}`));
+    }
+    if ((payload.errors || []).length) {
+      lines.push("");
+      lines.push("[BLOCKERS]");
+      payload.errors.slice(-8).forEach((item) => lines.push(`- ${String(item?.message || JSON.stringify(item))}`));
+    }
+    return lines.join("\n");
+  }
+
   function renderLevelBOverlay(payload) {
     const root = byId("foc-level-b-overlay");
     if (!root) return;
     const body = byId("foc-level-b-overlay-body");
+    const statusBadge = byId("foc-level-b-overlay-status");
     const closeBtn = byId("foc-level-b-close-btn");
     const openBtn = byId("foc-level-b-open-report-btn");
     const stopBtn = byId("foc-level-b-stop-btn");
     const forceStopBtn = byId("foc-level-b-force-stop-btn");
     const cleanupBtn = byId("foc-level-b-cleanup-btn");
-    if (!body || !closeBtn || !openBtn || !stopBtn || !forceStopBtn || !cleanupBtn) return;
+    if (!body || !statusBadge || !closeBtn || !openBtn || !stopBtn || !forceStopBtn || !cleanupBtn) return;
     if (!payload || !isLevelBRepetitionJob(payload) || state.levelBOverlayJobId !== payload.job_id) return;
     const terminal = isTerminalJobStatus(payload.status);
     const phaseStatuses = payload.phase_statuses || [];
     const lastPhase = phaseStatuses.length ? phaseStatuses[phaseStatuses.length - 1] : null;
+    const nestedTrace = payload.lifecycle_phase_trace || payload.phase_trace || [];
     const phaseLabel = payload.current_phase_label || lastPhase?.phase_label || titleCaseStatus(payload.current_phase || "queued");
     const phaseDetail = formatDetail(payload.current_phase_detail || lastPhase?.detail || "No detail available.");
     const phaseStatus = lastPhase?.status || payload.status || "running";
     const warnings = payload.warnings || [];
     const blockers = (payload.errors || []).map((item) => item?.message || JSON.stringify(item));
+    const terminalLog = levelBTerminalLines(payload, phaseStatuses, nestedTrace);
+    statusBadge.textContent = titleCaseStatus(payload.status || phaseStatus || "running");
     body.innerHTML = `
-      <div class="space-y-5 text-sm text-slate-200">
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
-            <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Global repetition progress</div>
-            <div class="font-black mt-2">${esc(payload.current_repetition || 0)} / ${esc(payload.requested_repetitions || payload.meta?.requested_repetitions || 5)}</div>
-          </div>
-          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
-            <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Current phase</div>
-            <div class="font-black mt-2">${esc(phaseLabel)}</div>
-          </div>
-          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
-            <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Current phase status</div>
-            <div class="font-black mt-2 ${statusClass(phaseStatus)}">${esc(titleCaseStatus(phaseStatus))}</div>
-          </div>
-          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
-            <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Exact progress</div>
-            <div class="font-black mt-2">${esc(payload.progress_percent ?? "not_available")}${payload.progress_percent != null ? "%" : ""}</div>
-          </div>
+      <div class="space-y-4 text-sm text-slate-900">
+        <div class="rounded-2xl border border-slate-900/10 bg-white px-4 py-3 font-mono text-[11px] text-slate-700">
+          job=${esc(payload.job_id || "not_available")} | repetition=${esc(payload.current_repetition || 0)}/${esc(payload.requested_repetitions || payload.meta?.requested_repetitions || 0)} | case=${esc(payload.current_case_id || "not_available")} | execution=${esc(payload.current_execution_id || "not_available")} | progress=${esc(payload.progress_percent ?? "not_available")}${payload.progress_percent != null ? "%" : ""}
         </div>
-        <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
-          <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Detailed message</div>
-          <div class="mt-2">${esc(phaseDetail)}</div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Current case ID</div><div class="font-black mt-2 mono">${esc(payload.current_case_id || "not_available")}</div></div>
-          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Repetition / execution ID</div><div class="font-black mt-2 mono">${esc(payload.current_execution_id || "not_available")}</div></div>
-          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Report output path</div><div class="font-black mt-2 mono break-all">${esc(payload.report_output_path || "not_available")}</div></div>
-          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Final status</div><div class="font-black mt-2 ${statusClass(payload.status)}">${esc(titleCaseStatus(payload.status || "running"))}</div></div>
+        <div class="rounded-2xl border border-slate-900/10 bg-black shadow-[inset_0_0_0_1px_rgba(16,185,129,0.10)]">
+          <div class="border-b border-slate-800/80 px-4 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-300">Live Preservation Console</div>
+          <div class="px-4 py-2 font-mono text-[11px] text-slate-400">phase=${esc(phaseLabel)} | status=${esc(titleCaseStatus(phaseStatus))}</div>
+          <pre class="max-h-[420px] overflow-auto whitespace-pre-wrap px-4 pb-4 text-[12px] leading-relaxed text-emerald-400">${esc(terminalLog)}</pre>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Attack status</div><div class="font-black mt-2">${esc(titleCaseStatus(payload.current_attack_status || "queued"))}</div></div>
-          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Alert status</div><div class="font-black mt-2">${esc(titleCaseStatus(payload.current_alert_status || "queued"))}</div></div>
-          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Acquisition status</div><div class="font-black mt-2">${esc(titleCaseStatus(payload.current_acquisition_status || "queued"))}</div></div>
-          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Preservation status</div><div class="font-black mt-2">${esc(titleCaseStatus(payload.current_preservation_status || "queued"))}</div></div>
-          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Analysis status</div><div class="font-black mt-2">${esc(titleCaseStatus(payload.current_analysis_status || "queued"))}</div></div>
-          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Reconstruction/report status</div><div class="font-black mt-2">${esc(titleCaseStatus(payload.current_reconstruction_status || "queued"))}</div></div>
+          <div class="rounded-2xl border border-slate-900/10 bg-slate-50 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-500">Current case ID</div><div class="mt-2 font-black mono text-slate-900">${esc(payload.current_case_id || "not_available")}</div></div>
+          <div class="rounded-2xl border border-slate-900/10 bg-slate-50 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-500">Execution ID</div><div class="mt-2 font-black mono text-slate-900">${esc(payload.current_execution_id || "not_available")}</div></div>
+          <div class="rounded-2xl border border-slate-900/10 bg-slate-50 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-500">Report output path</div><div class="mt-2 font-black mono break-all text-slate-900">${esc(payload.report_output_path || "not_available")}</div></div>
+          <div class="rounded-2xl border border-slate-900/10 bg-slate-50 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-500">Attack status</div><div class="mt-2 font-black text-slate-900">${esc(titleCaseStatus(payload.current_attack_status || "queued"))}</div></div>
+          <div class="rounded-2xl border border-slate-900/10 bg-slate-50 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-500">Preservation status</div><div class="mt-2 font-black text-slate-900">${esc(titleCaseStatus(payload.current_preservation_status || "queued"))}</div></div>
+          <div class="rounded-2xl border border-slate-900/10 bg-slate-50 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-500">Analysis status</div><div class="mt-2 font-black text-slate-900">${esc(titleCaseStatus(payload.current_analysis_status || "queued"))}</div></div>
         </div>
-        ${warnings.length ? `<div class="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-amber-200"><div class="font-black">Warnings</div><div class="mt-2 space-y-1">${warnings.slice(-8).map((item) => `<div>${esc(item)}</div>`).join("")}</div></div>` : ""}
-        ${blockers.length ? `<div class="rounded-2xl border border-red-500/30 bg-red-500/5 p-4 text-red-200"><div class="font-black">Blockers</div><div class="mt-2 space-y-1">${blockers.slice(-8).map((item) => `<div>${esc(item)}</div>`).join("")}</div></div>` : ""}
+        <div class="rounded-2xl border border-slate-900/10 bg-slate-50 p-4">
+          <div class="text-xs uppercase tracking-[0.16em] text-slate-500">Detailed message</div>
+          <div class="mt-2 text-slate-800">${esc(phaseDetail)}</div>
+        </div>
+        ${warnings.length ? `<div class="rounded-2xl border border-amber-500/30 bg-amber-50 p-4 text-amber-900"><div class="font-black">Warnings</div><div class="mt-2 space-y-1">${warnings.slice(-8).map((item) => `<div>${esc(item)}</div>`).join("")}</div></div>` : ""}
+        ${blockers.length ? `<div class="rounded-2xl border border-red-500/30 bg-red-50 p-4 text-red-900"><div class="font-black">Blockers</div><div class="mt-2 space-y-1">${blockers.slice(-8).map((item) => `<div>${esc(item)}</div>`).join("")}</div></div>` : ""}
       </div>
     `;
     stopBtn.classList.toggle("hidden", terminal);

@@ -1,21 +1,21 @@
 {
-  "generated_at": "2026-07-01T23:54:19.620352+00:00",
+  "generated_at": "2026-07-02T21:43:14.515684+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
-  "total_correlation_records": 113058,
-  "total_alerts": 10295,
-  "relevant_alerts": 5087,
-  "correlated_alerts": 25755,
-  "confirmed_correlations": 25755,
+  "total_correlation_records": 157561,
+  "total_alerts": 11615,
+  "relevant_alerts": 5570,
+  "correlated_alerts": 38194,
+  "confirmed_correlations": 38194,
   "weak_correlations": 0,
-  "unresolved_alerts": 87264,
+  "unresolved_alerts": 119328,
   "noise_alerts": 0,
   "false_positive_candidates": 0,
   "missing_expected_alerts_total": 39,
   "bucket_counts": {
-    "correlated": 25755,
-    "uncorrelated": 87264,
-    "noise": 5208,
+    "correlated": 38194,
+    "uncorrelated": 119328,
+    "noise": 6045,
     "false_positive_candidate": 0,
     "missing_expected_alert": 39,
     "weak_candidate": 0,
@@ -25,117 +25,117 @@
   "top_signatures": [
     {
       "label": "NICS CyberLab ICS Modbus write multiple registers",
-      "count": 25755
+      "count": 38194
     },
     {
       "label": "Jun 25 15:37:16 plc-instance sshd[2787405]: Invalid user debian from 10.0.2.1 port 53846",
-      "count": 4848
+      "count": 5424
     },
     {
       "label": "Jun 29 14:51:08 plc-instance sshd[3537388]: Invalid user debian from 10.0.2.1 port 47322",
-      "count": 3232
+      "count": 3616
     },
     {
       "label": "Jun 29 15:39:08 plc-instance sshd[3544965]: Invalid user debian from 10.0.2.1 port 58606",
-      "count": 3232
+      "count": 3616
     },
     {
       "label": "Jun 29 16:20:21 plc-instance sshd[3551794]: Invalid user debian from 10.0.2.1 port 37872",
-      "count": 3232
+      "count": 3616
     },
     {
       "label": "Jun 29 16:52:10 plc-instance sshd[3557516]: Invalid user debian from 10.0.2.1 port 56078",
-      "count": 3232
+      "count": 3616
     },
     {
       "label": "Jun 30 15:24:23 plc-instance sshd[3719754]: Invalid user debian from 10.0.2.1 port 44420",
-      "count": 3232
+      "count": 3616
     },
     {
       "label": "Jun 30 15:45:40 plc-instance sshd[3723244]: Invalid user debian from 10.0.2.1 port 35960",
-      "count": 3232
+      "count": 3616
     },
     {
       "label": "Jun 30 15:56:27 plc-instance sshd[3725510]: Invalid user debian from 10.0.2.1 port 47268",
-      "count": 3232
+      "count": 3616
     },
     {
       "label": "Jun 30 16:02:35 plc-instance sshd[3726776]: Invalid user debian from 10.0.2.1 port 34504",
-      "count": 3232
+      "count": 3616
     }
   ],
   "top_rule_ids": [
     {
       "label": "5710",
-      "count": 87264
+      "count": 119328
     },
     {
       "label": "86601",
-      "count": 25755
+      "count": 38194
     }
   ],
   "top_nodes": [
     {
       "label": "node-f9ca9bfc",
-      "count": 113019
+      "count": 157522
     }
   ],
   "severity_distribution": [
     {
       "label": "LOW",
-      "count": 5208
+      "count": 6045
     },
     {
       "label": "HIGH",
-      "count": 3215
+      "count": 3410
     },
     {
       "label": "MEDIUM",
-      "count": 1872
+      "count": 2160
     }
   ],
   "alerts_by_node": [
     {
       "label": "node-c800d431",
-      "count": 4701
+      "count": 5406
     },
     {
       "label": "node-f9ca9bfc",
-      "count": 3610
+      "count": 4017
     },
     {
       "label": "node-e1ac03b8",
-      "count": 1456
+      "count": 1552
     }
   ],
   "alerts_by_mitre_technique": [
     {
       "label": "T1692.001",
-      "count": 255
+      "count": 338
     },
     {
       "label": "T0836",
-      "count": 255
+      "count": 338
     }
   ],
   "alerts_by_original_sensor": [
     {
       "label": "suricata",
-      "count": 5463
+      "count": 6383
     },
     {
       "label": "wazuh",
-      "count": 4832
+      "count": 5232
     }
   ],
   "alerts_by_collector": [
     {
       "label": "wazuh",
-      "count": 10295
+      "count": 11615
     }
   ],
   "unique_confirmed_attack_pairs": 1,
-  "unique_correlation_candidates": 60,
+  "unique_correlation_candidates": 72,
   "confirmed_attack_ids": 1,
   "weak_attack_ids": 0,
   "observable_attack_ids": 1,

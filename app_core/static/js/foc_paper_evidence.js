@@ -6,11 +6,13 @@
     campaigns: [],
     reports: [],
     tableReconstructionReports: [],
+    truthfulEvaluationReports: [],
     cleanupInventory: [],
     cleanupLevelFilter: "ALL",
     selectedCaseId: new URLSearchParams(window.location.search).get("case_id") || "",
     selectedCampaignId: "",
     activeJobId: null,
+    activeJobLevel: null,
     pollTimer: null,
     levelBPreflight: null,
   };
@@ -44,6 +46,129 @@
 
   function isTerminal(status) {
     return ["completed", "completed_with_degradation", "completed_with_failures", "failed", "cancelled", "stopped"].includes(String(status || "").toLowerCase());
+  }
+
+  function fmtProgress(value) {
+    const num = Number(value);
+    return Number.isFinite(num) ? `${num.toFixed(1)}%` : "not_available";
+  }
+
+  function isLevelBPaperJob(payload) {
+    if (!payload) return false;
+    if (String(payload.requested_level || "").toUpperCase() === "B") return true;
+    if (String(state.activeJobLevel || "").toUpperCase() === "B") return true;
+    if (String(payload.current_phase || "").toLowerCase().includes("level_b")) return true;
+    if (String(payload.current_phase_label || "").toLowerCase().includes("level b")) return true;
+    if ((payload.nested_phase_statuses || []).length) return true;
+    return false;
+  }
+
+  function dfirOverlayOpen() {
+    const ov = byId("dfir-auto-overlay");
+    const term = byId("dfir-auto-terminal");
+    const st = byId("dfir-auto-status");
+    const meta = byId("dfir-auto-meta");
+    const btn = byId("dfir-auto-close");
+    if (term) term.textContent = "";
+    if (st) st.textContent = "RUNNING";
+    if (meta) meta.textContent = "Creating case and preserving artifacts";
+    if (btn) btn.disabled = true;
+    if (ov) ov.style.display = "flex";
+  }
+
+  function dfirOverlaySetSnapshot(payload, childPayload, liveTrace) {
+    const st = byId("dfir-auto-status");
+    const meta = byId("dfir-auto-meta");
+    const term = byId("dfir-auto-terminal");
+    if (!st || !meta || !term) return;
+    const phases = payload.phase_statuses || [];
+    const lastPhase = phases.length ? phases[phases.length - 1] : null;
+    const phaseLabel = payload.current_phase_label || lastPhase?.phase_label || payload.current_phase || "queued";
+    const phaseStatus = lastPhase?.status || payload.status || "running";
+    const childRepCurrent = childPayload?.current_repetition ?? payload.current_repetition ?? 0;
+    const childRepTotal = childPayload?.requested_repetitions ?? childPayload?.meta?.requested_repetitions ?? payload.requested_repetitions ?? payload.meta?.requested_repetitions ?? 0;
+    const rep = `${String(childRepCurrent)}/${String(childRepTotal)}`;
+    const caseId = childPayload?.current_case_id || payload.current_case_id || "not_available";
+    st.textContent = String(phaseStatus || "running").toUpperCase().replace(/[_-]+/g, " ");
+    meta.textContent = `paper_job=${String(payload.job_id || "not_available")} | level_b_job=${String(childPayload?.job_id || payload.current_child_job_id || "not_available")} | repetition=${rep} | case=${String(caseId)} | paper_progress=${fmtProgress(payload.progress_percent)} | level_b_progress=${fmtProgress(childPayload?.progress_percent)}`;
+    term.textContent = levelBConsoleLines(payload, childPayload, liveTrace);
+    term.scrollTop = term.scrollHeight;
+  }
+
+  function dfirOverlayFinish(ok, payload) {
+    const st = byId("dfir-auto-status");
+    const meta = byId("dfir-auto-meta");
+    const btn = byId("dfir-auto-close");
+    if (st) st.textContent = ok ? "DONE" : "ERROR";
+    if (meta) meta.textContent = payload && payload.report_output_path ? `Report: ${payload.report_output_path}` : "Finished";
+    if (btn) btn.disabled = false;
+  }
+
+  function dfirOverlayClose() {
+    const ov = byId("dfir-auto-overlay");
+    if (ov) ov.style.display = "none";
+  }
+
+  function levelBConsoleLines(payload, childPayload, liveTrace) {
+    const phases = payload.phase_statuses || [];
+    const nested = childPayload?.phase_statuses || payload.nested_phase_statuses || [];
+    const lines = [];
+    lines.push("[SISTEMA] LEVEL B PAPER EVIDENCE MONITOR");
+    lines.push(`[JOB] ${String(payload.job_id || "not_available")}`);
+    lines.push(`[STATUS] ${String(payload.status || "running")}`);
+    lines.push(`[PROGRESS] ${fmtProgress(payload.progress_percent)}`);
+    lines.push(`[CASE] ${String(childPayload?.current_case_id || payload.current_case_id || "not_available")}`);
+    lines.push(`[REPORT] ${String(payload.report_output_path || "not_available")}`);
+    lines.push("");
+    lines.push("[PHASE TRACE]");
+    phases.slice(-16).forEach((phase) => {
+      const label = phase.phase_label || phase.phase_key || "phase";
+      const status = phase.status || "unknown";
+      const progress = phase.progress_percent != null ? `${phase.progress_percent}%` : "n/a";
+      const detail = String(phase.detail || "No detail available.").replace(/\s+/g, " ").trim();
+      lines.push(`- ${label} :: ${status} :: ${progress}`);
+      lines.push(`  ${detail}`);
+    });
+    if (childPayload) {
+      lines.push("");
+      lines.push("[LEVEL B BATCH]");
+      lines.push(`- job=${String(childPayload.job_id || "not_available")} :: status=${String(childPayload.status || "running")} :: progress=${fmtProgress(childPayload.progress_percent)}`);
+      lines.push(`  ${String(childPayload.current_phase_label || childPayload.current_phase || "not_available")} :: ${String(childPayload.current_phase_detail || "No detail available.")}`);
+      lines.push(`- repetition=${String(childPayload.current_repetition || 0)}/${String(childPayload.requested_repetitions || childPayload.meta?.requested_repetitions || 0)} :: execution=${String(childPayload.current_execution_id || "not_available")} :: case=${String(childPayload.current_case_id || "not_available")}`);
+    }
+    if (nested.length) {
+      lines.push("");
+      lines.push("[LEVEL B PHASE TRACE]");
+      nested.slice(-12).forEach((phase) => {
+        const label = phase.phase_label || phase.phase_key || "phase";
+        const status = phase.status || "unknown";
+        const progress = phase.progress_percent != null ? `${phase.progress_percent}%` : "n/a";
+        const detail = String(phase.detail || "No detail available.").replace(/\s+/g, " ").trim();
+        lines.push(`- ${label} :: ${status} :: ${progress}`);
+        lines.push(`  ${detail}`);
+      });
+    }
+    if ((liveTrace?.terminal_lines || []).length) {
+      lines.push("");
+      lines.push("[LIVE CASE PRESERVATION TRACE]");
+      (liveTrace.terminal_lines || []).forEach((line) => lines.push(String(line)));
+    }
+    if ((liveTrace?.analysis_lines || []).length) {
+      lines.push("");
+      lines.push("[LIVE ANALYSIS SNAPSHOT]");
+      (liveTrace.analysis_lines || []).forEach((line) => lines.push(String(line)));
+    }
+    if ((payload.warnings || []).length) {
+      lines.push("");
+      lines.push("[WARNINGS]");
+      payload.warnings.slice(-8).forEach((item) => lines.push(`- ${String(item)}`));
+    }
+    if ((payload.errors || []).length) {
+      lines.push("");
+      lines.push("[BLOCKERS]");
+      payload.errors.slice(-8).forEach((item) => lines.push(`- ${String(item?.message || JSON.stringify(item))}`));
+    }
+    return lines.join("\n");
   }
 
   function renderCasePicker() {
@@ -155,11 +280,12 @@
     button.title = ready ? "" : (payload.message || "Level B launch is blocked by disk-acquisition preflight.");
   }
 
-  function renderJob(payload) {
+  function renderJob(payload, childPayload = null, liveTrace = null) {
     const root = byId("paper-job-panel");
     if (!root) return;
     if (!payload) {
       root.innerHTML = "No active paper evidence job.";
+      dfirOverlayClose();
       return;
     }
     const phases = payload.phase_statuses || [];
@@ -214,6 +340,14 @@
         ` : ""}
       </div>
     `;
+    if (isLevelBPaperJob(payload)) {
+      const wasHidden = byId("dfir-auto-overlay")?.style.display === "none" || !byId("dfir-auto-overlay")?.style.display;
+      if (wasHidden && !isTerminal(payload.status)) dfirOverlayOpen();
+      dfirOverlaySetSnapshot(payload, childPayload, liveTrace);
+      if (isTerminal(payload.status)) dfirOverlayFinish(String(payload.status || "").toLowerCase().startsWith("completed"), payload);
+    } else {
+      dfirOverlayClose();
+    }
   }
 
   function reportActions(report) {
@@ -365,6 +499,41 @@
     });
   }
 
+  function renderTruthfulEvaluationReports() {
+    const summary = byId("paper-level-a-level-b-truthful-summary");
+    const root = byId("paper-level-a-level-b-truthful-list");
+    if (!summary || !root) return;
+    const reports = state.truthfulEvaluationReports || [];
+    if (!reports.length) {
+      summary.innerHTML = "No truthful Level A + Level B evaluation packages were generated yet.";
+      root.innerHTML = '<div class="glass-soft rounded-2xl p-4">No truthful evaluation packages available.</div>';
+      return;
+    }
+    summary.innerHTML = `
+      <div>Truthful evaluation packages: <span class="mono">${esc(reports.length)}</span></div>
+      <div class="mt-2">Latest decision: <span class="font-black">${esc(reports[0]?.decision || "not_available")}</span></div>
+      <div class="mt-2">Latest option: <span class="font-black">${esc(reports[0]?.option || "not_available")}</span></div>
+    `;
+    root.innerHTML = reports.map((report) => `
+      <div class="glass-soft rounded-2xl p-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+          <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Report ID</div><div class="font-black mt-2 mono">${esc(report.report_id)}</div></div>
+          <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Generated at</div><div class="font-black mt-2">${esc(report.generated_at || "not_available")}</div></div>
+          <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Accepted Level B Cases</div><div class="font-black mt-2">${esc(report.accepted_level_b_cases ?? "not_available")}</div></div>
+          <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Standalone Level A</div><div class="font-black mt-2">${esc(report.standalone_level_a_executions ?? "not_available")}</div></div>
+          <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Decision</div><div class="font-black mt-2">${esc(report.decision || "not_available")}</div></div>
+        </div>
+        <div class="mt-3"><span class="font-black">Output dir:</span> <span class="mono break-all">${esc(report.output_dir || "not_available")}</span></div>
+        <div class="flex gap-3 flex-wrap mt-4">
+          <button type="button" class="text-cyan-300 underline paper-truthful-evaluation-open-btn" data-report-id="${esc(report.report_id)}">Open .md Report</button>
+        </div>
+      </div>
+    `).join("");
+    document.querySelectorAll(".paper-truthful-evaluation-open-btn").forEach((btn) => {
+      btn.addEventListener("click", () => openTruthfulEvaluationReport(btn.dataset.reportId));
+    });
+  }
+
   function ensureOverlay() {
     let root = byId("paper-evidence-overlay");
     if (root) return root;
@@ -468,6 +637,46 @@
     root.style.display = "block";
   }
 
+  async function openTruthfulEvaluationReport(reportId) {
+    const payload = await getJson(`/api/foc/paper-evidence/level-a-level-b/truthful-evaluation/reports/${encodeURIComponent(reportId)}`);
+    const root = ensureOverlay();
+    byId("paper-evidence-overlay-title").textContent = `FORGE-VI Level A + Level B Truthful Evaluation · ${reportId}`;
+    byId("paper-evidence-overlay-body").innerHTML = `
+      <div class="space-y-4">
+        <div class="text-sm text-slate-300">
+          <div><span class="font-black">Decision:</span> ${esc(payload.metadata?.decision || "not_available")}</div>
+          <div class="mt-2"><span class="font-black">Option:</span> ${esc(payload.metadata?.option || "not_available")}</div>
+          <div class="mt-2"><span class="font-black">Output dir:</span> <span class="mono break-all">${esc(payload.output_dir || "not_available")}</span></div>
+        </div>
+        <details class="glass-soft rounded-2xl p-4" open>
+          <summary class="font-black cursor-pointer">FORGE-VI_LevelA_LevelB_Truthful_Evaluation_Report.md</summary>
+          <pre class="whitespace-pre-wrap break-words text-xs text-slate-200 mono mt-4">${esc(payload.evaluation_report_markdown || "not_available")}</pre>
+        </details>
+        <details class="glass-soft rounded-2xl p-4">
+          <summary class="font-black cursor-pointer">FORGE-VI_LevelA_LevelB_Truthful_Paper_Tables.md</summary>
+          <pre class="whitespace-pre-wrap break-words text-xs text-slate-200 mono mt-4">${esc(payload.paper_tables_markdown || "not_available")}</pre>
+        </details>
+        <details class="glass-soft rounded-2xl p-4">
+          <summary class="font-black cursor-pointer">FORGE-VI_LevelA_LevelB_Truthful_Gap_Report.md</summary>
+          <pre class="whitespace-pre-wrap break-words text-xs text-slate-200 mono mt-4">${esc(payload.gap_report_markdown || "not_available")}</pre>
+        </details>
+        <details class="glass-soft rounded-2xl p-4">
+          <summary class="font-black cursor-pointer">FORGE-VI_LevelA_LevelB_Rerun_Readiness_Plan.md</summary>
+          <pre class="whitespace-pre-wrap break-words text-xs text-slate-200 mono mt-4">${esc(payload.rerun_plan_markdown || "not_available")}</pre>
+        </details>
+        <details class="glass-soft rounded-2xl p-4">
+          <summary class="font-black cursor-pointer">FORGE-VI_LevelA_LevelB_Truthful_Table_Values.json</summary>
+          <pre class="whitespace-pre-wrap break-words text-xs text-slate-200 mono mt-4">${esc(JSON.stringify(payload.values_json || {}, null, 2))}</pre>
+        </details>
+        <div class="text-xs text-slate-500 mono break-all">
+          Provenance CSV path: ${esc(payload.data_provenance_csv_path || "not_available")}<br/>
+          Availability CSV path: ${esc(payload.availability_matrix_csv_path || "not_available")}
+        </div>
+      </div>
+    `;
+    root.style.display = "block";
+  }
+
   async function loadCases() {
     const payload = await getJson("/api/foc/experimentation/source-cases");
     state.cases = payload.cases || [];
@@ -553,6 +762,12 @@
     renderTableReconstructionReports();
   }
 
+  async function loadTruthfulEvaluationReports() {
+    const payload = await getJson("/api/foc/paper-evidence/level-a-level-b/truthful-evaluation/reports");
+    state.truthfulEvaluationReports = payload.reports || [];
+    renderTruthfulEvaluationReports();
+  }
+
   async function runTableReconstruction() {
     const button = byId("paper-run-level-b-table-reconstruction-btn");
     const summary = byId("paper-level-b-table-reconstruction-summary");
@@ -580,6 +795,33 @@
     }
   }
 
+  async function runTruthfulEvaluation() {
+    const button = byId("paper-run-level-a-level-b-truthful-btn");
+    const summary = byId("paper-level-a-level-b-truthful-summary");
+    if (button) button.disabled = true;
+    if (summary) summary.innerHTML = "Generating truthful Level A + Level B evaluation package from existing artifacts…";
+    try {
+      const payload = await getJson("/api/foc/paper-evidence/level-a-level-b/truthful-evaluation/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      await loadTruthfulEvaluationReports();
+      if (summary) {
+        summary.innerHTML = `
+          <div class="text-cyan-300 font-black">Truthful evaluation package generated.</div>
+          <div class="mt-2 mono break-all">${esc(payload.output_dir || "not_available")}</div>
+          <div class="mt-2">${esc(payload.decision || "not_available")}</div>
+        `;
+      }
+      await openTruthfulEvaluationReport(payload.report_id);
+    } catch (error) {
+      if (summary) summary.innerHTML = `<span class="text-red-300">${esc(error.message || "Could not generate the truthful evaluation package.")}</span>`;
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+
   async function loadCleanupInventory() {
     const payload = await getJson("/api/foc/experimentation/cleanup/inventory");
     state.cleanupInventory = payload.items || [];
@@ -591,9 +833,24 @@
     if (!state.activeJobId) return;
     try {
       const payload = await getJson(`/api/foc/experimentation/jobs/${encodeURIComponent(state.activeJobId)}`);
-      renderJob(payload);
+      let childPayload = null;
+      let liveTrace = null;
+      const childJobId = String(payload.current_child_job_id || "").trim();
+      if (childJobId) {
+        try {
+          childPayload = await getJson(`/api/foc/experimentation/jobs/${encodeURIComponent(childJobId)}`);
+        } catch (_err) {}
+      }
+      const caseId = String(childPayload?.current_case_id || payload.current_case_id || "").trim();
+      if (caseId) {
+        try {
+          liveTrace = await getJson(`/api/foc/experimentation/cases/${encodeURIComponent(caseId)}/live-trace`);
+        } catch (_err) {}
+      }
+      renderJob(payload, childPayload, liveTrace);
       if (isTerminal(payload.status)) {
         state.activeJobId = null;
+        state.activeJobLevel = null;
         clearInterval(state.pollTimer);
         state.pollTimer = null;
         await loadReports();
@@ -630,6 +887,7 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
+    state.activeJobLevel = "A";
     trackJob(job.job_id);
   }
 
@@ -655,6 +913,7 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
+    state.activeJobLevel = "B";
     trackJob(job.job_id);
   }
 
@@ -723,6 +982,7 @@
   }
 
   async function init() {
+    byId("dfir-auto-close")?.addEventListener("click", dfirOverlayClose);
     byId("paper-case-select")?.addEventListener("change", (event) => {
       state.selectedCaseId = event.target.value || "";
       renderCaseSummary();
@@ -735,6 +995,8 @@
     byId("paper-run-level-b-btn")?.addEventListener("click", runLevelB);
     byId("paper-run-level-b-table-reconstruction-btn")?.addEventListener("click", runTableReconstruction);
     byId("paper-level-b-table-reconstruction-refresh-btn")?.addEventListener("click", loadTableReconstructionReports);
+    byId("paper-run-level-a-level-b-truthful-btn")?.addEventListener("click", runTruthfulEvaluation);
+    byId("paper-level-a-level-b-truthful-refresh-btn")?.addEventListener("click", loadTruthfulEvaluationReports);
     byId("paper-create-level-b-campaign-btn")?.addEventListener("click", createTemporaryLevelBCampaign);
     byId("paper-refresh-btn")?.addEventListener("click", async () => {
       await loadCases();
@@ -742,6 +1004,7 @@
       await loadLevelBPreflight();
       await loadReports();
       await loadTableReconstructionReports();
+      await loadTruthfulEvaluationReports();
       await loadCleanupInventory();
     });
     byId("paper-cleanup-refresh-btn")?.addEventListener("click", loadCleanupInventory);
@@ -759,6 +1022,7 @@
     await loadLevelBPreflight();
     await loadReports();
     await loadTableReconstructionReports();
+    await loadTruthfulEvaluationReports();
     await loadCleanupInventory();
   }
 

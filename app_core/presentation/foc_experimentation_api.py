@@ -56,8 +56,8 @@ from app_core.infrastructure.foc_experimentation.scenario_destruction_service im
 )
 from app_core.infrastructure.attack.catalog import get_attack_catalog
 from app_core.infrastructure.foc_reconstruction.foc_case_analysis import cases_with_analysis_state
-from app_core.infrastructure.foc_reconstruction.foc_case_analysis import _analysis_cancel_path, _case_dir_from_entry, get_case_entry
-from app_core.infrastructure.foc_reconstruction.evidence_lifecycle_dashboard import request_lifecycle_cancel
+from app_core.infrastructure.foc_reconstruction.foc_case_analysis import _analysis_cancel_path, _case_dir_from_entry, get_case_entry, load_analysis_status
+from app_core.infrastructure.foc_reconstruction.evidence_lifecycle_dashboard import load_evidence_lifecycle_dashboard, request_lifecycle_cancel
 from app_core.infrastructure.foc_reconstruction.foc_paths import relative_path
 from app_core.infrastructure.foc_reconstruction.foc_sources import utc_now
 
@@ -136,6 +136,20 @@ def _forge_vi_table_reconstruction_api():
     }
 
 
+def _forge_vi_truthful_evaluation_api():
+    from app_core.infrastructure.forensics.scripts.forge_vi_levela_levelb_truthful_evaluation import (
+        generate_truthful_evaluation_bundle,
+        get_generated_truthful_evaluation_report,
+        list_generated_truthful_evaluation_reports,
+    )
+
+    return {
+        "generate_truthful_evaluation_bundle": generate_truthful_evaluation_bundle,
+        "get_generated_truthful_evaluation_report": get_generated_truthful_evaluation_report,
+        "list_generated_truthful_evaluation_reports": list_generated_truthful_evaluation_reports,
+    }
+
+
 def _infer_case_id_from_job(payload: dict) -> str | None:
     case_id = str((payload or {}).get("current_case_id") or "").strip()
     if case_id:
@@ -181,6 +195,148 @@ def _running_lifecycle_job_ids_for_case(case_id: str) -> list[str]:
         found.append((ts, str(payload.get("job_id") or path.stem)))
     found.sort(reverse=True)
     return [job_id for _, job_id in found]
+
+
+def _read_jsonl_tail(path: Path, *, limit: int = 120) -> list[dict]:
+    if not path.is_file():
+        return []
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except Exception:
+        return []
+    tail = lines[-limit:]
+    rows: list[dict] = []
+    for line in tail:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            payload = json.loads(line)
+        except Exception:
+            continue
+        if isinstance(payload, dict):
+            rows.append(payload)
+    return rows
+
+
+def _build_case_target_maps(events: list[dict]) -> tuple[dict[str, str], dict[str, str]]:
+    by_vm_id: dict[str, str] = {}
+    by_ip: dict[str, str] = {}
+    for item in events:
+        if str(item.get("event") or "") != "dfir_orchestration_start":
+            continue
+        for target in list(((item.get("meta") or {}).get("targets") or [])):
+            role = str(target.get("role") or "").strip()
+            vm_id = str(target.get("vm_id") or "").strip()
+            vm_ip = str(target.get("vm_ip") or "").strip()
+            if role and vm_id:
+                by_vm_id[vm_id] = role
+            if role and vm_ip:
+                by_ip[vm_ip] = role
+    return by_vm_id, by_ip
+
+
+def _format_case_live_event(event: dict, roles_by_vm_id: dict[str, str], roles_by_ip: dict[str, str]) -> str | None:
+    name = str(event.get("event") or "").strip()
+    meta = event.get("meta") or {}
+    vm_id = str(meta.get("vm_id") or "").strip()
+    vm_ip = str(meta.get("vm_ip") or "").strip()
+    role = roles_by_vm_id.get(vm_id) or roles_by_ip.get(vm_ip) or "not_available"
+    if name == "memory_start":
+        return (
+            f"[STEP] memory start role={role} vm_id={meta.get('vm_id', 'not_available')} "
+            f"ip={meta.get('vm_ip', 'not_available')} user={meta.get('ssh_user', 'not_available')} "
+            f"mode={meta.get('mode', 'not_available')}"
+        )
+    if name == "memory_preserved":
+        return (
+            f"[STEP] memory done role={role} vm_id={meta.get('vm_id', 'not_available')} "
+            f"ip={meta.get('vm_ip', 'not_available')} mem_dump={meta.get('rel', 'not_available')}"
+        )
+    if name == "memory_failed":
+        return (
+            f"[ERROR] memory failed role={role} vm_id={meta.get('vm_id', 'not_available')} "
+            f"ip={meta.get('vm_ip', 'not_available')} reason={meta.get('error', meta.get('reason', 'not_available'))}"
+        )
+    if name == "network_context_import_started":
+        return "[STEP] network_context_import start source=full_scenario_captures"
+    if name == "network_context_import_completed":
+        return (
+            f"[STEP] network_context_import done preserved={meta.get('preserved_segments', 'not_available')} "
+            f"pending={meta.get('pending_segments', 'not_available')}"
+        )
+    if name == "disk_start":
+        return (
+            f"[STEP] disk start role={role} vm_id={meta.get('vm_id', 'not_available')} "
+            f"container={meta.get('container', 'not_available')}"
+        )
+    if name == "disk_preserved":
+        return (
+            f"[STEP] disk done role={role} vm_id={meta.get('vm_id', 'not_available')} "
+            f"disk_raw={meta.get('rel', 'not_available')}"
+        )
+    if name == "disk_failed":
+        return (
+            f"[ERROR] disk failed role={role} vm_id={meta.get('vm_id', 'not_available')} "
+            f"reason={meta.get('error', meta.get('reason', 'not_available'))}"
+        )
+    if name == "active_preservation_claimed":
+        return f"[SISTEMA] active_preservation_claimed source={meta.get('source', 'not_available')}"
+    if name == "ir_inputs_preserved":
+        return f"[SISTEMA] ir_inputs_preserved copied_count={meta.get('copied_count', 'not_available')}"
+    if name == "active_preservation_released":
+        return (
+            f"[SISTEMA] active_preservation_released final_state={meta.get('final_state', 'not_available')} "
+            f"reason={meta.get('reason', 'not_available')}"
+        )
+    return None
+
+
+def _analysis_status_lines(case_id: str) -> list[str]:
+    entry = get_case_entry(case_id)
+    if not entry:
+        return []
+    case_dir = _case_dir_from_entry(entry)
+    status = load_analysis_status(case_dir) or {}
+    phases = status.get("phases") or {}
+    lines: list[str] = []
+    overall = str(status.get("status") or "").strip()
+    if overall:
+        lines.append(f"[ANALYSIS] status={overall}")
+    for key, value in phases.items():
+        if not isinstance(value, dict):
+            continue
+        phase_status = str(value.get("status") or "unknown")
+        detail = str(value.get("detail") or value.get("reason") or "").strip()
+        if detail:
+            lines.append(f"[ANALYSIS] {key}={phase_status} :: {detail}")
+        else:
+            lines.append(f"[ANALYSIS] {key}={phase_status}")
+    return lines[-24:]
+
+
+@experimentation_bp.route("/api/foc/experimentation/cases/<case_id>/live-trace", methods=["GET"])
+def api_foc_case_live_trace(case_id: str):
+    entry = get_case_entry(case_id)
+    if not entry:
+        return jsonify({"error": "case_not_found", "case_id": case_id}), 404
+    case_dir = _case_dir_from_entry(entry)
+    pipeline_path = case_dir / "metadata" / "pipeline_events.jsonl"
+    events = _read_jsonl_tail(pipeline_path, limit=600)
+    roles_by_vm_id, roles_by_ip = _build_case_target_maps(events)
+    terminal_lines = [line for line in (_format_case_live_event(item, roles_by_vm_id, roles_by_ip) for item in events) if line]
+    lifecycle = load_evidence_lifecycle_dashboard(case_id) or {}
+    return jsonify(
+        {
+            "case_id": case_id,
+            "case_path": relative_path(case_dir),
+            "pipeline_path": relative_path(pipeline_path) if pipeline_path.is_file() else None,
+            "terminal_lines": terminal_lines[-120:],
+            "analysis_lines": _analysis_status_lines(case_id),
+            "lifecycle_status": lifecycle.get("status") or "not_available",
+            "lifecycle_summary": lifecycle.get("executive_summary") or lifecycle.get("summary") or {},
+        }
+    ), 200
 
 
 @experimentation_bp.route("/api/foc/experimentation/health", methods=["GET"])
@@ -873,6 +1029,26 @@ def api_foc_paper_evidence_level_b_table_reconstruction_reports():
 @experimentation_bp.route("/api/foc/paper-evidence/level-b/table-reconstruction/reports/<report_id>", methods=["GET"])
 def api_foc_paper_evidence_level_b_table_reconstruction_report(report_id: str):
     payload = _forge_vi_table_reconstruction_api()["get_generated_report"](report_id)
+    if not payload:
+        return jsonify({"error": "report_not_found", "report_id": report_id}), 404
+    return jsonify(payload), 200
+
+
+@experimentation_bp.route("/api/foc/paper-evidence/level-a-level-b/truthful-evaluation/run", methods=["POST"])
+def api_foc_paper_evidence_level_a_level_b_truthful_evaluation_run():
+    payload = _forge_vi_truthful_evaluation_api()["generate_truthful_evaluation_bundle"]()
+    return jsonify(payload), 201
+
+
+@experimentation_bp.route("/api/foc/paper-evidence/level-a-level-b/truthful-evaluation/reports", methods=["GET"])
+def api_foc_paper_evidence_level_a_level_b_truthful_evaluation_reports():
+    items = _forge_vi_truthful_evaluation_api()["list_generated_truthful_evaluation_reports"]()
+    return jsonify({"reports": items}), 200
+
+
+@experimentation_bp.route("/api/foc/paper-evidence/level-a-level-b/truthful-evaluation/reports/<report_id>", methods=["GET"])
+def api_foc_paper_evidence_level_a_level_b_truthful_evaluation_report(report_id: str):
+    payload = _forge_vi_truthful_evaluation_api()["get_generated_truthful_evaluation_report"](report_id)
     if not payload:
         return jsonify({"error": "report_not_found", "report_id": report_id}), 404
     return jsonify(payload), 200

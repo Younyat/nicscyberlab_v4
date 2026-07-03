@@ -1607,30 +1607,31 @@
   }
 
   #dfirAutoBtn.dfir-off {
-    border-color: rgba(148,163,184,0.7);
-    background: rgba(255,255,255,1);
-    color: rgba(15,23,42,0.85);
+    border-color: rgba(244,63,94,0.96);
+    background: rgba(225,29,72,0.96);
+    color: rgba(255,255,255,0.98);
+    box-shadow: none;
   }
 
   #dfirAutoBtn.dfir-on {
-    border-color: rgba(34,197,94,0.95);
-    background: rgba(34,197,94,0.12);
-    color: rgba(22,101,52,0.95);
-    box-shadow: 0 0 0 2px rgba(34,197,94,0.18);
+    border-color: rgba(16,185,129,0.96);
+    background: rgba(5,150,105,0.96);
+    color: rgba(255,255,255,0.98);
+    box-shadow: none;
   }
 
   #dfirAutoBtn.dfir-running {
-    border-color: rgba(239,68,68,0.95);
-    background: rgba(239,68,68,0.12);
-    color: rgba(127,29,29,0.95);
-    box-shadow: 0 0 0 2px rgba(239,68,68,0.18);
+    border-color: rgba(59,130,246,0.96);
+    background: rgba(255,255,255,0.98);
+    color: rgba(30,64,175,0.96);
+    box-shadow: none;
   }
 
   #dfirAutoBtn.dfir-pending {
-    border-color: rgba(245,158,11,0.95);
-    background: rgba(245,158,11,0.14);
-    color: rgba(120,53,15,0.95);
-    box-shadow: 0 0 0 2px rgba(245,158,11,0.18);
+    border-color: rgba(59,130,246,0.96);
+    background: rgba(255,255,255,0.98);
+    color: rgba(30,64,175,0.96);
+    box-shadow: none;
   }
 
   #copilotPopup.error {
@@ -3278,6 +3279,13 @@
     }
 
     function dfirRenderDecisionModal(payload, mode = "decision_required") {
+      if ((payload?.reason === "scientific_workflow_running") || (payload?.status === "blocked" && payload?.reason === "scientific_workflow_running")) {
+        DFIR.pendingDecision = null;
+        DFIR.decisionPending = false;
+        dfirRenderBtn();
+        dfirDecisionOverlayClose();
+        return;
+      }
       DFIR.pendingDecision = payload?.decision || null;
       DFIR.decisionPending = mode === "decision_required";
       dfirRenderBtn();
@@ -3327,10 +3335,18 @@
     }
 
     async function dfirCheckPendingDecision() {
+      if (DFIR.running) return;
       try {
         const res = await fetch("/api/dfir/orchestrator/auto/pending", { cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json();
+        if (data?.suppressed && data?.reason === "scientific_workflow_running") {
+          DFIR.pendingDecision = null;
+          DFIR.decisionPending = false;
+          dfirRenderBtn();
+          dfirDecisionOverlayClose();
+          return;
+        }
         if (data?.pending && data?.decision) {
           dfirRenderDecisionModal(data, "decision_required");
         }
@@ -3362,6 +3378,13 @@
           return;
         }
         if (data?.status === "blocked") {
+          if (data?.reason === "scientific_workflow_running") {
+            DFIR.pendingDecision = null;
+            DFIR.decisionPending = false;
+            dfirRenderBtn();
+            dfirDecisionOverlayClose();
+            return;
+          }
           dfirRenderDecisionModal(data, "blocked");
         }
       } catch (err) {
