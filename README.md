@@ -275,6 +275,8 @@ In short: the reporting layer is already much more truthful and scientifically d
 
 A validation step may execute successfully while the final integrity assessment remains partial. The platform records that distinction instead of hiding it.
 
+For a root-cause oriented register of the main scientific obstacles found during these iterations, see [README_OBSTACULOS_CIENTIFICOS.md](README_OBSTACULOS_CIENTIFICOS.md).
+
 ### What is now enforced in the Level B preservation flow
 
 The platform now also applies stricter **preserve-first** behavior inside the **Level B** execution path itself, not only in the reporting layer.
@@ -303,17 +305,34 @@ The platform now also applies stricter **preserve-first** behavior inside the **
 - **Cleanup now depends on preserved scientific metadata**
   - heavy-case cleanup is no longer allowed unless the lightweight scientific memory includes the explicit trigger binding, forensic intervention artifact, normalized timestamps, and critical evidence gate result
   - this reduces the risk of deleting the heavy case before the minimum scientific reconstruction metadata has been preserved
-- **The lightweight retained bundle now preserves more of the critical scientific surface**
-  - preserved PCAP/PCAPNG files under `network/traffic_preserved/full_scenario_captures/**`
+- **Level B now runs node free-space cleanup on `fuxa` and `plc` around repetition boundaries**
+  - after a heavy case is deleted, the runner applies `pre_memory_cleanup_inside_node.sh` over SSH to `fuxa` and `plc`
+  - before the next repetition launches a fresh attack, the runner repeats that cleanup as a mandatory pre-attack gate
+  - this reduces the risk of a new repetition starting while stale acquisition files on the nodes still consume space from the previous case
+- **Failed Level B repetitions now close the campaign early instead of continuing to launch attacks**
+  - if a repetition ends with `execution_status=failed`, the batch stops there
+  - final reporting is still generated from the repetitions already executed, with the early-stop reason preserved in the job/report trail
+  - this avoids unprofessional "keep trying after terminal failure" behavior and makes the campaign boundary scientifically explicit
+- **Old Level B cases are now converted into a lightweight audit shell instead of being left as incoherent remnants**
+  - heavy memory, disk, and raw network captures are removed for space recovery
+  - the case path is rebuilt as a lightweight audit-only shell containing manifest/custody, critical metadata, analysis outputs, hashes, causal outputs, and an explicit `lightweight_retention_audit.json`
+  - the audit file records that the heavy evidence was deleted intentionally by the platform for storage management and not by tampering
+  - the retained shell is capped by policy to stay under `500 MB`
+- **The lightweight retained bundle now preserves the critical scientific surface without re-keeping heavy captures**
   - OT export files such as `industrial/ot_export_*.json`
   - the explicit metadata artifacts listed above
-  - this means the retained bundle is closer to the minimum evidence set required for later scientific reconstruction
+  - per-layer analysis outputs, causal reconstruction outputs, retention manifests, hashes, and custody context
+  - raw PCAP/PCAPNG, memory dumps, and disk images are not re-kept inside the lightweight shell
 - **Network preservation now normalizes impossible trigger windows instead of collapsing to zero selected segments**
   - if a malformed or delayed trigger timestamp would place `case_window_start_utc` after `case_window_end_utc`, the importer records that normalization explicitly and keeps the window usable
   - this is a defensive fallback only; the primary fix is still to bind the correct alert to the correct repetition
 - **The monitor stream now follows only newly appended alerts**
   - the remote Wazuh monitor switched from a generic `tail -f` to a new-events-only follow mode
   - this reduces accidental reuse of pre-existing alerts when a repetition starts listening for its trigger
+- **The main `index` view now exposes compact live execution timing**
+  - running experimentation jobs show current phase, elapsed time, and last repetition duration
+  - active DFIR preservation now shows a compact live badge with case id, current phase, and elapsed time
+  - when experimentation finishes, the last duration remains visible as a lightweight summary instead of disappearing immediately
 
 In short: the platform no longer relies only on truthful post-hoc reporting. It now pushes more of the scientific completeness policy into the actual **Level B** acquisition, preservation, adoption, and cleanup workflow.
 

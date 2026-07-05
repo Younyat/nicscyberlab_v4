@@ -11,6 +11,8 @@ from .scientific_memory import append_retention_manifest, build_retention_manife
 from ..foc_reconstruction.foc_paths import relative_path
 from ..foc_reconstruction.foc_sources import utc_now
 
+LIGHTWEIGHT_CASE_MAX_BYTES = 500 * 1024 * 1024
+
 LIGHTWEIGHT_CASE_RETAIN_PATHS: tuple[str, ...] = (
     "manifest.json",
     "chain_of_custody.log",
@@ -50,8 +52,6 @@ LIGHTWEIGHT_CASE_RETAIN_PATHS: tuple[str, ...] = (
 )
 
 LIGHTWEIGHT_CASE_RETAIN_GLOBS: tuple[str, ...] = (
-    "network/traffic_preserved/full_scenario_captures/**/*.pcap",
-    "network/traffic_preserved/full_scenario_captures/**/*.pcapng",
     "industrial/ot_export_*.json",
 )
 
@@ -70,6 +70,30 @@ def _write_json(path: Path, payload) -> None:
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     tmp.replace(path)
+
+
+def _tree_size_bytes(root: Path) -> int:
+    total = 0
+    try:
+        for item in root.rglob("*"):
+            if not item.is_file():
+                continue
+            try:
+                total += item.stat().st_size
+            except Exception:
+                continue
+    except Exception:
+        return 0
+    return total
+
+
+def _copy_tree_contents(source_root: Path, target_root: Path) -> None:
+    for source in source_root.rglob("*"):
+        if not source.is_file():
+            continue
+        target = target_root / source.relative_to(source_root)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
 
 
 def _copy_lightweight_case_bundle(*, original_case_path: Path, execution_base: Path, case_id: str) -> dict:
@@ -114,7 +138,10 @@ def _copy_lightweight_case_bundle(*, original_case_path: Path, execution_base: P
     }
     manifest_path = bundle_root / "lightweight_case_bundle_manifest.json"
     _write_json(manifest_path, manifest)
+    manifest["bundle_size_bytes"] = _tree_size_bytes(bundle_root)
+    manifest["bundle_size_limit_bytes"] = LIGHTWEIGHT_CASE_MAX_BYTES
     manifest["manifest_path"] = relative_path(manifest_path)
+    _write_json(manifest_path, manifest)
     return manifest
 
 
@@ -566,6 +593,17 @@ def delete_generated_case_artifacts(
         execution_base=base,
         case_id=str(context["case_id"] or "case"),
     )
+    if int(lightweight_bundle.get("bundle_size_bytes") or 0) > LIGHTWEIGHT_CASE_MAX_BYTES:
+        return {
+            "error": "lightweight_bundle_exceeds_limit",
+            "message": (
+                "The lightweight audit bundle exceeds the maximum retained size. "
+                "Heavy-case cleanup was aborted to preserve scientific traceability without violating the retention cap."
+            ),
+            "bundle_size_bytes": int(lightweight_bundle.get("bundle_size_bytes") or 0),
+            "bundle_size_limit_bytes": LIGHTWEIGHT_CASE_MAX_BYTES,
+            "lightweight_case_bundle_manifest_path": lightweight_bundle.get("manifest_path"),
+        }
     preserved_profiles.append(lightweight_bundle.get("manifest_path"))
 
     comparison_registry = load_comparison_registry()
@@ -590,12 +628,52 @@ def delete_generated_case_artifacts(
         comparison_readiness_after_cleanup="ready" if result_card.get("comparison_profile_path") else "insufficient_data",
     )
     archive_target = None
+    lightweight_case_audit_path = None
+    case_shell_path = None
     if action_type == "archive_case_directory":
         ARCHIVED_CASES_ROOT.mkdir(parents=True, exist_ok=True)
         archive_target = ARCHIVED_CASES_ROOT / f"{original_case_path.name}__archived_{utc_now().replace(':', '').replace('-', '')}"
         shutil.move(str(original_case_path), str(archive_target))
     else:
         shutil.rmtree(original_case_path)
+        original_case_path.mkdir(parents=True, exist_ok=True)
+        bundle_root = Path.cwd() / str(lightweight_bundle.get("bundle_root") or "")
+        if bundle_root.is_dir():
+            _copy_tree_contents(bundle_root, original_case_path)
+        retention_audit = {
+            "generated_at": utc_now(),
+            "case_id": context["case_id"],
+            "cleanup_status": "completed",
+            "case_state": "lightweight_audit_only",
+            "heavy_artifacts_deleted_by_platform": True,
+            "heavy_artifacts_deletion_reason": "Free disk space for future captures and analyses while preserving scientific auditability.",
+            "heavy_artifacts_deleted_is_not_tampering": True,
+            "lightweight_case_size_limit_bytes": LIGHTWEIGHT_CASE_MAX_BYTES,
+            "lightweight_case_size_bytes": _tree_size_bytes(original_case_path),
+            "retained_bundle_manifest_path": lightweight_bundle.get("manifest_path"),
+            "retained_bundle_path": lightweight_bundle.get("bundle_root"),
+            "retained_categories": [
+                "manifest_and_custody",
+                "critical_evidence_gate",
+                "trigger_alert_binding",
+                "forensic_intervention",
+                "normalized_timestamps",
+                "pipeline_events",
+                "network_context_manifest",
+                "analysis_outputs",
+                "causal_reconstruction_outputs",
+                "hashes_and_retention_manifests",
+            ],
+            "excluded_heavy_categories": [
+                "memory_dumps",
+                "disk_images",
+                "raw_network_captures",
+            ],
+            "operator": operator,
+        }
+        lightweight_case_audit_path = original_case_path / "metadata" / "lightweight_retention_audit.json"
+        _write_json(lightweight_case_audit_path, retention_audit)
+        case_shell_path = original_case_path
 
     causal_summary = (comparison_profile or {}).get("causal_reconstruction") or {}
     if isinstance(result_card, dict):
@@ -622,6 +700,7 @@ def delete_generated_case_artifacts(
     execution_manifest["heavy_artifacts_location_before_action"] = original_case_rel
     execution_manifest["heavy_artifacts_location_after_action"] = relative_path(archive_target) if archive_target else None
     execution_manifest["lightweight_case_bundle_path"] = lightweight_bundle.get("bundle_root")
+    execution_manifest["lightweight_case_shell_path"] = relative_path(case_shell_path) if case_shell_path else None
     if archive_target:
         case_result_card["case_path"] = relative_path(archive_target)
 
@@ -644,6 +723,8 @@ def delete_generated_case_artifacts(
             "heavy_artifacts_location_after_action": relative_path(archive_target) if archive_target else None,
             "cleanup_status": "completed",
             "cleanup_warnings": list(context.get("auto_repairs") or []),
+            "lightweight_case_shell_path": relative_path(case_shell_path) if case_shell_path else None,
+            "lightweight_case_audit_path": relative_path(lightweight_case_audit_path) if lightweight_case_audit_path else None,
         }
     )
 
@@ -672,5 +753,7 @@ def delete_generated_case_artifacts(
         "archive_target": relative_path(archive_target) if archive_target else None,
         "lightweight_case_bundle_path": lightweight_bundle.get("bundle_root"),
         "lightweight_case_bundle_manifest_path": lightweight_bundle.get("manifest_path"),
-        "message": "Heavy generated-case artifacts were cleaned up. Lightweight scientific comparison memory was preserved.",
+        "lightweight_case_shell_path": relative_path(case_shell_path) if case_shell_path else None,
+        "lightweight_case_audit_path": relative_path(lightweight_case_audit_path) if lightweight_case_audit_path else None,
+        "message": "Heavy generated-case artifacts were cleaned up. A lightweight audit-only case shell and scientific comparison memory were preserved.",
     }

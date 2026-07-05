@@ -9,7 +9,7 @@ import statistics
 import subprocess
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from .campaign_service import create_campaign
@@ -54,6 +54,7 @@ from ..forensics.network_context_importer import (
     update_acquisition_profile,
 )
 from ..monitor.alerts_logger import run_monitor_session
+from ..node_health.node_health_api import cleanup_node_free_space
 
 RUNTIME_ROOT = project_path("runtime", "level_b_repetitions")
 VALIDATION_REPORTS_ROOT = EVIDENCE_STORE_ROOT / "validation_reports"
@@ -68,6 +69,7 @@ FORENSIC_INTERVENTION_REL = "metadata/forensic_intervention.json"
 NORMALIZED_TIMESTAMPS_REL = "metadata/normalized_causal_timestamps.json"
 ALERT_MATCH_MAX_PRE_SECONDS = 30
 ALERT_MATCH_MAX_POST_SECONDS = 300
+LEVEL_B_FREE_SPACE_CLEANUP_ROLES = ("fuxa", "plc")
 
 SETUP_PHASES: list[tuple[str, str]] = [
     ("prepare_level_b_job", "Prepare Level B job"),
@@ -653,6 +655,54 @@ def _mitre_matches_attack(alert_payload: dict, attack: dict) -> bool:
     return False
 
 
+def _alert_candidate_datetimes(alert_payload: dict) -> list[datetime]:
+    primary = (alert_payload or {}).get("primary") or {}
+    triage = (alert_payload or {}).get("triage") or {}
+    raw = primary.get("raw") or {}
+    raw_data = raw.get("data") or {}
+    candidates: list[datetime] = []
+    seen: set[str] = set()
+    for raw_value in (
+        primary.get("ts_utc"),
+        primary.get("timestamp"),
+        raw_data.get("timestamp"),
+        raw.get("timestamp"),
+        triage.get("ts_utc"),
+    ):
+        dt = _parse_dt(raw_value)
+        if not dt:
+            continue
+        key = dt.isoformat()
+        if key in seen:
+            continue
+        seen.add(key)
+        candidates.append(dt)
+    return candidates
+
+
+def _best_alert_dt_for_attack_window(
+    alert_payload: dict,
+    *,
+    attack_started_at: str | None = None,
+    attack_completed_at: str | None = None,
+    max_pre_seconds: int = ALERT_MATCH_MAX_PRE_SECONDS,
+    max_post_seconds: int = ALERT_MATCH_MAX_POST_SECONDS,
+) -> datetime | None:
+    candidates = _alert_candidate_datetimes(alert_payload)
+    if not candidates:
+        return None
+    attack_started_dt = _parse_dt(attack_started_at)
+    attack_completed_dt = _parse_dt(attack_completed_at) or attack_started_dt
+    if not attack_started_dt or not attack_completed_dt:
+        return candidates[0]
+    earliest = attack_started_dt - timedelta(seconds=int(max_pre_seconds))
+    latest = attack_completed_dt + timedelta(seconds=int(max_post_seconds))
+    in_window = [dt for dt in candidates if earliest <= dt <= latest]
+    if in_window:
+        return min(in_window, key=lambda dt: abs((dt - attack_completed_dt).total_seconds()))
+    return min(candidates, key=lambda dt: abs((dt - attack_completed_dt).total_seconds()))
+
+
 def _alert_within_attack_window(
     alert_payload: dict,
     *,
@@ -663,10 +713,15 @@ def _alert_within_attack_window(
 ) -> bool:
     if not attack_started_at and not attack_completed_at:
         return True
-    primary = (alert_payload or {}).get("primary") or {}
-    alert_dt = _parse_dt(primary.get("ts_utc") or primary.get("timestamp"))
     attack_started_dt = _parse_dt(attack_started_at)
     attack_completed_dt = _parse_dt(attack_completed_at) or attack_started_dt
+    alert_dt = _best_alert_dt_for_attack_window(
+        alert_payload,
+        attack_started_at=attack_started_at,
+        attack_completed_at=attack_completed_at,
+        max_pre_seconds=max_pre_seconds,
+        max_post_seconds=max_post_seconds,
+    )
     if not alert_dt or not attack_started_dt or not attack_completed_dt:
         return False
     earliest = attack_started_dt - timedelta(seconds=int(max_pre_seconds))
@@ -720,7 +775,11 @@ def _score_alert_for_attack(
     if "write" in haystack or "register" in haystack or "control" in haystack:
         score += 1
         reasons.append("alert text contains write/register/control indicators")
-    alert_dt = _parse_dt(primary.get("ts_utc") or primary.get("timestamp"))
+    alert_dt = _best_alert_dt_for_attack_window(
+        alert_payload,
+        attack_started_at=attack_started_at,
+        attack_completed_at=attack_completed_at,
+    )
     if alert_dt and attack_completed_at:
         attack_completed_dt = _parse_dt(attack_completed_at)
         if attack_completed_dt:
@@ -837,6 +896,7 @@ def _cleanup_previous_heavy_case_before_next_repetition(
     repetition_number: int,
     total_repetitions: int,
     previous_result: dict | None,
+    acquisition_targets: list[dict] | None,
 ) -> dict:
     _prune_stale_placeholder_cases()
     active_case_dir = _active_case_dir()
@@ -947,11 +1007,36 @@ def _cleanup_previous_heavy_case_before_next_repetition(
         total_repetitions=total_repetitions,
         extra={"previous_case_id": case_id, "previous_execution_id": previous_execution_id, "lightweight_case_bundle_manifest_path": bundle_manifest or None},
     )
+    free_space_cleanup = _run_level_b_free_space_cleanup(acquisition_targets)
+    free_space_status = "completed" if free_space_cleanup.get("status") == "completed" else "completed_with_degradation"
+    free_space_detail = (
+        f"Applied safe free-space cleanup on fuxa/plc after deleting previous heavy case {case_id}. "
+        f"Cleaned roles: {', '.join(free_space_cleanup.get('cleaned_roles') or []) or 'none'}."
+    )
+    if free_space_cleanup.get("status") != "completed":
+        free_space_detail = (
+            f"Previous heavy case {case_id} was deleted, but the follow-up free-space cleanup on fuxa/plc was not fully successful. "
+            f"Failed roles: {', '.join(free_space_cleanup.get('failed_roles') or []) or 'unknown'}."
+        )
+    _emit_phase(
+        job_id,
+        job_path,
+        phase_key=f"repetition_{repetition_number}_cleanup_previous_node_space",
+        phase_label="Free space cleanup on fuxa/plc",
+        status=free_space_status,
+        detail=free_space_detail,
+        category="repetition",
+        index=0,
+        repetition_number=repetition_number,
+        total_repetitions=total_repetitions,
+        extra={"previous_case_id": case_id, "free_space_cleanup": free_space_cleanup},
+    )
     return {
         "status": "completed",
         "case_id": case_id,
         "execution_id": previous_execution_id,
         "cleanup": cleanup,
+        "post_case_free_space_cleanup": free_space_cleanup,
     }
 
 
@@ -1005,6 +1090,64 @@ def _resolve_level_b_acquisition_targets() -> list[dict]:
             f"Missing roles: {', '.join(missing)}."
         )
     return [by_role[role] for role in preferred_roles]
+
+
+def _resolve_level_b_free_space_cleanup_targets(acquisition_targets: list[dict] | None) -> list[dict]:
+    by_role = {
+        str(item.get("role") or "").lower(): item
+        for item in (acquisition_targets or [])
+        if item.get("vm_ip")
+    }
+    missing = [role for role in LEVEL_B_FREE_SPACE_CLEANUP_ROLES if role not in by_role]
+    if missing:
+        raise RuntimeError(
+            "Level B free-space cleanup requires fuxa and plc to be resolvable. "
+            f"Missing roles: {', '.join(missing)}."
+        )
+    return [by_role[role] for role in LEVEL_B_FREE_SPACE_CLEANUP_ROLES]
+
+
+def _run_free_space_cleanup_on_target(target: dict, *, timeout_seconds: int = 900) -> dict:
+    role = str(target.get("role") or "").lower()
+    vm_name = str(target.get("vm_name") or target.get("name") or role or "unknown")
+    vm_ip = str(target.get("vm_ip") or "").strip()
+    started_at = time.time()
+    result = cleanup_node_free_space(
+        instance_id=str(target.get("vm_id") or "").strip() or None,
+        vm_ip=vm_ip or None,
+        timeout=min(int(timeout_seconds), 120),
+        minimum_free_mb=1200,
+        max_attempts=2,
+    )
+    result["role"] = role
+    result["vm_name"] = vm_name
+    result["vm_ip"] = vm_ip
+    result["elapsed_seconds"] = round(time.time() - started_at, 3)
+    return result
+
+
+def _run_level_b_free_space_cleanup(acquisition_targets: list[dict] | None) -> dict:
+    try:
+        cleanup_targets = _resolve_level_b_free_space_cleanup_targets(acquisition_targets)
+    except Exception as exc:
+        return {
+            "status": "failed",
+            "reason": str(exc),
+            "per_target": [],
+            "cleaned_roles": [],
+            "failed_roles": [],
+        }
+
+    per_target = [_run_free_space_cleanup_on_target(target) for target in cleanup_targets]
+    failed = [item for item in per_target if item.get("status") != "completed"]
+    cleaned_roles = [str(item.get("role") or "unknown") for item in per_target if item.get("status") == "completed"]
+    failed_roles = [str(item.get("role") or "unknown") for item in failed]
+    return {
+        "status": "completed" if not failed else "failed",
+        "per_target": per_target,
+        "cleaned_roles": cleaned_roles,
+        "failed_roles": failed_roles,
+    }
 
 
 def _load_campaign(campaign_id: str) -> tuple[dict, dict]:
@@ -2418,6 +2561,7 @@ def _run_single_repetition(
     total_repetitions: int,
     target: dict,
     monitor: dict,
+    acquisition_targets: list[dict],
     detection_timeout_seconds: int,
     dfir_mode_before: str,
     dfir_mode_after: str,
@@ -3203,6 +3347,22 @@ def _run_single_repetition(
         cleanup_manifest_path = str((result.get("post_report_case_cleanup") or {}).get("lightweight_case_bundle_manifest_path") or "")
         if cleanup_manifest_path:
             _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_cleanup", phase_label="Clean heavy generated case", status="completed", detail=f"Heavy generated case {case_id} was cleaned after nested Level A analysis. Lightweight retained bundle: {cleanup_manifest_path}.", category="repetition", index=8, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_preservation_status": "cleanup_completed", **phase_extra})
+            post_case_free_space_cleanup = _run_level_b_free_space_cleanup(acquisition_targets)
+            result["post_case_free_space_cleanup"] = post_case_free_space_cleanup
+            post_cleanup_status = "completed" if post_case_free_space_cleanup.get("status") == "completed" else "completed_with_degradation"
+            post_cleanup_detail = (
+                f"Applied safe free-space cleanup on fuxa/plc after deleting heavy case {case_id}. "
+                f"Cleaned roles: {', '.join(post_case_free_space_cleanup.get('cleaned_roles') or []) or 'none'}."
+            )
+            if post_case_free_space_cleanup.get("status") != "completed":
+                post_cleanup_detail = (
+                    f"Heavy case {case_id} was deleted, but the follow-up free-space cleanup on fuxa/plc did not fully succeed. "
+                    f"Failed roles: {', '.join(post_case_free_space_cleanup.get('failed_roles') or []) or 'unknown'}."
+                )
+                result.setdefault("warnings", []).append(
+                    "Post-delete free-space cleanup on fuxa/plc did not fully succeed; the next repetition will retry it before launching the next attack."
+                )
+            _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_post_cleanup_node_space", phase_label="Free space cleanup on fuxa/plc", status=post_cleanup_status, detail=post_cleanup_detail, category="repetition", index=8, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_preservation_status": "cleanup_completed", "free_space_cleanup": post_case_free_space_cleanup, **phase_extra})
         else:
             _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_cleanup", phase_label="Clean heavy generated case", status="failed", detail=f"Cleanup for {case_id} did not produce the required lightweight retained bundle. The next Level B repetition must be blocked.", category="repetition", index=8, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_preservation_status": "cleanup_failed", **phase_extra})
             result.setdefault("blockers", []).append(
@@ -3334,6 +3494,9 @@ def _run_level_b_repetitions_job(
     _emit_phase(job_id, job_path, phase_key="verify_disk_acquisition", phase_label="Verify disk acquisition prerequisites", status="completed", detail="Stable non-interactive disk acquisition prerequisites verified for Level B batch execution.", category="setup", index=5, total_repetitions=requested_repetitions, extra={"disk_preflight": disk_preflight})
 
     results: list[dict] = []
+    early_stop_reason: str | None = None
+    early_stop_repetition: int | None = None
+
     for repetition_number in range(1, requested_repetitions + 1):
         raise_if_cancelled(job_id, job_path, phase_key="start_repetition", phase_label=f"Start repetition {repetition_number}/{requested_repetitions}", detail="Level B repetition batch cancellation was requested before launching the next repetition.")
         if repetition_number > 1 and results:
@@ -3344,6 +3507,7 @@ def _run_level_b_repetitions_job(
                 repetition_number=repetition_number,
                 total_repetitions=requested_repetitions,
                 previous_result=results[-1],
+                acquisition_targets=acquisition_targets,
             )
             results[-1]["pre_next_repetition_cleanup"] = pre_cleanup
             if pre_cleanup.get("status") == "failed":
@@ -3354,6 +3518,63 @@ def _run_level_b_repetitions_job(
                 append_job_list(job_id, job_path, "errors", {"message": blocker, "repetition": repetition_number})
                 results[-1].setdefault("blockers", []).append(blocker)
                 break
+            _emit_phase(
+                job_id,
+                job_path,
+                phase_key=f"repetition_{repetition_number}_pre_attack_node_space",
+                phase_label="Free space cleanup before next attack",
+                status="running",
+                detail=(
+                    f"Running mandatory free-space cleanup on fuxa/plc before launching repetition {repetition_number}/{requested_repetitions}. "
+                    "This ensures node-local storage is reclaimed before the next Level B attack."
+                ),
+                category="repetition",
+                index=0,
+                repetition_number=repetition_number,
+                total_repetitions=requested_repetitions,
+            )
+            pre_attack_node_cleanup = _run_level_b_free_space_cleanup(acquisition_targets)
+            results[-1]["pre_next_repetition_node_cleanup"] = pre_attack_node_cleanup
+            if pre_attack_node_cleanup.get("status") != "completed":
+                _emit_phase(
+                    job_id,
+                    job_path,
+                    phase_key=f"repetition_{repetition_number}_pre_attack_node_space",
+                    phase_label="Free space cleanup before next attack",
+                    status="failed",
+                    detail=(
+                        f"Mandatory free-space cleanup on fuxa/plc failed before repetition {repetition_number}. "
+                        f"Failed roles: {', '.join(pre_attack_node_cleanup.get('failed_roles') or []) or 'unknown'}."
+                    ),
+                    category="repetition",
+                    index=0,
+                    repetition_number=repetition_number,
+                    total_repetitions=requested_repetitions,
+                    extra={"free_space_cleanup": pre_attack_node_cleanup},
+                )
+                blocker = (
+                    f"Mandatory free-space cleanup failed before repetition {repetition_number}; "
+                    f"failed_roles={','.join(pre_attack_node_cleanup.get('failed_roles') or []) or 'unknown'}."
+                )
+                append_job_list(job_id, job_path, "errors", {"message": blocker, "repetition": repetition_number})
+                results[-1].setdefault("blockers", []).append(blocker)
+                break
+            _emit_phase(
+                job_id,
+                job_path,
+                phase_key=f"repetition_{repetition_number}_pre_attack_node_space",
+                phase_label="Free space cleanup before next attack",
+                status="completed",
+                detail=(
+                    f"Mandatory free-space cleanup completed on fuxa/plc before repetition {repetition_number}. "
+                    f"Cleaned roles: {', '.join(pre_attack_node_cleanup.get('cleaned_roles') or []) or 'none'}."
+                ),
+                category="repetition",
+                index=0,
+                repetition_number=repetition_number,
+                total_repetitions=requested_repetitions,
+                extra={"free_space_cleanup": pre_attack_node_cleanup},
+            )
         try:
             result = _run_single_repetition(
                 job_id,
@@ -3365,6 +3586,7 @@ def _run_level_b_repetitions_job(
                 total_repetitions=requested_repetitions,
                 target=target,
                 monitor=monitor,
+                acquisition_targets=acquisition_targets,
                 detection_timeout_seconds=detection_timeout_seconds,
                 dfir_mode_before=dfir_mode_before,
                 dfir_mode_after=dfir_mode_after,
@@ -3392,6 +3614,32 @@ def _run_level_b_repetitions_job(
         if result.get("blockers"):
             for blocker in result.get("blockers") or []:
                 append_job_list(job_id, job_path, "errors", {"message": blocker, "repetition": repetition_number})
+        if str(result.get("execution_status") or "") == "failed":
+            early_stop_repetition = repetition_number
+            early_stop_reason = (
+                f"Repetition {repetition_number}/{requested_repetitions} failed. "
+                "The Level B campaign is being closed immediately; no further attacks or acquisitions will be launched. "
+                "Final reporting will be generated only from the repetitions already executed."
+            )
+            _emit_phase(
+                job_id,
+                job_path,
+                phase_key=f"repetition_{repetition_number}_close_campaign_after_error",
+                phase_label="Close campaign after failed repetition",
+                status="completed_with_degradation",
+                detail=early_stop_reason,
+                category="repetition",
+                index=9,
+                repetition_number=repetition_number,
+                total_repetitions=requested_repetitions,
+                extra={
+                    "execution_id": result.get("execution_id"),
+                    "case_id": result.get("case_id"),
+                    "execution_status": result.get("execution_status"),
+                },
+            )
+            append_job_list(job_id, job_path, "errors", {"message": early_stop_reason, "repetition": repetition_number})
+            break
         cleanup_state = dict(result.get("post_report_case_cleanup") or {})
         if result.get("case_id") and not cleanup_state.get("lightweight_case_bundle_manifest_path"):
             blocker = f"Post-report heavy-case cleanup did not complete for repetition {repetition_number}. The next Level B repetition is blocked to avoid coexisting heavy cases."
@@ -3431,7 +3679,10 @@ def _run_level_b_repetitions_job(
         final_status = "completed_with_failures"
     elif partial:
         final_status = "completed_with_degradation"
-    _emit_phase(job_id, job_path, phase_key="complete", phase_label="Complete", status="completed", detail=f"Level B repetition workflow finished: completed={completed}, partial={partial}, failed={failed}.", category="final", index=1, total_repetitions=requested_repetitions, extra={"level_b_report_dir": report_meta["report_dir"], "level_b_report_path": report_meta["main_report_path"]})
+    completion_detail = f"Level B repetition workflow finished: completed={completed}, partial={partial}, failed={failed}."
+    if early_stop_reason:
+        completion_detail += f" Campaign stopped early after repetition {early_stop_repetition}: {early_stop_reason}"
+    _emit_phase(job_id, job_path, phase_key="complete", phase_label="Complete", status="completed", detail=completion_detail, category="final", index=1, total_repetitions=requested_repetitions, extra={"level_b_report_dir": report_meta["report_dir"], "level_b_report_path": report_meta["main_report_path"], "stopped_early": bool(early_stop_reason), "stopped_after_repetition": early_stop_repetition})
     update_job(
         job_id,
         job_path,
@@ -3439,7 +3690,7 @@ def _run_level_b_repetitions_job(
         finished_at=utc_now(),
         current_phase="complete",
         current_phase_label="Complete",
-        current_phase_detail=f"Level B repetition workflow finished. Report: {report_meta['report_dir']}",
+        current_phase_detail=f"{completion_detail} Report: {report_meta['report_dir']}",
         progress_percent=100.0,
         level_b_report_dir=report_meta["report_dir"],
         level_b_report_path=report_meta["main_report_path"],
@@ -3450,6 +3701,8 @@ def _run_level_b_repetitions_job(
         completed_repetitions=completed,
         partial_repetitions=partial,
         failed_repetitions=failed,
+        stopped_early=bool(early_stop_reason),
+        stopped_after_repetition=early_stop_repetition,
     )
 
 

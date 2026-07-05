@@ -18,6 +18,7 @@ import openstack
 
 
 from pathlib import Path
+from ..node_health.node_health_api import cleanup_node_free_space, resolve_node_for_remote_ops
 from .volatility_symbols import (
     get_job as get_vol3_job,
     start_memory_analysis_job,
@@ -77,6 +78,7 @@ DFIR_AUTO_DECISIONS_ROOT.mkdir(parents=True, exist_ok=True)
 ACTIVE_CASE_PTR = os.path.join(EVIDENCE_ROOT, "_active_case.txt")
 ACTIVE_PRESERVATION_PTR = os.path.join(EVIDENCE_ROOT, "_active_preservation.json")
 STALE_PLACEHOLDER_CASE_MIN_AGE_SECONDS = 30
+MEMORY_BUILD_MIN_FREE_MB = 1200
 
 def set_active_case_dir(case_dir: str) -> None:
     """
@@ -3193,20 +3195,120 @@ def acquire_memory(case_dir: str, vm_id: str, vm_ip: str, ssh_key: str, *, ssh_u
             timeout=60 * 60
         )
 
-    attempted_users = [ssh_user] if ssh_user else []
-    t0 = time.time()
-    rc, out, err = _run_for_user(ssh_user)
+    resolved_node = resolve_node_for_remote_ops(instance_id=vm_id, vm_ip=vm_ip)
+    resolved_ssh_user = str((resolved_node or {}).get("ssh_user") or "").strip()
+    if resolved_ssh_user:
+        ssh_user = resolved_ssh_user
 
-    auth_fail = (rc == 255) and ("Permission denied (publickey)" in (err or "") or "Permission denied" in (err or ""))
-    if auth_fail:
-        for candidate_user in ["ubuntu", "debian"]:
-            if candidate_user in attempted_users:
+    cleanup_preflight = None
+    cleanup_recovery = None
+    if str(mode or "").strip().lower() == "build":
+        cleanup_preflight = cleanup_node_free_space(
+            instance_id=vm_id,
+            vm_ip=vm_ip,
+            minimum_free_mb=MEMORY_BUILD_MIN_FREE_MB,
+            max_attempts=2,
+        )
+        _append_case_event(
+            case_dir,
+            "memory_preflight_cleanup_completed" if cleanup_preflight.get("status") == "completed" else "memory_preflight_cleanup_failed",
+            run_id=run_id,
+            meta={
+                "vm_id": vm_id,
+                "vm_ip": vm_ip,
+                "minimum_free_mb": MEMORY_BUILD_MIN_FREE_MB,
+                "cleanup": cleanup_preflight,
+            },
+        )
+        if cleanup_preflight.get("status") != "completed" and cleanup_preflight.get("reason") == "insufficient_free_space_after_cleanup":
+            _append_custody_entry(
+                case_dir,
+                "acquire_failed",
+                "forensics_api",
+                run_id=run_id,
+                outcome="error",
+                details={
+                    "kind": "memory",
+                    "vm_id": vm_id,
+                    "vm_ip": vm_ip,
+                    "mode": mode,
+                    "reason": "insufficient_free_space_after_cleanup",
+                    "cleanup_preflight": cleanup_preflight,
+                },
+            )
+            _register_custody_artifact(case_dir)
+            _write_case_digest(case_dir, run_id=run_id)
+            return {
+                "ok": False,
+                "result": "error",
+                "error": (
+                    f"insufficient free space on / after cleanup: "
+                    f"{cleanup_preflight.get('free_mb_after')}MB < {MEMORY_BUILD_MIN_FREE_MB}MB"
+                ),
+                "exit_code": 51,
+                "stdout": "\n".join(
+                    line
+                    for attempt in list(cleanup_preflight.get("attempts") or [])
+                    for line in list(attempt.get("stdout_excerpt") or [])
+                ),
+                "stderr": "\n".join(
+                    line
+                    for attempt in list(cleanup_preflight.get("attempts") or [])
+                    for line in list(attempt.get("stderr_excerpt") or [])
+                ),
+                "mem_dump": None,
+                "sha256": None,
+                "ssh_user_used": ssh_user,
+                "attempted_users": [ssh_user] if ssh_user else [],
+                "cleanup_preflight": cleanup_preflight,
+            }
+
+    candidate_users: list[str] = []
+    for candidate in [resolved_ssh_user, ssh_user, "ubuntu", "debian"]:
+        normalized = str(candidate or "").strip()
+        if normalized and normalized not in candidate_users:
+            candidate_users.append(normalized)
+
+    attempted_users: list[str] = []
+
+    def _run_with_user_fallback() -> tuple[int, str, str, str]:
+        selected_user = candidate_users[0] if candidate_users else "debian"
+        rc_local = 1
+        out_local = ""
+        err_local = ""
+        for idx, candidate_user in enumerate(candidate_users or [selected_user]):
+            if candidate_user not in attempted_users:
+                attempted_users.append(candidate_user)
+            rc_local, out_local, err_local = _run_for_user(candidate_user)
+            selected_user = candidate_user
+            auth_fail_local = (rc_local == 255) and ("Permission denied (publickey)" in (err_local or "") or "Permission denied" in (err_local or ""))
+            if auth_fail_local and idx < len(candidate_users) - 1:
                 continue
-            attempted_users.append(candidate_user)
-            rc, out, err = _run_for_user(candidate_user)
-            if rc == 0:
-                ssh_user = candidate_user
-                break
+            break
+        return rc_local, out_local, err_local, selected_user
+
+    t0 = time.time()
+    rc, out, err, ssh_user = _run_with_user_fallback()
+    if rc == 51 and str(mode or "").strip().lower() == "build":
+        cleanup_recovery = cleanup_node_free_space(
+            instance_id=vm_id,
+            vm_ip=vm_ip,
+            minimum_free_mb=MEMORY_BUILD_MIN_FREE_MB,
+            max_attempts=2,
+        )
+        _append_case_event(
+            case_dir,
+            "memory_recovery_cleanup_completed" if cleanup_recovery.get("status") == "completed" else "memory_recovery_cleanup_failed",
+            run_id=run_id,
+            meta={
+                "vm_id": vm_id,
+                "vm_ip": vm_ip,
+                "minimum_free_mb": MEMORY_BUILD_MIN_FREE_MB,
+                "cleanup": cleanup_recovery,
+            },
+        )
+        if cleanup_recovery.get("status") == "completed":
+            rc, out, err, ssh_user = _run_with_user_fallback()
     t1 = time.time()
 
     mem_rel = mem_size = sha_value = None
@@ -3297,6 +3399,8 @@ def acquire_memory(case_dir: str, vm_id: str, vm_ip: str, ssh_key: str, *, ssh_u
         "sha256": sha_value,
         "ssh_user_used": ssh_user,
         "attempted_users": attempted_users,
+        "cleanup_preflight": cleanup_preflight,
+        "cleanup_recovery": cleanup_recovery,
     }
 
 
@@ -4400,7 +4504,8 @@ def api_dfir_orchestrator_trigger():
         vm_id = t["vm_id"]
         vm_ip = t["vm_ip"]
         role = t["role"]
-        ssh_user = _dfir_ssh_user_for_role(role)
+        resolved_node = resolve_node_for_remote_ops(instance_id=vm_id, vm_ip=vm_ip)
+        ssh_user = str((resolved_node or {}).get("ssh_user") or "").strip() or _dfir_ssh_user_for_role(role)
 
         _append_case_event(case_dir, "dfir_step_start", run_id=run_id, meta={"step": "memory", "vm_id": vm_id, "vm_ip": vm_ip, "role": role})
         # Reutiliza tu función POST existente a nivel interno llamando directamente al script
@@ -4606,6 +4711,45 @@ def api_dfir_orchestrator_auto_pending():
     if not pending:
         return jsonify({"pending": False}), 200
     return jsonify({"pending": True, "decision": pending}), 200
+
+
+@forensics_bp.route("/api/dfir/orchestrator/active", methods=["GET"])
+def api_dfir_orchestrator_active():
+    _active_preservation_guard()
+    current = _load_active_preservation_state()
+    if not current:
+        return jsonify({"active": False}), 200
+
+    case_dir = os.path.abspath(str(current.get("case_dir") or ""))
+    case_id = str(current.get("case_id") or (os.path.basename(case_dir) if case_dir else "")).strip() or None
+    started_at = str(current.get("started_at_utc") or "").strip() or None
+    elapsed_seconds = None
+    if started_at:
+        try:
+            started_dt = datetime.fromisoformat(started_at.replace("Z", "+00:00"))
+            if started_dt.tzinfo is None:
+                started_dt = started_dt.replace(tzinfo=timezone.utc)
+            elapsed_seconds = max(0.0, (datetime.now(timezone.utc) - started_dt.astimezone(timezone.utc)).total_seconds())
+        except Exception:
+            elapsed_seconds = None
+
+    events = _read_jsonl_events(case_dir) if case_dir and os.path.isdir(case_dir) else []
+    last_event = events[-1] if events else {}
+    return jsonify(
+        {
+            "active": True,
+            "case_id": case_id,
+            "case_dir": relative_path(Path(case_dir)) if case_dir and os.path.isdir(case_dir) else (case_dir or None),
+            "run_id": str(current.get("run_id") or "R1"),
+            "state": str(current.get("state") or "running"),
+            "source": str(current.get("source") or "dfir"),
+            "started_at_utc": started_at,
+            "elapsed_seconds": elapsed_seconds,
+            "last_event": str(last_event.get("event") or "") or None,
+            "last_event_at_utc": str(last_event.get("ts_utc") or last_event.get("timestamp") or "") or None,
+            "phase_label": str(last_event.get("event") or current.get("state") or "running").replace("_", " "),
+        }
+    ), 200
 
 
 @forensics_bp.route("/api/dfir/orchestrator/auto/plan", methods=["POST"])
@@ -4951,7 +5095,8 @@ def api_dfir_orchestrator_auto_stream():
                     vm_id = t["vm_id"]
                     vm_ip = t["vm_ip"]
                     role = t["role"]
-                    ssh_user = _dfir_ssh_user_for_role(role)
+                    resolved_node = resolve_node_for_remote_ops(instance_id=vm_id, vm_ip=vm_ip)
+                    ssh_user = str((resolved_node or {}).get("ssh_user") or "").strip() or _dfir_ssh_user_for_role(role)
 
                     yield emit(f"[STEP] memory start role={role} ip={vm_ip} user={ssh_user} mode={mem_mode}")
                     payload_mem = {

@@ -1645,10 +1645,10 @@
     background: #7f1d1d !important;
   }
 
-  #expJobIndicator {
+  #expJobIndicator,
+  #dfirPreservationIndicator {
     position: fixed;
     right: 22px;
-    bottom: 22px;
     z-index: 25000;
     display: none;
     align-items: center;
@@ -1664,16 +1664,37 @@
     cursor: pointer;
   }
 
-  #expJobIndicator .exp-job-dot {
+  #expJobIndicator {
+    bottom: 22px;
+  }
+
+  #dfirPreservationIndicator {
+    bottom: 102px;
+    border-color: rgba(251, 191, 36, 0.24);
+    background: rgba(38, 24, 5, 0.78);
+    cursor: default;
+  }
+
+  #expJobIndicator .exp-job-dot,
+  #dfirPreservationIndicator .exp-job-dot {
     width: 11px;
     height: 11px;
     border-radius: 999px;
-    background: #22d3ee;
-    box-shadow: 0 0 0 5px rgba(34, 211, 238, 0.14);
     flex: 0 0 auto;
   }
 
-  #expJobIndicator .exp-job-kicker {
+  #expJobIndicator .exp-job-dot {
+    background: #22d3ee;
+    box-shadow: 0 0 0 5px rgba(34, 211, 238, 0.14);
+  }
+
+  #dfirPreservationIndicator .exp-job-dot {
+    background: #f59e0b;
+    box-shadow: 0 0 0 5px rgba(245, 158, 11, 0.14);
+  }
+
+  #expJobIndicator .exp-job-kicker,
+  #dfirPreservationIndicator .exp-job-kicker {
     font-size: 9px;
     font-weight: 900;
     letter-spacing: .22em;
@@ -1681,7 +1702,8 @@
     color: rgba(203,213,225,0.76);
   }
 
-  #expJobIndicator .exp-job-main {
+  #expJobIndicator .exp-job-main,
+  #dfirPreservationIndicator .exp-job-main {
     margin-top: 4px;
     font-size: 12px;
     font-weight: 900;
@@ -1689,7 +1711,8 @@
     line-height: 1.2;
   }
 
-  #expJobIndicator .exp-job-meta {
+  #expJobIndicator .exp-job-meta,
+  #dfirPreservationIndicator .exp-job-meta {
     margin-top: 5px;
     font-size: 10px;
     font-weight: 800;
@@ -1821,6 +1844,14 @@
       <div class="exp-job-kicker">Experimentation Running</div>
       <div id="expJobMain" class="exp-job-main">Preparing…</div>
       <div id="expJobMeta" class="exp-job-meta">0% · starting</div>
+    </div>
+  </div>
+  <div id="dfirPreservationIndicator" aria-live="polite">
+    <div class="exp-job-dot"></div>
+    <div style="min-width:0">
+      <div class="exp-job-kicker">Preservation Running</div>
+      <div id="dfirPreservationMain" class="exp-job-main">Preparing…</div>
+      <div id="dfirPreservationMeta" class="exp-job-meta">running</div>
     </div>
   </div>
   <div id="expJobOverlay">
@@ -3921,6 +3952,7 @@
     const HOME_HEALTH_REFRESH_MS = 30000;
     let homeSummaryInFlight = false;
     const EXP_JOB_STORAGE_KEY = "nics-foc-experimentation-active-job";
+    const EXP_JOB_LAST_SUMMARY_KEY = "nics-foc-experimentation-last-summary";
     let expJobPollTimer = null;
 
     function expLoadStoredJob() {
@@ -3937,6 +3969,65 @@
       } catch {}
     }
 
+    function expLoadLastSummary() {
+      try {
+        return JSON.parse(localStorage.getItem(EXP_JOB_LAST_SUMMARY_KEY) || "null");
+      } catch {
+        return null;
+      }
+    }
+
+    function expSaveLastSummary(job) {
+      try {
+        const rows = Array.isArray(job?.per_repetition_results) ? job.per_repetition_results : [];
+        let lastRepetitionDurationSeconds = null;
+        for (let idx = rows.length - 1; idx >= 0; idx -= 1) {
+          const value = Number(rows[idx]?.timing_metrics?.total_repetition_duration_seconds);
+          if (Number.isFinite(value) && value >= 0) {
+            lastRepetitionDurationSeconds = value;
+            break;
+          }
+        }
+        localStorage.setItem(EXP_JOB_LAST_SUMMARY_KEY, JSON.stringify({
+          title: job.title || "Experimentation job",
+          status: job.status || "unknown",
+          finished_at: job.finished_at || null,
+          started_at: job.started_at || null,
+          current_phase_label: job.current_phase_label || job.current_phase || "completed",
+          duration_seconds: expJobElapsedSeconds(job),
+          last_repetition_duration_seconds: lastRepetitionDurationSeconds,
+          campaign_id: (job.meta || {}).campaign_id || null,
+        }));
+      } catch {}
+    }
+
+    function expParseIso(value) {
+      const raw = String(value || "").trim();
+      if (!raw) return null;
+      const date = new Date(raw);
+      return Number.isFinite(date.getTime()) ? date : null;
+    }
+
+    function expJobElapsedSeconds(job) {
+      const started = expParseIso(job?.started_at);
+      if (!started) return null;
+      const finished = expParseIso(job?.finished_at);
+      const end = finished || new Date();
+      return Math.max(0, (end.getTime() - started.getTime()) / 1000);
+    }
+
+    function expFormatDuration(seconds) {
+      const num = Number(seconds);
+      if (!Number.isFinite(num) || num < 0) return "not_available";
+      const rounded = Math.round(num);
+      const hours = Math.floor(rounded / 3600);
+      const minutes = Math.floor((rounded % 3600) / 60);
+      const secs = rounded % 60;
+      if (hours > 0) return `${hours}h ${minutes}m ${secs}s`;
+      if (minutes > 0) return `${minutes}m ${secs}s`;
+      return `${secs}s`;
+    }
+
     function expHideIndicator() {
       const el = document.getElementById("expJobIndicator");
       const ov = document.getElementById("expJobOverlay");
@@ -3949,8 +4040,10 @@
       const main = document.getElementById("expJobMain");
       const meta = document.getElementById("expJobMeta");
       if (!el || !main || !meta) return;
+      const duration = expFormatDuration(expJobElapsedSeconds(job) ?? job.duration_seconds);
+      const lastRep = expFormatDuration(job.last_repetition_duration_seconds);
       main.textContent = job.current_phase_label || job.title || "Experimentation running";
-      meta.textContent = `${Math.round(Number(job.progress_percent || 0))}% · ${job.current_phase || "starting"}`;
+      meta.textContent = `${Math.round(Number(job.progress_percent || 0))}% · ${job.current_phase || job.status || "starting"} · elapsed ${duration}${lastRep !== "not_available" ? ` · last rep ${lastRep}` : ""}`;
       el.style.display = "flex";
     }
 
@@ -3960,12 +4053,16 @@
       if (!title || !body) return;
       title.textContent = job.title || "Experimentation job";
       const phases = Array.isArray(job.phase_statuses) ? job.phase_statuses.slice(-10) : [];
+      const duration = expFormatDuration(expJobElapsedSeconds(job) ?? job.duration_seconds);
+      const lastRep = expFormatDuration(job.last_repetition_duration_seconds);
       body.innerHTML = `
         <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;">
           <div><strong>Status:</strong> ${job.status || "unknown"}</div>
           <div><strong>Progress:</strong> ${Math.round(Number(job.progress_percent || 0))}%</div>
           <div><strong>Current phase:</strong> ${job.current_phase_label || job.current_phase || "starting"}</div>
           <div><strong>Campaign:</strong> ${(job.meta || {}).campaign_id || "not_available"}</div>
+          <div><strong>Elapsed:</strong> ${duration}</div>
+          <div><strong>Last repetition:</strong> ${lastRep}</div>
         </div>
         <div style="margin-top:14px;"><strong>Exact activity:</strong> ${job.current_phase_detail || "No additional detail available."}</div>
         ${phases.length ? `
@@ -3994,20 +4091,39 @@
     async function expPollIndicator() {
       const stored = expLoadStoredJob();
       if (!stored?.job_id) {
-        expHideIndicator();
+        const lastSummary = expLoadLastSummary();
+        if (lastSummary) {
+          expRenderIndicator(lastSummary);
+          expRenderOverlay(lastSummary);
+        } else {
+          expHideIndicator();
+        }
         return;
       }
       try {
         const res = await fetch(`/api/foc/experimentation/jobs/${encodeURIComponent(stored.job_id)}`, { cache: "no-store" });
         if (!res.ok) {
           expClearStoredJob();
-          expHideIndicator();
+          const lastSummary = expLoadLastSummary();
+          if (lastSummary) {
+            expRenderIndicator(lastSummary);
+            expRenderOverlay(lastSummary);
+          } else {
+            expHideIndicator();
+          }
           return;
         }
         const job = await res.json();
         if (["completed", "completed_with_degradation", "failed", "cancelled"].includes(String(job.status))) {
+          expSaveLastSummary(job);
           expClearStoredJob();
-          expHideIndicator();
+          const lastSummary = expLoadLastSummary();
+          if (lastSummary) {
+            expRenderIndicator(lastSummary);
+            expRenderOverlay(lastSummary);
+          } else {
+            expHideIndicator();
+          }
           return;
         }
         expRenderIndicator(job);
@@ -4032,6 +4148,87 @@
       });
       expPollIndicator().catch(() => {});
       expJobPollTimer = setInterval(() => expPollIndicator().catch(() => {}), 2500);
+    }
+
+    const DFIR_ACTIVE_LAST_SUMMARY_KEY = "nics_dfir_active_last_summary";
+    let dfirActiveLastSeen = null;
+
+    function dfirLoadLastSummary() {
+      try {
+        const raw = localStorage.getItem(DFIR_ACTIVE_LAST_SUMMARY_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function dfirSaveLastSummary(payload) {
+      try {
+        localStorage.setItem(DFIR_ACTIVE_LAST_SUMMARY_KEY, JSON.stringify(payload));
+      } catch {}
+    }
+
+    function dfirHideActiveIndicator() {
+      const el = document.getElementById("dfirPreservationIndicator");
+      if (el) el.style.display = "none";
+    }
+
+    function dfirRenderActiveIndicator(payload) {
+      const el = document.getElementById("dfirPreservationIndicator");
+      const main = document.getElementById("dfirPreservationMain");
+      const meta = document.getElementById("dfirPreservationMeta");
+      if (!el || !main || !meta) return;
+      const duration = expFormatDuration(payload.elapsed_seconds ?? payload.duration_seconds);
+      const state = String(payload.state || payload.status || "running").replaceAll("_", " ");
+      const phase = payload.phase_label || payload.last_event || payload.current_phase || state;
+      main.textContent = payload.case_id ? `${payload.case_id}` : "Preservation running";
+      meta.textContent = `${state} · ${phase} · elapsed ${duration}`;
+      el.style.display = "flex";
+    }
+
+    async function dfirPollActiveIndicator() {
+      try {
+        const res = await fetch("/api/dfir/orchestrator/active", { cache: "no-store" });
+        if (!res.ok) return;
+        const payload = await res.json();
+        if (payload?.active) {
+          dfirActiveLastSeen = payload;
+          dfirRenderActiveIndicator(payload);
+          return;
+        }
+        if (dfirActiveLastSeen) {
+          dfirSaveLastSummary({
+            case_id: dfirActiveLastSeen.case_id || null,
+            state: "completed",
+            phase_label: dfirActiveLastSeen.phase_label || "completed",
+            duration_seconds: dfirActiveLastSeen.elapsed_seconds ?? null,
+          });
+          dfirActiveLastSeen = null;
+        }
+        const lastSummary = dfirLoadLastSummary();
+        if (lastSummary) {
+          dfirRenderActiveIndicator(lastSummary);
+        } else {
+          dfirHideActiveIndicator();
+        }
+      } catch (_) {
+        // keep the last visible state if available
+      }
+    }
+
+    function dfirInitActiveIndicator() {
+      const indicator = document.getElementById("dfirPreservationIndicator");
+      if (indicator) {
+        indicator.addEventListener("click", () => {
+          const overlay = document.getElementById("dfir-auto-overlay");
+          if (overlay && overlay.style.display === "flex") {
+            return;
+          }
+          openView("forensics");
+        });
+      }
+      dfirPollActiveIndicator().catch(() => {});
+      setInterval(() => dfirPollActiveIndicator().catch(() => {}), 2500);
     }
 
     function homeInitHealthBell() {
@@ -4248,6 +4445,7 @@
 
     document.addEventListener("DOMContentLoaded", () => {
       expInitIndicator();
+      dfirInitActiveIndicator();
       homeInitHealthBell();
       homeBindSidebarNavigation();
       loadHomeOperationalSummary(true).catch(() => {});

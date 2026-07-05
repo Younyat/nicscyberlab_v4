@@ -1,0 +1,111 @@
+{
+  "artifact_availability": {
+    "cases_created": 10,
+    "cleanup_old_cases_before_run": "completed",
+    "nested_level_a_reports_completed": 9
+  },
+  "analysis_usefulness": {
+    "completed_repetitions": 0,
+    "partial_repetitions": 10,
+    "failed_repetitions": 0
+  },
+  "trigger_and_acquisition_latency": {
+    "N_B": 10,
+    "alert_to_memory_start_mean_seconds": 24.9462,
+    "alert_to_memory_start_std_seconds": 9.603592,
+    "alert_to_memory_preserved_mean_seconds": 372.9065,
+    "alert_to_memory_preserved_std_seconds": 15.05083,
+    "alert_to_case_sealed_mean_seconds": 1190.805,
+    "alert_to_case_sealed_std_seconds": 96.968834,
+    "total_duration_mean_seconds": 1480.9388,
+    "total_duration_std_seconds": 138.742714
+  },
+  "cross_case_comparability": {
+    "comparison_id": "comparison-9783d3effaf6",
+    "generated_at": "2026-07-05T12:40:51.310539+00:00",
+    "status": "Comparable With Degradation",
+    "comparison_type": "exploratory_comparison_only",
+    "direct_comparison_valid": false,
+    "exploratory_only": true,
+    "scenario_drift": false,
+    "family_metadata_incomplete": false,
+    "execution_ids": [
+      "EXEC-0001",
+      "EXEC-0002",
+      "EXEC-0003",
+      "EXEC-0004",
+      "EXEC-0005",
+      "EXEC-0006",
+      "EXEC-0007",
+      "EXEC-0008",
+      "EXEC-0009",
+      "EXEC-0010"
+    ],
+    "reference_execution_id": "EXEC-0001",
+    "delta_cpr_allowed": 0.125,
+    "delta_wcpr_allowed": 0.1,
+    "hard_failures": [],
+    "degradation_reasons": [
+      "EXEC-0001: causal reconstruction contains degraded edges",
+      "EXEC-0002: causal reconstruction contains degraded edges",
+      "EXEC-0002: baseline noise profile raised a comparability warning",
+      "EXEC-0003: causal reconstruction contains degraded edges",
+      "EXEC-0003: baseline noise profile raised a comparability warning",
+      "EXEC-0004: causal reconstruction contains degraded edges",
+      "EXEC-0005: causal reconstruction contains degraded edges",
+      "EXEC-0006: causal reconstruction contains degraded edges",
+      "EXEC-0006: baseline noise profile raised a comparability warning",
+      "EXEC-0007: causal reconstruction contains degraded edges",
+      "EXEC-0008: causal reconstruction contains degraded edges",
+      "EXEC-0009: causal reconstruction contains degraded edges",
+      "EXEC-0010: causal reconstruction contains degraded edges"
+    ],
+    "summary": {
+      "max_abs_cpr_difference": 0.0,
+      "max_abs_weighted_cpr_difference": 0.0,
+      "max_support_rank_shift": 0
+    },
+    "artifacts": {
+      "comparison_matrix": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260705-001747-0617/comparisons/comparison-9783d3effaf6/comparison_matrix.json",
+      "comparability_result": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260705-001747-0617/comparisons/comparison-9783d3effaf6/comparability_result.json",
+      "comparability_report": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260705-001747-0617/comparisons/comparison-9783d3effaf6/comparability_report.md"
+    }
+  },
+  "nested_level_a_repeatability": {
+    "completed_nested_reports": 9,
+    "failed_nested_reports": 1,
+    "comparison_statuses": [
+      "Comparable With Degradation",
+      "Comparable With Degradation",
+      "Not Comparable",
+      "Comparable With Degradation",
+      "Insufficient Data",
+      "Comparable With Degradation",
+      "Insufficient Data",
+      "not_available",
+      "Comparable With Degradation",
+      "Comparable With Degradation"
+    ],
+    "comparison_types": [
+      "direct_level_a_repeatability_comparison",
+      "direct_level_a_repeatability_comparison",
+      "direct_level_a_repeatability_comparison",
+      "direct_level_a_repeatability_comparison",
+      "not_enough_generated_level_a_repetitions",
+      "direct_level_a_repeatability_comparison",
+      "not_enough_generated_level_a_repetitions",
+      "not_available",
+      "direct_level_a_repeatability_comparison",
+      "direct_level_a_repeatability_comparison"
+    ]
+  },
+  "aggregate_reconstruction_metrics": {
+    "recoverability_mean": 0.0,
+    "recoverability_std": 0.0,
+    "weighted_recoverability_mean": 0.0,
+    "weighted_recoverability_std": 0.0,
+    "degraded_relations_total": 0,
+    "ambiguous_relations_total": 0,
+    "missing_relations_total": 0
+  }
+}

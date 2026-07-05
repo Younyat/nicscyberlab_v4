@@ -279,6 +279,31 @@ def _find_node(instance_id: str) -> dict | None:
     return None
 
 
+def resolve_node_for_remote_ops(*, instance_id: str | None = None, vm_ip: str | None = None) -> dict | None:
+    instance_id = str(instance_id or "").strip()
+    vm_ip = str(vm_ip or "").strip()
+    nodes = _list_nodes()
+    if instance_id:
+        for node in nodes:
+            if str(node.get("id") or "") == instance_id:
+                return node
+    if vm_ip:
+        for node in nodes:
+            candidates = {
+                str(node.get("ssh_target_ip") or "").strip(),
+                str(node.get("ip_private") or "").strip(),
+                str(node.get("ip_floating") or "").strip(),
+            }
+            candidates.update(
+                str(item.get("ip") or "").strip()
+                for item in (node.get("networks") or [])
+                if str(item.get("ip") or "").strip()
+            )
+            if vm_ip in candidates:
+                return node
+    return None
+
+
 def _run_local_text(cmd: list[str]) -> str:
     try:
         return subprocess.run(cmd, capture_output=True, text=True, timeout=10).stdout.strip()
@@ -416,6 +441,116 @@ def _run_remote_script_capture(node: dict, script_path: Path, *, remote_dump: st
         text=True,
         timeout=timeout,
     )
+
+
+def _run_remote_text_capture(node: dict, command: str, *, timeout: int = 30) -> subprocess.CompletedProcess[str]:
+    ssh_ip = node.get("ssh_target_ip") or node.get("ip_floating") or node.get("ip_private")
+    if not ssh_ip:
+        raise RuntimeError("No SSH target IP available for node")
+    ssh_user = node.get("ssh_user") or "debian"
+    return subprocess.run(
+        [
+            "ssh",
+            "-i",
+            SSH_KEY_PATH,
+            "-o",
+            "StrictHostKeyChecking=no",
+            f"{ssh_user}@{ssh_ip}",
+            command,
+        ],
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+
+
+def _node_root_free_mb(node: dict) -> int | None:
+    try:
+        proc = _run_remote_text_capture(node, "df -Pm / | awk 'NR==2 {print $4}'", timeout=20)
+        raw = str(proc.stdout or "").strip()
+        return int(raw) if raw else None
+    except Exception:
+        return None
+
+
+def cleanup_node_free_space(
+    *,
+    instance_id: str | None = None,
+    vm_ip: str | None = None,
+    remote_dump: str = "",
+    timeout: int = 120,
+    minimum_free_mb: int | None = None,
+    max_attempts: int = 2,
+) -> dict:
+    node = resolve_node_for_remote_ops(instance_id=instance_id, vm_ip=vm_ip)
+    if not node:
+        return {
+            "status": "failed",
+            "reason": "node_not_found",
+            "instance_id": instance_id,
+            "vm_ip": vm_ip,
+            "attempts": [],
+        }
+    if not CLEANUP_SCRIPT_PATH.exists():
+        return {
+            "status": "failed",
+            "reason": "cleanup_script_not_found",
+            "instance_id": instance_id,
+            "vm_ip": vm_ip,
+            "script_path": str(CLEANUP_SCRIPT_PATH),
+            "attempts": [],
+        }
+
+    before_free_mb = _node_root_free_mb(node)
+    attempts: list[dict] = []
+    final_after_free_mb = before_free_mb
+    for attempt_no in range(1, max(int(max_attempts or 1), 1) + 1):
+        proc = _run_remote_script_capture(node, CLEANUP_SCRIPT_PATH, remote_dump=remote_dump, timeout=timeout)
+        after_free_mb = _node_root_free_mb(node)
+        final_after_free_mb = after_free_mb
+        stdout_excerpt = [line.rstrip() for line in str(proc.stdout or "").splitlines()[-40:] if line.strip()]
+        stderr_excerpt = [line.rstrip() for line in str(proc.stderr or "").splitlines()[-40:] if line.strip()]
+        attempts.append(
+            {
+                "attempt": attempt_no,
+                "returncode": proc.returncode,
+                "stdout_excerpt": stdout_excerpt,
+                "stderr_excerpt": stderr_excerpt,
+                "free_mb_before": before_free_mb if attempt_no == 1 else attempts[-1].get("free_mb_after"),
+                "free_mb_after": after_free_mb,
+            }
+        )
+        if proc.returncode == 0 and (
+            minimum_free_mb is None or (after_free_mb is not None and after_free_mb >= int(minimum_free_mb))
+        ):
+            return {
+                "status": "completed",
+                "reason": "cleanup_completed",
+                "instance_id": node.get("id"),
+                "vm_ip": node.get("ssh_target_ip") or node.get("ip_private") or node.get("ip_floating"),
+                "node_name": node.get("name"),
+                "ssh_user": node.get("ssh_user"),
+                "free_mb_before": before_free_mb,
+                "free_mb_after": after_free_mb,
+                "minimum_free_mb": minimum_free_mb,
+                "attempts": attempts,
+            }
+
+    reason = "cleanup_script_failed"
+    if minimum_free_mb is not None and final_after_free_mb is not None and final_after_free_mb < int(minimum_free_mb):
+        reason = "insufficient_free_space_after_cleanup"
+    return {
+        "status": "failed",
+        "reason": reason,
+        "instance_id": node.get("id"),
+        "vm_ip": node.get("ssh_target_ip") or node.get("ip_private") or node.get("ip_floating"),
+        "node_name": node.get("name"),
+        "ssh_user": node.get("ssh_user"),
+        "free_mb_before": before_free_mb,
+        "free_mb_after": final_after_free_mb,
+        "minimum_free_mb": minimum_free_mb,
+        "attempts": attempts,
+    }
 
 
 def _safe_instance_filename(instance_name: str) -> str:

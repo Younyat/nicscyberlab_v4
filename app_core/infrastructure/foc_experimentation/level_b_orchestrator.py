@@ -241,6 +241,54 @@ def _parse_alert_dt(value: str | None) -> datetime | None:
         return None
 
 
+def _alert_candidate_dts(alert_payload: dict) -> list[datetime]:
+    primary = (alert_payload or {}).get("primary") or {}
+    triage = (alert_payload or {}).get("triage") or {}
+    raw = primary.get("raw") or {}
+    raw_data = raw.get("data") or {}
+    candidates: list[datetime] = []
+    seen: set[str] = set()
+    for raw_value in (
+        primary.get("ts_utc"),
+        primary.get("timestamp"),
+        raw_data.get("timestamp"),
+        raw.get("timestamp"),
+        triage.get("ts_utc"),
+    ):
+        dt = _parse_alert_dt(raw_value)
+        if not dt:
+            continue
+        key = dt.isoformat()
+        if key in seen:
+            continue
+        seen.add(key)
+        candidates.append(dt)
+    return candidates
+
+
+def _best_alert_dt(
+    alert_payload: dict,
+    *,
+    attack_started_utc: str | None = None,
+    attack_completed_utc: str | None = None,
+    max_pre_seconds: int = ALERT_MATCH_MAX_PRE_SECONDS,
+    max_post_seconds: int = ALERT_MATCH_MAX_POST_SECONDS,
+) -> datetime | None:
+    candidates = _alert_candidate_dts(alert_payload)
+    if not candidates:
+        return None
+    attack_started_dt = _parse_alert_dt(attack_started_utc)
+    attack_completed_dt = _parse_alert_dt(attack_completed_utc) or attack_started_dt
+    if not attack_started_dt or not attack_completed_dt:
+        return candidates[0]
+    earliest = attack_started_dt - timedelta(seconds=int(max_pre_seconds))
+    latest = attack_completed_dt + timedelta(seconds=int(max_post_seconds))
+    in_window = [dt for dt in candidates if earliest <= dt <= latest]
+    if in_window:
+        return min(in_window, key=lambda dt: abs((dt - attack_completed_dt).total_seconds()))
+    return min(candidates, key=lambda dt: abs((dt - attack_completed_dt).total_seconds()))
+
+
 def _alert_is_within_attack_window(
     alert_payload: dict,
     *,
@@ -251,10 +299,15 @@ def _alert_is_within_attack_window(
 ) -> bool:
     if not attack_started_utc and not attack_completed_utc:
         return True
-    primary = (alert_payload or {}).get("primary") or {}
-    alert_dt = _parse_alert_dt(primary.get("ts_utc") or primary.get("timestamp"))
     attack_started_dt = _parse_alert_dt(attack_started_utc)
     attack_completed_dt = _parse_alert_dt(attack_completed_utc) or attack_started_dt
+    alert_dt = _best_alert_dt(
+        alert_payload,
+        attack_started_utc=attack_started_utc,
+        attack_completed_utc=attack_completed_utc,
+        max_pre_seconds=max_pre_seconds,
+        max_post_seconds=max_post_seconds,
+    )
     if not alert_dt or not attack_started_dt or not attack_completed_dt:
         return False
     earliest = attack_started_dt - timedelta(seconds=int(max_pre_seconds))

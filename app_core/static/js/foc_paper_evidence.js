@@ -56,6 +56,57 @@
     return Number.isFinite(num) ? `${num.toFixed(1)}%` : "not_available";
   }
 
+  function parseIso(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return null;
+    const date = new Date(raw);
+    return Number.isFinite(date.getTime()) ? date : null;
+  }
+
+  function formatDurationSeconds(totalSeconds) {
+    const num = Number(totalSeconds);
+    if (!Number.isFinite(num) || num < 0) return "not_available";
+    const rounded = Math.round(num);
+    const hours = Math.floor(rounded / 3600);
+    const minutes = Math.floor((rounded % 3600) / 60);
+    const seconds = rounded % 60;
+    if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
+    if (minutes > 0) return `${minutes}m ${seconds}s`;
+    return `${seconds}s`;
+  }
+
+  function jobElapsedSeconds(payload) {
+    const started = parseIso(payload?.started_at);
+    if (!started) return null;
+    const finished = parseIso(payload?.finished_at);
+    const end = finished || new Date();
+    return Math.max(0, (end.getTime() - started.getTime()) / 1000);
+  }
+
+  function lastRepetitionDurationSeconds(childPayload) {
+    const rows = Array.isArray(childPayload?.per_repetition_results) ? childPayload.per_repetition_results : [];
+    for (let idx = rows.length - 1; idx >= 0; idx -= 1) {
+      const timing = rows[idx]?.timing_metrics || {};
+      const value = Number(timing.total_repetition_duration_seconds);
+      if (Number.isFinite(value) && value >= 0) return value;
+    }
+    return null;
+  }
+
+  function repetitionDurationRows(childPayload) {
+    const rows = Array.isArray(childPayload?.per_repetition_results) ? childPayload.per_repetition_results : [];
+    return rows
+      .map((item) => {
+        const value = Number(item?.timing_metrics?.total_repetition_duration_seconds);
+        return {
+          repetition: item?.repetition_number,
+          caseId: item?.case_id || "not_available",
+          duration: Number.isFinite(value) && value >= 0 ? value : null,
+        };
+      })
+      .filter((item) => item.duration !== null);
+  }
+
   function isLevelBPaperJob(payload) {
     if (!payload) return false;
     if (String(payload.requested_level || "").toUpperCase() === "B") return true;
@@ -294,6 +345,10 @@
     }
     const phases = payload.phase_statuses || [];
     const nestedPhases = payload.nested_phase_statuses || [];
+    const paperElapsed = jobElapsedSeconds(payload);
+    const childElapsed = jobElapsedSeconds(childPayload);
+    const lastRepDuration = lastRepetitionDurationSeconds(childPayload);
+    const repDurations = repetitionDurationRows(childPayload);
     root.innerHTML = `
       <div class="space-y-4">
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -302,9 +357,37 @@
           <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Current phase</div><div class="font-black mt-2">${esc(payload.current_phase_label || payload.current_phase || "unknown")}</div></div>
           <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Progress</div><div class="font-black mt-2">${esc(payload.progress_percent ?? "0")}%</div></div>
         </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+            <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Paper Job Elapsed</div>
+            <div class="font-black mt-2">${esc(formatDurationSeconds(paperElapsed))}</div>
+          </div>
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+            <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Level Repetition Elapsed</div>
+            <div class="font-black mt-2">${esc(formatDurationSeconds(childElapsed))}</div>
+          </div>
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+            <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Last Repetition Duration</div>
+            <div class="font-black mt-2">${esc(formatDurationSeconds(lastRepDuration))}</div>
+          </div>
+        </div>
         <div><span class="font-black">Detail:</span> ${esc(payload.current_phase_detail || "not_available")}</div>
         <div><span class="font-black">Current case:</span> <span class="mono">${esc(payload.current_case_id || "not_available")}</span></div>
         <div><span class="font-black">Report path:</span> <span class="mono break-all">${esc(payload.report_output_path || "not_available")}</span></div>
+        ${repDurations.length ? `
+          <div class="rounded-2xl border border-slate-700/60 bg-slate-950/30 p-4">
+            <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Completed Repetition Durations</div>
+            <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+              ${repDurations.map((item) => `
+                <div class="rounded-2xl border border-slate-800/80 bg-slate-900/50 p-3">
+                  <div class="font-black">Rep ${esc(item.repetition)}</div>
+                  <div class="text-slate-300 mt-1 mono">${esc(item.caseId)}</div>
+                  <div class="text-cyan-300 mt-2 font-black">${esc(formatDurationSeconds(item.duration))}</div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        ` : ""}
         ${nestedPhases.length ? `
           <div class="rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-4">
             <div class="text-xs uppercase tracking-[0.16em] text-cyan-300 font-black">Nested Level A Workflow</div>

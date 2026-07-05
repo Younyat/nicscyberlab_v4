@@ -49,11 +49,16 @@ trap "kill $KEEPALIVE_PID 2>/dev/null" EXIT
 
 # ------------------------------------------------------------
 # REMOTE COMMAND:
-#  - tail alerts.json
+#  - tail recent alerts first, then follow new ones
 #  - jq filtra grupos y emite 1 JSON por evento (compacto)
 # ------------------------------------------------------------
 REMOTE_COMMAND=$(cat <<'EOF'
-sudo stdbuf -oL tail -n 0 -F __REMOTE_PATH__ | jq --unbuffered -c '
+# We intentionally keep a short backlog here because Level B launches the
+# attack before opening the monitor session. A pure "-n 0 -F" can miss the
+# detection if Wazuh writes the alert during the attack itself. The Level B
+# matcher still enforces a tight temporal window around the executed attack,
+# so a small recent backlog is safe and avoids losing the relevant alert.
+sudo stdbuf -oL tail -n 200 -F __REMOTE_PATH__ | jq --unbuffered -c '
   # filtrar solo lo que interesa
   select(.rule.groups[]? | . == "suricata" or . == "syscheck" or . == "authentication_failed") |
 
