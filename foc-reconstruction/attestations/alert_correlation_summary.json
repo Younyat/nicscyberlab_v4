@@ -1,21 +1,21 @@
 {
-  "generated_at": "2026-07-05T12:32:08.308841+00:00",
+  "generated_at": "2026-07-06T04:34:16.564382+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
-  "total_correlation_records": 329139,
-  "total_alerts": 23606,
-  "relevant_alerts": 10658,
-  "correlated_alerts": 132300,
-  "confirmed_correlations": 132300,
+  "total_correlation_records": 48801,
+  "total_alerts": 5827,
+  "relevant_alerts": 1261,
+  "correlated_alerts": 48762,
+  "confirmed_correlations": 48762,
   "weak_correlations": 0,
-  "unresolved_alerts": 196800,
+  "unresolved_alerts": 0,
   "noise_alerts": 0,
   "false_positive_candidates": 0,
   "missing_expected_alerts_total": 39,
   "bucket_counts": {
-    "correlated": 132300,
-    "uncorrelated": 196800,
-    "noise": 12948,
+    "correlated": 48762,
+    "uncorrelated": 960,
+    "noise": 4566,
     "false_positive_candidate": 0,
     "missing_expected_alert": 39,
     "weak_candidate": 0,
@@ -25,117 +25,73 @@
   "top_signatures": [
     {
       "label": "NICS CyberLab ICS Modbus write multiple registers",
-      "count": 132300
-    },
-    {
-      "label": "Jun 25 15:37:16 plc-instance sshd[2787405]: Invalid user debian from 10.0.2.1 port 53846",
-      "count": 7200
-    },
-    {
-      "label": "Jun 29 14:51:08 plc-instance sshd[3537388]: Invalid user debian from 10.0.2.1 port 47322",
-      "count": 4800
-    },
-    {
-      "label": "Jun 29 15:39:08 plc-instance sshd[3544965]: Invalid user debian from 10.0.2.1 port 58606",
-      "count": 4800
-    },
-    {
-      "label": "Jun 29 16:20:21 plc-instance sshd[3551794]: Invalid user debian from 10.0.2.1 port 37872",
-      "count": 4800
-    },
-    {
-      "label": "Jun 29 16:52:10 plc-instance sshd[3557516]: Invalid user debian from 10.0.2.1 port 56078",
-      "count": 4800
-    },
-    {
-      "label": "Jun 30 15:24:23 plc-instance sshd[3719754]: Invalid user debian from 10.0.2.1 port 44420",
-      "count": 4800
-    },
-    {
-      "label": "Jun 30 15:45:40 plc-instance sshd[3723244]: Invalid user debian from 10.0.2.1 port 35960",
-      "count": 4800
-    },
-    {
-      "label": "Jun 30 15:56:27 plc-instance sshd[3725510]: Invalid user debian from 10.0.2.1 port 47268",
-      "count": 4800
-    },
-    {
-      "label": "Jun 30 16:02:35 plc-instance sshd[3726776]: Invalid user debian from 10.0.2.1 port 34504",
-      "count": 4800
+      "count": 48762
     }
   ],
   "top_rule_ids": [
     {
-      "label": "5710",
-      "count": 196800
-    },
-    {
       "label": "86601",
-      "count": 132300
+      "count": 48762
     }
   ],
   "top_nodes": [
     {
       "label": "node-f9ca9bfc",
-      "count": 329100
+      "count": 48762
     }
   ],
   "severity_distribution": [
     {
       "label": "LOW",
-      "count": 12948
+      "count": 4566
     },
     {
       "label": "HIGH",
-      "count": 6386
+      "count": 781
     },
     {
       "label": "MEDIUM",
-      "count": 4272
+      "count": 480
     }
   ],
   "alerts_by_node": [
     {
       "label": "node-c800d431",
-      "count": 12053
+      "count": 3882
     },
     {
       "label": "node-f9ca9bfc",
-      "count": 6977
-    },
-    {
-      "label": "node-e1ac03b8",
-      "count": 2640
+      "count": 985
     }
   ],
   "alerts_by_mitre_technique": [
     {
       "label": "T1692.001",
-      "count": 882
+      "count": 301
     },
     {
       "label": "T0836",
-      "count": 882
+      "count": 301
     }
   ],
   "alerts_by_original_sensor": [
     {
       "label": "suricata",
-      "count": 13830
+      "count": 4867
     },
     {
       "label": "wazuh",
-      "count": 9776
+      "count": 960
     }
   ],
   "alerts_by_collector": [
     {
       "label": "wazuh",
-      "count": 23606
+      "count": 5827
     }
   ],
   "unique_confirmed_attack_pairs": 1,
-  "unique_correlation_candidates": 82,
+  "unique_correlation_candidates": 26,
   "confirmed_attack_ids": 1,
   "weak_attack_ids": 0,
   "observable_attack_ids": 1,
@@ -463,7 +419,7 @@
   ],
   "uncorrelated_alert_samples": [
     {
-      "alert_id": "alr-9cecfda9",
+      "alert_id": "alr-3619c091",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
@@ -472,7 +428,7 @@
       "status": "noise"
     },
     {
-      "alert_id": "alr-3e01f69e",
+      "alert_id": "alr-915bc966",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
@@ -481,7 +437,7 @@
       "status": "noise"
     },
     {
-      "alert_id": "alr-bf92900f",
+      "alert_id": "alr-e500f675",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
@@ -490,7 +446,7 @@
       "status": "noise"
     },
     {
-      "alert_id": "alr-a8e97d01",
+      "alert_id": "alr-0d5db567",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
@@ -499,7 +455,7 @@
       "status": "noise"
     },
     {
-      "alert_id": "alr-4ed00080",
+      "alert_id": "alr-1ba543ff",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
@@ -508,7 +464,7 @@
       "status": "noise"
     },
     {
-      "alert_id": "alr-914069e0",
+      "alert_id": "alr-21375e14",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
@@ -517,7 +473,7 @@
       "status": "noise"
     },
     {
-      "alert_id": "alr-b10f5488",
+      "alert_id": "alr-f1fdde56",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
@@ -526,7 +482,7 @@
       "status": "noise"
     },
     {
-      "alert_id": "alr-4fb1a66b",
+      "alert_id": "alr-2b8766a6",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
@@ -535,7 +491,7 @@
       "status": "noise"
     },
     {
-      "alert_id": "alr-aee26b95",
+      "alert_id": "alr-0a6c5fe1",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
@@ -544,7 +500,7 @@
       "status": "noise"
     },
     {
-      "alert_id": "alr-b1e673c8",
+      "alert_id": "alr-b29dfad7",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
@@ -553,7 +509,7 @@
       "status": "noise"
     },
     {
-      "alert_id": "alr-c0eea207",
+      "alert_id": "alr-4930ac4e",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
@@ -562,7 +518,7 @@
       "status": "noise"
     },
     {
-      "alert_id": "alr-0e13597a",
+      "alert_id": "alr-e51cb2aa",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
@@ -571,7 +527,7 @@
       "status": "noise"
     },
     {
-      "alert_id": "alr-76af3eae",
+      "alert_id": "alr-7f9b44ff",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
@@ -580,7 +536,7 @@
       "status": "noise"
     },
     {
-      "alert_id": "alr-07f8e7a5",
+      "alert_id": "alr-1da3613d",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
@@ -589,7 +545,7 @@
       "status": "noise"
     },
     {
-      "alert_id": "alr-08b8eb8e",
+      "alert_id": "alr-9988e4c6",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
@@ -598,7 +554,7 @@
       "status": "noise"
     },
     {
-      "alert_id": "alr-df594f2d",
+      "alert_id": "alr-2848a744",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
@@ -607,7 +563,7 @@
       "status": "noise"
     },
     {
-      "alert_id": "alr-a13dc705",
+      "alert_id": "alr-2091557c",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
@@ -616,7 +572,7 @@
       "status": "noise"
     },
     {
-      "alert_id": "alr-58cd4d30",
+      "alert_id": "alr-78a0b2e7",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
@@ -625,61 +581,61 @@
       "status": "noise"
     },
     {
-      "alert_id": "alr-832b2db9",
+      "alert_id": "alr-338e2fca",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "node_id": "node-f9ca9bfc",
+      "instance_id": "inst-8c0c86c9",
       "status": "noise"
     },
     {
-      "alert_id": "alr-3911c0b0",
+      "alert_id": "alr-e0a78933",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "node_id": "node-f9ca9bfc",
+      "instance_id": "inst-8c0c86c9",
       "status": "noise"
     },
     {
-      "alert_id": "alr-695380e0",
+      "alert_id": "alr-2be3d148",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "node_id": "node-f9ca9bfc",
+      "instance_id": "inst-8c0c86c9",
       "status": "noise"
     },
     {
-      "alert_id": "alr-cb6d78d9",
+      "alert_id": "alr-8f0c8b36",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "node_id": "node-f9ca9bfc",
+      "instance_id": "inst-8c0c86c9",
       "status": "noise"
     },
     {
-      "alert_id": "alr-d6ea5232",
+      "alert_id": "alr-4b03fcf8",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "node_id": "node-f9ca9bfc",
+      "instance_id": "inst-8c0c86c9",
       "status": "noise"
     },
     {
-      "alert_id": "alr-f1def3a7",
+      "alert_id": "alr-7e8c8061",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "node_id": "node-f9ca9bfc",
+      "instance_id": "inst-8c0c86c9",
       "status": "noise"
     },
     {
-      "alert_id": "alr-a5b0f8d2",
+      "alert_id": "alr-a03e6eff",
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",

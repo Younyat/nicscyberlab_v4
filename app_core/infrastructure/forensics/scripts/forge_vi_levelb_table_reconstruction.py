@@ -2080,9 +2080,208 @@ def render_report(audits: list[ExecutionAudit], tables: dict[str, list[dict]], o
         "",
         "## Output Files",
         f"- `{rel(output_dir / 'FORGE-VI_LevelB_Table_Values.json')}`",
+        f"- `{rel(output_dir / 'FORGE-VI_LevelB_Paper_Metrics.json')}`",
+        f"- `{rel(output_dir / 'FORGE-VI_LevelB_Paper_Metrics.csv')}`",
+        f"- `{rel(output_dir / 'FORGE-VI_LevelB_Paper_Aggregates.csv')}`",
+        f"- `{rel(output_dir / 'FORGE-VI_LevelB_Paper_Tables.tex')}`",
         f"- `{rel(output_dir / 'FORGE-VI_LevelB_Data_Availability_Matrix.csv')}`",
         f"- `{rel(output_dir / 'FORGE-VI_LevelB_Table_Gap_Report.md')}`",
     ]
+    return "\n".join(sections) + "\n"
+
+
+def build_level_b_paper_metrics(audits: list[ExecutionAudit], accepted: set[str]) -> dict[str, Any]:
+    rows: list[dict[str, Any]] = []
+    for audit in audits:
+        if audit.execution_id not in accepted:
+            continue
+        report_row = audit.level_b_report or {}
+        timing = report_row.get("timing_metrics") or {}
+        reconstruction = report_row.get("reconstruction_metrics") or {}
+        gate = report_row.get("critical_evidence_gate") or {}
+        failure_details = gate.get("failure_details") or []
+        rows.append(
+            {
+                "repetition_id": f"B-{int(audit.repetition_number):02d}",
+                "repetition_number": audit.repetition_number,
+                "execution_id": audit.execution_id,
+                "case_id": audit.case_id,
+                "campaign_id": audit.campaign_id,
+                "network_mode": timing.get("network_mode") or "continuous_rolling_pcap_with_case_bound_incident_window_import",
+                "deploy_time_seconds": timing.get("deploy_time_seconds"),
+                "teardown_redeploy_time_seconds": timing.get("teardown_redeploy_time_seconds"),
+                "alert_to_acquisition_start_seconds": timing.get("alert_to_acquisition_start_seconds"),
+                "alert_to_memory_acquisition_start_seconds": timing.get("alert_to_memory_start_seconds"),
+                "alert_to_memory_preserved_seconds": timing.get("alert_to_memory_preserved_seconds"),
+                "alert_to_ot_export_preserved_seconds": timing.get("alert_to_ot_export_preserved_seconds"),
+                "alert_to_disk_snapshot_start_seconds": timing.get("alert_to_disk_snapshot_start_seconds"),
+                "alert_to_disk_snapshot_preserved_seconds": timing.get("alert_to_disk_snapshot_preserved_seconds"),
+                "t_first_sealed_seconds": timing.get("t_first_sealed_seconds"),
+                "t_case_sealed_seconds": timing.get("t_case_sealed_seconds"),
+                "pcap_periodic_context_size_gib": timing.get("pcap_periodic_context_size_gib"),
+                "pcap_reactive_capture_size_bytes": timing.get("pcap_reactive_capture_size_bytes"),
+                "memory_dump_size_bytes": timing.get("memory_dump_size_bytes"),
+                "disk_snapshot_size_bytes": timing.get("disk_snapshot_size_bytes"),
+                "retries_or_failures_count": timing.get("retries_or_failures_count"),
+                "ot_export_present_in_manifest": timing.get("ot_export_present_in_manifest"),
+                "ot_export_paths": timing.get("ot_export_paths") or [],
+                "evidence_completeness_gate": gate.get("gate_status") or timing.get("evidence_completeness_gate"),
+                "missing_critical_evidence": gate.get("missing_critical_evidence") or [],
+                "expected_failed_paths": [detail.get("expected_paths") or [] for detail in failure_details],
+                "found_failed_paths": [detail.get("found_paths") or [] for detail in failure_details],
+                "expected_relations": reconstruction.get("expected_relations"),
+                "recovered_relations": reconstruction.get("recovered_relations"),
+                "degraded_relations": reconstruction.get("degraded_relations"),
+                "missing_relations": reconstruction.get("missing_relations"),
+                "ambiguous_relations": reconstruction.get("ambiguous_relations"),
+                "cpr": reconstruction.get("recoverability_score"),
+                "wcpr": reconstruction.get("weighted_recoverability_score"),
+                "recoverability_label": reconstruction.get("recoverability_label"),
+                "scientific_confidence_label": reconstruction.get("scientific_confidence_label"),
+            }
+        )
+
+    aggregate_fields = [
+        "deploy_time_seconds",
+        "teardown_redeploy_time_seconds",
+        "alert_to_acquisition_start_seconds",
+        "alert_to_memory_acquisition_start_seconds",
+        "alert_to_memory_preserved_seconds",
+        "alert_to_ot_export_preserved_seconds",
+        "alert_to_disk_snapshot_start_seconds",
+        "alert_to_disk_snapshot_preserved_seconds",
+        "t_first_sealed_seconds",
+        "t_case_sealed_seconds",
+        "pcap_periodic_context_size_gib",
+        "pcap_reactive_capture_size_bytes",
+        "memory_dump_size_bytes",
+        "disk_snapshot_size_bytes",
+        "retries_or_failures_count",
+        "expected_relations",
+        "recovered_relations",
+        "degraded_relations",
+        "missing_relations",
+        "ambiguous_relations",
+        "cpr",
+        "wcpr",
+    ]
+    aggregate: dict[str, dict[str, Any]] = {}
+    for field in aggregate_fields:
+        values = [float(row[field]) for row in rows if row.get(field) is not None and str(row.get(field)) != ""]
+        aggregate[field] = {"mean": mean_value(values), "std": sample_std(values)}
+    aggregate["network_mode"] = {
+        "value": "continuous_rolling_pcap_with_case_bound_incident_window_import" if rows else not_available()
+    }
+    aggregate["scientifically_complete_repetitions"] = {
+        "value": sum(1 for row in rows if str(row.get("evidence_completeness_gate") or "") == "scientifically_complete")
+    }
+    aggregate["diagnostic_only_repetitions"] = {
+        "value": sum(1 for row in rows if str(row.get("evidence_completeness_gate") or "") != "scientifically_complete")
+    }
+    return {
+        "level": "B",
+        "n_repetitions": len(rows),
+        "metrics_per_repetition": rows,
+        "aggregate": aggregate,
+    }
+
+
+def render_level_b_paper_tables_tex(metrics: dict[str, Any]) -> str:
+    aggregate = metrics.get("aggregate") or {}
+    rows = metrics.get("metrics_per_repetition") or []
+
+    def pm(field: str) -> str:
+        item = aggregate.get(field) or {}
+        mean = item.get("mean")
+        std = item.get("std")
+        if mean is None:
+            return r"\texttt{not computed}"
+        return rf"\texttt{{{metric_display(mean)} \(\pm\) {metric_display(std if std is not None else 0.0)}}}"
+
+    gate_fail_rows = []
+    for row in rows:
+        if str(row.get("evidence_completeness_gate") or "") == "scientifically_complete":
+            continue
+        gate_fail_rows.append(
+            " & ".join(
+                [
+                    markdown_escape(row.get("repetition_id")),
+                    markdown_escape(row.get("case_id")),
+                    markdown_escape(", ".join(row.get("missing_critical_evidence") or []) or "not_available"),
+                    markdown_escape("; ".join("; ".join(item) for item in (row.get("expected_failed_paths") or [])) or "not_available"),
+                    markdown_escape("; ".join("; ".join(item) for item in (row.get("found_failed_paths") or [])) or "not_available"),
+                ]
+            )
+            + r" \\"
+        )
+
+    sections = [
+        "% Auto-generated Level B paper tables",
+        r"\begin{table*}[t]",
+        r"\centering",
+        r"\caption{Aggregate operational metrics across the latest accepted Level B repetitions.}",
+        r"\small",
+        r"\begin{tabular}{p{6.4cm}p{3.6cm}p{6.4cm}}",
+        r"\hline",
+        r"\textbf{Metric} & \textbf{Result} & \textbf{Interpretation} \\",
+        r"\hline",
+        rf"Deploy time in seconds & {pm('deploy_time_seconds')} & Level B reuses the active deployment; redeployment is not part of the batch. \\",
+        rf"Teardown plus redeploy time in seconds & {pm('teardown_redeploy_time_seconds')} & Reported as zero under the current Level B execution model. \\",
+        rf"Alert to memory acquisition start & {pm('alert_to_memory_acquisition_start_seconds')} & Reactive volatile-first acquisition latency. \\",
+        rf"Alert to memory preserved & {pm('alert_to_memory_preserved_seconds')} & Time until memory evidence is sealed into the case. \\",
+        rf"Alert to industrial and OT export preserved & {pm('alert_to_ot_export_preserved_seconds')} & Time until OT export derived from rolling PCAP is preserved. \\",
+        rf"Alert to disk snapshot start & {pm('alert_to_disk_snapshot_start_seconds')} & Reactive post-trigger disk acquisition start latency. \\",
+        rf"Alert to disk snapshot preserved & {pm('alert_to_disk_snapshot_preserved_seconds')} & Time until disk evidence is preserved. \\",
+        rf"$T_{{first\_sealed}}$ & {pm('t_first_sealed_seconds')} & First critical artifact sealed after trigger. \\",
+        rf"$T_{{case\_sealed}}$ & {pm('t_case_sealed_seconds')} & Full case seal latency. \\",
+        rf"PCAP size for periodic context segments in GiB & {pm('pcap_periodic_context_size_gib')} & Continuous rolling PCAP observation with case-bound incident-window segment import. \\",
+        rf"PCAP size for reactive alert-triggered captures in bytes & {pm('pcap_reactive_capture_size_bytes')} & No separate reactive PCAP capture is used in the current memory-first design. \\",
+        rf"Memory dump size in bytes & {pm('memory_dump_size_bytes')} & Total preserved memory size across acquisition targets. \\",
+        rf"Disk snapshot or image size in bytes & {pm('disk_snapshot_size_bytes')} & Total preserved disk size across acquisition targets. \\",
+        rf"Retries or failures count & {pm('retries_or_failures_count')} & Failed or retried pipeline events counted per repetition. \\",
+        r"\hline",
+        r"\end{tabular}",
+        r"\end{table*}",
+        "",
+        r"\begin{table*}[t]",
+        r"\centering",
+        r"\caption{Aggregate causal-reconstruction metrics across the latest accepted Level B repetitions.}",
+        r"\small",
+        r"\begin{tabular}{p{6.4cm}p{3.6cm}p{6.4cm}}",
+        r"\hline",
+        r"\textbf{Metric} & \textbf{Result} & \textbf{Interpretation} \\",
+        r"\hline",
+        rf"Expected relations & {pm('expected_relations')} & Ground-truth causal relations declared for evaluation. \\",
+        rf"Recovered relations & {pm('recovered_relations')} & Fully supported causal links. \\",
+        rf"Degraded relations & {pm('degraded_relations')} & Links weakened by timestamp or evidential limitations. \\",
+        rf"Missing relations & {pm('missing_relations')} & Expected links not defensible from preserved evidence. \\",
+        rf"Ambiguous relations & {pm('ambiguous_relations')} & Unresolved competing interpretations. \\",
+        rf"CPR & {pm('cpr')} & Unweighted causal-path recoverability. \\",
+        rf"WCPR & {pm('wcpr')} & Weighted causal-path recoverability. \\",
+        rf"Scientifically complete repetitions & \texttt{{{aggregate.get('scientifically_complete_repetitions', {}).get('value', 0)}/{metrics.get('n_repetitions', 0)}}} & Repetitions whose critical-evidence gate passed. \\",
+        rf"Diagnostic-only repetitions & \texttt{{{aggregate.get('diagnostic_only_repetitions', {}).get('value', 0)}/{metrics.get('n_repetitions', 0)}}} & Repetitions whose causal interpretation must remain diagnostic only. \\",
+        r"\hline",
+        r"\end{tabular}",
+        r"\end{table*}",
+    ]
+    if gate_fail_rows:
+        sections.extend(
+            [
+                "",
+                r"\begin{table*}[t]",
+                r"\centering",
+                r"\caption{Level B evidence-completeness gate failures by repetition.}",
+                r"\small",
+                r"\begin{tabular}{p{1.8cm}p{2.6cm}p{3.8cm}p{4.8cm}p{4.8cm}}",
+                r"\hline",
+                r"\textbf{Rep.} & \textbf{Case ID} & \textbf{Missing artifact} & \textbf{Expected path(s)} & \textbf{Found path(s)} \\",
+                r"\hline",
+                *gate_fail_rows,
+                r"\hline",
+                r"\end{tabular}",
+                r"\end{table*}",
+            ]
+        )
     return "\n".join(sections) + "\n"
 
 
@@ -2108,6 +2307,7 @@ def generate_report_bundle() -> dict[str, Any]:
     tables["table9_relations"] = build_table9_relations(audits)
     tables["table10"] = build_table10(audits)
     tables["scientific_usability"] = build_scientific_usability(tables["table10"])
+    paper_metrics = build_level_b_paper_metrics(audits, accepted)
 
     values_payload = {
         "generated_at": utc_now_iso(),
@@ -2120,6 +2320,29 @@ def generate_report_bundle() -> dict[str, Any]:
         "tables": tables,
     }
     write_json(output_dir / "FORGE-VI_LevelB_Table_Values.json", values_payload)
+    write_json(output_dir / "FORGE-VI_LevelB_Paper_Metrics.json", paper_metrics)
+
+    paper_metrics_rows = []
+    for row in paper_metrics.get("metrics_per_repetition") or []:
+        paper_metrics_rows.append(
+            {
+                **row,
+                "ot_export_paths": ";".join(row.get("ot_export_paths") or []),
+                "missing_critical_evidence": ";".join(row.get("missing_critical_evidence") or []),
+                "expected_failed_paths": "; ".join("; ".join(item) for item in (row.get("expected_failed_paths") or [])),
+                "found_failed_paths": "; ".join("; ".join(item) for item in (row.get("found_failed_paths") or [])),
+            }
+        )
+    write_csv(output_dir / "FORGE-VI_LevelB_Paper_Metrics.csv", paper_metrics_rows)
+    write_csv(
+        output_dir / "FORGE-VI_LevelB_Paper_Aggregates.csv",
+        [
+            {"metric": key, "mean": value.get("mean"), "std": value.get("std"), "value": value.get("value")}
+            for key, value in (paper_metrics.get("aggregate") or {}).items()
+        ],
+    )
+    paper_tables_tex = render_level_b_paper_tables_tex(paper_metrics)
+    (output_dir / "FORGE-VI_LevelB_Paper_Tables.tex").write_text(paper_tables_tex, encoding="utf-8")
 
     availability_matrix = build_availability_matrix(audits, tables)
     write_csv(output_dir / "FORGE-VI_LevelB_Data_Availability_Matrix.csv", availability_matrix)
@@ -2176,6 +2399,10 @@ def generate_report_bundle() -> dict[str, Any]:
         "gap_report_path": rel(output_dir / "FORGE-VI_LevelB_Table_Gap_Report.md"),
         "gap_report_markdown": gap_md,
         "values_json_path": rel(output_dir / "FORGE-VI_LevelB_Table_Values.json"),
+        "paper_metrics_json_path": rel(output_dir / "FORGE-VI_LevelB_Paper_Metrics.json"),
+        "paper_metrics_csv_path": rel(output_dir / "FORGE-VI_LevelB_Paper_Metrics.csv"),
+        "paper_aggregates_csv_path": rel(output_dir / "FORGE-VI_LevelB_Paper_Aggregates.csv"),
+        "paper_tables_tex_path": rel(output_dir / "FORGE-VI_LevelB_Paper_Tables.tex"),
         "availability_matrix_csv_path": rel(output_dir / "FORGE-VI_LevelB_Data_Availability_Matrix.csv"),
         "conclusion": preliminary_option,
         "final_claim_conclusion": final_option,
@@ -2203,6 +2430,10 @@ def list_generated_reports() -> list[dict[str, Any]]:
                 "report_markdown_path": metadata.get("report_markdown_path") or rel(report_dir / "FORGE-VI_LevelB_Table_Reconstruction_Report.md"),
                 "gap_report_path": metadata.get("gap_report_path") or rel(report_dir / "FORGE-VI_LevelB_Table_Gap_Report.md"),
                 "values_json_path": metadata.get("values_json_path") or rel(report_dir / "FORGE-VI_LevelB_Table_Values.json"),
+                "paper_metrics_json_path": metadata.get("paper_metrics_json_path") or rel(report_dir / "FORGE-VI_LevelB_Paper_Metrics.json"),
+                "paper_metrics_csv_path": metadata.get("paper_metrics_csv_path") or rel(report_dir / "FORGE-VI_LevelB_Paper_Metrics.csv"),
+                "paper_aggregates_csv_path": metadata.get("paper_aggregates_csv_path") or rel(report_dir / "FORGE-VI_LevelB_Paper_Aggregates.csv"),
+                "paper_tables_tex_path": metadata.get("paper_tables_tex_path") or rel(report_dir / "FORGE-VI_LevelB_Paper_Tables.tex"),
                 "availability_matrix_csv_path": metadata.get("availability_matrix_csv_path") or rel(report_dir / "FORGE-VI_LevelB_Data_Availability_Matrix.csv"),
             }
         )
@@ -2217,6 +2448,8 @@ def get_generated_report(report_id: str) -> dict[str, Any] | None:
     report_md_path = report_dir / "FORGE-VI_LevelB_Table_Reconstruction_Report.md"
     gap_md_path = report_dir / "FORGE-VI_LevelB_Table_Gap_Report.md"
     values_json_path = report_dir / "FORGE-VI_LevelB_Table_Values.json"
+    paper_metrics_json_path = report_dir / "FORGE-VI_LevelB_Paper_Metrics.json"
+    paper_tables_tex_path = report_dir / "FORGE-VI_LevelB_Paper_Tables.tex"
     return {
         "report_id": report_dir.name,
         "output_dir": rel(report_dir),
@@ -2227,6 +2460,12 @@ def get_generated_report(report_id: str) -> dict[str, Any] | None:
         "gap_report_markdown": gap_md_path.read_text(encoding="utf-8") if gap_md_path.is_file() else "",
         "values_json_path": rel(values_json_path),
         "values_json": load_json(values_json_path) or {},
+        "paper_metrics_json_path": rel(paper_metrics_json_path),
+        "paper_metrics_json": load_json(paper_metrics_json_path) or {},
+        "paper_tables_tex_path": rel(paper_tables_tex_path),
+        "paper_tables_tex": paper_tables_tex_path.read_text(encoding="utf-8") if paper_tables_tex_path.is_file() else "",
+        "paper_metrics_csv_path": metadata.get("paper_metrics_csv_path") or rel(report_dir / "FORGE-VI_LevelB_Paper_Metrics.csv"),
+        "paper_aggregates_csv_path": metadata.get("paper_aggregates_csv_path") or rel(report_dir / "FORGE-VI_LevelB_Paper_Aggregates.csv"),
         "availability_matrix_csv_path": rel(report_dir / "FORGE-VI_LevelB_Data_Availability_Matrix.csv"),
     }
 

@@ -3,22 +3,22 @@
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
   "created_at": "2026-06-10T10:46:25.396668+00:00",
-  "updated_at": "2026-07-05T12:34:05.694244+00:00",
-  "reconstructed_at": "2026-07-05T12:34:05.694264+00:00",
+  "updated_at": "2026-07-06T04:34:28.278056+00:00",
+  "reconstructed_at": "2026-07-06T04:34:28.278079+00:00",
   "lifecycle_state": "active",
   "read_only_reconstruction": true,
   "bootstrap_mode": true,
   "scenario_bom": {
     "path": "foc-reconstruction/scenario_bom.json",
-    "sha256": "5591502960bdc50eccd34bf040b51880ded833f55386f00aa7a9a34d1a65e5b8"
+    "sha256": "106b0d036c2ec12796da226a15ba1b1e7cda47a1b05a1a46acffb2943b0a5227"
   },
   "tools_bom": {
     "path": "foc-reconstruction/tools_bom.json",
-    "sha256": "518be7419bc4e7b52a355f6f312a032c68facbb1d33c6cc68b8b741682666129"
+    "sha256": "aa9b78b9974f85d4cb78d06c8a6272c425fd50d792a7c47474e76b07c16672b0"
   },
   "timeline": {
     "path": "foc-reconstruction/timeline.json",
-    "sha256": "2075ff2c37c28ddbf0b2b08054ae1a60c934c7fe192ff65bb26ead7444fdc7c1"
+    "sha256": "c58c6a63e32eff7a8304d3c528555d4c0b4f51bfa4d6fc52c1b1ccf40c384141"
   },
   "id_mapping_path": "foc-reconstruction/indexes/id_mapping.json",
   "source_indexes": {
@@ -41,19 +41,6 @@
     "foc_context_summary": "foc-reconstruction/attestations/foc_context_summary.json",
     "foc_readiness_report": "foc-reconstruction/validation/foc_readiness_report.json"
   },
-  "warnings": [
-    {
-      "kind": "jsonl_line_error",
-      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260629-152542Z/alerts.jsonl",
-      "line": 79,
-      "message": "Expecting ',' delimiter: line 1 column 335 (char 334)"
-    },
-    {
-      "kind": "jsonl_line_error",
-      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260701-211803Z/alerts.jsonl",
-      "line": 56,
-      "message": "Expecting ':' delimiter: line 1 column 9 (char 8)"
-    }
-  ],
-  "generation_status": "warnings"
+  "warnings": [],
+  "generation_status": "ok"
 }

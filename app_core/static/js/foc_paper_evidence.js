@@ -558,12 +558,12 @@
     if (!summary || !root) return;
     const reports = state.tableReconstructionReports || [];
     if (!reports.length) {
-      summary.innerHTML = "No FORGE-VI Level B table reconstruction reports were generated yet.";
+      summary.innerHTML = "No Level B paper-table packages were generated yet.";
       root.innerHTML = '<div class="glass-soft rounded-2xl p-4">No reconstruction reports available.</div>';
       return;
     }
     summary.innerHTML = `
-      <div>Reconstruction reports: <span class="mono">${esc(reports.length)}</span></div>
+      <div>Level B paper-table packages: <span class="mono">${esc(reports.length)}</span></div>
       <div class="mt-2">Latest conclusion: <span class="font-black">${esc(reports[0]?.conclusion || "not_available")}</span></div>
     `;
     root.innerHTML = reports.map((report) => `
@@ -575,7 +575,7 @@
           <div><div class="text-xs uppercase tracking-[0.16em] text-slate-400">Conclusion</div><div class="font-black mt-2">${esc(report.conclusion || "not_available")}</div></div>
         </div>
         <div class="mt-3"><span class="font-black">Output dir:</span> <span class="mono break-all">${esc(report.output_dir || "not_available")}</span></div>
-        <div class="mt-2"><span class="font-black">Markdown path:</span> <span class="mono break-all">${esc(report.report_markdown_path || "not_available")}</span></div>
+        <div class="mt-2"><span class="font-black">LaTeX path:</span> <span class="mono break-all">${esc(report.paper_tables_tex_path || "not_available")}</span></div>
         <div class="flex gap-3 flex-wrap mt-4">
           <button type="button" class="text-cyan-300 underline paper-table-reconstruction-open-btn" data-report-id="${esc(report.report_id)}">Open .md Report</button>
         </div>
@@ -696,7 +696,7 @@
   async function openTableReconstructionReport(reportId) {
     const payload = await getJson(`/api/foc/paper-evidence/level-b/table-reconstruction/reports/${encodeURIComponent(reportId)}`);
     const root = ensureOverlay();
-    byId("paper-evidence-overlay-title").textContent = `FORGE-VI Level B Table Reconstruction · ${reportId}`;
+    byId("paper-evidence-overlay-title").textContent = `FORGE-VI Level B Paper Tables · ${reportId}`;
     byId("paper-evidence-overlay-body").innerHTML = `
       <div class="space-y-4">
         <div class="text-sm text-slate-300">
@@ -716,8 +716,18 @@
           <summary class="font-black cursor-pointer">FORGE-VI_LevelB_Table_Values.json</summary>
           <pre class="whitespace-pre-wrap break-words text-xs text-slate-200 mono mt-4">${esc(JSON.stringify(payload.values_json || {}, null, 2))}</pre>
         </details>
+        <details class="glass-soft rounded-2xl p-4">
+          <summary class="font-black cursor-pointer">FORGE-VI_LevelB_Paper_Metrics.json</summary>
+          <pre class="whitespace-pre-wrap break-words text-xs text-slate-200 mono mt-4">${esc(JSON.stringify(payload.paper_metrics_json || {}, null, 2))}</pre>
+        </details>
+        <details class="glass-soft rounded-2xl p-4">
+          <summary class="font-black cursor-pointer">FORGE-VI_LevelB_Paper_Tables.tex</summary>
+          <pre class="whitespace-pre-wrap break-words text-xs text-slate-200 mono mt-4">${esc(payload.paper_tables_tex || "not_available")}</pre>
+        </details>
         <div class="text-xs text-slate-500 mono break-all">
-          CSV path: ${esc(payload.availability_matrix_csv_path || "not_available")}
+          Paper metrics CSV: ${esc(payload.paper_metrics_csv_path || "not_available")}<br/>
+          Paper aggregates CSV: ${esc(payload.paper_aggregates_csv_path || "not_available")}<br/>
+          Availability CSV: ${esc(payload.availability_matrix_csv_path || "not_available")}
         </div>
       </div>
     `;
@@ -859,7 +869,7 @@
     const button = byId("paper-run-level-b-table-reconstruction-btn");
     const summary = byId("paper-level-b-table-reconstruction-summary");
     if (button) button.disabled = true;
-    if (summary) summary.innerHTML = "Generating FORGE-VI Level B table reconstruction report from existing artifacts…";
+    if (summary) summary.innerHTML = "Generating Level B paper tables from existing validated artifacts…";
     try {
       const payload = await getJson("/api/foc/paper-evidence/level-b/table-reconstruction/run", {
         method: "POST",
@@ -869,7 +879,7 @@
       await loadTableReconstructionReports();
       if (summary) {
         summary.innerHTML = `
-          <div class="text-cyan-300 font-black">Reconstruction report generated.</div>
+          <div class="text-cyan-300 font-black">Level B paper tables generated.</div>
           <div class="mt-2 mono break-all">${esc(payload.output_dir || "not_available")}</div>
           <div class="mt-2">${esc(payload.conclusion || "not_available")}</div>
         `;

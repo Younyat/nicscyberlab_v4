@@ -1,0 +1,126 @@
+{
+  "artifact_availability": {
+    "cases_created": 6,
+    "cleanup_old_cases_before_run": "completed",
+    "nested_level_a_reports_completed": 6
+  },
+  "analysis_usefulness": {
+    "completed_repetitions": 0,
+    "partial_repetitions": 6,
+    "failed_repetitions": 0
+  },
+  "trigger_and_acquisition_latency": {
+    "N_B": 6,
+    "deploy_time_mean_seconds": 0.0,
+    "deploy_time_std_seconds": 0.0,
+    "teardown_redeploy_time_mean_seconds": 0.0,
+    "teardown_redeploy_time_std_seconds": 0.0,
+    "alert_to_acquisition_start_mean_seconds": 357.290667,
+    "alert_to_acquisition_start_std_seconds": 15.645896,
+    "alert_to_memory_start_mean_seconds": 20.317,
+    "alert_to_memory_start_std_seconds": 16.790698,
+    "alert_to_memory_preserved_mean_seconds": 357.666667,
+    "alert_to_memory_preserved_std_seconds": 15.520642,
+    "alert_to_ot_export_preserved_mean_seconds": 1347.624,
+    "alert_to_ot_export_preserved_std_seconds": 316.069881,
+    "alert_to_disk_snapshot_start_mean_seconds": 1348.396667,
+    "alert_to_disk_snapshot_start_std_seconds": 315.956279,
+    "alert_to_disk_snapshot_preserved_mean_seconds": 2096.215667,
+    "alert_to_disk_snapshot_preserved_std_seconds": 301.223084,
+    "alert_to_case_sealed_mean_seconds": 2095.624,
+    "alert_to_case_sealed_std_seconds": 301.13,
+    "t_first_sealed_mean_seconds": 2095.624,
+    "t_first_sealed_std_seconds": 301.13,
+    "t_case_sealed_mean_seconds": 2095.624,
+    "t_case_sealed_std_seconds": 301.13,
+    "total_duration_mean_seconds": 2159.348,
+    "total_duration_std_seconds": 335.438577,
+    "pcap_periodic_context_size_gib_mean": 2.895833,
+    "pcap_periodic_context_size_gib_std": 0.928883,
+    "pcap_reactive_capture_size_bytes_mean": 0.0,
+    "pcap_reactive_capture_size_bytes_std": 0.0,
+    "memory_dump_size_bytes_mean": 4293317824.0,
+    "memory_dump_size_bytes_std": 0.0,
+    "disk_snapshot_size_bytes_mean": 39370533546.666664,
+    "disk_snapshot_size_bytes_std": 8767065280.951002,
+    "retries_or_failures_count_mean": 0.166667,
+    "retries_or_failures_count_std": 0.408248,
+    "network_mode": "continuous_rolling_pcap_with_case_bound_incident_window_import"
+  },
+  "cross_case_comparability": {
+    "comparison_id": "comparison-7d988ac60dd2",
+    "generated_at": "2026-07-06T04:36:48.179954+00:00",
+    "status": "Comparable With Degradation",
+    "comparison_type": "exploratory_comparison_only",
+    "direct_comparison_valid": false,
+    "exploratory_only": true,
+    "scenario_drift": false,
+    "family_metadata_incomplete": false,
+    "execution_ids": [
+      "EXEC-0001",
+      "EXEC-0002",
+      "EXEC-0003",
+      "EXEC-0004",
+      "EXEC-0005",
+      "EXEC-0006"
+    ],
+    "reference_execution_id": "EXEC-0001",
+    "delta_cpr_allowed": 0.125,
+    "delta_wcpr_allowed": 0.1,
+    "hard_failures": [],
+    "degradation_reasons": [
+      "EXEC-0001: causal reconstruction contains degraded edges",
+      "EXEC-0001: baseline noise profile raised a comparability warning",
+      "EXEC-0002: causal reconstruction contains degraded edges",
+      "EXEC-0002: baseline noise profile raised a comparability warning",
+      "EXEC-0003: causal reconstruction contains degraded edges",
+      "EXEC-0003: baseline noise profile raised a comparability warning",
+      "EXEC-0004: causal reconstruction contains degraded edges",
+      "EXEC-0004: baseline noise profile raised a comparability warning",
+      "EXEC-0005: causal reconstruction contains degraded edges",
+      "EXEC-0005: baseline noise profile raised a comparability warning",
+      "EXEC-0006: causal reconstruction contains degraded edges"
+    ],
+    "summary": {
+      "max_abs_cpr_difference": 0.0,
+      "max_abs_weighted_cpr_difference": 0.0,
+      "max_support_rank_shift": 0
+    },
+    "artifacts": {
+      "comparison_matrix": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260705-214036-62E8/comparisons/comparison-7d988ac60dd2/comparison_matrix.json",
+      "comparability_result": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260705-214036-62E8/comparisons/comparison-7d988ac60dd2/comparability_result.json",
+      "comparability_report": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260705-214036-62E8/comparisons/comparison-7d988ac60dd2/comparability_report.md"
+    }
+  },
+  "nested_level_a_repeatability": {
+    "completed_nested_reports": 6,
+    "failed_nested_reports": 0,
+    "comparison_statuses": [
+      "Comparable With Degradation",
+      "Comparable With Degradation",
+      "Comparable With Degradation",
+      "Comparable With Degradation",
+      "Comparable With Degradation",
+      "Comparable With Degradation"
+    ],
+    "comparison_types": [
+      "direct_level_a_repeatability_comparison",
+      "direct_level_a_repeatability_comparison",
+      "direct_level_a_repeatability_comparison",
+      "direct_level_a_repeatability_comparison",
+      "direct_level_a_repeatability_comparison",
+      "direct_level_a_repeatability_comparison"
+    ]
+  },
+  "aggregate_reconstruction_metrics": {
+    "expected_relations_total": 48,
+    "recovered_relations_total": 0,
+    "recoverability_mean": 0.0,
+    "recoverability_std": 0.0,
+    "weighted_recoverability_mean": 0.0,
+    "weighted_recoverability_std": 0.0,
+    "degraded_relations_total": 0,
+    "ambiguous_relations_total": 0,
+    "missing_relations_total": 0
+  }
+}

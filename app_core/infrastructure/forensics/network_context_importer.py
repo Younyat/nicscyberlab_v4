@@ -6,6 +6,7 @@ import os
 import shutil
 import subprocess
 import time
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -229,6 +230,355 @@ def _refresh_case_reports(case_dir: Path) -> None:
         sha256=_sha256_file(case_dir / "analysis" / "01_integrity_custody" / "integrity_custody_report.json"),
         size=(case_dir / "analysis" / "01_integrity_custody" / "integrity_custody_report.json").stat().st_size,
     )
+
+
+def _utc_from_epoch(epoch_value: float | None, *, milliseconds: bool = False) -> str | None:
+    if epoch_value is None:
+        return None
+    try:
+        dt = datetime.fromtimestamp(float(epoch_value), tz=timezone.utc)
+    except Exception:
+        return None
+    if milliseconds:
+        return dt.isoformat(timespec="milliseconds").replace("+00:00", "Z")
+    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _safe_int(value, default=None):
+    try:
+        return int(value)
+    except Exception:
+        return default
+
+
+def _iter_modbus_adus(payload: bytes):
+    if not payload:
+        return
+    idx = 0
+    total = len(payload)
+    while idx + 8 <= total:
+        protocol_id = (payload[idx + 2] << 8) | payload[idx + 3]
+        if protocol_id != 0:
+            idx += 1
+            continue
+        length = (payload[idx + 4] << 8) | payload[idx + 5]
+        adu_len = 6 + length
+        if length <= 1 or idx + adu_len > total:
+            return
+        yield payload[idx : idx + adu_len]
+        idx += adu_len
+
+
+def _decode_modbus_adu(adu: bytes):
+    if not adu or len(adu) < 8:
+        return None
+    tid = (adu[0] << 8) | adu[1]
+    pid = (adu[2] << 8) | adu[3]
+    length = (adu[4] << 8) | adu[5]
+    unit_id = adu[6]
+    if pid != 0 or length <= 1:
+        return None
+
+    function_code = adu[7]
+    data = adu[8:]
+    record = {
+        "tid": tid,
+        "unit_id": unit_id,
+        "fc": function_code,
+        "mbap_len": length,
+        "is_write": function_code in (0x05, 0x06, 0x0F, 0x10),
+    }
+
+    def u16(b0, b1):
+        return (b0 << 8) | b1
+
+    if function_code == 0x05 and len(data) >= 4:
+        address = u16(data[0], data[1])
+        value_raw = u16(data[2], data[3])
+        record.update(
+            {
+                "op": "write_single_coil",
+                "address": address,
+                "value_raw": value_raw,
+                "value": True if value_raw == 0xFF00 else False if value_raw == 0x0000 else None,
+            }
+        )
+        return record
+
+    if function_code == 0x06 and len(data) >= 4:
+        address = u16(data[0], data[1])
+        record.update({"op": "write_single_register", "address": address, "value": u16(data[2], data[3])})
+        return record
+
+    if function_code == 0x0F and len(data) >= 5:
+        address = u16(data[0], data[1])
+        quantity = u16(data[2], data[3])
+        bytecount = data[4]
+        values = data[5 : 5 + bytecount] if len(data) >= 5 + bytecount else b""
+        record.update(
+            {
+                "op": "write_multiple_coils",
+                "address": address,
+                "quantity": quantity,
+                "bytecount": bytecount,
+                "values_hex": values.hex() if values else None,
+            }
+        )
+        return record
+
+    if function_code == 0x10 and len(data) >= 5:
+        address = u16(data[0], data[1])
+        quantity = u16(data[2], data[3])
+        bytecount = data[4]
+        values = data[5 : 5 + bytecount] if len(data) >= 5 + bytecount else b""
+        registers = None
+        if values and len(values) % 2 == 0:
+            registers = [u16(values[i], values[i + 1]) for i in range(0, len(values), 2)]
+        record.update(
+            {
+                "op": "write_multiple_registers",
+                "address": address,
+                "quantity": quantity,
+                "bytecount": bytecount,
+                "registers": registers,
+                "values_hex": values.hex() if values else None,
+            }
+        )
+        return record
+
+    record.update(
+        {
+            "op": "non_write_function",
+            "data_len": len(data),
+            "data_hex_prefix": data[:16].hex() if data else None,
+        }
+    )
+    return record
+
+
+def _export_ot_from_preserved_segments(case_dir: Path, *, run_id: str, preserved_entries: list[dict]) -> dict:
+    from scapy.all import IP, TCP, Raw, PcapReader
+
+    source_entries = [item for item in preserved_entries if str(item.get("case_path") or "").strip()]
+    if not source_entries:
+        return {
+            "status": "skipped_no_preserved_segments",
+            "records_exported": 0,
+            "ot_export_rel": None,
+            "source_pcap_count": 0,
+            "source_pcap_paths": [],
+        }
+
+    started_iso = _utc_now_iso()
+    export_filename = f"ot_export_rolling_{run_id}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%SZ')}.json"
+    export_rel = f"industrial/{export_filename}"
+    export_path = case_dir / export_rel
+    _append_case_event(
+        case_dir,
+        "ot_export_start",
+        run_id=run_id,
+        meta={
+            "protocol": "modbus_tcp",
+            "industrial_export_rel": export_rel,
+            "source_mode": "continuous_rolling_pcap_with_case_bound_incident_window_import",
+            "source_pcap_count": len(source_entries),
+        },
+        ts_utc=started_iso,
+    )
+
+    records: list[dict] = []
+    file_summaries: list[dict] = []
+    op_counts = Counter()
+    fc_counts = Counter()
+    packets_seen_502 = 0
+    payload_packets_seen = 0
+    first_epoch = None
+    last_epoch = None
+    max_records_cap = 200000
+
+    try:
+        for entry in source_entries:
+            rel_pcap = str(entry.get("case_path") or "")
+            abs_pcap = case_dir / rel_pcap
+            per_file_records = 0
+            if not abs_pcap.is_file():
+                file_summaries.append({"pcap_rel": rel_pcap, "status": "missing", "records_exported": 0})
+                continue
+            with PcapReader(str(abs_pcap)) as reader:
+                for pkt in reader:
+                    if not pkt.haslayer(IP) or not pkt.haslayer(TCP):
+                        continue
+                    tcp = pkt[TCP]
+                    sport = _safe_int(getattr(tcp, "sport", None), 0)
+                    dport = _safe_int(getattr(tcp, "dport", None), 0)
+                    if 502 not in (sport, dport):
+                        continue
+                    packets_seen_502 += 1
+                    pkt_epoch = None
+                    try:
+                        pkt_epoch = float(getattr(pkt, "time", None))
+                    except Exception:
+                        pkt_epoch = None
+                    if pkt_epoch is not None:
+                        if first_epoch is None:
+                            first_epoch = pkt_epoch
+                        last_epoch = pkt_epoch
+                    if not pkt.haslayer(Raw):
+                        continue
+                    raw_payload = bytes(pkt[Raw].load or b"")
+                    if not raw_payload:
+                        continue
+                    payload_packets_seen += 1
+                    for adu in _iter_modbus_adus(raw_payload):
+                        decoded = _decode_modbus_adu(adu)
+                        if not decoded:
+                            continue
+                        decoded.update(
+                            {
+                                "ts_epoch": pkt_epoch,
+                                "ts_utc": _utc_from_epoch(pkt_epoch),
+                                "ts_utc_ms": _utc_from_epoch(pkt_epoch, milliseconds=True),
+                                "src_ip": pkt[IP].src,
+                                "dst_ip": pkt[IP].dst,
+                                "src_port": sport,
+                                "dst_port": dport,
+                                "direction": "to_server" if dport == 502 else "from_server" if sport == 502 else None,
+                                "pcap_rel": rel_pcap,
+                            }
+                        )
+                        if len(records) < max_records_cap:
+                            records.append(decoded)
+                        per_file_records += 1
+                        op_counts[str(decoded.get("op") or "unknown")] += 1
+                        fc_counts[str(decoded.get("fc") or "unknown")] += 1
+            file_summaries.append(
+                {
+                    "pcap_rel": rel_pcap,
+                    "status": "processed",
+                    "records_exported": per_file_records,
+                    "segment_start_time": entry.get("segment_start_time"),
+                    "segment_end_time": entry.get("segment_end_time"),
+                    "size": entry.get("size"),
+                }
+            )
+
+        payload = {
+            "schema": "nics_ot_export_v1",
+            "case_dir": str(case_dir),
+            "run_id": run_id,
+            "protocol": "modbus_tcp",
+            "source_mode": "continuous_rolling_pcap_with_case_bound_incident_window_import",
+            "captures": file_summaries,
+            "summary": {
+                "records_exported": len(records),
+                "packets_seen_502": packets_seen_502,
+                "payload_packets_seen": payload_packets_seen,
+                "first_epoch": first_epoch,
+                "last_epoch": last_epoch,
+                "max_records_cap": max_records_cap,
+                "truncated": len(records) >= max_records_cap,
+                "source_pcap_count": len(source_entries),
+                "operation_counts": dict(op_counts.most_common()),
+                "function_code_counts": dict(fc_counts.most_common()),
+            },
+            "records": records,
+            "generated_at_utc": _utc_now_iso(),
+        }
+        export_path.parent.mkdir(parents=True, exist_ok=True)
+        export_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+        size = export_path.stat().st_size
+        sha256 = _sha256_file(export_path)
+        _add_artifact_once(
+            case_dir,
+            export_rel,
+            "industrial_ot_export_modbus_tcp",
+            sha256=sha256,
+            size=size,
+            extra={
+                "source_mode": "continuous_rolling_pcap_with_case_bound_incident_window_import",
+                "source_pcap_count": len(source_entries),
+            },
+        )
+        _append_custody_entry(
+            case_dir,
+            "acquire_preserved",
+            run_id=run_id,
+            artifact_rel=export_rel,
+            outcome="ok",
+            details={
+                "kind": "industrial_ot_export_modbus_tcp",
+                "sha256": sha256,
+                "size": size,
+                "records_exported": len(records),
+                "source_mode": "continuous_rolling_pcap_with_case_bound_incident_window_import",
+            },
+        )
+        completed_iso = _utc_now_iso()
+        update_acquisition_profile(
+            case_dir,
+            run_id=run_id,
+            merge_fields={
+                "ot_export_started_utc": started_iso,
+                "ot_export_completed_utc": completed_iso,
+                "ot_export_rel": export_rel,
+                "ot_export_records_exported": len(records),
+            },
+        )
+        _append_case_event(
+            case_dir,
+            "ot_export_preserved",
+            run_id=run_id,
+            meta={
+                "protocol": "modbus_tcp",
+                "industrial_export_rel": export_rel,
+                "industrial_export_sha256": sha256,
+                "industrial_export_size": size,
+                "records_exported": len(records),
+                "source_pcap_count": len(source_entries),
+                "source_mode": "continuous_rolling_pcap_with_case_bound_incident_window_import",
+            },
+            ts_utc=completed_iso,
+        )
+        return {
+            "status": "completed",
+            "records_exported": len(records),
+            "ot_export_rel": export_rel,
+            "source_pcap_count": len(source_entries),
+            "source_pcap_paths": [str(item.get("case_path") or "") for item in source_entries],
+        }
+    except Exception as exc:
+        _append_custody_entry(
+            case_dir,
+            "acquire_failed",
+            run_id=run_id,
+            artifact_rel=export_rel,
+            outcome="error",
+            details={
+                "kind": "industrial_ot_export_modbus_tcp",
+                "reason": str(exc),
+                "source_mode": "continuous_rolling_pcap_with_case_bound_incident_window_import",
+            },
+        )
+        _append_case_event(
+            case_dir,
+            "ot_export_failed",
+            run_id=run_id,
+            meta={
+                "protocol": "modbus_tcp",
+                "industrial_export_rel": export_rel,
+                "reason": str(exc),
+                "source_pcap_count": len(source_entries),
+                "source_mode": "continuous_rolling_pcap_with_case_bound_incident_window_import",
+            },
+        )
+        return {
+            "status": "failed",
+            "records_exported": 0,
+            "ot_export_rel": export_rel,
+            "source_pcap_count": len(source_entries),
+            "source_pcap_paths": [str(item.get("case_path") or "") for item in source_entries],
+            "error": str(exc),
+        }
 
 
 def _load_acquisition_profile(case_dir: Path) -> dict:
@@ -527,12 +877,15 @@ def import_continuous_network_context(
     _register_small_case_artifact(case_path, NETWORK_CONTEXT_MANIFEST_REL, "network_context_manifest")
     _append_custody_entry(case_path, "network_context_manifest_written", run_id=run_id, artifact_rel=NETWORK_CONTEXT_MANIFEST_REL, outcome="ok", details={"preserved_segments": len(preserved_entries), "pending_segments": len(pending_entries)})
 
+    ot_export_result = _export_ot_from_preserved_segments(case_path, run_id=run_id, preserved_entries=preserved_entries)
+
     completed_iso = _utc_now_iso()
     update_acquisition_profile(case_path, run_id=run_id, merge_fields={
         "network_context_import_completed_utc": completed_iso,
         "network_context_manifest_path": NETWORK_CONTEXT_MANIFEST_REL,
         "network_context_import_summary": manifest_payload["summary"],
         "source_capture_root": str(source_root),
+        "ot_export_status": ot_export_result.get("status"),
     })
     _refresh_case_reports(case_path)
     _append_case_event(case_path, "network_context_import_completed", run_id=run_id, meta=manifest_payload["summary"], ts_utc=completed_iso)
@@ -550,4 +903,5 @@ def import_continuous_network_context(
         "strategy": "volatile_first_with_continuous_network_context",
         "case_window_start_utc": window_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "case_window_end_utc": window_end.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "ot_export": ot_export_result,
     }

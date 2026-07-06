@@ -432,6 +432,37 @@ def _critical_evidence_gate(
     for key, ok in checks.items():
         if not ok:
             missing.append(key)
+    found_paths = {
+        "pcap_packet_level_modbus_evidence_present": [str(item.get("rel_path") or "") for item in pcap_artifacts],
+        "ot_export_present_in_manifest": [str(item.get("rel_path") or "") for item in ot_artifacts],
+        "raw_wazuh_trigger_binding_present": [TRIGGER_ALERT_BINDING_REL] if trigger_binding_present else [],
+        "forensic_intervention_artifact_present": [FORENSIC_INTERVENTION_REL] if forensic_intervention_present else [],
+        "memory_artifacts_present": [str(item.get("rel_path") or "") for item in memory_artifacts],
+        "disk_artifacts_present": [str(item.get("rel_path") or "") for item in disk_artifacts],
+        "manifest_present": ["manifest.json"] if manifest_present else [],
+        "custody_present": ["chain_of_custody.log"] if custody_present else [],
+        "normalized_timestamps_available": [NORMALIZED_TIMESTAMPS_REL] if normalized_timestamps_present else [],
+    }
+    expected_paths = {
+        "pcap_packet_level_modbus_evidence_present": ["network/traffic_preserved/full_scenario_captures/**/*.pcap*", "network/traffic_preserved/network_context_manifest.json:summary.preserved_segments>0"],
+        "ot_export_present_in_manifest": ["industrial/ot_export_*.json"],
+        "raw_wazuh_trigger_binding_present": [TRIGGER_ALERT_BINDING_REL],
+        "forensic_intervention_artifact_present": [FORENSIC_INTERVENTION_REL],
+        "memory_artifacts_present": ["memory/*.lime"],
+        "disk_artifacts_present": ["disk/*.raw or disk/*.qcow2"],
+        "manifest_present": ["manifest.json"],
+        "custody_present": ["chain_of_custody.log"],
+        "normalized_timestamps_available": [NORMALIZED_TIMESTAMPS_REL],
+    }
+    failure_details = [
+        {
+            "check": key,
+            "expected_paths": expected_paths.get(key) or [],
+            "found_paths": found_paths.get(key) or [],
+            "supporting_condition": checks.get(key),
+        }
+        for key in missing
+    ]
     gate_status = "scientifically_complete" if not missing else "diagnostic_failed"
     payload = {
         "generated_at_utc": utc_now(),
@@ -441,6 +472,7 @@ def _critical_evidence_gate(
         "scientifically_complete": not bool(missing),
         "missing_critical_evidence": missing,
         "checks": checks,
+        "failure_details": failure_details,
         "supporting_metrics": {
             "pcap_artifact_count": len(pcap_artifacts),
             "preserved_segments": preserved_segments,
@@ -1561,6 +1593,49 @@ def _network_context_payload(case_dir: Path) -> dict:
     }
 
 
+def _manifest_artifact_sizes(case_dir: Path) -> dict[str, list[int]]:
+    artifacts = _manifest_artifacts(case_dir)
+    sizes: dict[str, list[int]] = {"pcap": [], "memory": [], "disk": [], "ot": []}
+    for artifact in artifacts:
+        rel_path = str(artifact.get("rel_path") or "")
+        try:
+            size = int(artifact.get("size") or 0)
+        except Exception:
+            size = 0
+        if size <= 0:
+            continue
+        low = rel_path.lower()
+        if low.startswith("network/") and (low.endswith(".pcap") or low.endswith(".pcapng")):
+            sizes["pcap"].append(size)
+        elif low.startswith("memory/") and (low.endswith(".lime") or "memdump" in low):
+            sizes["memory"].append(size)
+        elif low.startswith("disk/") and (low.endswith(".raw") or low.endswith(".qcow2")):
+            sizes["disk"].append(size)
+        elif low.startswith("industrial/"):
+            sizes["ot"].append(size)
+    return sizes
+
+
+def _bytes_to_gib(value: int | float | None) -> float | None:
+    if value in {None, ""}:
+        return None
+    try:
+        return round(float(value) / (1024.0 ** 3), 6)
+    except Exception:
+        return None
+
+
+def _count_failures_for_run(events: list[dict], run_id: str) -> int:
+    count = 0
+    for event in events:
+        if str(event.get("run_id") or "") != str(run_id or ""):
+            continue
+        name = str(event.get("event") or event.get("event_type") or "")
+        if name.endswith("_failed") or "failed" in name:
+            count += 1
+    return count
+
+
 def _observed_case_state(case_id: str | None, case_dir: Path | None) -> dict:
     if not case_dir or not case_dir.exists():
         return {
@@ -1765,6 +1840,19 @@ def _repetition_result_from_case(
     disk_completed_at = (acquisition_profile or {}).get("disk_completed_utc") or _find_event_time(events, "disk_preserved")
     network_started_at = (acquisition_profile or {}).get("network_context_import_started_utc")
     network_completed_at = (acquisition_profile or {}).get("network_context_import_completed_utc")
+    ot_started_at = (acquisition_profile or {}).get("ot_export_started_utc") or _find_event_time(events, "ot_export_start")
+    ot_completed_at = (acquisition_profile or {}).get("ot_export_completed_utc") or _latest_event_time(events, "ot_export_preserved")
+    first_seal_at = _latest_event_time(events, "case_digest_written") or memory_completed_at
+    artifact_sizes = _manifest_artifact_sizes(case_dir) if case_dir else {"pcap": [], "memory": [], "disk": [], "ot": []}
+    pcap_periodic_total_bytes = sum(artifact_sizes.get("pcap") or [])
+    memory_total_bytes = sum(artifact_sizes.get("memory") or [])
+    disk_total_bytes = sum(artifact_sizes.get("disk") or [])
+    ot_paths = [
+        str(item.get("rel_path") or "")
+        for item in (_manifest_artifacts(case_dir) if case_dir else [])
+        if _artifact_matches(item, rel_prefix="industrial/", type_tokens=("industrial_ot_export", "ot_export"))
+    ]
+    retries_or_failures_count = _count_failures_for_run(events, execution_id)
 
     repetition_status = "completed"
     if (lifecycle_result or {}).get("status") in {"completed_with_degradation"} or str((attach_result or {}).get("status") or "").lower() == "completed_with_degradation":
@@ -1827,15 +1915,31 @@ def _repetition_result_from_case(
         "timeline_status": str((((analysis_status or {}).get("phases") or {}).get("unified_forensic_timeline") or {}).get("status") or "not_started"),
         "reconstruction_status": str(causal.get("status") or (lifecycle_result or {}).get("status") or "failed"),
         "timing_metrics": {
+            "deploy_time_seconds": 0.0,
+            "teardown_redeploy_time_seconds": 0.0,
+            "network_mode": "continuous_rolling_pcap_with_case_bound_incident_window_import",
             "alert_to_acquisition_start_seconds": _seconds_between(trigger_ts, (acquisition_profile or {}).get("acquisition_started_utc") or (acquisition_profile or {}).get("case_created_utc")),
             "alert_to_memory_start_seconds": _seconds_between(trigger_ts, memory_started_at),
             "alert_to_memory_preserved_seconds": _seconds_between(trigger_ts, memory_completed_at),
+            "alert_to_ot_export_preserved_seconds": _seconds_between(trigger_ts, ot_completed_at),
+            "alert_to_disk_snapshot_start_seconds": _seconds_between(trigger_ts, disk_started_at),
+            "alert_to_disk_snapshot_preserved_seconds": _seconds_between(trigger_ts, disk_completed_at),
             "alert_to_case_sealed_seconds": _seconds_between(trigger_ts, case_sealed_time),
+            "t_first_sealed_seconds": _seconds_between(trigger_ts, first_seal_at),
+            "t_case_sealed_seconds": _seconds_between(trigger_ts, case_sealed_time),
             "memory_acquisition_duration_seconds": _seconds_between(memory_started_at, memory_completed_at),
             "pcap_import_duration_seconds": _seconds_between(network_started_at, network_completed_at),
             "disk_acquisition_duration_seconds": _seconds_between(disk_started_at, disk_completed_at),
             "case_sealed_to_analysis_completed_seconds": _seconds_between(case_sealed_time, analysis_completed_at),
             "total_repetition_duration_seconds": _seconds_between(attack_started_at, reconstruction_completed_at or analysis_completed_at or case_sealed_time),
+            "pcap_periodic_context_size_gib": _bytes_to_gib(pcap_periodic_total_bytes),
+            "pcap_reactive_capture_size_bytes": 0,
+            "memory_dump_size_bytes": memory_total_bytes,
+            "disk_snapshot_size_bytes": disk_total_bytes,
+            "retries_or_failures_count": retries_or_failures_count,
+            "ot_export_present_in_manifest": bool(ot_paths),
+            "ot_export_paths": ot_paths,
+            "evidence_completeness_gate": str((critical_evidence_gate or {}).get("gate_status") or "not_available"),
         },
         "reconstruction_metrics": {
             "expected_relations": result_card.get("expected_causal_edges") and len(result_card.get("expected_causal_edges") or []) or causal.get("expected_edges"),
@@ -1846,6 +1950,8 @@ def _repetition_result_from_case(
             "recoverability_score": result_card.get("CPR") or causal.get("cpr"),
             "weighted_recoverability_score": result_card.get("Weighted_CPR") or causal.get("weighted_cpr"),
             "reconstruction_confidence": result_card.get("reconstruction_confidence") or causal.get("reconstruction_confidence"),
+            "recoverability_label": result_card.get("recoverability_label") or summary.get("recoverability_label"),
+            "scientific_confidence_label": result_card.get("scientific_confidence_label") or result_card.get("reconstruction_confidence") or causal.get("reconstruction_confidence"),
             "warnings": warnings,
             "blockers": blockers,
         },
@@ -1951,15 +2057,31 @@ def _failed_repetition_result(
         "timeline_status": observed.get("timeline_status"),
         "reconstruction_status": "failed",
         "timing_metrics": {
+            "deploy_time_seconds": 0.0,
+            "teardown_redeploy_time_seconds": 0.0,
+            "network_mode": "continuous_rolling_pcap_with_case_bound_incident_window_import",
             "alert_to_acquisition_start_seconds": None,
             "alert_to_memory_start_seconds": None,
             "alert_to_memory_preserved_seconds": None,
+            "alert_to_ot_export_preserved_seconds": None,
+            "alert_to_disk_snapshot_start_seconds": None,
+            "alert_to_disk_snapshot_preserved_seconds": None,
             "alert_to_case_sealed_seconds": None,
+            "t_first_sealed_seconds": None,
+            "t_case_sealed_seconds": None,
             "memory_acquisition_duration_seconds": None,
             "pcap_import_duration_seconds": None,
             "disk_acquisition_duration_seconds": None,
             "case_sealed_to_analysis_completed_seconds": None,
             "total_repetition_duration_seconds": _seconds_between(attack_started_at, attack_completed_at) if attack_started_at and attack_completed_at else None,
+            "pcap_periodic_context_size_gib": None,
+            "pcap_reactive_capture_size_bytes": 0,
+            "memory_dump_size_bytes": None,
+            "disk_snapshot_size_bytes": None,
+            "retries_or_failures_count": 0,
+            "ot_export_present_in_manifest": False,
+            "ot_export_paths": [],
+            "evidence_completeness_gate": str((critical_evidence_gate or {}).get("gate_status") or "not_available"),
         },
         "reconstruction_metrics": {
             "expected_relations": 0,
@@ -1970,6 +2092,8 @@ def _failed_repetition_result(
             "recoverability_score": None,
             "weighted_recoverability_score": None,
             "reconstruction_confidence": None,
+            "recoverability_label": None,
+            "scientific_confidence_label": None,
             "warnings": [reason],
             "blockers": blockers,
         },
@@ -2077,10 +2201,23 @@ def _run_nested_level_a_report_for_case(
 
 def _aggregate_metrics(results: list[dict]) -> tuple[dict, dict]:
     timing_fields = [
+        "deploy_time_seconds",
+        "teardown_redeploy_time_seconds",
+        "alert_to_acquisition_start_seconds",
         "alert_to_memory_start_seconds",
         "alert_to_memory_preserved_seconds",
+        "alert_to_ot_export_preserved_seconds",
+        "alert_to_disk_snapshot_start_seconds",
+        "alert_to_disk_snapshot_preserved_seconds",
         "alert_to_case_sealed_seconds",
+        "t_first_sealed_seconds",
+        "t_case_sealed_seconds",
         "total_repetition_duration_seconds",
+        "pcap_periodic_context_size_gib",
+        "pcap_reactive_capture_size_bytes",
+        "memory_dump_size_bytes",
+        "disk_snapshot_size_bytes",
+        "retries_or_failures_count",
     ]
     timing_values: dict[str, list[float]] = {key: [] for key in timing_fields}
     for item in results:
@@ -2092,29 +2229,61 @@ def _aggregate_metrics(results: list[dict]) -> tuple[dict, dict]:
 
     aggregate_timing = {
         "N_B": len(results),
+        "deploy_time_mean_seconds": _mean(timing_values["deploy_time_seconds"]),
+        "deploy_time_std_seconds": _sample_std(timing_values["deploy_time_seconds"]),
+        "teardown_redeploy_time_mean_seconds": _mean(timing_values["teardown_redeploy_time_seconds"]),
+        "teardown_redeploy_time_std_seconds": _sample_std(timing_values["teardown_redeploy_time_seconds"]),
+        "alert_to_acquisition_start_mean_seconds": _mean(timing_values["alert_to_acquisition_start_seconds"]),
+        "alert_to_acquisition_start_std_seconds": _sample_std(timing_values["alert_to_acquisition_start_seconds"]),
         "alert_to_memory_start_mean_seconds": _mean(timing_values["alert_to_memory_start_seconds"]),
         "alert_to_memory_start_std_seconds": _sample_std(timing_values["alert_to_memory_start_seconds"]),
         "alert_to_memory_preserved_mean_seconds": _mean(timing_values["alert_to_memory_preserved_seconds"]),
         "alert_to_memory_preserved_std_seconds": _sample_std(timing_values["alert_to_memory_preserved_seconds"]),
+        "alert_to_ot_export_preserved_mean_seconds": _mean(timing_values["alert_to_ot_export_preserved_seconds"]),
+        "alert_to_ot_export_preserved_std_seconds": _sample_std(timing_values["alert_to_ot_export_preserved_seconds"]),
+        "alert_to_disk_snapshot_start_mean_seconds": _mean(timing_values["alert_to_disk_snapshot_start_seconds"]),
+        "alert_to_disk_snapshot_start_std_seconds": _sample_std(timing_values["alert_to_disk_snapshot_start_seconds"]),
+        "alert_to_disk_snapshot_preserved_mean_seconds": _mean(timing_values["alert_to_disk_snapshot_preserved_seconds"]),
+        "alert_to_disk_snapshot_preserved_std_seconds": _sample_std(timing_values["alert_to_disk_snapshot_preserved_seconds"]),
         "alert_to_case_sealed_mean_seconds": _mean(timing_values["alert_to_case_sealed_seconds"]),
         "alert_to_case_sealed_std_seconds": _sample_std(timing_values["alert_to_case_sealed_seconds"]),
+        "t_first_sealed_mean_seconds": _mean(timing_values["t_first_sealed_seconds"]),
+        "t_first_sealed_std_seconds": _sample_std(timing_values["t_first_sealed_seconds"]),
+        "t_case_sealed_mean_seconds": _mean(timing_values["t_case_sealed_seconds"]),
+        "t_case_sealed_std_seconds": _sample_std(timing_values["t_case_sealed_seconds"]),
         "total_duration_mean_seconds": _mean(timing_values["total_repetition_duration_seconds"]),
         "total_duration_std_seconds": _sample_std(timing_values["total_repetition_duration_seconds"]),
+        "pcap_periodic_context_size_gib_mean": _mean(timing_values["pcap_periodic_context_size_gib"]),
+        "pcap_periodic_context_size_gib_std": _sample_std(timing_values["pcap_periodic_context_size_gib"]),
+        "pcap_reactive_capture_size_bytes_mean": _mean(timing_values["pcap_reactive_capture_size_bytes"]),
+        "pcap_reactive_capture_size_bytes_std": _sample_std(timing_values["pcap_reactive_capture_size_bytes"]),
+        "memory_dump_size_bytes_mean": _mean(timing_values["memory_dump_size_bytes"]),
+        "memory_dump_size_bytes_std": _sample_std(timing_values["memory_dump_size_bytes"]),
+        "disk_snapshot_size_bytes_mean": _mean(timing_values["disk_snapshot_size_bytes"]),
+        "disk_snapshot_size_bytes_std": _sample_std(timing_values["disk_snapshot_size_bytes"]),
+        "retries_or_failures_count_mean": _mean(timing_values["retries_or_failures_count"]),
+        "retries_or_failures_count_std": _sample_std(timing_values["retries_or_failures_count"]),
+        "network_mode": "continuous_rolling_pcap_with_case_bound_incident_window_import",
     }
 
     recoverability = []
     weighted = []
     degraded = ambiguous = missing = 0
+    expected = recovered = 0
     for item in results:
         reconstruction = item.get("reconstruction_metrics") or {}
         if _safe_float(reconstruction.get("recoverability_score")) is not None:
             recoverability.append(float(reconstruction["recoverability_score"]))
         if _safe_float(reconstruction.get("weighted_recoverability_score")) is not None:
             weighted.append(float(reconstruction["weighted_recoverability_score"]))
+        expected += int(reconstruction.get("expected_relations") or 0)
+        recovered += int(reconstruction.get("recovered_relations") or 0)
         degraded += int(reconstruction.get("degraded_relations") or 0)
         ambiguous += int(reconstruction.get("ambiguous_relations") or 0)
         missing += int(reconstruction.get("missing_relations") or 0)
     aggregate_reconstruction = {
+        "expected_relations_total": expected,
+        "recovered_relations_total": recovered,
         "recoverability_mean": _mean(recoverability),
         "recoverability_std": _sample_std(recoverability),
         "weighted_recoverability_mean": _mean(weighted),
@@ -2410,6 +2579,15 @@ def _store_level_b_report(
         },
         "aggregate_timing_metrics": aggregate_timing,
         "aggregate_reconstruction_metrics": aggregate_reconstruction,
+        "structured_metrics": {
+            "level": "B",
+            "n_repetitions": len(results),
+            "metrics_per_repetition": results,
+            "aggregate": {
+                "timing": aggregate_timing,
+                "reconstruction": aggregate_reconstruction,
+            },
+        },
         "per_repetition_results": results,
         "warnings": warnings,
         "blockers": blockers,
@@ -2422,6 +2600,7 @@ def _store_level_b_report(
     summary_rows = []
     timing_rows = []
     reconstruction_rows = []
+    paper_metrics_rows = []
     cases_index = []
     for item in results:
         summary_rows.append(
@@ -2444,6 +2623,33 @@ def _store_level_b_report(
         )
         timing_rows.append({"repetition_number": item.get("repetition_number"), **(item.get("timing_metrics") or {})})
         reconstruction_rows.append({"repetition_number": item.get("repetition_number"), **(item.get("reconstruction_metrics") or {})})
+        paper_metrics_rows.append(
+            {
+                "repetition_number": item.get("repetition_number"),
+                "execution_id": item.get("execution_id"),
+                "case_id": item.get("case_id"),
+                **(item.get("timing_metrics") or {}),
+                **{f"gate_{k}": v for k, v in (((item.get("critical_evidence_gate") or {}).get("checks") or {}).items())},
+                "missing_critical_evidence": ";".join((item.get("critical_evidence_gate") or {}).get("missing_critical_evidence") or []),
+                "expected_failed_paths": ";".join(
+                    "; ".join(detail.get("expected_paths") or [])
+                    for detail in ((item.get("critical_evidence_gate") or {}).get("failure_details") or [])
+                ),
+                "found_failed_paths": ";".join(
+                    "; ".join(detail.get("found_paths") or [])
+                    for detail in ((item.get("critical_evidence_gate") or {}).get("failure_details") or [])
+                ),
+                "expected_relations": ((item.get("reconstruction_metrics") or {}).get("expected_relations")),
+                "recovered_relations": ((item.get("reconstruction_metrics") or {}).get("recovered_relations")),
+                "degraded_relations": ((item.get("reconstruction_metrics") or {}).get("degraded_relations")),
+                "ambiguous_relations": ((item.get("reconstruction_metrics") or {}).get("ambiguous_relations")),
+                "missing_relations": ((item.get("reconstruction_metrics") or {}).get("missing_relations")),
+                "cpr": ((item.get("reconstruction_metrics") or {}).get("recoverability_score")),
+                "wcpr": ((item.get("reconstruction_metrics") or {}).get("weighted_recoverability_score")),
+                "recoverability_label": ((item.get("reconstruction_metrics") or {}).get("recoverability_label")),
+                "scientific_confidence_label": ((item.get("reconstruction_metrics") or {}).get("scientific_confidence_label")),
+            }
+        )
         cases_index.append(
             {
                 "repetition_number": item.get("repetition_number"),
@@ -2482,15 +2688,31 @@ def _store_level_b_report(
         timing_rows,
         [
             "repetition_number",
+            "deploy_time_seconds",
+            "teardown_redeploy_time_seconds",
+            "network_mode",
             "alert_to_acquisition_start_seconds",
             "alert_to_memory_start_seconds",
             "alert_to_memory_preserved_seconds",
+            "alert_to_ot_export_preserved_seconds",
+            "alert_to_disk_snapshot_start_seconds",
+            "alert_to_disk_snapshot_preserved_seconds",
             "alert_to_case_sealed_seconds",
+            "t_first_sealed_seconds",
+            "t_case_sealed_seconds",
             "memory_acquisition_duration_seconds",
             "pcap_import_duration_seconds",
             "disk_acquisition_duration_seconds",
             "case_sealed_to_analysis_completed_seconds",
             "total_repetition_duration_seconds",
+            "pcap_periodic_context_size_gib",
+            "pcap_reactive_capture_size_bytes",
+            "memory_dump_size_bytes",
+            "disk_snapshot_size_bytes",
+            "retries_or_failures_count",
+            "ot_export_present_in_manifest",
+            "ot_export_paths",
+            "evidence_completeness_gate",
         ],
     )
     _write_csv(
@@ -2506,8 +2728,51 @@ def _store_level_b_report(
             "recoverability_score",
             "weighted_recoverability_score",
             "reconstruction_confidence",
+            "recoverability_label",
+            "scientific_confidence_label",
         ],
     )
+    _write_csv(
+        report_dir / "level_b_paper_metrics.csv",
+        paper_metrics_rows,
+        [
+            "repetition_number",
+            "execution_id",
+            "case_id",
+            "deploy_time_seconds",
+            "teardown_redeploy_time_seconds",
+            "network_mode",
+            "alert_to_acquisition_start_seconds",
+            "alert_to_memory_start_seconds",
+            "alert_to_memory_preserved_seconds",
+            "alert_to_ot_export_preserved_seconds",
+            "alert_to_disk_snapshot_start_seconds",
+            "alert_to_disk_snapshot_preserved_seconds",
+            "t_first_sealed_seconds",
+            "t_case_sealed_seconds",
+            "pcap_periodic_context_size_gib",
+            "pcap_reactive_capture_size_bytes",
+            "memory_dump_size_bytes",
+            "disk_snapshot_size_bytes",
+            "retries_or_failures_count",
+            "ot_export_present_in_manifest",
+            "ot_export_paths",
+            "evidence_completeness_gate",
+            "missing_critical_evidence",
+            "expected_failed_paths",
+            "found_failed_paths",
+            "expected_relations",
+            "recovered_relations",
+            "degraded_relations",
+            "ambiguous_relations",
+            "missing_relations",
+            "cpr",
+            "wcpr",
+            "recoverability_label",
+            "scientific_confidence_label",
+        ],
+    )
+    _write_json(report_dir / "level_b_structured_metrics.json", payload["structured_metrics"])
     _write_json(report_dir / "level_b_cases_index.json", {"generated_at": generated_at, "cases": cases_index})
     _write_json(report_dir / "level_b_warnings_and_blockers.json", {"generated_at": generated_at, "warnings": warnings, "blockers": blockers})
     _write_json(report_dir / "cleanup_manifest.json", cleanup_manifest)
@@ -2524,6 +2789,8 @@ def _store_level_b_report(
         "summary_csv_path": relative_path(report_dir / "level_b_repetition_summary.csv"),
         "timing_csv_path": relative_path(report_dir / "level_b_timing_metrics.csv"),
         "reconstruction_csv_path": relative_path(report_dir / "level_b_reconstruction_metrics.csv"),
+        "paper_metrics_csv_path": relative_path(report_dir / "level_b_paper_metrics.csv"),
+        "structured_metrics_json_path": relative_path(report_dir / "level_b_structured_metrics.json"),
         "cases_index_path": relative_path(report_dir / "level_b_cases_index.json"),
         "warnings_path": relative_path(report_dir / "level_b_warnings_and_blockers.json"),
         "cleanup_manifest_path": relative_path(report_dir / "cleanup_manifest.json"),
