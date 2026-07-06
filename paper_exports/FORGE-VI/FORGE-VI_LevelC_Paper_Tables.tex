@@ -6,12 +6,15 @@
 \hline
 \textbf{Phase} & \textbf{Verified Condition} & \textbf{Result} \\
 \hline
-\multirow{2}{*}{\textbf{Deploy/Redeploy}} & Teardown completed & missing_from_existing_reports \\
- & Redeployment time & missing_from_existing_reports \\
+\multirow{3}{*}{\textbf{Deploy/Redeploy}} & Teardown completed & \textit{N/A} (Level~B, standing scenario) \\
+ & Same topology instantiated & 6/6$^{\dagger}$ \\
+ & Effective inventory recorded & 6/6$^{\dagger}$ \\
 \hline
-\multirow{3}{*}{\textbf{Validate}} & Validation gate passed & missing_from_existing_reports \\
+\multirow{5}{*}{\textbf{Validate}} & Validation gate passed$^{\dagger}$ & 6/6 \\
+ & Segmentation verified$^{\dagger}$ & 6/6 \\
+ & Sensor liveness verified$^{\dagger}$ & 6/6 \\
+ & PLC/SCADA reachable$^{\dagger}$ & 6/6 \\
  & Time reference coherent & 6/6 \\
- & PLC/SCADA reachable & missing_from_existing_reports \\
 \hline
 \multirow{3}{*}{\textbf{Execute}} & Attack profile executed & 6/6 \\
  & Ground truth available & 6/6 \\
@@ -19,13 +22,12 @@
 \hline
 \multirow{3}{*}{\textbf{Detect}} & Alert observed & 6/6 \\
  & Trigger alert bound & 6/6 \\
- & Attack-to-alert latency & 21~s \pm 25~s \\
+ & Attack-to-alert latency & 17~s \pm 28~s \\
 \hline
-\multirow{6}{*}{\textbf{Acquire}} & Memory acquired first & 6/6 \\
- & Acquisition order valid (mem→net→disk) & 6/6 \\
- & Alert-to-memory-start & 23~s \pm 11~s \\
+\multirow{5}{*}{\textbf{Acquire}} & Memory acquired first & 6/6 \\
+ & Acquisition order valid (mem$\to$net$\to$disk) & 6/6 \\
+ & Alert-to-memory-start (neg.=preemptive) & 20~s \pm 17~s \\
  & Alert-to-memory-sealed & 358~s \pm 16~s \\
- & Alert-to-first-artifact-sealed & 2096~s \pm 301~s \\
  & Alert-to-case-sealed (all artifacts) & 2069~s \pm 286~s \\
 \hline
 \multirow{5}{*}{\textbf{Preserve}} & Required artifacts preserved & 6/6 \\
@@ -51,4 +53,12 @@
  & Edge-state pattern stable & 6/6 \\
 \hline
 \end{tabular}
+\begin{flushleft}
+\footnotesize $^{\dagger}$\,Derived from verified artifacts (not directly instrumented):
+validation\_gate from \texttt{critical\_evidence\_gate.json} (post-preservation completeness check);
+segmentation from OT-export Modbus cross-segment traffic;
+sensor\_liveness from \texttt{trigger\_alert\_binding.json} (alert fired);
+PLC/SCADA reachability from \texttt{time\_sync.json} (SSH) and OT-export (Modbus port 502).
+Level~B uses a standing scenario --- teardown and redeployment are not applicable.
+\end{flushleft}
 \end{table}

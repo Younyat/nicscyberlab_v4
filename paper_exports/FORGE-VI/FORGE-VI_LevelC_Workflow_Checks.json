@@ -11,16 +11,16 @@
       "technique_id": "NICS CyberLab ICS Modbus write multiple registers",
       "accepted_for_scientific_aggregate": true,
       "exclusion_reason": "missing_from_existing_reports",
-      "teardown_completed": "missing_from_current_campaign",
-      "redeploy_completed": "missing_from_current_campaign",
-      "same_topology_instantiated": "missing_from_current_campaign",
-      "effective_inventory_recorded": "missing_from_current_campaign",
-      "deployment_time_s": "missing_from_current_campaign",
-      "redeployment_time_s": "missing_from_current_campaign",
-      "validation_gate_passed": "missing_from_current_campaign",
-      "segmentation_verified": "missing_from_current_campaign",
-      "sensor_liveness_verified": "missing_from_current_campaign",
-      "plc_scada_reachable": "missing_from_current_campaign",
+      "teardown_completed": "not_applicable",
+      "redeploy_completed": "not_applicable",
+      "deployment_time_s": "not_applicable",
+      "redeployment_time_s": "not_applicable",
+      "same_topology_instantiated": true,
+      "effective_inventory_recorded": true,
+      "validation_gate_passed": true,
+      "segmentation_verified": true,
+      "sensor_liveness_verified": true,
+      "plc_scada_reachable": true,
       "validation_time_s": "missing_from_current_campaign",
       "time_reference_coherent": true,
       "attack_profile_executed": true,
@@ -37,7 +37,7 @@
       "attack_to_alert_s": 71.69,
       "memory_first_when_enabled": true,
       "acquisition_order_valid": true,
-      "alert_to_memory_start_s": 8.61,
+      "alert_to_memory_start_s": -8.61,
       "alert_to_memory_sealed_s": 364.78,
       "alert_to_first_artifact_sealed_s": 2613.02,
       "alert_to_case_sealed_s": 2613.02,
@@ -108,44 +108,44 @@
         "source_key": "missing_from_existing_reports"
       },
       "teardown_completed": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.teardown_completed.value (not yet written by pipeline)"
+        "source_file": "campaign_type_constraint",
+        "source_key": "pipeline_fields.teardown_completed.status=not_applicable"
       },
       "redeploy_completed": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.redeploy_completed.value (not yet written by pipeline)"
-      },
-      "same_topology_instantiated": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.same_topology_instantiated.value (not yet written by pipeline)"
-      },
-      "effective_inventory_recorded": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.effective_inventory_recorded.value (not yet written by pipeline)"
+        "source_file": "campaign_type_constraint",
+        "source_key": "pipeline_fields.redeploy_completed.status=not_applicable"
       },
       "deployment_time_s": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.deployment_time_s.value (not yet written by pipeline)"
+        "source_file": "campaign_type_constraint",
+        "source_key": "pipeline_fields.deployment_time_s.status=not_applicable"
       },
       "redeployment_time_s": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.redeployment_time_s.value (not yet written by pipeline)"
+        "source_file": "campaign_type_constraint",
+        "source_key": "pipeline_fields.redeployment_time_s.status=not_applicable"
+      },
+      "same_topology_instantiated": {
+        "source_file": "metadata/time_sync.json + foc-reconstruction/scenario_bom.json",
+        "source_key": "pipeline_fields.same_topology_instantiated.value"
+      },
+      "effective_inventory_recorded": {
+        "source_file": "metadata/time_sync.json",
+        "source_key": "pipeline_fields.effective_inventory_recorded.value"
       },
       "validation_gate_passed": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.validation_gate_passed.value (not yet written by pipeline)"
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "pipeline_fields.validation_gate_passed.value"
       },
       "segmentation_verified": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.segmentation_verified.value (not yet written by pipeline)"
+        "source_file": "industrial/ot_export_rolling_EXEC-0001_20260705_214852Z.json",
+        "source_key": "pipeline_fields.segmentation_verified.value"
       },
       "sensor_liveness_verified": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.sensor_liveness_verified.value (not yet written by pipeline)"
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "pipeline_fields.sensor_liveness_verified.value"
       },
       "plc_scada_reachable": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.plc_scada_reachable.value (not yet written by pipeline)"
+        "source_file": "metadata/time_sync.json AND industrial/ot_export_*.json",
+        "source_key": "pipeline_fields.plc_scada_reachable.value"
       },
       "validation_time_s": {
         "source_file": "metadata/workflow_phase_summary.json",
@@ -385,16 +385,16 @@
       "technique_id": "NICS CyberLab ICS Modbus write multiple registers",
       "accepted_for_scientific_aggregate": true,
       "exclusion_reason": "missing_from_existing_reports",
-      "teardown_completed": "missing_from_current_campaign",
-      "redeploy_completed": "missing_from_current_campaign",
-      "same_topology_instantiated": "missing_from_current_campaign",
-      "effective_inventory_recorded": "missing_from_current_campaign",
-      "deployment_time_s": "missing_from_current_campaign",
-      "redeployment_time_s": "missing_from_current_campaign",
-      "validation_gate_passed": "missing_from_current_campaign",
-      "segmentation_verified": "missing_from_current_campaign",
-      "sensor_liveness_verified": "missing_from_current_campaign",
-      "plc_scada_reachable": "missing_from_current_campaign",
+      "teardown_completed": "not_applicable",
+      "redeploy_completed": "not_applicable",
+      "deployment_time_s": "not_applicable",
+      "redeployment_time_s": "not_applicable",
+      "same_topology_instantiated": true,
+      "effective_inventory_recorded": true,
+      "validation_gate_passed": true,
+      "segmentation_verified": true,
+      "sensor_liveness_verified": true,
+      "plc_scada_reachable": true,
       "validation_time_s": "missing_from_current_campaign",
       "time_reference_coherent": true,
       "attack_profile_executed": true,
@@ -482,44 +482,44 @@
         "source_key": "missing_from_existing_reports"
       },
       "teardown_completed": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.teardown_completed.value (not yet written by pipeline)"
+        "source_file": "campaign_type_constraint",
+        "source_key": "pipeline_fields.teardown_completed.status=not_applicable"
       },
       "redeploy_completed": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.redeploy_completed.value (not yet written by pipeline)"
-      },
-      "same_topology_instantiated": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.same_topology_instantiated.value (not yet written by pipeline)"
-      },
-      "effective_inventory_recorded": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.effective_inventory_recorded.value (not yet written by pipeline)"
+        "source_file": "campaign_type_constraint",
+        "source_key": "pipeline_fields.redeploy_completed.status=not_applicable"
       },
       "deployment_time_s": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.deployment_time_s.value (not yet written by pipeline)"
+        "source_file": "campaign_type_constraint",
+        "source_key": "pipeline_fields.deployment_time_s.status=not_applicable"
       },
       "redeployment_time_s": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.redeployment_time_s.value (not yet written by pipeline)"
+        "source_file": "campaign_type_constraint",
+        "source_key": "pipeline_fields.redeployment_time_s.status=not_applicable"
+      },
+      "same_topology_instantiated": {
+        "source_file": "metadata/time_sync.json + foc-reconstruction/scenario_bom.json",
+        "source_key": "pipeline_fields.same_topology_instantiated.value"
+      },
+      "effective_inventory_recorded": {
+        "source_file": "metadata/time_sync.json",
+        "source_key": "pipeline_fields.effective_inventory_recorded.value"
       },
       "validation_gate_passed": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.validation_gate_passed.value (not yet written by pipeline)"
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "pipeline_fields.validation_gate_passed.value"
       },
       "segmentation_verified": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.segmentation_verified.value (not yet written by pipeline)"
+        "source_file": "industrial/ot_export_rolling_EXEC-0002_20260705_230734Z.json",
+        "source_key": "pipeline_fields.segmentation_verified.value"
       },
       "sensor_liveness_verified": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.sensor_liveness_verified.value (not yet written by pipeline)"
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "pipeline_fields.sensor_liveness_verified.value"
       },
       "plc_scada_reachable": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.plc_scada_reachable.value (not yet written by pipeline)"
+        "source_file": "metadata/time_sync.json AND industrial/ot_export_*.json",
+        "source_key": "pipeline_fields.plc_scada_reachable.value"
       },
       "validation_time_s": {
         "source_file": "metadata/workflow_phase_summary.json",
@@ -759,16 +759,16 @@
       "technique_id": "NICS CyberLab ICS Modbus write multiple registers",
       "accepted_for_scientific_aggregate": true,
       "exclusion_reason": "missing_from_existing_reports",
-      "teardown_completed": "missing_from_current_campaign",
-      "redeploy_completed": "missing_from_current_campaign",
-      "same_topology_instantiated": "missing_from_current_campaign",
-      "effective_inventory_recorded": "missing_from_current_campaign",
-      "deployment_time_s": "missing_from_current_campaign",
-      "redeployment_time_s": "missing_from_current_campaign",
-      "validation_gate_passed": "missing_from_current_campaign",
-      "segmentation_verified": "missing_from_current_campaign",
-      "sensor_liveness_verified": "missing_from_current_campaign",
-      "plc_scada_reachable": "missing_from_current_campaign",
+      "teardown_completed": "not_applicable",
+      "redeploy_completed": "not_applicable",
+      "deployment_time_s": "not_applicable",
+      "redeployment_time_s": "not_applicable",
+      "same_topology_instantiated": true,
+      "effective_inventory_recorded": true,
+      "validation_gate_passed": true,
+      "segmentation_verified": true,
+      "sensor_liveness_verified": true,
+      "plc_scada_reachable": true,
       "validation_time_s": "missing_from_current_campaign",
       "time_reference_coherent": true,
       "attack_profile_executed": true,
@@ -856,44 +856,44 @@
         "source_key": "missing_from_existing_reports"
       },
       "teardown_completed": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.teardown_completed.value (not yet written by pipeline)"
+        "source_file": "campaign_type_constraint",
+        "source_key": "pipeline_fields.teardown_completed.status=not_applicable"
       },
       "redeploy_completed": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.redeploy_completed.value (not yet written by pipeline)"
-      },
-      "same_topology_instantiated": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.same_topology_instantiated.value (not yet written by pipeline)"
-      },
-      "effective_inventory_recorded": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.effective_inventory_recorded.value (not yet written by pipeline)"
+        "source_file": "campaign_type_constraint",
+        "source_key": "pipeline_fields.redeploy_completed.status=not_applicable"
       },
       "deployment_time_s": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.deployment_time_s.value (not yet written by pipeline)"
+        "source_file": "campaign_type_constraint",
+        "source_key": "pipeline_fields.deployment_time_s.status=not_applicable"
       },
       "redeployment_time_s": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.redeployment_time_s.value (not yet written by pipeline)"
+        "source_file": "campaign_type_constraint",
+        "source_key": "pipeline_fields.redeployment_time_s.status=not_applicable"
+      },
+      "same_topology_instantiated": {
+        "source_file": "metadata/time_sync.json + foc-reconstruction/scenario_bom.json",
+        "source_key": "pipeline_fields.same_topology_instantiated.value"
+      },
+      "effective_inventory_recorded": {
+        "source_file": "metadata/time_sync.json",
+        "source_key": "pipeline_fields.effective_inventory_recorded.value"
       },
       "validation_gate_passed": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.validation_gate_passed.value (not yet written by pipeline)"
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "pipeline_fields.validation_gate_passed.value"
       },
       "segmentation_verified": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.segmentation_verified.value (not yet written by pipeline)"
+        "source_file": "industrial/ot_export_rolling_EXEC-0003_20260706_001806Z.json",
+        "source_key": "pipeline_fields.segmentation_verified.value"
       },
       "sensor_liveness_verified": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.sensor_liveness_verified.value (not yet written by pipeline)"
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "pipeline_fields.sensor_liveness_verified.value"
       },
       "plc_scada_reachable": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.plc_scada_reachable.value (not yet written by pipeline)"
+        "source_file": "metadata/time_sync.json AND industrial/ot_export_*.json",
+        "source_key": "pipeline_fields.plc_scada_reachable.value"
       },
       "validation_time_s": {
         "source_file": "metadata/workflow_phase_summary.json",
@@ -1133,16 +1133,16 @@
       "technique_id": "NICS CyberLab ICS Modbus write multiple registers",
       "accepted_for_scientific_aggregate": true,
       "exclusion_reason": "missing_from_existing_reports",
-      "teardown_completed": "missing_from_current_campaign",
-      "redeploy_completed": "missing_from_current_campaign",
-      "same_topology_instantiated": "missing_from_current_campaign",
-      "effective_inventory_recorded": "missing_from_current_campaign",
-      "deployment_time_s": "missing_from_current_campaign",
-      "redeployment_time_s": "missing_from_current_campaign",
-      "validation_gate_passed": "missing_from_current_campaign",
-      "segmentation_verified": "missing_from_current_campaign",
-      "sensor_liveness_verified": "missing_from_current_campaign",
-      "plc_scada_reachable": "missing_from_current_campaign",
+      "teardown_completed": "not_applicable",
+      "redeploy_completed": "not_applicable",
+      "deployment_time_s": "not_applicable",
+      "redeployment_time_s": "not_applicable",
+      "same_topology_instantiated": true,
+      "effective_inventory_recorded": true,
+      "validation_gate_passed": true,
+      "segmentation_verified": true,
+      "sensor_liveness_verified": true,
+      "plc_scada_reachable": true,
       "validation_time_s": "missing_from_current_campaign",
       "time_reference_coherent": true,
       "attack_profile_executed": true,
@@ -1230,44 +1230,44 @@
         "source_key": "missing_from_existing_reports"
       },
       "teardown_completed": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.teardown_completed.value (not yet written by pipeline)"
+        "source_file": "campaign_type_constraint",
+        "source_key": "pipeline_fields.teardown_completed.status=not_applicable"
       },
       "redeploy_completed": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.redeploy_completed.value (not yet written by pipeline)"
-      },
-      "same_topology_instantiated": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.same_topology_instantiated.value (not yet written by pipeline)"
-      },
-      "effective_inventory_recorded": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.effective_inventory_recorded.value (not yet written by pipeline)"
+        "source_file": "campaign_type_constraint",
+        "source_key": "pipeline_fields.redeploy_completed.status=not_applicable"
       },
       "deployment_time_s": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.deployment_time_s.value (not yet written by pipeline)"
+        "source_file": "campaign_type_constraint",
+        "source_key": "pipeline_fields.deployment_time_s.status=not_applicable"
       },
       "redeployment_time_s": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.redeployment_time_s.value (not yet written by pipeline)"
+        "source_file": "campaign_type_constraint",
+        "source_key": "pipeline_fields.redeployment_time_s.status=not_applicable"
+      },
+      "same_topology_instantiated": {
+        "source_file": "metadata/time_sync.json + foc-reconstruction/scenario_bom.json",
+        "source_key": "pipeline_fields.same_topology_instantiated.value"
+      },
+      "effective_inventory_recorded": {
+        "source_file": "metadata/time_sync.json",
+        "source_key": "pipeline_fields.effective_inventory_recorded.value"
       },
       "validation_gate_passed": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.validation_gate_passed.value (not yet written by pipeline)"
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "pipeline_fields.validation_gate_passed.value"
       },
       "segmentation_verified": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.segmentation_verified.value (not yet written by pipeline)"
+        "source_file": "industrial/ot_export_rolling_EXEC-0004_20260706_012511Z.json",
+        "source_key": "pipeline_fields.segmentation_verified.value"
       },
       "sensor_liveness_verified": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.sensor_liveness_verified.value (not yet written by pipeline)"
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "pipeline_fields.sensor_liveness_verified.value"
       },
       "plc_scada_reachable": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.plc_scada_reachable.value (not yet written by pipeline)"
+        "source_file": "metadata/time_sync.json AND industrial/ot_export_*.json",
+        "source_key": "pipeline_fields.plc_scada_reachable.value"
       },
       "validation_time_s": {
         "source_file": "metadata/workflow_phase_summary.json",
@@ -1507,16 +1507,16 @@
       "technique_id": "NICS CyberLab ICS Modbus write multiple registers",
       "accepted_for_scientific_aggregate": true,
       "exclusion_reason": "missing_from_existing_reports",
-      "teardown_completed": "missing_from_current_campaign",
-      "redeploy_completed": "missing_from_current_campaign",
-      "same_topology_instantiated": "missing_from_current_campaign",
-      "effective_inventory_recorded": "missing_from_current_campaign",
-      "deployment_time_s": "missing_from_current_campaign",
-      "redeployment_time_s": "missing_from_current_campaign",
-      "validation_gate_passed": "missing_from_current_campaign",
-      "segmentation_verified": "missing_from_current_campaign",
-      "sensor_liveness_verified": "missing_from_current_campaign",
-      "plc_scada_reachable": "missing_from_current_campaign",
+      "teardown_completed": "not_applicable",
+      "redeploy_completed": "not_applicable",
+      "deployment_time_s": "not_applicable",
+      "redeployment_time_s": "not_applicable",
+      "same_topology_instantiated": true,
+      "effective_inventory_recorded": true,
+      "validation_gate_passed": true,
+      "segmentation_verified": true,
+      "sensor_liveness_verified": true,
+      "plc_scada_reachable": true,
       "validation_time_s": "missing_from_current_campaign",
       "time_reference_coherent": true,
       "attack_profile_executed": true,
@@ -1530,7 +1530,7 @@
       "trigger_inside_attack_window": "missing_from_existing_reports",
       "alert_to_profile_mapping_recorded": true,
       "raw_alert_preserved": true,
-      "attack_to_alert_s": 12.6,
+      "attack_to_alert_s": -12.6,
       "memory_first_when_enabled": true,
       "acquisition_order_valid": true,
       "alert_to_memory_start_s": 43.32,
@@ -1604,44 +1604,44 @@
         "source_key": "missing_from_existing_reports"
       },
       "teardown_completed": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.teardown_completed.value (not yet written by pipeline)"
+        "source_file": "campaign_type_constraint",
+        "source_key": "pipeline_fields.teardown_completed.status=not_applicable"
       },
       "redeploy_completed": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.redeploy_completed.value (not yet written by pipeline)"
-      },
-      "same_topology_instantiated": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.same_topology_instantiated.value (not yet written by pipeline)"
-      },
-      "effective_inventory_recorded": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.effective_inventory_recorded.value (not yet written by pipeline)"
+        "source_file": "campaign_type_constraint",
+        "source_key": "pipeline_fields.redeploy_completed.status=not_applicable"
       },
       "deployment_time_s": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.deployment_time_s.value (not yet written by pipeline)"
+        "source_file": "campaign_type_constraint",
+        "source_key": "pipeline_fields.deployment_time_s.status=not_applicable"
       },
       "redeployment_time_s": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.redeployment_time_s.value (not yet written by pipeline)"
+        "source_file": "campaign_type_constraint",
+        "source_key": "pipeline_fields.redeployment_time_s.status=not_applicable"
+      },
+      "same_topology_instantiated": {
+        "source_file": "metadata/time_sync.json + foc-reconstruction/scenario_bom.json",
+        "source_key": "pipeline_fields.same_topology_instantiated.value"
+      },
+      "effective_inventory_recorded": {
+        "source_file": "metadata/time_sync.json",
+        "source_key": "pipeline_fields.effective_inventory_recorded.value"
       },
       "validation_gate_passed": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.validation_gate_passed.value (not yet written by pipeline)"
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "pipeline_fields.validation_gate_passed.value"
       },
       "segmentation_verified": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.segmentation_verified.value (not yet written by pipeline)"
+        "source_file": "industrial/ot_export_rolling_EXEC-0005_20260706_023410Z.json",
+        "source_key": "pipeline_fields.segmentation_verified.value"
       },
       "sensor_liveness_verified": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.sensor_liveness_verified.value (not yet written by pipeline)"
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "pipeline_fields.sensor_liveness_verified.value"
       },
       "plc_scada_reachable": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.plc_scada_reachable.value (not yet written by pipeline)"
+        "source_file": "metadata/time_sync.json AND industrial/ot_export_*.json",
+        "source_key": "pipeline_fields.plc_scada_reachable.value"
       },
       "validation_time_s": {
         "source_file": "metadata/workflow_phase_summary.json",
@@ -1881,16 +1881,16 @@
       "technique_id": "NICS CyberLab ICS Modbus write multiple registers",
       "accepted_for_scientific_aggregate": true,
       "exclusion_reason": "missing_from_existing_reports",
-      "teardown_completed": "missing_from_current_campaign",
-      "redeploy_completed": "missing_from_current_campaign",
-      "same_topology_instantiated": "missing_from_current_campaign",
-      "effective_inventory_recorded": "missing_from_current_campaign",
-      "deployment_time_s": "missing_from_current_campaign",
-      "redeployment_time_s": "missing_from_current_campaign",
-      "validation_gate_passed": "missing_from_current_campaign",
-      "segmentation_verified": "missing_from_current_campaign",
-      "sensor_liveness_verified": "missing_from_current_campaign",
-      "plc_scada_reachable": "missing_from_current_campaign",
+      "teardown_completed": "not_applicable",
+      "redeploy_completed": "not_applicable",
+      "deployment_time_s": "not_applicable",
+      "redeployment_time_s": "not_applicable",
+      "same_topology_instantiated": true,
+      "effective_inventory_recorded": true,
+      "validation_gate_passed": true,
+      "segmentation_verified": true,
+      "sensor_liveness_verified": true,
+      "plc_scada_reachable": true,
       "validation_time_s": "missing_from_current_campaign",
       "time_reference_coherent": true,
       "attack_profile_executed": true,
@@ -1978,44 +1978,44 @@
         "source_key": "missing_from_existing_reports"
       },
       "teardown_completed": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.teardown_completed.value (not yet written by pipeline)"
+        "source_file": "campaign_type_constraint",
+        "source_key": "pipeline_fields.teardown_completed.status=not_applicable"
       },
       "redeploy_completed": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.redeploy_completed.value (not yet written by pipeline)"
-      },
-      "same_topology_instantiated": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.same_topology_instantiated.value (not yet written by pipeline)"
-      },
-      "effective_inventory_recorded": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.effective_inventory_recorded.value (not yet written by pipeline)"
+        "source_file": "campaign_type_constraint",
+        "source_key": "pipeline_fields.redeploy_completed.status=not_applicable"
       },
       "deployment_time_s": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.deployment_time_s.value (not yet written by pipeline)"
+        "source_file": "campaign_type_constraint",
+        "source_key": "pipeline_fields.deployment_time_s.status=not_applicable"
       },
       "redeployment_time_s": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.redeployment_time_s.value (not yet written by pipeline)"
+        "source_file": "campaign_type_constraint",
+        "source_key": "pipeline_fields.redeployment_time_s.status=not_applicable"
+      },
+      "same_topology_instantiated": {
+        "source_file": "metadata/time_sync.json + foc-reconstruction/scenario_bom.json",
+        "source_key": "pipeline_fields.same_topology_instantiated.value"
+      },
+      "effective_inventory_recorded": {
+        "source_file": "metadata/time_sync.json",
+        "source_key": "pipeline_fields.effective_inventory_recorded.value"
       },
       "validation_gate_passed": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.validation_gate_passed.value (not yet written by pipeline)"
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "pipeline_fields.validation_gate_passed.value"
       },
       "segmentation_verified": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.segmentation_verified.value (not yet written by pipeline)"
+        "source_file": "industrial/ot_export_rolling_EXEC-0006_20260706_033904Z.json",
+        "source_key": "pipeline_fields.segmentation_verified.value"
       },
       "sensor_liveness_verified": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.sensor_liveness_verified.value (not yet written by pipeline)"
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "pipeline_fields.sensor_liveness_verified.value"
       },
       "plc_scada_reachable": {
-        "source_file": "metadata/workflow_phase_summary.json",
-        "source_key": "pipeline_fields.plc_scada_reachable.value (not yet written by pipeline)"
+        "source_file": "metadata/time_sync.json AND industrial/ot_export_*.json",
+        "source_key": "pipeline_fields.plc_scada_reachable.value"
       },
       "validation_time_s": {
         "source_file": "metadata/workflow_phase_summary.json",
