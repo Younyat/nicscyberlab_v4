@@ -91,7 +91,12 @@ tools-installer-tmp/*
 
 
 # Forensic runtime stores
-app_core/infrastructure/forensics/evidence_store/
+# Forensic runtime stores
+app_core/infrastructure/forensics/evidence_store/*
+!app_core/infrastructure/forensics/evidence_store/validation_reports/
+!app_core/infrastructure/forensics/evidence_store/validation_reports/**
+
+
 app_core/infrastructure/forensics/alerts_store/
 # Large generated FOC reconstruction outputs
 foc-reconstruction/timeline.json
