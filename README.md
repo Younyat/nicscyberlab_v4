@@ -3914,6 +3914,113 @@ When an analyst opens a report from `Reports and Artifacts`, the content is fetc
 
 This keeps the page usable as an executive decision surface while preserving drill-down access to the real derived or preserved artifacts.
 
+#### Implementación real del orquestador Level B, corrección de adquisición de disco y métricas de paper Level C (2026-06-27 / 2026-07-06)
+
+Esta iteración cierra tres brechas que bloqueaban la ejecución real controlada de Level B, la adquisición de disco en el flujo DFIR AUTO, y la generación automática de las métricas de paper del workflow completo.
+
+**1. Orquestador de ejecución real Level B (`level_b_orchestrator.py`).**
+El botón `Run Next Execution` del Forensic Repetition Manager ejecutaba únicamente un scaffold de workspace (planificación sin ejecución real): creaba `execution_manifest.json`, `execution_plan.json`, `ground_truth_seal.json` y `baseline_noise_profile.json`, pero nunca armaba DFIR auto-acquisition, lanzaba el ataque seleccionado, esperaba una detección real, creaba un caso forense nuevo ni adquiría evidencia. El módulo `level_b_orchestrator.py` implementa el flujo completo de 23 fases:
+
+```text
+execution_workspace_created → scenario_validated → attack_profile_validated →
+dfir_auto_armed → attack_launched → attack_completed → detection_waiting →
+detection_observed / failed_detection → trigger_selected → forensic_case_created →
+memory_acquisition_started/completed → network_context_import_started/completed →
+disk_acquisition_started/completed → preservation_completed →
+multilayer_analysis_started/completed → foc_reconstruction_completed →
+causal_reconstruction_completed → executive_summary_generated →
+comparison_profile_generated → forensic_result_card_registered
+```
+
+Cada fase se persiste mediante `job_runner.append_phase` para que el panel de estado del Repetition Manager la refleje en tiempo real. Los pilares reutilizados en lugar de reimplementados:
+
+- **Detección de alertas**: `run_monitor_session()` extraída de `live_wazuh_stream()` en `monitor/alerts_logger.py` — misma lógica de parseo `NICS_ALERT_JSON`, mismo `AlertsLogger`, sin dependencia Flask. Timeout configurable; la fase marca `failed_detection` si no llega ninguna alerta que cumpla la política, **nunca** marca la ejecución como exitosa sin detección real.
+- **Adquisición de memoria**: wrapper puro `acquire_memory()` extraído de `api_forensics_acquire_memory()` en `forensics_api.py`, reutilizando `_run_script(acquire_memory_lime_ssh.sh, ...)` con el mismo fallback de usuario SSH.
+- **Adquisición de disco**: wrapper puro `acquire_disk()` extraído de `api_forensics_acquire_disk()`, best-effort no fatal (degraded si Kolla/libvirt no alcanzable), consistent con el framing "disk, si aplica" del spec.
+- **Importación de red**: `capture_packets_fixed_duration` de `ics_traffic/traffic_api.py`, solo el segmento relevante del buffer continuo.
+- **Cadena de análisis completa**: `start_full_lifecycle_job(case_id, force_analysis=True)` de `evidence_lifecycle_dashboard.py` — encadena time-sync, multilayer analysis, causal reconstruction y executive summary en una sola llamada ya existente.
+- **Perfil de comparación y registro de result card**: `build_execution_profiles()` y `comparison_registry` ya implementados en iteraciones anteriores, ahora llamados sobre el `case_bundle` real.
+- `attach_real_case_to_execution()` añadida a `execution_service.py` — actualiza el workspace de ejecución ya creado con el caso real, corrige los `stage_statuses` de `completed_with_degradation` a `completed` para las fases genuinamente ejecutadas (`attack_executed`, `detection_observed`, `acquisition_executed`, etc.).
+
+**Seguridad por defecto confirmada:** dry-run es el modo predeterminado; la ejecución real requiere un botón explícito `Run Real Level B Execution` + confirmación escrita `OK`, idéntica al patrón ya usado por `delete_generated_case_artifacts` y `destroy_full_scenario`. `Start Selected Campaign` (loop multi-ejecución) permanece en modo dry-run exclusivamente para Level B — no encadena ataques reales de forma desatendida.
+
+**2. Corrección de adquisición de disco DFIR AUTO (`acquire_disk_kolla_libvirt.sh`).**
+La adquisición de disco fallaba sistemáticamente con `sudo_noninteractive_unavailable` aunque la regla sudoers NOPASSWD estuviera correctamente instalada. El problema era una cadena de tres capas:
+
+- `forensics_api.py` probaba primero `sudo -n true` (no cubierto por la regla Cmnd_Alias) antes de probar el script específico — orden invertido.
+- El script `acquire_disk_kolla_libvirt.sh` usaba `sudo -n -E true` como probe interno antes de re-ejecutarse con privilegio root — mismo problema más el flag `-E` (preserve-env) no permitido sin `SETENV` en sudoers.
+- El probe devolvía `exit=1` por args incorrectos (`__nics_probe__`) y el operador lógico `||` lo interpretaba como fallo de sudo.
+
+Las tres correcciones aplicadas:
+
+- `forensics_api.py`: el prerequisite check ahora prueba primero `sudo -n /bin/bash <script> __nics_probe__`; solo si ese falla cae al `sudo -n true` como fallback de credencial cacheada.
+- `acquire_disk_kolla_libvirt.sh`: `__nics_probe__` como primer argumento hace `exit 0` inmediatamente antes de cualquier lógica de adquisición; el re-exec usa `sudo -n /bin/bash "$0"` en lugar de `sudo -n -E "$0"`.
+- `start_dashboard.sh` sección `[2.8/6]`: instala automáticamente la regla NOPASSWD en `/etc/sudoers.d/nicscyberlab-acquire-disk` la primera vez, pidiendo contraseña solo esa vez; idempotente — si ya funciona, salta sin hacer nada.
+
+La regla correcta en `/etc/sudoers.d/nicscyberlab-acquire-disk`:
+
+```
+Defaults!NICS_DFIR_DISK_HELPER !requiretty
+Cmnd_Alias NICS_DFIR_DISK_HELPER = /bin/bash <repo>/app_core/infrastructure/forensics/scripts/acquire_disk_kolla_libvirt.sh *
+younes ALL=(root) NOPASSWD: NICS_DFIR_DISK_HELPER
+```
+
+**3. Exportador de métricas de paper Level C (`tools/forge_vi_paper_metrics_exporter.py`).**
+El script `tools/forge_vi_paper_metrics_exporter.py` lee únicamente artefactos verificados en disco (sin valores manuales ni inferidos sin fuente declarada) y produce siete ficheros en `paper_exports/FORGE-VI/`:
+
+```text
+FORGE-VI_LevelC_Workflow_Checks.csv        — check booleano por run y agregado N/N
+FORGE-VI_LevelC_Workflow_Checks.json       — ídem con source_file y source_key por campo
+FORGE-VI_LevelC_Operational_Metrics.csv   — latencias y tamaños (media ± SD)
+FORGE-VI_LevelC_Reconstruction_Metrics.csv — edges, CPR, wCPR por run
+FORGE-VI_LevelC_Comparison_Metrics.csv    — estabilidad FSR inter-run
+FORGE-VI_LevelC_Paper_Tables.tex          — tabla LaTeX lista para el paper
+FORGE-VI_LevelC_Field_Source_Map.csv      — source_file + source_key por campo
+```
+
+Los campos no disponibles en los artefactos actuales se marcan `missing_from_existing_reports` — nunca se rellenan con valores inventados. Por cada caso se escribe además un stub `metadata/workflow_phase_summary.json` con la lista de campos pendientes y el fichero destino sugerido para que el siguiente run de adquisición/deployment los persista y el exportador los recoja automáticamente.
+
+El exportador está accesible también desde el botón `Generate Level C Workflow Metrics` en `foc_paper_evidence.html` (sección FORGE-VI Audit), mediante el endpoint `POST /api/foc/paper-evidence/level-c/workflow-metrics/run`. El endpoint `GET /api/foc/paper-evidence/level-c/workflow-metrics/files` devuelve la lista de ficheros ya generados. La página carga el inventario de ficheros en el arranque sin requerir acción del operador.
+
+**Estado verificado de los 6 runs aceptados (N_C = 6):**
+
+| Fase | Campo | Resultado |
+|------|-------|-----------|
+| Execute | attack_profile_executed, ground_truth | 6/6 |
+| Execute | attack_duration | 21 ± 3 s |
+| Detect | alert_observed, trigger_bound | 6/6 |
+| Detect | attack-to-alert latency | 21 ± 25 s |
+| Acquire | memory first, acquisition_order_valid | 6/6 |
+| Acquire | alert-to-memory latency | 23 ± 11 s |
+| Acquire | alert-to-sealed latency | 2096 ± 301 s |
+| Preserve | required artifacts | 6/6 (memory 4 GiB, disk 37 GiB, pcap 2.9 GiB) |
+| Validate | time_reference_coherent | 6/6 |
+| Analyze | useful layers | 12/14 (memory=partial en todos, expected) |
+| Reconstruct | CPR (solo diagnóstico) | 0.500, 4R/2D/2M/0A estable |
+| Compare | FSR invariants, CPR, edge pattern | 6/6 estable |
+
+**Campos faltantes — pendientes de instrumentación del pipeline:**
+
+```text
+teardown_completed, redeploy_completed, same_topology_instantiated,
+effective_inventory_recorded, deployment_time_s, redeployment_time_s,
+validation_gate_passed, segmentation_verified, sensor_liveness_verified,
+plc_scada_reachable, validation_time_s, trigger_inside_attack_window,
+comparison_family_match
+```
+
+Estos campos requieren que el pipeline de deployment/validation escriba datos en `metadata/workflow_phase_summary.json` durante el run. Los stubs por caso ya están creados con la lista exacta de campos pendientes y el fichero destino de cada uno.
+
+**4. Corrección del job-status en entorno multi-worker (`job_runner.py`).**
+`get_job(job_id)` solo buscaba en el dict `_JOBS` en memoria — process-local en Gunicorn `-w 4`. Un job iniciado por el worker A era invisible para los workers B, C, D, dando `job_not_found` en ~3/4 de los polls. La función ahora cae al fichero en disco (`CAMPAIGNS_ROOT.glob("CMP-*/jobs/*.json")`) cuando no encuentra el job en memoria, exactamente como `evidence_lifecycle_dashboard.get_lifecycle_job()` ya hacía. Los jobs encontrados en disco se cachean en `_JOBS` para que polls sucesivos al mismo worker no relean el disco.
+
+**5. Corrección de resolución de caso en `level_a_scientific_report_service.py`.**
+`_run_level_a_report_job` resolvía el directorio del caso de referencia únicamente desde `config.base_case_path` / `config.run_case_path`, que son `null` en la mayoría de campañas creadas por ID desde la UI. La corrección añade un fallback a `resolve_case_source(case_id=source_case_id)` de `profile_builder.py` cuando el campo de ruta está vacío, el mismo helper que `load_case_bundle` ya usaba. El botón `Generate Level A Scientific Report` en `foc_paper_evidence.html` dejaba de fallar con `reference_case_path_not_found` a partir de esta corrección.
+
+**Verificación aplicada:** `python -m py_compile` sobre todos los módulos Python tocados; `bash -n` sobre `start_dashboard.sh`; prueba live del endpoint Level C mediante `curl POST` contra gunicorn en ejecución; prueba del probe de disco (`sudo -n /bin/bash <script> __nics_probe__` → exit=0); comprobación de correspondencia HTML id ↔ JS `byId` para los cuatro nuevos elementos del botón Level C.
+
+**Lo que no cambia esta iteración:** el motor de adquisición DFIR AUTO preexistente, el flujo de análisis multicapa, el motor de reconstrucción causal, los pesos de relación, el esquema de `forensic_result_card.json`, el `comparison_family_id` hash, ni ninguna lógica de Level A o Level C existente.
+
 #### Correcciones de claridad y consistencia científica en la UI de Level B (2026-06-25)
 
 Tras la corrección del modelo de fuente del 2026-06-24, una revisión funcional de la UI resultante (`foc_repetition_manager.html`/`.js`) encontró que, aunque el backend ya no exigía un caso enlazado para Level B, varios elementos visuales seguían sugiriendo lo contrario o mezclaban conceptos científicos distintos bajo el mismo valor. Esta iteración corrige doce puntos concretos, todos en la capa de presentación y de metadatos de diseño — **ningún cambio toca el motor de adquisición, análisis o reconstrucción causal**.
@@ -4922,6 +5029,100 @@ In practical terms, the platform is now designed to support:
 - rerun-readiness planning when the current artifacts are not yet final-paper defensible
 
 This is the current scientific state of FORGE-VI inside NICS CyberLab: not a promise of perfect evidence, but a framework that makes the real state of evidence, analysis, reconstruction, and limitation explicit.
+
+### 8.14. Level B real execution orchestrator
+
+Level B now executes a real controlled incident, not only a workspace scaffold. The distinction is explicit and enforced at the UI level:
+
+```text
+Run Dry-Run Execution  →  creates workspace, profiles, and plan artifacts only.
+                           No attack, no detection wait, no case, no acquisition.
+
+Run Real Level B Execution  →  arms DFIR auto, launches the selected attack,
+                                waits for a real alert, creates a new forensic case,
+                                acquires evidence in volatility order, runs the full
+                                analysis/reconstruction chain, and registers a real result card.
+```
+
+The orchestrator (`app_core/infrastructure/foc_experimentation/level_b_orchestrator.py`) never marks an execution as successful unless:
+
+- a real alert matching the attack's expected signatures was observed within the configured detection timeout
+- a brand-new forensic case was created (never reuses a previous case as evidence)
+- memory, network context, and disk artifacts were acquired (disk is best-effort / degraded, not fatal)
+- multilayer analysis, causal reconstruction, and executive summary completed
+- a real `forensic_comparison_profile.json` and `forensic_result_card.json` were generated from the actual case bundle
+
+If no alert arrives within the detection timeout, the phase is marked `failed_detection` and no forensic case is created. The execution is never marked successful in that scenario.
+
+The real execution requires typed confirmation `OK` before the attack is launched, consistent with the platform-wide policy for irreversible or infrastructure-touching actions (`delete_generated_case_artifacts`, `destroy_full_scenario`). `Start Selected Campaign` remains dry-run-only for Level B — it does not chain real attacks automatically.
+
+Stage overrides in `attach_real_case_to_execution()` correct the `stage_statuses` for the phases that genuinely ran: `attack_executed`, `detection_observed`, `trigger_selected`, `acquisition_executed`, `evidence_preserved` move from `completed_with_degradation` (the linked-existing-case label) to `completed`, reflecting first-hand execution by the orchestrator.
+
+### 8.15. Disk acquisition privilege model
+
+Disk acquisition (`acquire_disk_kolla_libvirt.sh`) uses `sudo` locally on the compute node to access the hypervisor (virsh/libvirt/docker) for VM disk snapshots. Memory acquisition (LiME) uses SSH to the VM and does not require local sudo. This difference is structurally significant:
+
+- memory acquisition works immediately if SSH keys and network routes are in place
+- disk acquisition requires a dedicated sudoers NOPASSWD rule for the acquisition script
+
+The platform enforces this via a single scoped rule:
+
+```
+Cmnd_Alias NICS_DFIR_DISK_HELPER = /bin/bash <repo>/app_core/infrastructure/forensics/scripts/acquire_disk_kolla_libvirt.sh *
+younes ALL=(root) NOPASSWD: NICS_DFIR_DISK_HELPER
+```
+
+The script uses `/bin/bash <script>` explicitly (not `<script>` directly) in the re-exec and probe paths, because the Cmnd_Alias covers the `/bin/bash <script> *` form. `start_dashboard.sh` installs this rule automatically at section `[2.8/6]`, asking for the operator password once and never again.
+
+The prerequisite check in `forensics_api.py` probes the script-specific command first (`sudo -n /bin/bash <script> __nics_probe__`). The generic `sudo -n true` check is a fallback only — a NOPASSWD rule covering a specific script will fail the generic test even while disk acquisition works correctly. The earlier order (generic check first, script-specific second) was the root cause of the persistent `sudo_noninteractive_unavailable` blocker despite a correctly installed rule.
+
+### 8.16. FORGE-VI Level C workflow metrics exporter
+
+The platform includes a dedicated exporter (`tools/forge_vi_paper_metrics_exporter.py`) that reads only verified on-disk artifacts and produces paper-ready outputs covering the full FORGE-VI workflow chain:
+
+```text
+Deploy/Redeploy → Validate → Execute → Detect → Acquire →
+Preserve → Analyze → Reconstruct → Compare
+```
+
+The exporter generates seven files in `paper_exports/FORGE-VI/`:
+
+| File | Content |
+|------|---------|
+| `FORGE-VI_LevelC_Workflow_Checks.csv/json` | Boolean check per run + aggregate N/N, with source_file + source_key per field |
+| `FORGE-VI_LevelC_Operational_Metrics.csv` | Latencies and sizes: mean ± SD |
+| `FORGE-VI_LevelC_Reconstruction_Metrics.csv` | Edges, CPR, wCPR per run |
+| `FORGE-VI_LevelC_Comparison_Metrics.csv` | FSR invariant stability across runs |
+| `FORGE-VI_LevelC_Paper_Tables.tex` | LaTeX table, copy-paste ready |
+| `FORGE-VI_LevelC_Field_Source_Map.csv` | source_file + source_key for every field |
+
+Design rules enforced by the exporter:
+
+- **CPR appears only as a reconstruction diagnostic**, not as a global workflow metric. The workflow table uses boolean phase checks; CPR occupies its own `Reconstruct` row explicitly labeled `diagnostic only`.
+- **Missing fields are never filled manually**. Fields without a verified source are marked `missing_from_existing_reports`. The `workflow_phase_summary.json` stub written per case lists the missing fields and the suggested target file for each, so the next pipeline run can persist them and the exporter will pick them up.
+- **Every field has a declared source**. The `Field_Source_Map.csv` documents `source_file` and `source_key` for every extracted value. Cross-run derived values (FSR stability, CPR stability) are labeled `derived across all cases`.
+- **Run classification is explicit**: intended runs, executed runs, accepted scientific runs, diagnostic/failed runs, excluded runs, and exclusion reasons are all separate columns.
+
+The exporter is accessible from the `foc_paper_evidence.html` dashboard via the `Generate Level C Workflow Metrics` button (section FORGE-VI Audit), backed by `POST /api/foc/paper-evidence/level-c/workflow-metrics/run`. On page load, the existing generated files are listed automatically via `GET /api/foc/paper-evidence/level-c/workflow-metrics/files`.
+
+**Fields currently missing from existing artifacts (require pipeline instrumentation):**
+
+```text
+teardown_completed          → metadata/workflow_phase_summary.json
+redeploy_completed          → metadata/workflow_phase_summary.json
+same_topology_instantiated  → metadata/workflow_phase_summary.json
+deployment_time_s           → metadata/workflow_phase_summary.json
+redeployment_time_s         → metadata/workflow_phase_summary.json
+validation_gate_passed      → metadata/workflow_phase_summary.json
+segmentation_verified       → metadata/workflow_phase_summary.json
+sensor_liveness_verified    → metadata/workflow_phase_summary.json
+plc_scada_reachable         → metadata/workflow_phase_summary.json
+validation_time_s           → metadata/workflow_phase_summary.json
+trigger_inside_attack_window → metadata/trigger_alert_binding.json
+comparison_family_match     → derived/experimentation/forensic_result_card.json
+```
+
+These fields will be populated automatically by the exporter once the deployment and validation phases of the pipeline write them to `metadata/workflow_phase_summary.json` during each run.
 
 ---
 

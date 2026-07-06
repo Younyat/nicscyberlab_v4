@@ -919,6 +919,59 @@
     }
   }
 
+  async function runLevelCWorkflowMetrics() {
+    const button = byId("paper-run-level-c-workflow-metrics-btn");
+    const status = byId("paper-level-c-workflow-metrics-status");
+    if (button) button.disabled = true;
+    if (status) status.innerHTML = "Running FORGE-VI Level C workflow metrics exporter — reading preserved case artifacts…";
+    try {
+      const payload = await getJson("/api/foc/paper-evidence/level-c/workflow-metrics/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const ok = payload.status === "ok";
+      if (status) {
+        status.innerHTML = `
+          <div class="${ok ? "text-cyan-300" : "text-red-300"} font-black">${ok ? "Export completed." : "Export failed (return code " + esc(String(payload.return_code)) + ")."}</div>
+          <div class="mt-2 mono break-all">${esc(payload.output_dir || "")}</div>
+          <div class="mt-2 mono text-xs text-slate-400 whitespace-pre-wrap max-h-40 overflow-auto">${esc(payload.log || "")}</div>
+        `;
+      }
+      await loadLevelCWorkflowMetricsFiles();
+    } catch (error) {
+      if (status) status.innerHTML = `<span class="text-red-300">${esc(error.message || "Export failed.")}</span>`;
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+
+  async function loadLevelCWorkflowMetricsFiles() {
+    const root = byId("paper-level-c-workflow-metrics-files");
+    if (!root) return;
+    try {
+      const payload = await getJson("/api/foc/paper-evidence/level-c/workflow-metrics/files");
+      const files = payload.files || [];
+      if (!files.length) {
+        root.innerHTML = "<div class='text-slate-500'>No Level C export files found. Run the export first.</div>";
+        return;
+      }
+      root.innerHTML = `
+        <div class="font-black text-slate-300 mt-2">Generated files in <span class="mono">${esc(payload.out_dir || "")}</span></div>
+        <div class="space-y-1 mt-3">
+          ${files.map(f => `
+            <div class="rounded-xl border border-slate-700/60 bg-slate-950/30 px-4 py-2 flex items-center justify-between gap-3">
+              <span class="mono text-sm">${esc(f.name)}</span>
+              <span class="text-xs text-slate-400">${esc(String(Math.round(f.size_bytes / 1024))) + " KB"}</span>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    } catch {
+      root.innerHTML = "<div class='text-slate-500'>Could not load file list.</div>";
+    }
+  }
+
   async function loadCleanupInventory() {
     const payload = await getJson("/api/foc/experimentation/cleanup/inventory");
     state.cleanupInventory = payload.items || [];
@@ -1105,6 +1158,8 @@
     byId("paper-run-level-b-btn")?.addEventListener("click", runLevelB);
     byId("paper-run-level-b-table-reconstruction-btn")?.addEventListener("click", runTableReconstruction);
     byId("paper-level-b-table-reconstruction-refresh-btn")?.addEventListener("click", loadTableReconstructionReports);
+    byId("paper-run-level-c-workflow-metrics-btn")?.addEventListener("click", runLevelCWorkflowMetrics);
+    byId("paper-level-c-workflow-metrics-refresh-btn")?.addEventListener("click", loadLevelCWorkflowMetricsFiles);
     byId("paper-run-level-a-level-b-truthful-btn")?.addEventListener("click", runTruthfulEvaluation);
     byId("paper-level-a-level-b-truthful-refresh-btn")?.addEventListener("click", loadTruthfulEvaluationReports);
     byId("paper-create-level-b-campaign-btn")?.addEventListener("click", createTemporaryLevelBCampaign);
@@ -1133,6 +1188,7 @@
     await loadReports();
     await loadTableReconstructionReports();
     await loadTruthfulEvaluationReports();
+    await loadLevelCWorkflowMetricsFiles();
     await loadCleanupInventory();
   }
 

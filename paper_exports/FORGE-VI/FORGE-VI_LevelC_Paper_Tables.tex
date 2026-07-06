@@ -1,0 +1,54 @@
+\begin{table}[ht]
+\centering
+\caption{FORGE-VI Level C Workflow Verification Summary ($N_C = 6$ accepted redeployment-aware executions)}
+\label{tab:forge-vi-workflow}
+\begin{tabular}{llr}
+\hline
+\textbf{Phase} & \textbf{Verified Condition} & \textbf{Result} \\
+\hline
+\multirow{2}{*}{\textbf{Deploy/Redeploy}} & Teardown completed & missing_from_existing_reports \\
+ & Redeployment time & missing_from_existing_reports \\
+\hline
+\multirow{3}{*}{\textbf{Validate}} & Validation gate passed & missing_from_existing_reports \\
+ & Time reference coherent & 6/6 \\
+ & PLC/SCADA reachable & missing_from_existing_reports \\
+\hline
+\multirow{3}{*}{\textbf{Execute}} & Attack profile executed & 6/6 \\
+ & Ground truth available & 6/6 \\
+ & Attack duration & 21~s \pm 3~s \\
+\hline
+\multirow{3}{*}{\textbf{Detect}} & Alert observed & 6/6 \\
+ & Trigger alert bound & 6/6 \\
+ & Attack-to-alert latency & 21~s \pm 25~s \\
+\hline
+\multirow{6}{*}{\textbf{Acquire}} & Memory acquired first & 6/6 \\
+ & Acquisition order valid (mem→net→disk) & 6/6 \\
+ & Alert-to-memory-start & 23~s \pm 11~s \\
+ & Alert-to-memory-sealed & 358~s \pm 16~s \\
+ & Alert-to-first-artifact-sealed & 2096~s \pm 301~s \\
+ & Alert-to-case-sealed (all artifacts) & 2069~s \pm 286~s \\
+\hline
+\multirow{5}{*}{\textbf{Preserve}} & Required artifacts preserved & 6/6 \\
+ & Manifest verified & 6/6 \\
+ & Custody chain present & 6/6 \\
+ & Memory (LiME) & 4.00~GiB \pm 0.00~GiB \\
+ & Disk (RAW) & 36.67~GiB \pm 8.16~GiB \\
+ & Network (PCAP) & 2.90~GiB \pm 0.93~GiB \\
+\hline
+\multirow{5}{*}{\textbf{Analyze}} & Layers completed / expected & 11--12/14 \\
+ & Layers partial (output present, caveated) & 1 (total layer-run instances) \\
+ & Useful layers (completed + partial) & 12/14 \\
+ & Memory analysis status & completed (5/6), partial (1/6) \\
+ & Timeline generated & 6/6 \\
+ & Cross-layer findings & 6/6 \\
+\hline
+\multirow{3}{*}{\textbf{Reconstruct (CPR)}} & CPR (diagnostic only) & 0.5 \\
+ & Edge state & R=4, D=2, M=2, A=0 \\
+ & Recoverability & partially_recoverable \\
+\hline
+\multirow{3}{*}{\textbf{Compare}} & FSR invariants stable & 6/6 \\
+ & CPR stable & 6/6 \\
+ & Edge-state pattern stable & 6/6 \\
+\hline
+\end{tabular}
+\end{table}

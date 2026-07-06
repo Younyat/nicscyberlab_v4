@@ -1056,6 +1056,47 @@ def api_foc_paper_evidence_level_a_level_b_truthful_evaluation_report(report_id:
     return jsonify(payload), 200
 
 
+@experimentation_bp.route("/api/foc/paper-evidence/level-c/workflow-metrics/run", methods=["POST"])
+def api_foc_paper_evidence_level_c_workflow_metrics_run():
+    import subprocess, sys, json as _json
+    from app_core.infrastructure.foc_reconstruction.foc_paths import project_path
+    script = project_path("tools", "forge_vi_paper_metrics_exporter.py")
+    out_dir = project_path("paper_exports", "FORGE-VI")
+    try:
+        result = subprocess.run(
+            [sys.executable, str(script), "--out-dir", str(out_dir)],
+            cwd=str(project_path()),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            timeout=120,
+        )
+        success = result.returncode == 0
+        files = sorted(str(p.name) for p in out_dir.glob("FORGE-VI_LevelC_*")) if out_dir.is_dir() else []
+        return jsonify({
+            "status": "ok" if success else "error",
+            "return_code": result.returncode,
+            "output_dir": str(out_dir.relative_to(project_path())),
+            "generated_files": files,
+            "log": result.stdout,
+        }), 201 if success else 500
+    except Exception as exc:
+        return jsonify({"status": "error", "error": str(exc)}), 500
+
+
+@experimentation_bp.route("/api/foc/paper-evidence/level-c/workflow-metrics/files", methods=["GET"])
+def api_foc_paper_evidence_level_c_workflow_metrics_files():
+    from app_core.infrastructure.foc_reconstruction.foc_paths import project_path
+    out_dir = project_path("paper_exports", "FORGE-VI")
+    if not out_dir.is_dir():
+        return jsonify({"files": [], "out_dir": str(out_dir)}), 200
+    files = []
+    for f in sorted(out_dir.glob("FORGE-VI_LevelC_*")):
+        files.append({"name": f.name, "size_bytes": f.stat().st_size,
+                      "path": str(f.relative_to(project_path()))})
+    return jsonify({"files": files, "out_dir": str(out_dir.relative_to(project_path()))}), 200
+
+
 @experimentation_bp.route("/api/foc/paper-evidence/reports/<report_id>", methods=["GET"])
 def api_foc_paper_evidence_report(report_id: str):
     payload = _paper_evidence_api()["get_paper_evidence_report"](report_id)

@@ -1,0 +1,2246 @@
+[
+  {
+    "run_id": "run_01",
+    "case_id": "case-ca69634c",
+    "case_name": "CASE-20260705-214116",
+    "metrics": {
+      "run_id": "run_01",
+      "case_id": "case-ca69634c",
+      "scenario_id": "scn-b83dbbfb",
+      "attack_profile_id": "T0831_MANIPULATION_OF_CONTROL_MODBUS",
+      "technique_id": "NICS CyberLab ICS Modbus write multiple registers",
+      "accepted_for_scientific_aggregate": true,
+      "exclusion_reason": "missing_from_existing_reports",
+      "teardown_completed": "missing_from_current_campaign",
+      "redeploy_completed": "missing_from_current_campaign",
+      "same_topology_instantiated": "missing_from_current_campaign",
+      "effective_inventory_recorded": "missing_from_current_campaign",
+      "deployment_time_s": "missing_from_current_campaign",
+      "redeployment_time_s": "missing_from_current_campaign",
+      "validation_gate_passed": "missing_from_current_campaign",
+      "segmentation_verified": "missing_from_current_campaign",
+      "sensor_liveness_verified": "missing_from_current_campaign",
+      "plc_scada_reachable": "missing_from_current_campaign",
+      "validation_time_s": "missing_from_current_campaign",
+      "time_reference_coherent": true,
+      "attack_profile_executed": true,
+      "attack_technique_recorded": true,
+      "ground_truth_available": true,
+      "attack_started_at": "2026-07-05T21:40:42.290505+00:00",
+      "attack_completed_at": "2026-07-05T21:41:09.193786+00:00",
+      "attack_duration_s": 26.9,
+      "alert_observed": true,
+      "trigger_alert_bound": true,
+      "trigger_inside_attack_window": "missing_from_existing_reports",
+      "alert_to_profile_mapping_recorded": true,
+      "raw_alert_preserved": true,
+      "attack_to_alert_s": 71.69,
+      "memory_first_when_enabled": true,
+      "acquisition_order_valid": true,
+      "alert_to_memory_start_s": 8.61,
+      "alert_to_memory_sealed_s": 364.78,
+      "alert_to_first_artifact_sealed_s": 2613.02,
+      "alert_to_case_sealed_s": 2613.02,
+      "alert_to_all_required_artifacts_sealed_s": 2613.02,
+      "acquisition_failures": 0,
+      "required_artifacts_expected": 3,
+      "required_artifacts_preserved": 3,
+      "manifest_present": true,
+      "manifest_verified": true,
+      "custody_chain_present": true,
+      "custody_chain_verified": true,
+      "primary_derived_separation_verified": true,
+      "case_sealed": true,
+      "case_sealed_at": "2026-07-05T22:25:27Z",
+      "pcap_size_gib": 3.871,
+      "memory_size_gib": 3.998,
+      "disk_size_gib": 40.0,
+      "artifacts_preserved_count": 95,
+      "analysis_layers_expected": 14,
+      "analysis_layers_completed": 11,
+      "analysis_layers_partial": 1,
+      "analysis_layers_useful": 12,
+      "memory_analysis_status": "partial",
+      "timeline_generated": true,
+      "derived_outputs_recorded": true,
+      "cross_layer_findings_available": true,
+      "expected_edges": 8,
+      "recovered_edges": 4,
+      "degraded_edges": 2,
+      "missing_edges": 2,
+      "ambiguous_edges": 0,
+      "cpr": 0.5,
+      "recoverability_label": "partially_recoverable",
+      "scientific_confidence": "limited",
+      "fsr_invariants_stable": true,
+      "cpr_stable": true,
+      "edge_state_pattern_stable": true,
+      "comparison_family_match": "missing_from_existing_reports",
+      "scenario_drift": false
+    },
+    "sources": {
+      "run_id": {
+        "source_file": "derived",
+        "source_key": "run_index"
+      },
+      "case_id": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "case_id"
+      },
+      "scenario_id": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "scenario_id"
+      },
+      "attack_profile_id": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "attack_profile_id"
+      },
+      "technique_id": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "signature"
+      },
+      "accepted_for_scientific_aggregate": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "scientifically_complete"
+      },
+      "exclusion_reason": {
+        "source_file": "missing_from_existing_reports",
+        "source_key": "missing_from_existing_reports"
+      },
+      "teardown_completed": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.teardown_completed.value (not yet written by pipeline)"
+      },
+      "redeploy_completed": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.redeploy_completed.value (not yet written by pipeline)"
+      },
+      "same_topology_instantiated": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.same_topology_instantiated.value (not yet written by pipeline)"
+      },
+      "effective_inventory_recorded": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.effective_inventory_recorded.value (not yet written by pipeline)"
+      },
+      "deployment_time_s": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.deployment_time_s.value (not yet written by pipeline)"
+      },
+      "redeployment_time_s": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.redeployment_time_s.value (not yet written by pipeline)"
+      },
+      "validation_gate_passed": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.validation_gate_passed.value (not yet written by pipeline)"
+      },
+      "segmentation_verified": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.segmentation_verified.value (not yet written by pipeline)"
+      },
+      "sensor_liveness_verified": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.sensor_liveness_verified.value (not yet written by pipeline)"
+      },
+      "plc_scada_reachable": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.plc_scada_reachable.value (not yet written by pipeline)"
+      },
+      "validation_time_s": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.validation_time_s.value (not yet written by pipeline)"
+      },
+      "time_reference_coherent": {
+        "source_file": "metadata/time_sync.json",
+        "source_key": "synchronized / temporal_sync_status"
+      },
+      "attack_profile_executed": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "attack_profile_id"
+      },
+      "attack_technique_recorded": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "signature"
+      },
+      "ground_truth_available": {
+        "source_file": "derived/reconstruction/causal_status.json",
+        "source_key": "requirements.foc_context_available"
+      },
+      "attack_started_at": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "attack_started_at_utc"
+      },
+      "attack_completed_at": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "attack_completed_at_utc"
+      },
+      "attack_duration_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "attack_started_at_utc → attack_completed_at_utc"
+      },
+      "alert_observed": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "trigger_alert_id"
+      },
+      "trigger_alert_bound": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.raw_wazuh_trigger_binding_present"
+      },
+      "trigger_inside_attack_window": {
+        "source_file": "missing_from_existing_reports",
+        "source_key": "missing_from_existing_reports"
+      },
+      "alert_to_profile_mapping_recorded": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "attack_profile_id"
+      },
+      "raw_alert_preserved": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.raw_wazuh_trigger_binding_present"
+      },
+      "attack_to_alert_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "attack_started_at_utc → alert_observed_at_utc"
+      },
+      "memory_first_when_enabled": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "memory_acquisition_started_at_utc ≤ forensic_intervention_started_at_utc"
+      },
+      "acquisition_order_valid": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "memory_start ≤ network_start ≤ disk_start"
+      },
+      "alert_to_memory_start_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → memory_acquisition_started_at_utc"
+      },
+      "alert_to_memory_sealed_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → memory_preserved_at_utc"
+      },
+      "alert_to_first_artifact_sealed_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → first_seal_at_utc"
+      },
+      "alert_to_case_sealed_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → case_sealed_at_utc (dominated by disk acquisition)"
+      },
+      "alert_to_all_required_artifacts_sealed_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → case_sealed_at_utc (memory+network+disk all preserved)"
+      },
+      "acquisition_failures": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type in {memory_lime,network_pcap,disk_raw}]"
+      },
+      "required_artifacts_expected": {
+        "source_file": "derived",
+        "source_key": "design_constant"
+      },
+      "required_artifacts_preserved": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type in {memory_lime,network_pcap,disk_raw}]"
+      },
+      "manifest_present": {
+        "source_file": "manifest.json",
+        "source_key": "exists"
+      },
+      "manifest_verified": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts"
+      },
+      "custody_chain_present": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.custody_present"
+      },
+      "custody_chain_verified": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.custody_present"
+      },
+      "primary_derived_separation_verified": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.manifest_present"
+      },
+      "case_sealed": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "case_sealed_at_utc"
+      },
+      "case_sealed_at": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "case_sealed_at_utc"
+      },
+      "pcap_size_gib": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type=network_pcap].size"
+      },
+      "memory_size_gib": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type=memory_lime].size"
+      },
+      "disk_size_gib": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type=disk_raw].size"
+      },
+      "artifacts_preserved_count": {
+        "source_file": "manifest.json",
+        "source_key": "len(artifacts)"
+      },
+      "analysis_layers_expected": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "len(layer_status)"
+      },
+      "analysis_layers_completed": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status[status=completed]"
+      },
+      "analysis_layers_partial": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status[status=partial]"
+      },
+      "analysis_layers_useful": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status[status in {completed,partial}]"
+      },
+      "memory_analysis_status": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status.memory_analysis.status"
+      },
+      "timeline_generated": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status.unified_forensic_timeline.status"
+      },
+      "derived_outputs_recorded": {
+        "source_file": "manifest.json",
+        "source_key": "len(artifacts)>30"
+      },
+      "cross_layer_findings_available": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status.cross_layer_findings.status"
+      },
+      "expected_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "expected_edges"
+      },
+      "recovered_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "recovered_edges"
+      },
+      "degraded_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "degraded_edges"
+      },
+      "missing_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "missing_edges"
+      },
+      "ambiguous_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "ambiguous_edges"
+      },
+      "cpr": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "causal_path_recoverability"
+      },
+      "recoverability_label": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "recoverability_label"
+      },
+      "scientific_confidence": {
+        "source_file": "derived/reconstruction/causal_status.json",
+        "source_key": "scientific_confidence"
+      },
+      "fsr_invariants_stable": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs fsr_invariants_stable"
+      },
+      "cpr_stable": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs cpr_stable"
+      },
+      "edge_state_pattern_stable": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs edge_state_pattern_stable"
+      },
+      "comparison_family_match": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs comparison_family_match"
+      },
+      "scenario_drift": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs scenario_drift"
+      }
+    }
+  },
+  {
+    "run_id": "run_02",
+    "case_id": "case-97240455",
+    "case_name": "CASE-20260705-230144",
+    "metrics": {
+      "run_id": "run_02",
+      "case_id": "case-97240455",
+      "scenario_id": "scn-b83dbbfb",
+      "attack_profile_id": "T0831_MANIPULATION_OF_CONTROL_MODBUS",
+      "technique_id": "NICS CyberLab ICS Modbus write multiple registers",
+      "accepted_for_scientific_aggregate": true,
+      "exclusion_reason": "missing_from_existing_reports",
+      "teardown_completed": "missing_from_current_campaign",
+      "redeploy_completed": "missing_from_current_campaign",
+      "same_topology_instantiated": "missing_from_current_campaign",
+      "effective_inventory_recorded": "missing_from_current_campaign",
+      "deployment_time_s": "missing_from_current_campaign",
+      "redeployment_time_s": "missing_from_current_campaign",
+      "validation_gate_passed": "missing_from_current_campaign",
+      "segmentation_verified": "missing_from_current_campaign",
+      "sensor_liveness_verified": "missing_from_current_campaign",
+      "plc_scada_reachable": "missing_from_current_campaign",
+      "validation_time_s": "missing_from_current_campaign",
+      "time_reference_coherent": true,
+      "attack_profile_executed": true,
+      "attack_technique_recorded": true,
+      "ground_truth_available": true,
+      "attack_started_at": "2026-07-05T23:01:16.472948+00:00",
+      "attack_completed_at": "2026-07-05T23:01:36.942214+00:00",
+      "attack_duration_s": 20.47,
+      "alert_observed": true,
+      "trigger_alert_bound": true,
+      "trigger_inside_attack_window": "missing_from_existing_reports",
+      "alert_to_profile_mapping_recorded": true,
+      "raw_alert_preserved": true,
+      "attack_to_alert_s": 11.4,
+      "memory_first_when_enabled": true,
+      "acquisition_order_valid": true,
+      "alert_to_memory_start_s": 21.78,
+      "alert_to_memory_sealed_s": 349.77,
+      "alert_to_first_artifact_sealed_s": 2002.12,
+      "alert_to_case_sealed_s": 2002.12,
+      "alert_to_all_required_artifacts_sealed_s": 2002.12,
+      "acquisition_failures": 0,
+      "required_artifacts_expected": 3,
+      "required_artifacts_preserved": 3,
+      "manifest_present": true,
+      "manifest_verified": true,
+      "custody_chain_present": true,
+      "custody_chain_verified": true,
+      "primary_derived_separation_verified": true,
+      "case_sealed": true,
+      "case_sealed_at": "2026-07-05T23:34:50Z",
+      "pcap_size_gib": 2.248,
+      "memory_size_gib": 3.998,
+      "disk_size_gib": 40.0,
+      "artifacts_preserved_count": 96,
+      "analysis_layers_expected": 14,
+      "analysis_layers_completed": 12,
+      "analysis_layers_partial": 0,
+      "analysis_layers_useful": 12,
+      "memory_analysis_status": "completed",
+      "timeline_generated": true,
+      "derived_outputs_recorded": true,
+      "cross_layer_findings_available": true,
+      "expected_edges": 8,
+      "recovered_edges": 4,
+      "degraded_edges": 2,
+      "missing_edges": 2,
+      "ambiguous_edges": 0,
+      "cpr": 0.5,
+      "recoverability_label": "partially_recoverable",
+      "scientific_confidence": "limited",
+      "fsr_invariants_stable": true,
+      "cpr_stable": true,
+      "edge_state_pattern_stable": true,
+      "comparison_family_match": "missing_from_existing_reports",
+      "scenario_drift": false
+    },
+    "sources": {
+      "run_id": {
+        "source_file": "derived",
+        "source_key": "run_index"
+      },
+      "case_id": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "case_id"
+      },
+      "scenario_id": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "scenario_id"
+      },
+      "attack_profile_id": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "attack_profile_id"
+      },
+      "technique_id": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "signature"
+      },
+      "accepted_for_scientific_aggregate": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "scientifically_complete"
+      },
+      "exclusion_reason": {
+        "source_file": "missing_from_existing_reports",
+        "source_key": "missing_from_existing_reports"
+      },
+      "teardown_completed": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.teardown_completed.value (not yet written by pipeline)"
+      },
+      "redeploy_completed": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.redeploy_completed.value (not yet written by pipeline)"
+      },
+      "same_topology_instantiated": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.same_topology_instantiated.value (not yet written by pipeline)"
+      },
+      "effective_inventory_recorded": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.effective_inventory_recorded.value (not yet written by pipeline)"
+      },
+      "deployment_time_s": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.deployment_time_s.value (not yet written by pipeline)"
+      },
+      "redeployment_time_s": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.redeployment_time_s.value (not yet written by pipeline)"
+      },
+      "validation_gate_passed": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.validation_gate_passed.value (not yet written by pipeline)"
+      },
+      "segmentation_verified": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.segmentation_verified.value (not yet written by pipeline)"
+      },
+      "sensor_liveness_verified": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.sensor_liveness_verified.value (not yet written by pipeline)"
+      },
+      "plc_scada_reachable": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.plc_scada_reachable.value (not yet written by pipeline)"
+      },
+      "validation_time_s": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.validation_time_s.value (not yet written by pipeline)"
+      },
+      "time_reference_coherent": {
+        "source_file": "metadata/time_sync.json",
+        "source_key": "synchronized / temporal_sync_status"
+      },
+      "attack_profile_executed": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "attack_profile_id"
+      },
+      "attack_technique_recorded": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "signature"
+      },
+      "ground_truth_available": {
+        "source_file": "derived/reconstruction/causal_status.json",
+        "source_key": "requirements.foc_context_available"
+      },
+      "attack_started_at": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "attack_started_at_utc"
+      },
+      "attack_completed_at": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "attack_completed_at_utc"
+      },
+      "attack_duration_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "attack_started_at_utc → attack_completed_at_utc"
+      },
+      "alert_observed": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "trigger_alert_id"
+      },
+      "trigger_alert_bound": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.raw_wazuh_trigger_binding_present"
+      },
+      "trigger_inside_attack_window": {
+        "source_file": "missing_from_existing_reports",
+        "source_key": "missing_from_existing_reports"
+      },
+      "alert_to_profile_mapping_recorded": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "attack_profile_id"
+      },
+      "raw_alert_preserved": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.raw_wazuh_trigger_binding_present"
+      },
+      "attack_to_alert_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "attack_started_at_utc → alert_observed_at_utc"
+      },
+      "memory_first_when_enabled": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "memory_acquisition_started_at_utc ≤ forensic_intervention_started_at_utc"
+      },
+      "acquisition_order_valid": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "memory_start ≤ network_start ≤ disk_start"
+      },
+      "alert_to_memory_start_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → memory_acquisition_started_at_utc"
+      },
+      "alert_to_memory_sealed_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → memory_preserved_at_utc"
+      },
+      "alert_to_first_artifact_sealed_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → first_seal_at_utc"
+      },
+      "alert_to_case_sealed_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → case_sealed_at_utc (dominated by disk acquisition)"
+      },
+      "alert_to_all_required_artifacts_sealed_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → case_sealed_at_utc (memory+network+disk all preserved)"
+      },
+      "acquisition_failures": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type in {memory_lime,network_pcap,disk_raw}]"
+      },
+      "required_artifacts_expected": {
+        "source_file": "derived",
+        "source_key": "design_constant"
+      },
+      "required_artifacts_preserved": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type in {memory_lime,network_pcap,disk_raw}]"
+      },
+      "manifest_present": {
+        "source_file": "manifest.json",
+        "source_key": "exists"
+      },
+      "manifest_verified": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts"
+      },
+      "custody_chain_present": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.custody_present"
+      },
+      "custody_chain_verified": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.custody_present"
+      },
+      "primary_derived_separation_verified": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.manifest_present"
+      },
+      "case_sealed": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "case_sealed_at_utc"
+      },
+      "case_sealed_at": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "case_sealed_at_utc"
+      },
+      "pcap_size_gib": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type=network_pcap].size"
+      },
+      "memory_size_gib": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type=memory_lime].size"
+      },
+      "disk_size_gib": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type=disk_raw].size"
+      },
+      "artifacts_preserved_count": {
+        "source_file": "manifest.json",
+        "source_key": "len(artifacts)"
+      },
+      "analysis_layers_expected": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "len(layer_status)"
+      },
+      "analysis_layers_completed": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status[status=completed]"
+      },
+      "analysis_layers_partial": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status[status=partial]"
+      },
+      "analysis_layers_useful": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status[status in {completed,partial}]"
+      },
+      "memory_analysis_status": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status.memory_analysis.status"
+      },
+      "timeline_generated": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status.unified_forensic_timeline.status"
+      },
+      "derived_outputs_recorded": {
+        "source_file": "manifest.json",
+        "source_key": "len(artifacts)>30"
+      },
+      "cross_layer_findings_available": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status.cross_layer_findings.status"
+      },
+      "expected_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "expected_edges"
+      },
+      "recovered_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "recovered_edges"
+      },
+      "degraded_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "degraded_edges"
+      },
+      "missing_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "missing_edges"
+      },
+      "ambiguous_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "ambiguous_edges"
+      },
+      "cpr": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "causal_path_recoverability"
+      },
+      "recoverability_label": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "recoverability_label"
+      },
+      "scientific_confidence": {
+        "source_file": "derived/reconstruction/causal_status.json",
+        "source_key": "scientific_confidence"
+      },
+      "fsr_invariants_stable": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs fsr_invariants_stable"
+      },
+      "cpr_stable": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs cpr_stable"
+      },
+      "edge_state_pattern_stable": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs edge_state_pattern_stable"
+      },
+      "comparison_family_match": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs comparison_family_match"
+      },
+      "scenario_drift": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs scenario_drift"
+      }
+    }
+  },
+  {
+    "run_id": "run_03",
+    "case_id": "case-01c88521",
+    "case_name": "CASE-20260706-001210",
+    "metrics": {
+      "run_id": "run_03",
+      "case_id": "case-01c88521",
+      "scenario_id": "scn-b83dbbfb",
+      "attack_profile_id": "T0831_MANIPULATION_OF_CONTROL_MODBUS",
+      "technique_id": "NICS CyberLab ICS Modbus write multiple registers",
+      "accepted_for_scientific_aggregate": true,
+      "exclusion_reason": "missing_from_existing_reports",
+      "teardown_completed": "missing_from_current_campaign",
+      "redeploy_completed": "missing_from_current_campaign",
+      "same_topology_instantiated": "missing_from_current_campaign",
+      "effective_inventory_recorded": "missing_from_current_campaign",
+      "deployment_time_s": "missing_from_current_campaign",
+      "redeployment_time_s": "missing_from_current_campaign",
+      "validation_gate_passed": "missing_from_current_campaign",
+      "segmentation_verified": "missing_from_current_campaign",
+      "sensor_liveness_verified": "missing_from_current_campaign",
+      "plc_scada_reachable": "missing_from_current_campaign",
+      "validation_time_s": "missing_from_current_campaign",
+      "time_reference_coherent": true,
+      "attack_profile_executed": true,
+      "attack_technique_recorded": true,
+      "ground_truth_available": true,
+      "attack_started_at": "2026-07-06T00:11:44.379212+00:00",
+      "attack_completed_at": "2026-07-06T00:12:03.673876+00:00",
+      "attack_duration_s": 19.29,
+      "alert_observed": true,
+      "trigger_alert_bound": true,
+      "trigger_inside_attack_window": "missing_from_existing_reports",
+      "alert_to_profile_mapping_recorded": true,
+      "raw_alert_preserved": true,
+      "attack_to_alert_s": 9.98,
+      "memory_first_when_enabled": true,
+      "acquisition_order_valid": true,
+      "alert_to_memory_start_s": 25.1,
+      "alert_to_memory_sealed_s": 354.65,
+      "alert_to_first_artifact_sealed_s": 1872.64,
+      "alert_to_case_sealed_s": 1872.64,
+      "alert_to_all_required_artifacts_sealed_s": 1872.64,
+      "acquisition_failures": 0,
+      "required_artifacts_expected": 3,
+      "required_artifacts_preserved": 3,
+      "manifest_present": true,
+      "manifest_verified": true,
+      "custody_chain_present": true,
+      "custody_chain_verified": true,
+      "primary_derived_separation_verified": true,
+      "case_sealed": true,
+      "case_sealed_at": "2026-07-06T00:43:07Z",
+      "pcap_size_gib": 2.373,
+      "memory_size_gib": 3.998,
+      "disk_size_gib": 40.0,
+      "artifacts_preserved_count": 96,
+      "analysis_layers_expected": 14,
+      "analysis_layers_completed": 12,
+      "analysis_layers_partial": 0,
+      "analysis_layers_useful": 12,
+      "memory_analysis_status": "completed",
+      "timeline_generated": true,
+      "derived_outputs_recorded": true,
+      "cross_layer_findings_available": true,
+      "expected_edges": 8,
+      "recovered_edges": 4,
+      "degraded_edges": 2,
+      "missing_edges": 2,
+      "ambiguous_edges": 0,
+      "cpr": 0.5,
+      "recoverability_label": "partially_recoverable",
+      "scientific_confidence": "limited",
+      "fsr_invariants_stable": true,
+      "cpr_stable": true,
+      "edge_state_pattern_stable": true,
+      "comparison_family_match": "missing_from_existing_reports",
+      "scenario_drift": false
+    },
+    "sources": {
+      "run_id": {
+        "source_file": "derived",
+        "source_key": "run_index"
+      },
+      "case_id": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "case_id"
+      },
+      "scenario_id": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "scenario_id"
+      },
+      "attack_profile_id": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "attack_profile_id"
+      },
+      "technique_id": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "signature"
+      },
+      "accepted_for_scientific_aggregate": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "scientifically_complete"
+      },
+      "exclusion_reason": {
+        "source_file": "missing_from_existing_reports",
+        "source_key": "missing_from_existing_reports"
+      },
+      "teardown_completed": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.teardown_completed.value (not yet written by pipeline)"
+      },
+      "redeploy_completed": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.redeploy_completed.value (not yet written by pipeline)"
+      },
+      "same_topology_instantiated": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.same_topology_instantiated.value (not yet written by pipeline)"
+      },
+      "effective_inventory_recorded": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.effective_inventory_recorded.value (not yet written by pipeline)"
+      },
+      "deployment_time_s": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.deployment_time_s.value (not yet written by pipeline)"
+      },
+      "redeployment_time_s": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.redeployment_time_s.value (not yet written by pipeline)"
+      },
+      "validation_gate_passed": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.validation_gate_passed.value (not yet written by pipeline)"
+      },
+      "segmentation_verified": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.segmentation_verified.value (not yet written by pipeline)"
+      },
+      "sensor_liveness_verified": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.sensor_liveness_verified.value (not yet written by pipeline)"
+      },
+      "plc_scada_reachable": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.plc_scada_reachable.value (not yet written by pipeline)"
+      },
+      "validation_time_s": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.validation_time_s.value (not yet written by pipeline)"
+      },
+      "time_reference_coherent": {
+        "source_file": "metadata/time_sync.json",
+        "source_key": "synchronized / temporal_sync_status"
+      },
+      "attack_profile_executed": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "attack_profile_id"
+      },
+      "attack_technique_recorded": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "signature"
+      },
+      "ground_truth_available": {
+        "source_file": "derived/reconstruction/causal_status.json",
+        "source_key": "requirements.foc_context_available"
+      },
+      "attack_started_at": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "attack_started_at_utc"
+      },
+      "attack_completed_at": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "attack_completed_at_utc"
+      },
+      "attack_duration_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "attack_started_at_utc → attack_completed_at_utc"
+      },
+      "alert_observed": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "trigger_alert_id"
+      },
+      "trigger_alert_bound": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.raw_wazuh_trigger_binding_present"
+      },
+      "trigger_inside_attack_window": {
+        "source_file": "missing_from_existing_reports",
+        "source_key": "missing_from_existing_reports"
+      },
+      "alert_to_profile_mapping_recorded": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "attack_profile_id"
+      },
+      "raw_alert_preserved": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.raw_wazuh_trigger_binding_present"
+      },
+      "attack_to_alert_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "attack_started_at_utc → alert_observed_at_utc"
+      },
+      "memory_first_when_enabled": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "memory_acquisition_started_at_utc ≤ forensic_intervention_started_at_utc"
+      },
+      "acquisition_order_valid": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "memory_start ≤ network_start ≤ disk_start"
+      },
+      "alert_to_memory_start_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → memory_acquisition_started_at_utc"
+      },
+      "alert_to_memory_sealed_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → memory_preserved_at_utc"
+      },
+      "alert_to_first_artifact_sealed_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → first_seal_at_utc"
+      },
+      "alert_to_case_sealed_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → case_sealed_at_utc (dominated by disk acquisition)"
+      },
+      "alert_to_all_required_artifacts_sealed_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → case_sealed_at_utc (memory+network+disk all preserved)"
+      },
+      "acquisition_failures": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type in {memory_lime,network_pcap,disk_raw}]"
+      },
+      "required_artifacts_expected": {
+        "source_file": "derived",
+        "source_key": "design_constant"
+      },
+      "required_artifacts_preserved": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type in {memory_lime,network_pcap,disk_raw}]"
+      },
+      "manifest_present": {
+        "source_file": "manifest.json",
+        "source_key": "exists"
+      },
+      "manifest_verified": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts"
+      },
+      "custody_chain_present": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.custody_present"
+      },
+      "custody_chain_verified": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.custody_present"
+      },
+      "primary_derived_separation_verified": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.manifest_present"
+      },
+      "case_sealed": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "case_sealed_at_utc"
+      },
+      "case_sealed_at": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "case_sealed_at_utc"
+      },
+      "pcap_size_gib": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type=network_pcap].size"
+      },
+      "memory_size_gib": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type=memory_lime].size"
+      },
+      "disk_size_gib": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type=disk_raw].size"
+      },
+      "artifacts_preserved_count": {
+        "source_file": "manifest.json",
+        "source_key": "len(artifacts)"
+      },
+      "analysis_layers_expected": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "len(layer_status)"
+      },
+      "analysis_layers_completed": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status[status=completed]"
+      },
+      "analysis_layers_partial": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status[status=partial]"
+      },
+      "analysis_layers_useful": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status[status in {completed,partial}]"
+      },
+      "memory_analysis_status": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status.memory_analysis.status"
+      },
+      "timeline_generated": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status.unified_forensic_timeline.status"
+      },
+      "derived_outputs_recorded": {
+        "source_file": "manifest.json",
+        "source_key": "len(artifacts)>30"
+      },
+      "cross_layer_findings_available": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status.cross_layer_findings.status"
+      },
+      "expected_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "expected_edges"
+      },
+      "recovered_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "recovered_edges"
+      },
+      "degraded_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "degraded_edges"
+      },
+      "missing_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "missing_edges"
+      },
+      "ambiguous_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "ambiguous_edges"
+      },
+      "cpr": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "causal_path_recoverability"
+      },
+      "recoverability_label": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "recoverability_label"
+      },
+      "scientific_confidence": {
+        "source_file": "derived/reconstruction/causal_status.json",
+        "source_key": "scientific_confidence"
+      },
+      "fsr_invariants_stable": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs fsr_invariants_stable"
+      },
+      "cpr_stable": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs cpr_stable"
+      },
+      "edge_state_pattern_stable": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs edge_state_pattern_stable"
+      },
+      "comparison_family_match": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs comparison_family_match"
+      },
+      "scenario_drift": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs scenario_drift"
+      }
+    }
+  },
+  {
+    "run_id": "run_04",
+    "case_id": "case-08eb88d0",
+    "case_name": "CASE-20260706-011924",
+    "metrics": {
+      "run_id": "run_04",
+      "case_id": "case-08eb88d0",
+      "scenario_id": "scn-b83dbbfb",
+      "attack_profile_id": "T0831_MANIPULATION_OF_CONTROL_MODBUS",
+      "technique_id": "NICS CyberLab ICS Modbus write multiple registers",
+      "accepted_for_scientific_aggregate": true,
+      "exclusion_reason": "missing_from_existing_reports",
+      "teardown_completed": "missing_from_current_campaign",
+      "redeploy_completed": "missing_from_current_campaign",
+      "same_topology_instantiated": "missing_from_current_campaign",
+      "effective_inventory_recorded": "missing_from_current_campaign",
+      "deployment_time_s": "missing_from_current_campaign",
+      "redeployment_time_s": "missing_from_current_campaign",
+      "validation_gate_passed": "missing_from_current_campaign",
+      "segmentation_verified": "missing_from_current_campaign",
+      "sensor_liveness_verified": "missing_from_current_campaign",
+      "plc_scada_reachable": "missing_from_current_campaign",
+      "validation_time_s": "missing_from_current_campaign",
+      "time_reference_coherent": true,
+      "attack_profile_executed": true,
+      "attack_technique_recorded": true,
+      "ground_truth_available": true,
+      "attack_started_at": "2026-07-06T01:18:57.748834+00:00",
+      "attack_completed_at": "2026-07-06T01:19:17.025134+00:00",
+      "attack_duration_s": 19.28,
+      "alert_observed": true,
+      "trigger_alert_bound": true,
+      "trigger_inside_attack_window": "missing_from_existing_reports",
+      "alert_to_profile_mapping_recorded": true,
+      "raw_alert_preserved": true,
+      "attack_to_alert_s": 12.04,
+      "memory_first_when_enabled": true,
+      "acquisition_order_valid": true,
+      "alert_to_memory_start_s": 17.1,
+      "alert_to_memory_sealed_s": 345.81,
+      "alert_to_first_artifact_sealed_s": 1886.21,
+      "alert_to_case_sealed_s": 1886.21,
+      "alert_to_all_required_artifacts_sealed_s": 1886.21,
+      "acquisition_failures": 0,
+      "required_artifacts_expected": 3,
+      "required_artifacts_preserved": 3,
+      "manifest_present": true,
+      "manifest_verified": true,
+      "custody_chain_present": true,
+      "custody_chain_verified": true,
+      "primary_derived_separation_verified": true,
+      "case_sealed": true,
+      "case_sealed_at": "2026-07-06T01:50:36Z",
+      "pcap_size_gib": 2.348,
+      "memory_size_gib": 3.998,
+      "disk_size_gib": 40.0,
+      "artifacts_preserved_count": 96,
+      "analysis_layers_expected": 14,
+      "analysis_layers_completed": 12,
+      "analysis_layers_partial": 0,
+      "analysis_layers_useful": 12,
+      "memory_analysis_status": "completed",
+      "timeline_generated": true,
+      "derived_outputs_recorded": true,
+      "cross_layer_findings_available": true,
+      "expected_edges": 8,
+      "recovered_edges": 4,
+      "degraded_edges": 2,
+      "missing_edges": 2,
+      "ambiguous_edges": 0,
+      "cpr": 0.5,
+      "recoverability_label": "partially_recoverable",
+      "scientific_confidence": "limited",
+      "fsr_invariants_stable": true,
+      "cpr_stable": true,
+      "edge_state_pattern_stable": true,
+      "comparison_family_match": "missing_from_existing_reports",
+      "scenario_drift": false
+    },
+    "sources": {
+      "run_id": {
+        "source_file": "derived",
+        "source_key": "run_index"
+      },
+      "case_id": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "case_id"
+      },
+      "scenario_id": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "scenario_id"
+      },
+      "attack_profile_id": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "attack_profile_id"
+      },
+      "technique_id": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "signature"
+      },
+      "accepted_for_scientific_aggregate": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "scientifically_complete"
+      },
+      "exclusion_reason": {
+        "source_file": "missing_from_existing_reports",
+        "source_key": "missing_from_existing_reports"
+      },
+      "teardown_completed": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.teardown_completed.value (not yet written by pipeline)"
+      },
+      "redeploy_completed": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.redeploy_completed.value (not yet written by pipeline)"
+      },
+      "same_topology_instantiated": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.same_topology_instantiated.value (not yet written by pipeline)"
+      },
+      "effective_inventory_recorded": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.effective_inventory_recorded.value (not yet written by pipeline)"
+      },
+      "deployment_time_s": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.deployment_time_s.value (not yet written by pipeline)"
+      },
+      "redeployment_time_s": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.redeployment_time_s.value (not yet written by pipeline)"
+      },
+      "validation_gate_passed": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.validation_gate_passed.value (not yet written by pipeline)"
+      },
+      "segmentation_verified": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.segmentation_verified.value (not yet written by pipeline)"
+      },
+      "sensor_liveness_verified": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.sensor_liveness_verified.value (not yet written by pipeline)"
+      },
+      "plc_scada_reachable": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.plc_scada_reachable.value (not yet written by pipeline)"
+      },
+      "validation_time_s": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.validation_time_s.value (not yet written by pipeline)"
+      },
+      "time_reference_coherent": {
+        "source_file": "metadata/time_sync.json",
+        "source_key": "synchronized / temporal_sync_status"
+      },
+      "attack_profile_executed": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "attack_profile_id"
+      },
+      "attack_technique_recorded": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "signature"
+      },
+      "ground_truth_available": {
+        "source_file": "derived/reconstruction/causal_status.json",
+        "source_key": "requirements.foc_context_available"
+      },
+      "attack_started_at": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "attack_started_at_utc"
+      },
+      "attack_completed_at": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "attack_completed_at_utc"
+      },
+      "attack_duration_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "attack_started_at_utc → attack_completed_at_utc"
+      },
+      "alert_observed": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "trigger_alert_id"
+      },
+      "trigger_alert_bound": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.raw_wazuh_trigger_binding_present"
+      },
+      "trigger_inside_attack_window": {
+        "source_file": "missing_from_existing_reports",
+        "source_key": "missing_from_existing_reports"
+      },
+      "alert_to_profile_mapping_recorded": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "attack_profile_id"
+      },
+      "raw_alert_preserved": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.raw_wazuh_trigger_binding_present"
+      },
+      "attack_to_alert_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "attack_started_at_utc → alert_observed_at_utc"
+      },
+      "memory_first_when_enabled": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "memory_acquisition_started_at_utc ≤ forensic_intervention_started_at_utc"
+      },
+      "acquisition_order_valid": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "memory_start ≤ network_start ≤ disk_start"
+      },
+      "alert_to_memory_start_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → memory_acquisition_started_at_utc"
+      },
+      "alert_to_memory_sealed_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → memory_preserved_at_utc"
+      },
+      "alert_to_first_artifact_sealed_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → first_seal_at_utc"
+      },
+      "alert_to_case_sealed_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → case_sealed_at_utc (dominated by disk acquisition)"
+      },
+      "alert_to_all_required_artifacts_sealed_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → case_sealed_at_utc (memory+network+disk all preserved)"
+      },
+      "acquisition_failures": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type in {memory_lime,network_pcap,disk_raw}]"
+      },
+      "required_artifacts_expected": {
+        "source_file": "derived",
+        "source_key": "design_constant"
+      },
+      "required_artifacts_preserved": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type in {memory_lime,network_pcap,disk_raw}]"
+      },
+      "manifest_present": {
+        "source_file": "manifest.json",
+        "source_key": "exists"
+      },
+      "manifest_verified": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts"
+      },
+      "custody_chain_present": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.custody_present"
+      },
+      "custody_chain_verified": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.custody_present"
+      },
+      "primary_derived_separation_verified": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.manifest_present"
+      },
+      "case_sealed": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "case_sealed_at_utc"
+      },
+      "case_sealed_at": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "case_sealed_at_utc"
+      },
+      "pcap_size_gib": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type=network_pcap].size"
+      },
+      "memory_size_gib": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type=memory_lime].size"
+      },
+      "disk_size_gib": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type=disk_raw].size"
+      },
+      "artifacts_preserved_count": {
+        "source_file": "manifest.json",
+        "source_key": "len(artifacts)"
+      },
+      "analysis_layers_expected": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "len(layer_status)"
+      },
+      "analysis_layers_completed": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status[status=completed]"
+      },
+      "analysis_layers_partial": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status[status=partial]"
+      },
+      "analysis_layers_useful": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status[status in {completed,partial}]"
+      },
+      "memory_analysis_status": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status.memory_analysis.status"
+      },
+      "timeline_generated": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status.unified_forensic_timeline.status"
+      },
+      "derived_outputs_recorded": {
+        "source_file": "manifest.json",
+        "source_key": "len(artifacts)>30"
+      },
+      "cross_layer_findings_available": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status.cross_layer_findings.status"
+      },
+      "expected_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "expected_edges"
+      },
+      "recovered_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "recovered_edges"
+      },
+      "degraded_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "degraded_edges"
+      },
+      "missing_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "missing_edges"
+      },
+      "ambiguous_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "ambiguous_edges"
+      },
+      "cpr": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "causal_path_recoverability"
+      },
+      "recoverability_label": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "recoverability_label"
+      },
+      "scientific_confidence": {
+        "source_file": "derived/reconstruction/causal_status.json",
+        "source_key": "scientific_confidence"
+      },
+      "fsr_invariants_stable": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs fsr_invariants_stable"
+      },
+      "cpr_stable": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs cpr_stable"
+      },
+      "edge_state_pattern_stable": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs edge_state_pattern_stable"
+      },
+      "comparison_family_match": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs comparison_family_match"
+      },
+      "scenario_drift": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs scenario_drift"
+      }
+    }
+  },
+  {
+    "run_id": "run_05",
+    "case_id": "case-d2454912",
+    "case_name": "CASE-20260706-022814",
+    "metrics": {
+      "run_id": "run_05",
+      "case_id": "case-d2454912",
+      "scenario_id": "scn-b83dbbfb",
+      "attack_profile_id": "T0831_MANIPULATION_OF_CONTROL_MODBUS",
+      "technique_id": "NICS CyberLab ICS Modbus write multiple registers",
+      "accepted_for_scientific_aggregate": true,
+      "exclusion_reason": "missing_from_existing_reports",
+      "teardown_completed": "missing_from_current_campaign",
+      "redeploy_completed": "missing_from_current_campaign",
+      "same_topology_instantiated": "missing_from_current_campaign",
+      "effective_inventory_recorded": "missing_from_current_campaign",
+      "deployment_time_s": "missing_from_current_campaign",
+      "redeployment_time_s": "missing_from_current_campaign",
+      "validation_gate_passed": "missing_from_current_campaign",
+      "segmentation_verified": "missing_from_current_campaign",
+      "sensor_liveness_verified": "missing_from_current_campaign",
+      "plc_scada_reachable": "missing_from_current_campaign",
+      "validation_time_s": "missing_from_current_campaign",
+      "time_reference_coherent": true,
+      "attack_profile_executed": true,
+      "attack_technique_recorded": true,
+      "ground_truth_available": true,
+      "attack_started_at": "2026-07-06T02:27:45.869033+00:00",
+      "attack_completed_at": "2026-07-06T02:28:06.542693+00:00",
+      "attack_duration_s": 20.67,
+      "alert_observed": true,
+      "trigger_alert_bound": true,
+      "trigger_inside_attack_window": "missing_from_existing_reports",
+      "alert_to_profile_mapping_recorded": true,
+      "raw_alert_preserved": true,
+      "attack_to_alert_s": 12.6,
+      "memory_first_when_enabled": true,
+      "acquisition_order_valid": true,
+      "alert_to_memory_start_s": 43.32,
+      "alert_to_memory_sealed_s": 385.74,
+      "alert_to_first_artifact_sealed_s": 1895.73,
+      "alert_to_case_sealed_s": 1895.73,
+      "alert_to_all_required_artifacts_sealed_s": 1895.73,
+      "acquisition_failures": 0,
+      "required_artifacts_expected": 3,
+      "required_artifacts_preserved": 3,
+      "manifest_present": true,
+      "manifest_verified": true,
+      "custody_chain_present": true,
+      "custody_chain_verified": true,
+      "primary_derived_separation_verified": true,
+      "case_sealed": true,
+      "case_sealed_at": "2026-07-06T02:59:09Z",
+      "pcap_size_gib": 2.245,
+      "memory_size_gib": 3.998,
+      "disk_size_gib": 40.0,
+      "artifacts_preserved_count": 96,
+      "analysis_layers_expected": 14,
+      "analysis_layers_completed": 12,
+      "analysis_layers_partial": 0,
+      "analysis_layers_useful": 12,
+      "memory_analysis_status": "completed",
+      "timeline_generated": true,
+      "derived_outputs_recorded": true,
+      "cross_layer_findings_available": true,
+      "expected_edges": 8,
+      "recovered_edges": 4,
+      "degraded_edges": 2,
+      "missing_edges": 2,
+      "ambiguous_edges": 0,
+      "cpr": 0.5,
+      "recoverability_label": "partially_recoverable",
+      "scientific_confidence": "limited",
+      "fsr_invariants_stable": true,
+      "cpr_stable": true,
+      "edge_state_pattern_stable": true,
+      "comparison_family_match": "missing_from_existing_reports",
+      "scenario_drift": false
+    },
+    "sources": {
+      "run_id": {
+        "source_file": "derived",
+        "source_key": "run_index"
+      },
+      "case_id": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "case_id"
+      },
+      "scenario_id": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "scenario_id"
+      },
+      "attack_profile_id": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "attack_profile_id"
+      },
+      "technique_id": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "signature"
+      },
+      "accepted_for_scientific_aggregate": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "scientifically_complete"
+      },
+      "exclusion_reason": {
+        "source_file": "missing_from_existing_reports",
+        "source_key": "missing_from_existing_reports"
+      },
+      "teardown_completed": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.teardown_completed.value (not yet written by pipeline)"
+      },
+      "redeploy_completed": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.redeploy_completed.value (not yet written by pipeline)"
+      },
+      "same_topology_instantiated": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.same_topology_instantiated.value (not yet written by pipeline)"
+      },
+      "effective_inventory_recorded": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.effective_inventory_recorded.value (not yet written by pipeline)"
+      },
+      "deployment_time_s": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.deployment_time_s.value (not yet written by pipeline)"
+      },
+      "redeployment_time_s": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.redeployment_time_s.value (not yet written by pipeline)"
+      },
+      "validation_gate_passed": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.validation_gate_passed.value (not yet written by pipeline)"
+      },
+      "segmentation_verified": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.segmentation_verified.value (not yet written by pipeline)"
+      },
+      "sensor_liveness_verified": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.sensor_liveness_verified.value (not yet written by pipeline)"
+      },
+      "plc_scada_reachable": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.plc_scada_reachable.value (not yet written by pipeline)"
+      },
+      "validation_time_s": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.validation_time_s.value (not yet written by pipeline)"
+      },
+      "time_reference_coherent": {
+        "source_file": "metadata/time_sync.json",
+        "source_key": "synchronized / temporal_sync_status"
+      },
+      "attack_profile_executed": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "attack_profile_id"
+      },
+      "attack_technique_recorded": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "signature"
+      },
+      "ground_truth_available": {
+        "source_file": "derived/reconstruction/causal_status.json",
+        "source_key": "requirements.foc_context_available"
+      },
+      "attack_started_at": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "attack_started_at_utc"
+      },
+      "attack_completed_at": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "attack_completed_at_utc"
+      },
+      "attack_duration_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "attack_started_at_utc → attack_completed_at_utc"
+      },
+      "alert_observed": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "trigger_alert_id"
+      },
+      "trigger_alert_bound": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.raw_wazuh_trigger_binding_present"
+      },
+      "trigger_inside_attack_window": {
+        "source_file": "missing_from_existing_reports",
+        "source_key": "missing_from_existing_reports"
+      },
+      "alert_to_profile_mapping_recorded": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "attack_profile_id"
+      },
+      "raw_alert_preserved": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.raw_wazuh_trigger_binding_present"
+      },
+      "attack_to_alert_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "attack_started_at_utc → alert_observed_at_utc"
+      },
+      "memory_first_when_enabled": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "memory_acquisition_started_at_utc ≤ forensic_intervention_started_at_utc"
+      },
+      "acquisition_order_valid": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "memory_start ≤ network_start ≤ disk_start"
+      },
+      "alert_to_memory_start_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → memory_acquisition_started_at_utc"
+      },
+      "alert_to_memory_sealed_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → memory_preserved_at_utc"
+      },
+      "alert_to_first_artifact_sealed_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → first_seal_at_utc"
+      },
+      "alert_to_case_sealed_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → case_sealed_at_utc (dominated by disk acquisition)"
+      },
+      "alert_to_all_required_artifacts_sealed_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → case_sealed_at_utc (memory+network+disk all preserved)"
+      },
+      "acquisition_failures": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type in {memory_lime,network_pcap,disk_raw}]"
+      },
+      "required_artifacts_expected": {
+        "source_file": "derived",
+        "source_key": "design_constant"
+      },
+      "required_artifacts_preserved": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type in {memory_lime,network_pcap,disk_raw}]"
+      },
+      "manifest_present": {
+        "source_file": "manifest.json",
+        "source_key": "exists"
+      },
+      "manifest_verified": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts"
+      },
+      "custody_chain_present": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.custody_present"
+      },
+      "custody_chain_verified": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.custody_present"
+      },
+      "primary_derived_separation_verified": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.manifest_present"
+      },
+      "case_sealed": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "case_sealed_at_utc"
+      },
+      "case_sealed_at": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "case_sealed_at_utc"
+      },
+      "pcap_size_gib": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type=network_pcap].size"
+      },
+      "memory_size_gib": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type=memory_lime].size"
+      },
+      "disk_size_gib": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type=disk_raw].size"
+      },
+      "artifacts_preserved_count": {
+        "source_file": "manifest.json",
+        "source_key": "len(artifacts)"
+      },
+      "analysis_layers_expected": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "len(layer_status)"
+      },
+      "analysis_layers_completed": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status[status=completed]"
+      },
+      "analysis_layers_partial": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status[status=partial]"
+      },
+      "analysis_layers_useful": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status[status in {completed,partial}]"
+      },
+      "memory_analysis_status": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status.memory_analysis.status"
+      },
+      "timeline_generated": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status.unified_forensic_timeline.status"
+      },
+      "derived_outputs_recorded": {
+        "source_file": "manifest.json",
+        "source_key": "len(artifacts)>30"
+      },
+      "cross_layer_findings_available": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status.cross_layer_findings.status"
+      },
+      "expected_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "expected_edges"
+      },
+      "recovered_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "recovered_edges"
+      },
+      "degraded_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "degraded_edges"
+      },
+      "missing_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "missing_edges"
+      },
+      "ambiguous_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "ambiguous_edges"
+      },
+      "cpr": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "causal_path_recoverability"
+      },
+      "recoverability_label": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "recoverability_label"
+      },
+      "scientific_confidence": {
+        "source_file": "derived/reconstruction/causal_status.json",
+        "source_key": "scientific_confidence"
+      },
+      "fsr_invariants_stable": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs fsr_invariants_stable"
+      },
+      "cpr_stable": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs cpr_stable"
+      },
+      "edge_state_pattern_stable": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs edge_state_pattern_stable"
+      },
+      "comparison_family_match": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs comparison_family_match"
+      },
+      "scenario_drift": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs scenario_drift"
+      }
+    }
+  },
+  {
+    "run_id": "run_06",
+    "case_id": "case-d70662d7",
+    "case_name": "CASE-20260706-033311",
+    "metrics": {
+      "run_id": "run_06",
+      "case_id": "case-d70662d7",
+      "scenario_id": "scn-b83dbbfb",
+      "attack_profile_id": "T0831_MANIPULATION_OF_CONTROL_MODBUS",
+      "technique_id": "NICS CyberLab ICS Modbus write multiple registers",
+      "accepted_for_scientific_aggregate": true,
+      "exclusion_reason": "missing_from_existing_reports",
+      "teardown_completed": "missing_from_current_campaign",
+      "redeploy_completed": "missing_from_current_campaign",
+      "same_topology_instantiated": "missing_from_current_campaign",
+      "effective_inventory_recorded": "missing_from_current_campaign",
+      "deployment_time_s": "missing_from_current_campaign",
+      "redeployment_time_s": "missing_from_current_campaign",
+      "validation_gate_passed": "missing_from_current_campaign",
+      "segmentation_verified": "missing_from_current_campaign",
+      "sensor_liveness_verified": "missing_from_current_campaign",
+      "plc_scada_reachable": "missing_from_current_campaign",
+      "validation_time_s": "missing_from_current_campaign",
+      "time_reference_coherent": true,
+      "attack_profile_executed": true,
+      "attack_technique_recorded": true,
+      "ground_truth_available": true,
+      "attack_started_at": "2026-07-06T03:32:42.389507+00:00",
+      "attack_completed_at": "2026-07-06T03:33:04.167617+00:00",
+      "attack_duration_s": 21.78,
+      "alert_observed": true,
+      "trigger_alert_bound": true,
+      "trigger_inside_attack_window": "missing_from_existing_reports",
+      "alert_to_profile_mapping_recorded": true,
+      "raw_alert_preserved": true,
+      "attack_to_alert_s": 7.59,
+      "memory_first_when_enabled": true,
+      "acquisition_order_valid": true,
+      "alert_to_memory_start_s": 23.22,
+      "alert_to_memory_sealed_s": 345.26,
+      "alert_to_first_artifact_sealed_s": 2304.02,
+      "alert_to_case_sealed_s": 2144.02,
+      "alert_to_all_required_artifacts_sealed_s": 2144.02,
+      "acquisition_failures": 0,
+      "required_artifacts_expected": 3,
+      "required_artifacts_preserved": 3,
+      "manifest_present": true,
+      "manifest_verified": true,
+      "custody_chain_present": true,
+      "custody_chain_verified": true,
+      "primary_derived_separation_verified": true,
+      "case_sealed": true,
+      "case_sealed_at": "2026-07-06T04:08:34Z",
+      "pcap_size_gib": 4.291,
+      "memory_size_gib": 3.998,
+      "disk_size_gib": 20.0,
+      "artifacts_preserved_count": 93,
+      "analysis_layers_expected": 14,
+      "analysis_layers_completed": 12,
+      "analysis_layers_partial": 0,
+      "analysis_layers_useful": 12,
+      "memory_analysis_status": "completed",
+      "timeline_generated": true,
+      "derived_outputs_recorded": true,
+      "cross_layer_findings_available": true,
+      "expected_edges": 8,
+      "recovered_edges": 4,
+      "degraded_edges": 2,
+      "missing_edges": 2,
+      "ambiguous_edges": 0,
+      "cpr": 0.5,
+      "recoverability_label": "partially_recoverable",
+      "scientific_confidence": "limited",
+      "fsr_invariants_stable": true,
+      "cpr_stable": true,
+      "edge_state_pattern_stable": true,
+      "comparison_family_match": "missing_from_existing_reports",
+      "scenario_drift": false
+    },
+    "sources": {
+      "run_id": {
+        "source_file": "derived",
+        "source_key": "run_index"
+      },
+      "case_id": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "case_id"
+      },
+      "scenario_id": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "scenario_id"
+      },
+      "attack_profile_id": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "attack_profile_id"
+      },
+      "technique_id": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "signature"
+      },
+      "accepted_for_scientific_aggregate": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "scientifically_complete"
+      },
+      "exclusion_reason": {
+        "source_file": "missing_from_existing_reports",
+        "source_key": "missing_from_existing_reports"
+      },
+      "teardown_completed": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.teardown_completed.value (not yet written by pipeline)"
+      },
+      "redeploy_completed": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.redeploy_completed.value (not yet written by pipeline)"
+      },
+      "same_topology_instantiated": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.same_topology_instantiated.value (not yet written by pipeline)"
+      },
+      "effective_inventory_recorded": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.effective_inventory_recorded.value (not yet written by pipeline)"
+      },
+      "deployment_time_s": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.deployment_time_s.value (not yet written by pipeline)"
+      },
+      "redeployment_time_s": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.redeployment_time_s.value (not yet written by pipeline)"
+      },
+      "validation_gate_passed": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.validation_gate_passed.value (not yet written by pipeline)"
+      },
+      "segmentation_verified": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.segmentation_verified.value (not yet written by pipeline)"
+      },
+      "sensor_liveness_verified": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.sensor_liveness_verified.value (not yet written by pipeline)"
+      },
+      "plc_scada_reachable": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.plc_scada_reachable.value (not yet written by pipeline)"
+      },
+      "validation_time_s": {
+        "source_file": "metadata/workflow_phase_summary.json",
+        "source_key": "pipeline_fields.validation_time_s.value (not yet written by pipeline)"
+      },
+      "time_reference_coherent": {
+        "source_file": "metadata/time_sync.json",
+        "source_key": "synchronized / temporal_sync_status"
+      },
+      "attack_profile_executed": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "attack_profile_id"
+      },
+      "attack_technique_recorded": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "signature"
+      },
+      "ground_truth_available": {
+        "source_file": "derived/reconstruction/causal_status.json",
+        "source_key": "requirements.foc_context_available"
+      },
+      "attack_started_at": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "attack_started_at_utc"
+      },
+      "attack_completed_at": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "attack_completed_at_utc"
+      },
+      "attack_duration_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "attack_started_at_utc → attack_completed_at_utc"
+      },
+      "alert_observed": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "trigger_alert_id"
+      },
+      "trigger_alert_bound": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.raw_wazuh_trigger_binding_present"
+      },
+      "trigger_inside_attack_window": {
+        "source_file": "missing_from_existing_reports",
+        "source_key": "missing_from_existing_reports"
+      },
+      "alert_to_profile_mapping_recorded": {
+        "source_file": "metadata/trigger_alert_binding.json",
+        "source_key": "attack_profile_id"
+      },
+      "raw_alert_preserved": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.raw_wazuh_trigger_binding_present"
+      },
+      "attack_to_alert_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "attack_started_at_utc → alert_observed_at_utc"
+      },
+      "memory_first_when_enabled": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "memory_acquisition_started_at_utc ≤ forensic_intervention_started_at_utc"
+      },
+      "acquisition_order_valid": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "memory_start ≤ network_start ≤ disk_start"
+      },
+      "alert_to_memory_start_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → memory_acquisition_started_at_utc"
+      },
+      "alert_to_memory_sealed_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → memory_preserved_at_utc"
+      },
+      "alert_to_first_artifact_sealed_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → first_seal_at_utc"
+      },
+      "alert_to_case_sealed_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → case_sealed_at_utc (dominated by disk acquisition)"
+      },
+      "alert_to_all_required_artifacts_sealed_s": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "alert_observed_at_utc → case_sealed_at_utc (memory+network+disk all preserved)"
+      },
+      "acquisition_failures": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type in {memory_lime,network_pcap,disk_raw}]"
+      },
+      "required_artifacts_expected": {
+        "source_file": "derived",
+        "source_key": "design_constant"
+      },
+      "required_artifacts_preserved": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type in {memory_lime,network_pcap,disk_raw}]"
+      },
+      "manifest_present": {
+        "source_file": "manifest.json",
+        "source_key": "exists"
+      },
+      "manifest_verified": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts"
+      },
+      "custody_chain_present": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.custody_present"
+      },
+      "custody_chain_verified": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.custody_present"
+      },
+      "primary_derived_separation_verified": {
+        "source_file": "metadata/critical_evidence_gate.json",
+        "source_key": "checks.manifest_present"
+      },
+      "case_sealed": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "case_sealed_at_utc"
+      },
+      "case_sealed_at": {
+        "source_file": "metadata/normalized_causal_timestamps.json",
+        "source_key": "case_sealed_at_utc"
+      },
+      "pcap_size_gib": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type=network_pcap].size"
+      },
+      "memory_size_gib": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type=memory_lime].size"
+      },
+      "disk_size_gib": {
+        "source_file": "manifest.json",
+        "source_key": "artifacts[type=disk_raw].size"
+      },
+      "artifacts_preserved_count": {
+        "source_file": "manifest.json",
+        "source_key": "len(artifacts)"
+      },
+      "analysis_layers_expected": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "len(layer_status)"
+      },
+      "analysis_layers_completed": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status[status=completed]"
+      },
+      "analysis_layers_partial": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status[status=partial]"
+      },
+      "analysis_layers_useful": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status[status in {completed,partial}]"
+      },
+      "memory_analysis_status": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status.memory_analysis.status"
+      },
+      "timeline_generated": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status.unified_forensic_timeline.status"
+      },
+      "derived_outputs_recorded": {
+        "source_file": "manifest.json",
+        "source_key": "len(artifacts)>30"
+      },
+      "cross_layer_findings_available": {
+        "source_file": "analysis/forensic_analysis_report.json",
+        "source_key": "layer_status.cross_layer_findings.status"
+      },
+      "expected_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "expected_edges"
+      },
+      "recovered_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "recovered_edges"
+      },
+      "degraded_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "degraded_edges"
+      },
+      "missing_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "missing_edges"
+      },
+      "ambiguous_edges": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "ambiguous_edges"
+      },
+      "cpr": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "causal_path_recoverability"
+      },
+      "recoverability_label": {
+        "source_file": "derived/reconstruction/reconstruction_metrics.json",
+        "source_key": "recoverability_label"
+      },
+      "scientific_confidence": {
+        "source_file": "derived/reconstruction/causal_status.json",
+        "source_key": "scientific_confidence"
+      },
+      "fsr_invariants_stable": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs fsr_invariants_stable"
+      },
+      "cpr_stable": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs cpr_stable"
+      },
+      "edge_state_pattern_stable": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs edge_state_pattern_stable"
+      },
+      "comparison_family_match": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs comparison_family_match"
+      },
+      "scenario_drift": {
+        "source_file": "derived across all cases",
+        "source_key": "all runs scenario_drift"
+      }
+    }
+  }
+]
