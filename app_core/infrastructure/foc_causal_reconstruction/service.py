@@ -891,9 +891,23 @@ def _prerequisite_status(case_id: str, case_path: Path, analysis_status: dict | 
     elif not evidence_links_present:
         state = "not_available"
         reason = "Causal reconstruction is blocked because the normalized case-to-manifest evidence links are unavailable for this case."
-    elif not analysis_report_present or not visual_summary_present:
+    elif not analysis_report_present:
         state = "blocked_missing_analysis"
         reason = "Causal reconstruction is blocked because multilayer forensic analysis has not been generated for this case."
+    elif not visual_summary_present:
+        # visual_summary.json is optional: if reconstruction metrics already exist on disk,
+        # the gate is satisfied with degradation rather than blocked.  This prevents a
+        # spurious blocked_missing_analysis when the visual summary generation is skipped
+        # but causal reconstruction completed successfully on a prior run.
+        _metrics_on_disk = (case_path / "derived" / "reconstruction" / "reconstruction_metrics.json").is_file()
+        if not _metrics_on_disk:
+            state = "blocked_missing_analysis"
+            reason = ("Causal reconstruction is blocked because the analysis visual summary has not been generated "
+                      "and no existing reconstruction metrics were found for this case.")
+        else:
+            state = "ready_to_run"
+            reason = ("Analysis report present; visual summary absent but reconstruction metrics exist on disk "
+                      "— proceeding with degradation.")
     elif gt_resolution.get("status") == "missing":
         state = "blocked_missing_ground_truth"
         reason = "Causal reconstruction is blocked because scenario_ground_truth.json is missing for this scenario."

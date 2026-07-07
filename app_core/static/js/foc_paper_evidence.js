@@ -329,6 +329,18 @@
         ${blockers.length ? `<div><span class="font-black text-red-300">Blockers:</span> <span class="mono">${esc(blockers.join(", "))}</span></div>` : ""}
         ${warnings.length ? `<div><span class="font-black text-amber-300">Warnings:</span> ${esc(warnings.join(" | "))}</div>` : ""}
         <div><span class="font-black">Fix path:</span> ${esc(payload.recommended_fix_path || "not_available")}</div>
+        ${(() => {
+          const dh = payload.detection_stream_health || {};
+          const ageH = dh.last_alert_age_hours;
+          const ageColor = ageH == null ? "text-slate-400" : ageH < 2 ? "text-emerald-300" : "text-amber-300";
+          return `
+          <div class="mt-3 border-t border-slate-700 pt-3">
+            <div class="font-black text-slate-300">Detection stream (Suricata/Wazuh):</div>
+            <div><span class="font-black">Last known alert:</span> <span class="${ageColor}">${esc(dh.last_alert_timestamp ? dh.last_alert_timestamp.slice(0,19) + " UTC" : "no records")}</span> ${dh.last_alert_case ? `<span class="text-slate-400 text-xs">(${esc(dh.last_alert_case)})</span>` : ""}</div>
+            <div><span class="font-black">Age:</span> <span class="${ageColor}">${ageH != null ? esc(String(ageH)) + "h" : "unknown"}</span></div>
+            ${dh.warning ? `<div class="text-amber-300 text-xs mt-1">${esc(dh.warning)}</div>` : ""}
+          </div>`;
+        })()}
       </div>
     `;
     button.disabled = !ready;
@@ -972,6 +984,59 @@
     }
   }
 
+  async function runCprEdgeMatrix() {
+    const button = byId("paper-run-cpr-edge-matrix-btn");
+    const status = byId("paper-cpr-edge-matrix-status");
+    if (button) button.disabled = true;
+    if (status) status.innerHTML = "Running CPR edge matrix exporter — reading on-disk reconstruction artifacts…";
+    try {
+      const payload = await getJson("/api/foc/paper-evidence/level-c/cpr-edge-matrix/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const ok = payload.status === "ok";
+      if (status) {
+        status.innerHTML = `
+          <div class="${ok ? "text-cyan-300" : "text-red-300"} font-black">${ok ? "CPR edge matrix generated." : "Export failed (return code " + esc(String(payload.return_code)) + ")."}</div>
+          <div class="mt-2 mono break-all">${esc(payload.output_dir || "")}</div>
+          <div class="mt-2 mono text-xs text-slate-400 whitespace-pre-wrap max-h-40 overflow-auto">${esc(payload.log || "")}</div>
+        `;
+      }
+      await loadCprEdgeMatrixFiles();
+    } catch (error) {
+      if (status) status.innerHTML = `<span class="text-red-300">${esc(error.message || "Export failed.")}</span>`;
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+
+  async function loadCprEdgeMatrixFiles() {
+    const root = byId("paper-cpr-edge-matrix-files");
+    if (!root) return;
+    try {
+      const payload = await getJson("/api/foc/paper-evidence/level-c/cpr-edge-matrix/files");
+      const files = payload.files || [];
+      if (!files.length) {
+        root.innerHTML = "<div class='text-slate-500'>No CPR edge matrix files found. Run the export first.</div>";
+        return;
+      }
+      root.innerHTML = `
+        <div class="font-black text-slate-300 mt-2">Generated files in <span class="mono">${esc(payload.out_dir || "")}</span></div>
+        <div class="space-y-1 mt-3">
+          ${files.map(f => `
+            <div class="rounded-xl border border-slate-700/60 bg-slate-950/30 px-4 py-2 flex items-center justify-between gap-3">
+              <span class="mono text-sm">${esc(f.name)}</span>
+              <span class="text-xs text-slate-400">${esc(String(Math.round(f.size_bytes / 1024))) + " KB"}</span>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    } catch {
+      root.innerHTML = "<div class='text-slate-500'>Could not load CPR edge matrix file list.</div>";
+    }
+  }
+
   async function loadCleanupInventory() {
     const payload = await getJson("/api/foc/experimentation/cleanup/inventory");
     state.cleanupInventory = payload.items || [];
@@ -1160,6 +1225,8 @@
     byId("paper-level-b-table-reconstruction-refresh-btn")?.addEventListener("click", loadTableReconstructionReports);
     byId("paper-run-level-c-workflow-metrics-btn")?.addEventListener("click", runLevelCWorkflowMetrics);
     byId("paper-level-c-workflow-metrics-refresh-btn")?.addEventListener("click", loadLevelCWorkflowMetricsFiles);
+    byId("paper-run-cpr-edge-matrix-btn")?.addEventListener("click", runCprEdgeMatrix);
+    byId("paper-cpr-edge-matrix-refresh-btn")?.addEventListener("click", loadCprEdgeMatrixFiles);
     byId("paper-run-level-a-level-b-truthful-btn")?.addEventListener("click", runTruthfulEvaluation);
     byId("paper-level-a-level-b-truthful-refresh-btn")?.addEventListener("click", loadTruthfulEvaluationReports);
     byId("paper-create-level-b-campaign-btn")?.addEventListener("click", createTemporaryLevelBCampaign);
@@ -1170,6 +1237,8 @@
       await loadReports();
       await loadTableReconstructionReports();
       await loadTruthfulEvaluationReports();
+      await loadLevelCWorkflowMetricsFiles();
+      await loadCprEdgeMatrixFiles();
       await loadCleanupInventory();
     });
     byId("paper-cleanup-refresh-btn")?.addEventListener("click", loadCleanupInventory);
@@ -1189,6 +1258,7 @@
     await loadTableReconstructionReports();
     await loadTruthfulEvaluationReports();
     await loadLevelCWorkflowMetricsFiles();
+    await loadCprEdgeMatrixFiles();
     await loadCleanupInventory();
   }
 

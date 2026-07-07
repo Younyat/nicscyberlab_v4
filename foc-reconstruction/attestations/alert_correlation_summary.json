@@ -1,21 +1,21 @@
 {
-  "generated_at": "2026-07-06T04:34:16.564382+00:00",
+  "generated_at": "2026-07-07T07:03:59.164461+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
-  "total_correlation_records": 48801,
-  "total_alerts": 5827,
-  "relevant_alerts": 1261,
-  "correlated_alerts": 48762,
-  "confirmed_correlations": 48762,
+  "total_correlation_records": 82167,
+  "total_alerts": 10624,
+  "relevant_alerts": 1424,
+  "correlated_alerts": 82128,
+  "confirmed_correlations": 82128,
   "weak_correlations": 0,
   "unresolved_alerts": 0,
   "noise_alerts": 0,
   "false_positive_candidates": 0,
   "missing_expected_alerts_total": 39,
   "bucket_counts": {
-    "correlated": 48762,
+    "correlated": 82128,
     "uncorrelated": 960,
-    "noise": 4566,
+    "noise": 9200,
     "false_positive_candidate": 0,
     "missing_expected_alert": 39,
     "weak_candidate": 0,
@@ -25,29 +25,29 @@
   "top_signatures": [
     {
       "label": "NICS CyberLab ICS Modbus write multiple registers",
-      "count": 48762
+      "count": 82128
     }
   ],
   "top_rule_ids": [
     {
       "label": "86601",
-      "count": 48762
+      "count": 82128
     }
   ],
   "top_nodes": [
     {
       "label": "node-f9ca9bfc",
-      "count": 48762
+      "count": 82128
     }
   ],
   "severity_distribution": [
     {
       "label": "LOW",
-      "count": 4566
+      "count": 9200
     },
     {
       "label": "HIGH",
-      "count": 781
+      "count": 944
     },
     {
       "label": "MEDIUM",
@@ -57,27 +57,27 @@
   "alerts_by_node": [
     {
       "label": "node-c800d431",
-      "count": 3882
+      "count": 7839
     },
     {
       "label": "node-f9ca9bfc",
-      "count": 985
+      "count": 1825
     }
   ],
   "alerts_by_mitre_technique": [
     {
       "label": "T1692.001",
-      "count": 301
+      "count": 464
     },
     {
       "label": "T0836",
-      "count": 301
+      "count": 464
     }
   ],
   "alerts_by_original_sensor": [
     {
       "label": "suricata",
-      "count": 4867
+      "count": 9664
     },
     {
       "label": "wazuh",
@@ -87,7 +87,7 @@
   "alerts_by_collector": [
     {
       "label": "wazuh",
-      "count": 5827
+      "count": 10624
     }
   ],
   "unique_confirmed_attack_pairs": 1,

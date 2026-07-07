@@ -122,6 +122,66 @@ def _forensics_preflight_api():
     }
 
 
+def _detection_stream_health_check() -> dict:
+    """Quick heuristic check of detection stream health from on-disk artifacts."""
+    import json as _json
+    from pathlib import Path
+    from datetime import datetime, timezone
+
+    evidence_store = Path("app_core/infrastructure/forensics/evidence_store")
+    now = datetime.now(timezone.utc)
+    last_alert_ts: str | None = None
+    last_alert_rule: str | None = None
+    last_alert_case: str | None = None
+    last_alert_age_hours: float | None = None
+
+    for tab in sorted(evidence_store.glob("CASE-*/metadata/trigger_alert_binding.json"), reverse=True):
+        try:
+            d = _json.loads(tab.read_text())
+            ts = d.get("timestamp_utc")
+            if ts:
+                try:
+                    ts_s = ts.strip().replace("+0000", "Z").replace("+00:00", "Z")
+                    if ts_s.endswith("Z"):
+                        ts_s = ts_s[:-1] + "+00:00"
+                    dt = datetime.fromisoformat(ts_s).astimezone(timezone.utc)
+                    age_h = (now - dt).total_seconds() / 3600
+                    last_alert_ts = ts
+                    last_alert_rule = d.get("rule_id")
+                    last_alert_case = tab.parent.parent.name
+                    last_alert_age_hours = round(age_h, 1)
+                except Exception:
+                    pass
+                break
+        except Exception:
+            pass
+
+    stream_warning: str | None = None
+    if last_alert_age_hours is not None and last_alert_age_hours > 2:
+        stream_warning = (
+            f"Last known Suricata/Wazuh alert was {last_alert_age_hours}h ago ({last_alert_case}). "
+            f"If Level B detection fails, verify Suricata is running on the monitor node "
+            f"and that /var/ossec/logs/alerts/alerts.json is being updated."
+        )
+    elif last_alert_ts is None:
+        stream_warning = (
+            "No historical alert records found. Cannot estimate detection stream health. "
+            "Verify Suricata and Wazuh are operational before launching Level B."
+        )
+
+    return {
+        "last_alert_timestamp": last_alert_ts,
+        "last_alert_rule_id": last_alert_rule,
+        "last_alert_case": last_alert_case,
+        "last_alert_age_hours": last_alert_age_hours,
+        "warning": stream_warning,
+        "check_note": (
+            "If last_alert_age_hours > 2, run 'sudo systemctl status suricata' and "
+            "'sudo systemctl status wazuh-manager' on the monitor node before launching Level B."
+        ),
+    }
+
+
 def _forge_vi_table_reconstruction_api():
     from app_core.infrastructure.forensics.scripts.forge_vi_levelb_table_reconstruction import (
         generate_report_bundle,
@@ -996,11 +1056,14 @@ def api_foc_paper_evidence_level_b_preflight():
     else:
         status = "blocked"
         message = "Level B is blocked before launch because required disk-acquisition prerequisites are missing."
+    # Detection stream health check: read the last alert timestamp from existing cases
+    detection_health = _detection_stream_health_check()
     return jsonify(
         {
             "status": status,
             "message": message,
             "preflight": preflight,
+            "detection_stream_health": detection_health,
             "recommended_fix_path": "Configure stable NOPASSWD/root access for the disk acquisition helper and verify Docker access for the backend service account.",
         }
     ), 200
@@ -1092,6 +1155,47 @@ def api_foc_paper_evidence_level_c_workflow_metrics_files():
         return jsonify({"files": [], "out_dir": str(out_dir)}), 200
     files = []
     for f in sorted(out_dir.glob("FORGE-VI_LevelC_*")):
+        files.append({"name": f.name, "size_bytes": f.stat().st_size,
+                      "path": str(f.relative_to(project_path()))})
+    return jsonify({"files": files, "out_dir": str(out_dir.relative_to(project_path()))}), 200
+
+
+@experimentation_bp.route("/api/foc/paper-evidence/level-c/cpr-edge-matrix/run", methods=["POST"])
+def api_foc_paper_evidence_level_c_cpr_edge_matrix_run():
+    import subprocess, sys
+    from app_core.infrastructure.foc_reconstruction.foc_paths import project_path
+    script = project_path("tools", "forge_vi_cpr_edge_matrix_exporter.py")
+    out_dir = project_path("paper_exports", "FORGE-VI")
+    try:
+        result = subprocess.run(
+            [sys.executable, str(script), "--out-dir", str(out_dir)],
+            cwd=str(project_path()),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            timeout=60,
+        )
+        success = result.returncode == 0
+        files = sorted(str(p.name) for p in out_dir.glob("FORGE-VI_LevelC_CPR_*")) if out_dir.is_dir() else []
+        return jsonify({
+            "status": "ok" if success else "error",
+            "return_code": result.returncode,
+            "output_dir": str(out_dir.relative_to(project_path())),
+            "generated_files": files,
+            "log": result.stdout,
+        }), 201 if success else 500
+    except Exception as exc:
+        return jsonify({"status": "error", "error": str(exc)}), 500
+
+
+@experimentation_bp.route("/api/foc/paper-evidence/level-c/cpr-edge-matrix/files", methods=["GET"])
+def api_foc_paper_evidence_level_c_cpr_edge_matrix_files():
+    from app_core.infrastructure.foc_reconstruction.foc_paths import project_path
+    out_dir = project_path("paper_exports", "FORGE-VI")
+    if not out_dir.is_dir():
+        return jsonify({"files": [], "out_dir": str(out_dir)}), 200
+    files = []
+    for f in sorted(out_dir.glob("FORGE-VI_LevelC_CPR_*")):
         files.append({"name": f.name, "size_bytes": f.stat().st_size,
                       "path": str(f.relative_to(project_path()))})
     return jsonify({"files": files, "out_dir": str(out_dir.relative_to(project_path()))}), 200

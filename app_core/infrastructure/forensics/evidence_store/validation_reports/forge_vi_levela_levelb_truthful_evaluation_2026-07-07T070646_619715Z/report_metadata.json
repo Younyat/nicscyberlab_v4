@@ -1,0 +1,65 @@
+{
+  "report_id": "forge_vi_levela_levelb_truthful_evaluation_2026-07-07T070646_619715Z",
+  "generated_at": "2026-07-07T07:06:47Z",
+  "output_dir": "app_core/infrastructure/forensics/evidence_store/validation_reports/forge_vi_levela_levelb_truthful_evaluation_2026-07-07T070646_619715Z",
+  "decision": "Decision D: a fresh Level B campaign is required before final Level B paper claims.",
+  "option": "Option C: not enough; requires reporting/preservation fixes and a fresh Level B campaign before final paper use.",
+  "accepted_level_b_cases": 0,
+  "standalone_level_a_executions": 14,
+  "nested_level_a_executions": 0,
+  "denominators": {
+    "N_A_total": 14,
+    "N_A_accepted": 14,
+    "N_A_excluded": 0,
+    "N_A_over_Level_B_cases": 0,
+    "N_B_total": 7,
+    "N_B_accepted": 0,
+    "N_B_excluded": 7
+  },
+  "package_consistency_checks": [
+    {
+      "check_name": "Decision consistency",
+      "status": "pass",
+      "detail": "Decision='Decision D: a fresh Level B campaign is required before final Level B paper claims.' Option='Option C: not enough; requires reporting/preservation fixes and a fresh Level B campaign before final paper use.'"
+    },
+    {
+      "check_name": "Level A standalone denominator consistency",
+      "status": "pass",
+      "detail": "N_A_total=14, N_A_accepted=14, N_A_excluded=0"
+    },
+    {
+      "check_name": "Level B denominator consistency",
+      "status": "pass",
+      "detail": "N_B_total=7, N_B_accepted=0, N_B_excluded=7"
+    },
+    {
+      "check_name": "Nested Level A count consistency",
+      "status": "fail",
+      "detail": "N_A_over_Level_B_cases=0, Table A rows=14"
+    },
+    {
+      "check_name": "Level B case index consistency",
+      "status": "pass",
+      "detail": "N_B_accepted=0, accepted Table C rows=0, unique_case_ids=0"
+    },
+    {
+      "check_name": "Parent-child campaign linkage consistency",
+      "status": "pass",
+      "detail": "Level B campaign(s)=['CMP-20260707-000220-CBFB'], nested Level A campaigns=[]"
+    },
+    {
+      "check_name": "Case ID reuse consistency",
+      "status": "fail",
+      "detail": "Table A source_case_ids=['case-0baf5deb', 'case-0f9a0a23', 'case-4bd7a2e5', 'case-7efda4ef', 'case-d997e30f', 'case-e51b2792', 'case-f9b84046'], Table C case_ids=[]"
+    }
+  ],
+  "files": {
+    "evaluation_report": "app_core/infrastructure/forensics/evidence_store/validation_reports/forge_vi_levela_levelb_truthful_evaluation_2026-07-07T070646_619715Z/FORGE-VI_LevelA_LevelB_Truthful_Evaluation_Report.md",
+    "table_values": "app_core/infrastructure/forensics/evidence_store/validation_reports/forge_vi_levela_levelb_truthful_evaluation_2026-07-07T070646_619715Z/FORGE-VI_LevelA_LevelB_Truthful_Table_Values.json",
+    "data_provenance": "app_core/infrastructure/forensics/evidence_store/validation_reports/forge_vi_levela_levelb_truthful_evaluation_2026-07-07T070646_619715Z/FORGE-VI_LevelA_LevelB_Truthful_Data_Provenance.csv",
+    "availability_matrix": "app_core/infrastructure/forensics/evidence_store/validation_reports/forge_vi_levela_levelb_truthful_evaluation_2026-07-07T070646_619715Z/FORGE-VI_LevelA_LevelB_Truthful_Data_Availability_Matrix.csv",
+    "gap_report": "app_core/infrastructure/forensics/evidence_store/validation_reports/forge_vi_levela_levelb_truthful_evaluation_2026-07-07T070646_619715Z/FORGE-VI_LevelA_LevelB_Truthful_Gap_Report.md",
+    "paper_tables": "app_core/infrastructure/forensics/evidence_store/validation_reports/forge_vi_levela_levelb_truthful_evaluation_2026-07-07T070646_619715Z/FORGE-VI_LevelA_LevelB_Truthful_Paper_Tables.md",
+    "rerun_plan": "app_core/infrastructure/forensics/evidence_store/validation_reports/forge_vi_levela_levelb_truthful_evaluation_2026-07-07T070646_619715Z/FORGE-VI_LevelA_LevelB_Rerun_Readiness_Plan.md"
+  }
+}

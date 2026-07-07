@@ -1,0 +1,47 @@
+% Auto-generated Level B paper tables
+\begin{table*}[t]
+\centering
+\caption{Aggregate operational metrics across the latest accepted Level B repetitions.}
+\small
+\begin{tabular}{p{6.4cm}p{3.6cm}p{6.4cm}}
+\hline
+\textbf{Metric} & \textbf{Result} & \textbf{Interpretation} \\
+\hline
+Deploy time in seconds & \texttt{not computed} & Level B reuses the active deployment; redeployment is not part of the batch. \\
+Teardown plus redeploy time in seconds & \texttt{not computed} & Reported as zero under the current Level B execution model. \\
+Alert to memory acquisition start & \texttt{not computed} & Reactive volatile-first acquisition latency. \\
+Alert to memory preserved & \texttt{not computed} & Time until memory evidence is sealed into the case. \\
+Alert to industrial and OT export preserved & \texttt{not computed} & Time until OT export derived from rolling PCAP is preserved. \\
+Alert to disk snapshot start & \texttt{not computed} & Reactive post-trigger disk acquisition start latency. \\
+Alert to disk snapshot preserved & \texttt{not computed} & Time until disk evidence is preserved. \\
+$T_{first\_sealed}$ & \texttt{not computed} & First critical artifact sealed after trigger. \\
+$T_{case\_sealed}$ & \texttt{not computed} & Full case seal latency. \\
+PCAP size for periodic context segments in GiB & \texttt{not computed} & Continuous rolling PCAP observation with case-bound incident-window segment import. \\
+PCAP size for reactive alert-triggered captures in bytes & \texttt{not computed} & No separate reactive PCAP capture is used in the current memory-first design. \\
+Memory dump size in bytes & \texttt{not computed} & Total preserved memory size across acquisition targets. \\
+Disk snapshot or image size in bytes & \texttt{not computed} & Total preserved disk size across acquisition targets. \\
+Retries or failures count & \texttt{not computed} & Failed or retried pipeline events counted per repetition. \\
+\hline
+\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\centering
+\caption{Aggregate causal-reconstruction metrics across the latest accepted Level B repetitions.}
+\small
+\begin{tabular}{p{6.4cm}p{3.6cm}p{6.4cm}}
+\hline
+\textbf{Metric} & \textbf{Result} & \textbf{Interpretation} \\
+\hline
+Expected relations & \texttt{not computed} & Ground-truth causal relations declared for evaluation. \\
+Recovered relations & \texttt{not computed} & Fully supported causal links. \\
+Degraded relations & \texttt{not computed} & Links weakened by timestamp or evidential limitations. \\
+Missing relations & \texttt{not computed} & Expected links not defensible from preserved evidence. \\
+Ambiguous relations & \texttt{not computed} & Unresolved competing interpretations. \\
+CPR & \texttt{not computed} & Unweighted causal-path recoverability. \\
+WCPR & \texttt{not computed} & Weighted causal-path recoverability. \\
+Scientifically complete repetitions & \texttt{0/0} & Repetitions whose critical-evidence gate passed. \\
+Diagnostic-only repetitions & \texttt{0/0} & Repetitions whose causal interpretation must remain diagnostic only. \\
+\hline
+\end{tabular}
+\end{table*}

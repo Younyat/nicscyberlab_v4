@@ -1,0 +1,1323 @@
+{
+  "job_id": "exp-1c2506bad6cd",
+  "job_type": "paper_evidence_level_b",
+  "title": "Generate Level B Paper Evidence Report",
+  "status": "running",
+  "requested_at": "2026-07-07T00:02:27.198335+00:00",
+  "started_at": "2026-07-07T00:02:27.199089+00:00",
+  "finished_at": null,
+  "current_phase": "level_a_runtime",
+  "progress_percent": 55.46,
+  "warnings": [],
+  "errors": [],
+  "generated_artifacts": [],
+  "meta": {
+    "report_id": "paper-b-2026-07-07T000227.197952_0000",
+    "level": "B",
+    "case_id": null,
+    "scenario_id": null,
+    "n_repetitions": 10,
+    "workflow": "paper_evidence"
+  },
+  "job_path": "/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/paper_evidence/paper-b-2026-07-07T000227.197952_0000/paper-b-2026-07-07T000227.197952_0000-job.json",
+  "current_phase_label": "Run nested Level B scientific workflow",
+  "current_phase_detail": "Creating a fresh forensic case and starting volatility-first DFIR acquisition over fuxa, plc, and victim: memory first, rolling-PCAP context import second, disk third.",
+  "phase_statuses": [
+    {
+      "phase_key": "starting",
+      "phase_label": "Starting",
+      "status": "running",
+      "detail": "Preparing experimentation job runner.",
+      "updated_at": "2026-07-07T00:02:27.199105+00:00",
+      "progress_percent": 1.0
+    },
+    {
+      "phase_key": "audit_existing_capabilities",
+      "phase_label": "Audit existing scientific capabilities",
+      "status": "running",
+      "detail": "Recording what the existing FOC views, endpoints, artifacts, and metrics already support before the paper-evidence run starts.",
+      "updated_at": "2026-07-07T00:02:27.212076+00:00",
+      "progress_percent": 5.0
+    },
+    {
+      "phase_key": "prepare_level_b_batch",
+      "phase_label": "Prepare Level B batch",
+      "status": "running",
+      "detail": "Launching the existing Level B repetition workflow for campaign CMP-20260707-000220-CBFB with 10 requested repetitions and 2 nested Level A repetitions per case.",
+      "updated_at": "2026-07-07T00:02:29.249904+00:00",
+      "progress_percent": 10.0
+    },
+    {
+      "phase_key": "level_a_runtime",
+      "phase_label": "Run nested Level B scientific workflow",
+      "status": "running",
+      "detail": "Creating a fresh forensic case and starting volatility-first DFIR acquisition over fuxa, plc, and victim: memory first, rolling-PCAP context import second, disk third.",
+      "updated_at": "2026-07-07T05:46:06.587123+00:00",
+      "progress_percent": 55.46
+    }
+  ],
+  "report_id": "paper-b-CMP-20260707-000220-CBFB-2026-07-07T000227.211483_0000",
+  "report_output_path": "app_core/infrastructure/forensics/paper_evidence/paper-b-CMP-20260707-000220-CBFB-2026-07-07T000227.211483_0000",
+  "current_child_job_id": "exp-b928fcf77269",
+  "nested_phase_statuses": [
+    {
+      "phase_key": "starting",
+      "phase_label": "Starting",
+      "status": "running",
+      "detail": "Preparing experimentation job runner.",
+      "updated_at": "2026-07-07T00:02:29.252754+00:00",
+      "progress_percent": 1.0
+    },
+    {
+      "phase_key": "prepare_level_b_job",
+      "phase_label": "Prepare Level B job",
+      "status": "running",
+      "detail": "Preparing Level B batch execution, runtime workspace, and deterministic scientific progress plan.",
+      "updated_at": "2026-07-07T00:02:29.260579+00:00",
+      "progress_percent": 0.0
+    },
+    {
+      "phase_key": "prepare_level_b_job",
+      "phase_label": "Prepare Level B job",
+      "status": "completed",
+      "detail": "Prepared Level B batch job for campaign CMP-20260707-000220-CBFB.",
+      "updated_at": "2026-07-07T00:02:29.262640+00:00",
+      "progress_percent": 3.33
+    },
+    {
+      "phase_key": "optional_cleanup",
+      "phase_label": "Clean previous heavy cases",
+      "status": "running",
+      "detail": "Inspecting and deleting previous heavy forensic cases before launching the independent Level B repetitions. This is mandatory so two heavy cases never coexist.",
+      "updated_at": "2026-07-07T00:02:29.263778+00:00",
+      "progress_percent": 3.33
+    },
+    {
+      "phase_key": "optional_cleanup",
+      "phase_label": "Clean previous heavy cases",
+      "status": "completed",
+      "detail": "Mandatory cleanup completed. Estimated freed space: 0.00 B. Actual freed space: 0.00 B. Deleted cases: 0.",
+      "updated_at": "2026-07-07T00:02:29.326318+00:00",
+      "progress_percent": 6.67
+    },
+    {
+      "phase_key": "resolve_active_scenario",
+      "phase_label": "Resolve active scenario",
+      "status": "running",
+      "detail": "Resolving the already deployed scenario that will host all 10 independent Level B repetitions.",
+      "updated_at": "2026-07-07T00:02:29.329586+00:00",
+      "progress_percent": 6.67
+    },
+    {
+      "phase_key": "resolve_active_scenario",
+      "phase_label": "Resolve active scenario",
+      "status": "completed",
+      "detail": "Resolved target PLC_Instance (10.0.2.22) and monitor monitor 1 (10.0.2.136).",
+      "updated_at": "2026-07-07T00:02:30.169802+00:00",
+      "progress_percent": 10.0
+    },
+    {
+      "phase_key": "verify_plc_target",
+      "phase_label": "Verify PLC target",
+      "status": "running",
+      "detail": "Checking that the selected target is really the PLC node used by the controlled OT register-modification profile.",
+      "updated_at": "2026-07-07T00:02:30.171036+00:00",
+      "progress_percent": 10.0
+    },
+    {
+      "phase_key": "verify_plc_target",
+      "phase_label": "Verify PLC target",
+      "status": "completed",
+      "detail": "PLC target verified: PLC_Instance (10.0.2.22). Multi-host preservation scope resolved: fuxa=10.0.2.9, plc=10.0.2.22, victim=10.0.2.172.",
+      "updated_at": "2026-07-07T00:02:31.174817+00:00",
+      "progress_percent": 13.33
+    },
+    {
+      "phase_key": "enable_dfir_mode",
+      "phase_label": "Enable DFIR mode",
+      "status": "running",
+      "detail": "Verifying that DFIR mode is ON before the first OT attack is launched.",
+      "updated_at": "2026-07-07T00:02:31.176117+00:00",
+      "progress_percent": 13.33
+    },
+    {
+      "phase_key": "enable_dfir_mode",
+      "phase_label": "Enable DFIR mode",
+      "status": "completed",
+      "detail": "DFIR mode verified ON. Browser mode transitioned from unknown to on.",
+      "updated_at": "2026-07-07T00:02:31.177601+00:00",
+      "progress_percent": 16.67
+    },
+    {
+      "phase_key": "verify_disk_acquisition",
+      "phase_label": "Verify disk acquisition prerequisites",
+      "status": "running",
+      "detail": "Checking whether disk preservation can run in stable non-interactive mode for a long Level B batch.",
+      "updated_at": "2026-07-07T00:02:31.178710+00:00",
+      "progress_percent": 16.67
+    },
+    {
+      "phase_key": "verify_disk_acquisition",
+      "phase_label": "Verify disk acquisition prerequisites",
+      "status": "completed",
+      "detail": "Stable non-interactive disk acquisition prerequisites verified for Level B batch execution.",
+      "updated_at": "2026-07-07T00:02:31.221096+00:00",
+      "progress_percent": 20.0
+    },
+    {
+      "phase_key": "repetition_1_start",
+      "phase_label": "Start repetition 1/10",
+      "status": "running",
+      "detail": "Execution workspace EXEC-0001 created. Starting independent Level B repetition 1 of 10.",
+      "updated_at": "2026-07-07T00:02:31.236080+00:00",
+      "progress_percent": 20.0
+    },
+    {
+      "phase_key": "repetition_1_start",
+      "phase_label": "Start repetition 1/10",
+      "status": "completed",
+      "detail": "Independent Level B repetition 1 has started with execution EXEC-0001.",
+      "updated_at": "2026-07-07T00:02:31.239233+00:00",
+      "progress_percent": 20.7
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.22 (attempt 1/10).",
+      "updated_at": "2026-07-07T00:02:31.257162+00:00",
+      "progress_percent": 20.7
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed",
+      "detail": "Attack completed successfully (attempt 1/10). Output directory: /home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260707T000232Z_T0831_MANIPULATION_OF_CONTROL_MODBUS.",
+      "updated_at": "2026-07-07T00:02:57.751526+00:00",
+      "progress_percent": 21.4
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "running",
+      "detail": "Watching monitor 10.0.2.136 for a HIGH/CRITICAL alert matching the OT attack profile (attempt 1/10).",
+      "updated_at": "2026-07-07T00:02:57.752763+00:00",
+      "progress_percent": 21.4
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "completed",
+      "detail": "Matched alert 2269aa31da7549d5aedb2638aacbad69 with severity HIGH (attempt 1/10).",
+      "updated_at": "2026-07-07T00:03:05.203202+00:00",
+      "progress_percent": 22.1
+    },
+    {
+      "phase_key": "repetition_1_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "running",
+      "detail": "Verifying that the matched alert is eligible for forensic intervention and that automatic acquisition may start from this trigger (attempt 1/10).",
+      "updated_at": "2026-07-07T00:03:05.208766+00:00",
+      "progress_percent": 22.1
+    },
+    {
+      "phase_key": "repetition_1_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "completed",
+      "detail": "The matched high-severity alert is eligible for automatic forensic intervention and DFIR mode is ON (attempt 1/10).",
+      "updated_at": "2026-07-07T00:03:05.213428+00:00",
+      "progress_percent": 22.8
+    },
+    {
+      "phase_key": "repetition_1_acquisition",
+      "phase_label": "Run automatic acquisition",
+      "status": "running",
+      "detail": "Creating a fresh forensic case and starting volatility-first DFIR acquisition over fuxa, plc, and victim: memory first, rolling-PCAP context import second, disk third.",
+      "updated_at": "2026-07-07T00:03:05.216123+00:00",
+      "progress_percent": 22.8
+    },
+    {
+      "phase_key": "repetition_1_acquisition",
+      "phase_label": "Run automatic acquisition",
+      "status": "completed_with_degradation",
+      "detail": "Case case-f9b84046 created. Acquisition scope=fuxa, plc, victim. Memory=ok (3 host(s)); network_import preserved=15 pending=5; disk=error (3 host(s)).",
+      "updated_at": "2026-07-07T00:33:36.546181+00:00",
+      "progress_percent": 23.5
+    },
+    {
+      "phase_key": "repetition_1_seal",
+      "phase_label": "Seal and register case",
+      "status": "running",
+      "detail": "Finalizing custody/digest state so the new case can feed the scientific analysis and reconstruction pipeline.",
+      "updated_at": "2026-07-07T00:33:36.563844+00:00",
+      "progress_percent": 23.5
+    },
+    {
+      "phase_key": "repetition_1_seal",
+      "phase_label": "Seal and register case",
+      "status": "completed",
+      "detail": "Case case-f9b84046 is registered for downstream analysis.",
+      "updated_at": "2026-07-07T00:33:36.566560+00:00",
+      "progress_percent": 24.2
+    },
+    {
+      "phase_key": "repetition_1_analysis",
+      "phase_label": "Run multilayer analysis",
+      "status": "running",
+      "detail": "Running the existing preserved-case lifecycle backend over case-f9b84046.",
+      "updated_at": "2026-07-07T00:33:36.581203+00:00",
+      "progress_percent": 24.2
+    },
+    {
+      "phase_key": "repetition_1_analysis",
+      "phase_label": "Run multilayer analysis",
+      "status": "completed_with_degradation",
+      "detail": "Lifecycle analysis finished with warnings or scientific degradation.",
+      "updated_at": "2026-07-07T00:34:13.149991+00:00",
+      "progress_percent": 24.9
+    },
+    {
+      "phase_key": "repetition_1_reconstruction",
+      "phase_label": "Run reconstruction/dependency analysis",
+      "status": "running",
+      "detail": "Attaching the fresh case back into the repetition workspace and generating the normalized comparison/result-card outputs.",
+      "updated_at": "2026-07-07T00:34:13.151557+00:00",
+      "progress_percent": 24.9
+    },
+    {
+      "phase_key": "repetition_1_reconstruction",
+      "phase_label": "Run reconstruction/dependency analysis",
+      "status": "completed_with_degradation",
+      "detail": "Execution EXEC-0001 now points to case case-f9b84046 with comparison family family-945746685dfb1da9.",
+      "updated_at": "2026-07-07T00:34:13.310028+00:00",
+      "progress_percent": 25.6
+    },
+    {
+      "phase_key": "repetition_1_store",
+      "phase_label": "Store repetition result",
+      "status": "running",
+      "detail": "Launching nested Level A scientific report for case case-f9b84046 using 2 dry-run repetitions inside child campaign CMP-20260707-003413-941B.",
+      "updated_at": "2026-07-07T00:34:13.318831+00:00",
+      "progress_percent": 25.6
+    },
+    {
+      "phase_key": "repetition_1_cleanup",
+      "phase_label": "Clean heavy generated case",
+      "status": "running",
+      "detail": "Cleaning heavy artifacts for case case-f9b84046 after nested Level A analysis so the next Level B repetition can create a fresh case without coexisting heavy cases.",
+      "updated_at": "2026-07-07T00:59:15.467329+00:00",
+      "progress_percent": 25.6
+    },
+    {
+      "phase_key": "repetition_1_cleanup",
+      "phase_label": "Clean heavy generated case",
+      "status": "completed",
+      "detail": "Heavy generated case case-f9b84046 was cleaned after nested Level A analysis. Lightweight retained bundle: app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260707-000220-CBFB/level_B/EXEC-0001/retained_case_lightweight_bundle/case-f9b84046/lightweight_case_bundle_manifest.json.",
+      "updated_at": "2026-07-07T00:59:18.999415+00:00",
+      "progress_percent": 26.3
+    },
+    {
+      "phase_key": "repetition_1_post_cleanup_node_space",
+      "phase_label": "Free space cleanup on fuxa/plc",
+      "status": "completed",
+      "detail": "Applied safe free-space cleanup on fuxa/plc after deleting heavy case case-f9b84046. Cleaned roles: fuxa, plc.",
+      "updated_at": "2026-07-07T00:59:37.588118+00:00",
+      "progress_percent": 26.3
+    },
+    {
+      "phase_key": "repetition_1_store",
+      "phase_label": "Store repetition result",
+      "status": "completed_with_degradation",
+      "detail": "Stored repetition 1/10 result with status partial and case case-f9b84046.",
+      "updated_at": "2026-07-07T00:59:37.594393+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_2_pre_attack_node_space",
+      "phase_label": "Free space cleanup before next attack",
+      "status": "running",
+      "detail": "Running mandatory free-space cleanup on fuxa/plc before launching repetition 2/10. This ensures node-local storage is reclaimed before the next Level B attack.",
+      "updated_at": "2026-07-07T00:59:37.611661+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_2_pre_attack_node_space",
+      "phase_label": "Free space cleanup before next attack",
+      "status": "completed",
+      "detail": "Mandatory free-space cleanup completed on fuxa/plc before repetition 2. Cleaned roles: fuxa, plc.",
+      "updated_at": "2026-07-07T00:59:44.703874+00:00",
+      "progress_percent": 27.7
+    },
+    {
+      "phase_key": "repetition_2_start",
+      "phase_label": "Start repetition 2/10",
+      "status": "running",
+      "detail": "Execution workspace EXEC-0002 created. Starting independent Level B repetition 2 of 10.",
+      "updated_at": "2026-07-07T00:59:44.721294+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_2_start",
+      "phase_label": "Start repetition 2/10",
+      "status": "completed",
+      "detail": "Independent Level B repetition 2 has started with execution EXEC-0002.",
+      "updated_at": "2026-07-07T00:59:44.728068+00:00",
+      "progress_percent": 27.7
+    },
+    {
+      "phase_key": "repetition_2_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.22 (attempt 1/10).",
+      "updated_at": "2026-07-07T00:59:44.735542+00:00",
+      "progress_percent": 27.7
+    },
+    {
+      "phase_key": "repetition_2_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed",
+      "detail": "Attack completed successfully (attempt 1/10). Output directory: /home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260707T005945Z_T0831_MANIPULATION_OF_CONTROL_MODBUS.",
+      "updated_at": "2026-07-07T01:00:03.842362+00:00",
+      "progress_percent": 28.4
+    },
+    {
+      "phase_key": "repetition_2_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "running",
+      "detail": "Watching monitor 10.0.2.136 for a HIGH/CRITICAL alert matching the OT attack profile (attempt 1/10).",
+      "updated_at": "2026-07-07T01:00:03.846801+00:00",
+      "progress_percent": 28.4
+    },
+    {
+      "phase_key": "repetition_2_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "completed_with_degradation",
+      "detail": "No alert matching this attack's detection criteria was observed within the configured timeout (attempt 1/10). Wazuh emitted 12 event(s) but none matched severity=HIGH/CRITICAL with forensic recommendation and attack content.",
+      "updated_at": "2026-07-07T01:10:08.859189+00:00",
+      "progress_percent": 29.1
+    },
+    {
+      "phase_key": "repetition_2_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.22 (attempt 2/10).",
+      "updated_at": "2026-07-07T01:10:18.868271+00:00",
+      "progress_percent": 27.7
+    },
+    {
+      "phase_key": "repetition_2_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed",
+      "detail": "Attack completed successfully (attempt 2/10). Output directory: /home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260707T011019Z_T0831_MANIPULATION_OF_CONTROL_MODBUS.",
+      "updated_at": "2026-07-07T01:10:39.378039+00:00",
+      "progress_percent": 28.4
+    },
+    {
+      "phase_key": "repetition_2_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "running",
+      "detail": "Watching monitor 10.0.2.136 for a HIGH/CRITICAL alert matching the OT attack profile (attempt 2/10).",
+      "updated_at": "2026-07-07T01:10:39.390949+00:00",
+      "progress_percent": 28.4
+    },
+    {
+      "phase_key": "repetition_2_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "completed",
+      "detail": "Matched alert 9c70837b8a1d4c06ab19c2b9d5cc8ae0 with severity HIGH (attempt 2/10).",
+      "updated_at": "2026-07-07T01:10:46.783036+00:00",
+      "progress_percent": 29.1
+    },
+    {
+      "phase_key": "repetition_2_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "running",
+      "detail": "Verifying that the matched alert is eligible for forensic intervention and that automatic acquisition may start from this trigger (attempt 2/10).",
+      "updated_at": "2026-07-07T01:10:46.790837+00:00",
+      "progress_percent": 29.1
+    },
+    {
+      "phase_key": "repetition_2_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "completed",
+      "detail": "The matched high-severity alert is eligible for automatic forensic intervention and DFIR mode is ON (attempt 2/10).",
+      "updated_at": "2026-07-07T01:10:46.798398+00:00",
+      "progress_percent": 29.8
+    },
+    {
+      "phase_key": "repetition_2_acquisition",
+      "phase_label": "Run automatic acquisition",
+      "status": "running",
+      "detail": "Creating a fresh forensic case and starting volatility-first DFIR acquisition over fuxa, plc, and victim: memory first, rolling-PCAP context import second, disk third.",
+      "updated_at": "2026-07-07T01:10:46.805984+00:00",
+      "progress_percent": 29.8
+    },
+    {
+      "phase_key": "repetition_2_acquisition",
+      "phase_label": "Run automatic acquisition",
+      "status": "completed_with_degradation",
+      "detail": "Case case-4bd7a2e5 created. Acquisition scope=fuxa, plc, victim. Memory=ok (3 host(s)); network_import preserved=20 pending=5; disk=error (3 host(s)).",
+      "updated_at": "2026-07-07T01:35:45.882155+00:00",
+      "progress_percent": 30.5
+    },
+    {
+      "phase_key": "repetition_2_seal",
+      "phase_label": "Seal and register case",
+      "status": "running",
+      "detail": "Finalizing custody/digest state so the new case can feed the scientific analysis and reconstruction pipeline.",
+      "updated_at": "2026-07-07T01:35:46.028949+00:00",
+      "progress_percent": 30.5
+    },
+    {
+      "phase_key": "repetition_2_seal",
+      "phase_label": "Seal and register case",
+      "status": "completed",
+      "detail": "Case case-4bd7a2e5 is registered for downstream analysis.",
+      "updated_at": "2026-07-07T01:35:46.033134+00:00",
+      "progress_percent": 31.2
+    },
+    {
+      "phase_key": "repetition_2_analysis",
+      "phase_label": "Run multilayer analysis",
+      "status": "running",
+      "detail": "Running the existing preserved-case lifecycle backend over case-4bd7a2e5.",
+      "updated_at": "2026-07-07T01:35:46.040943+00:00",
+      "progress_percent": 31.2
+    },
+    {
+      "phase_key": "repetition_2_analysis",
+      "phase_label": "Run multilayer analysis",
+      "status": "completed_with_degradation",
+      "detail": "Lifecycle analysis finished with warnings or scientific degradation.",
+      "updated_at": "2026-07-07T01:37:25.407282+00:00",
+      "progress_percent": 31.9
+    },
+    {
+      "phase_key": "repetition_2_reconstruction",
+      "phase_label": "Run reconstruction/dependency analysis",
+      "status": "running",
+      "detail": "Attaching the fresh case back into the repetition workspace and generating the normalized comparison/result-card outputs.",
+      "updated_at": "2026-07-07T01:37:25.414221+00:00",
+      "progress_percent": 31.9
+    },
+    {
+      "phase_key": "repetition_2_reconstruction",
+      "phase_label": "Run reconstruction/dependency analysis",
+      "status": "completed_with_degradation",
+      "detail": "Execution EXEC-0002 now points to case case-4bd7a2e5 with comparison family family-404c69aee21ee9c1.",
+      "updated_at": "2026-07-07T01:37:25.959252+00:00",
+      "progress_percent": 32.6
+    },
+    {
+      "phase_key": "repetition_2_store",
+      "phase_label": "Store repetition result",
+      "status": "running",
+      "detail": "Launching nested Level A scientific report for case case-4bd7a2e5 using 2 dry-run repetitions inside child campaign CMP-20260707-013725-3103.",
+      "updated_at": "2026-07-07T01:37:25.964791+00:00",
+      "progress_percent": 32.6
+    },
+    {
+      "phase_key": "repetition_2_cleanup",
+      "phase_label": "Clean heavy generated case",
+      "status": "running",
+      "detail": "Cleaning heavy artifacts for case case-4bd7a2e5 after nested Level A analysis so the next Level B repetition can create a fresh case without coexisting heavy cases.",
+      "updated_at": "2026-07-07T01:57:02.230043+00:00",
+      "progress_percent": 32.6
+    },
+    {
+      "phase_key": "repetition_2_cleanup",
+      "phase_label": "Clean heavy generated case",
+      "status": "completed",
+      "detail": "Heavy generated case case-4bd7a2e5 was cleaned after nested Level A analysis. Lightweight retained bundle: app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260707-000220-CBFB/level_B/EXEC-0002/retained_case_lightweight_bundle/case-4bd7a2e5/lightweight_case_bundle_manifest.json.",
+      "updated_at": "2026-07-07T01:57:04.817134+00:00",
+      "progress_percent": 33.3
+    },
+    {
+      "phase_key": "repetition_2_post_cleanup_node_space",
+      "phase_label": "Free space cleanup on fuxa/plc",
+      "status": "completed",
+      "detail": "Applied safe free-space cleanup on fuxa/plc after deleting heavy case case-4bd7a2e5. Cleaned roles: fuxa, plc.",
+      "updated_at": "2026-07-07T01:57:23.638298+00:00",
+      "progress_percent": 33.3
+    },
+    {
+      "phase_key": "repetition_2_store",
+      "phase_label": "Store repetition result",
+      "status": "completed_with_degradation",
+      "detail": "Stored repetition 2/10 result with status partial and case case-4bd7a2e5.",
+      "updated_at": "2026-07-07T01:57:23.643636+00:00",
+      "progress_percent": 34.0
+    },
+    {
+      "phase_key": "repetition_3_pre_attack_node_space",
+      "phase_label": "Free space cleanup before next attack",
+      "status": "running",
+      "detail": "Running mandatory free-space cleanup on fuxa/plc before launching repetition 3/10. This ensures node-local storage is reclaimed before the next Level B attack.",
+      "updated_at": "2026-07-07T01:57:23.671668+00:00",
+      "progress_percent": 34.0
+    },
+    {
+      "phase_key": "repetition_3_pre_attack_node_space",
+      "phase_label": "Free space cleanup before next attack",
+      "status": "completed",
+      "detail": "Mandatory free-space cleanup completed on fuxa/plc before repetition 3. Cleaned roles: fuxa, plc.",
+      "updated_at": "2026-07-07T01:57:30.678713+00:00",
+      "progress_percent": 34.7
+    },
+    {
+      "phase_key": "repetition_3_start",
+      "phase_label": "Start repetition 3/10",
+      "status": "running",
+      "detail": "Execution workspace EXEC-0003 created. Starting independent Level B repetition 3 of 10.",
+      "updated_at": "2026-07-07T01:57:30.712425+00:00",
+      "progress_percent": 34.0
+    },
+    {
+      "phase_key": "repetition_3_start",
+      "phase_label": "Start repetition 3/10",
+      "status": "completed",
+      "detail": "Independent Level B repetition 3 has started with execution EXEC-0003.",
+      "updated_at": "2026-07-07T01:57:30.719744+00:00",
+      "progress_percent": 34.7
+    },
+    {
+      "phase_key": "repetition_3_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.22 (attempt 1/10).",
+      "updated_at": "2026-07-07T01:57:30.725965+00:00",
+      "progress_percent": 34.7
+    },
+    {
+      "phase_key": "repetition_3_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed",
+      "detail": "Attack completed successfully (attempt 1/10). Output directory: /home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260707T015731Z_T0831_MANIPULATION_OF_CONTROL_MODBUS.",
+      "updated_at": "2026-07-07T01:57:51.819795+00:00",
+      "progress_percent": 35.4
+    },
+    {
+      "phase_key": "repetition_3_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "running",
+      "detail": "Watching monitor 10.0.2.136 for a HIGH/CRITICAL alert matching the OT attack profile (attempt 1/10).",
+      "updated_at": "2026-07-07T01:57:51.826180+00:00",
+      "progress_percent": 35.4
+    },
+    {
+      "phase_key": "repetition_3_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "completed_with_degradation",
+      "detail": "No alert matching this attack's detection criteria was observed within the configured timeout (attempt 1/10). Wazuh emitted 15 event(s) but none matched severity=HIGH/CRITICAL with forensic recommendation and attack content.",
+      "updated_at": "2026-07-07T02:07:56.837418+00:00",
+      "progress_percent": 36.1
+    },
+    {
+      "phase_key": "repetition_3_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.22 (attempt 2/10).",
+      "updated_at": "2026-07-07T02:08:06.845131+00:00",
+      "progress_percent": 34.7
+    },
+    {
+      "phase_key": "repetition_3_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed",
+      "detail": "Attack completed successfully (attempt 2/10). Output directory: /home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260707T020807Z_T0831_MANIPULATION_OF_CONTROL_MODBUS.",
+      "updated_at": "2026-07-07T02:08:25.937156+00:00",
+      "progress_percent": 35.4
+    },
+    {
+      "phase_key": "repetition_3_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "running",
+      "detail": "Watching monitor 10.0.2.136 for a HIGH/CRITICAL alert matching the OT attack profile (attempt 2/10).",
+      "updated_at": "2026-07-07T02:08:25.945112+00:00",
+      "progress_percent": 35.4
+    },
+    {
+      "phase_key": "repetition_3_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "completed",
+      "detail": "Matched alert f0bd549eca604c5b8569a0a19cbfb368 with severity HIGH (attempt 2/10).",
+      "updated_at": "2026-07-07T02:08:33.099522+00:00",
+      "progress_percent": 36.1
+    },
+    {
+      "phase_key": "repetition_3_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "running",
+      "detail": "Verifying that the matched alert is eligible for forensic intervention and that automatic acquisition may start from this trigger (attempt 2/10).",
+      "updated_at": "2026-07-07T02:08:33.117231+00:00",
+      "progress_percent": 36.1
+    },
+    {
+      "phase_key": "repetition_3_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "completed",
+      "detail": "The matched high-severity alert is eligible for automatic forensic intervention and DFIR mode is ON (attempt 2/10).",
+      "updated_at": "2026-07-07T02:08:33.666266+00:00",
+      "progress_percent": 36.8
+    },
+    {
+      "phase_key": "repetition_3_acquisition",
+      "phase_label": "Run automatic acquisition",
+      "status": "running",
+      "detail": "Creating a fresh forensic case and starting volatility-first DFIR acquisition over fuxa, plc, and victim: memory first, rolling-PCAP context import second, disk third.",
+      "updated_at": "2026-07-07T02:08:33.694064+00:00",
+      "progress_percent": 36.8
+    },
+    {
+      "phase_key": "repetition_3_acquisition",
+      "phase_label": "Run automatic acquisition",
+      "status": "completed_with_degradation",
+      "detail": "Case case-d997e30f created. Acquisition scope=fuxa, plc, victim. Memory=ok (3 host(s)); network_import preserved=20 pending=5; disk=error (3 host(s)).",
+      "updated_at": "2026-07-07T02:33:25.374625+00:00",
+      "progress_percent": 37.5
+    },
+    {
+      "phase_key": "repetition_3_seal",
+      "phase_label": "Seal and register case",
+      "status": "running",
+      "detail": "Finalizing custody/digest state so the new case can feed the scientific analysis and reconstruction pipeline.",
+      "updated_at": "2026-07-07T02:33:25.399037+00:00",
+      "progress_percent": 37.5
+    },
+    {
+      "phase_key": "repetition_3_seal",
+      "phase_label": "Seal and register case",
+      "status": "completed",
+      "detail": "Case case-d997e30f is registered for downstream analysis.",
+      "updated_at": "2026-07-07T02:33:25.405327+00:00",
+      "progress_percent": 38.2
+    },
+    {
+      "phase_key": "repetition_3_analysis",
+      "phase_label": "Run multilayer analysis",
+      "status": "running",
+      "detail": "Running the existing preserved-case lifecycle backend over case-d997e30f.",
+      "updated_at": "2026-07-07T02:33:25.415570+00:00",
+      "progress_percent": 38.2
+    },
+    {
+      "phase_key": "repetition_3_analysis",
+      "phase_label": "Run multilayer analysis",
+      "status": "completed_with_degradation",
+      "detail": "Lifecycle analysis finished with warnings or scientific degradation.",
+      "updated_at": "2026-07-07T02:34:07.595757+00:00",
+      "progress_percent": 38.9
+    },
+    {
+      "phase_key": "repetition_3_reconstruction",
+      "phase_label": "Run reconstruction/dependency analysis",
+      "status": "running",
+      "detail": "Attaching the fresh case back into the repetition workspace and generating the normalized comparison/result-card outputs.",
+      "updated_at": "2026-07-07T02:34:07.603593+00:00",
+      "progress_percent": 38.9
+    },
+    {
+      "phase_key": "repetition_3_reconstruction",
+      "phase_label": "Run reconstruction/dependency analysis",
+      "status": "completed_with_degradation",
+      "detail": "Execution EXEC-0003 now points to case case-d997e30f with comparison family family-56cfe3748c05b35e.",
+      "updated_at": "2026-07-07T02:34:07.857837+00:00",
+      "progress_percent": 39.6
+    },
+    {
+      "phase_key": "repetition_3_store",
+      "phase_label": "Store repetition result",
+      "status": "running",
+      "detail": "Launching nested Level A scientific report for case case-d997e30f using 2 dry-run repetitions inside child campaign CMP-20260707-023407-57F2.",
+      "updated_at": "2026-07-07T02:34:07.866807+00:00",
+      "progress_percent": 39.6
+    },
+    {
+      "phase_key": "repetition_3_cleanup",
+      "phase_label": "Clean heavy generated case",
+      "status": "running",
+      "detail": "Cleaning heavy artifacts for case case-d997e30f after nested Level A analysis so the next Level B repetition can create a fresh case without coexisting heavy cases.",
+      "updated_at": "2026-07-07T02:53:46.905370+00:00",
+      "progress_percent": 39.6
+    },
+    {
+      "phase_key": "repetition_3_cleanup",
+      "phase_label": "Clean heavy generated case",
+      "status": "completed",
+      "detail": "Heavy generated case case-d997e30f was cleaned after nested Level A analysis. Lightweight retained bundle: app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260707-000220-CBFB/level_B/EXEC-0003/retained_case_lightweight_bundle/case-d997e30f/lightweight_case_bundle_manifest.json.",
+      "updated_at": "2026-07-07T02:53:49.912066+00:00",
+      "progress_percent": 40.3
+    },
+    {
+      "phase_key": "repetition_3_post_cleanup_node_space",
+      "phase_label": "Free space cleanup on fuxa/plc",
+      "status": "completed",
+      "detail": "Applied safe free-space cleanup on fuxa/plc after deleting heavy case case-d997e30f. Cleaned roles: fuxa, plc.",
+      "updated_at": "2026-07-07T02:54:09.194913+00:00",
+      "progress_percent": 40.3
+    },
+    {
+      "phase_key": "repetition_3_store",
+      "phase_label": "Store repetition result",
+      "status": "completed_with_degradation",
+      "detail": "Stored repetition 3/10 result with status partial and case case-d997e30f.",
+      "updated_at": "2026-07-07T02:54:09.216910+00:00",
+      "progress_percent": 41.0
+    },
+    {
+      "phase_key": "repetition_4_pre_attack_node_space",
+      "phase_label": "Free space cleanup before next attack",
+      "status": "running",
+      "detail": "Running mandatory free-space cleanup on fuxa/plc before launching repetition 4/10. This ensures node-local storage is reclaimed before the next Level B attack.",
+      "updated_at": "2026-07-07T02:54:09.260920+00:00",
+      "progress_percent": 41.0
+    },
+    {
+      "phase_key": "repetition_4_pre_attack_node_space",
+      "phase_label": "Free space cleanup before next attack",
+      "status": "completed",
+      "detail": "Mandatory free-space cleanup completed on fuxa/plc before repetition 4. Cleaned roles: fuxa, plc.",
+      "updated_at": "2026-07-07T02:54:21.896358+00:00",
+      "progress_percent": 41.7
+    },
+    {
+      "phase_key": "repetition_4_start",
+      "phase_label": "Start repetition 4/10",
+      "status": "running",
+      "detail": "Execution workspace EXEC-0004 created. Starting independent Level B repetition 4 of 10.",
+      "updated_at": "2026-07-07T02:54:21.926989+00:00",
+      "progress_percent": 41.0
+    },
+    {
+      "phase_key": "repetition_4_start",
+      "phase_label": "Start repetition 4/10",
+      "status": "completed",
+      "detail": "Independent Level B repetition 4 has started with execution EXEC-0004.",
+      "updated_at": "2026-07-07T02:54:21.936282+00:00",
+      "progress_percent": 41.7
+    },
+    {
+      "phase_key": "repetition_4_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.22 (attempt 1/10).",
+      "updated_at": "2026-07-07T02:54:21.947074+00:00",
+      "progress_percent": 41.7
+    },
+    {
+      "phase_key": "repetition_4_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed",
+      "detail": "Attack completed successfully (attempt 1/10). Output directory: /home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260707T025422Z_T0831_MANIPULATION_OF_CONTROL_MODBUS.",
+      "updated_at": "2026-07-07T02:54:41.352658+00:00",
+      "progress_percent": 42.4
+    },
+    {
+      "phase_key": "repetition_4_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "running",
+      "detail": "Watching monitor 10.0.2.136 for a HIGH/CRITICAL alert matching the OT attack profile (attempt 1/10).",
+      "updated_at": "2026-07-07T02:54:41.366138+00:00",
+      "progress_percent": 42.4
+    },
+    {
+      "phase_key": "repetition_4_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "completed_with_degradation",
+      "detail": "No alert matching this attack's detection criteria was observed within the configured timeout (attempt 1/10). Wazuh emitted 15 event(s) but none matched severity=HIGH/CRITICAL with forensic recommendation and attack content.",
+      "updated_at": "2026-07-07T03:04:46.381253+00:00",
+      "progress_percent": 43.1
+    },
+    {
+      "phase_key": "repetition_4_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.22 (attempt 2/10).",
+      "updated_at": "2026-07-07T03:04:56.391892+00:00",
+      "progress_percent": 41.7
+    },
+    {
+      "phase_key": "repetition_4_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed",
+      "detail": "Attack completed successfully (attempt 2/10). Output directory: /home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260707T030457Z_T0831_MANIPULATION_OF_CONTROL_MODBUS.",
+      "updated_at": "2026-07-07T03:05:17.495390+00:00",
+      "progress_percent": 42.4
+    },
+    {
+      "phase_key": "repetition_4_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "running",
+      "detail": "Watching monitor 10.0.2.136 for a HIGH/CRITICAL alert matching the OT attack profile (attempt 2/10).",
+      "updated_at": "2026-07-07T03:05:17.505746+00:00",
+      "progress_percent": 42.4
+    },
+    {
+      "phase_key": "repetition_4_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "completed",
+      "detail": "Matched alert 3e8c4faf12ce4f729bd98e6ef6afe413 with severity HIGH (attempt 2/10).",
+      "updated_at": "2026-07-07T03:05:25.253052+00:00",
+      "progress_percent": 43.1
+    },
+    {
+      "phase_key": "repetition_4_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "running",
+      "detail": "Verifying that the matched alert is eligible for forensic intervention and that automatic acquisition may start from this trigger (attempt 2/10).",
+      "updated_at": "2026-07-07T03:05:25.272254+00:00",
+      "progress_percent": 43.1
+    },
+    {
+      "phase_key": "repetition_4_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "completed",
+      "detail": "The matched high-severity alert is eligible for automatic forensic intervention and DFIR mode is ON (attempt 2/10).",
+      "updated_at": "2026-07-07T03:05:25.283561+00:00",
+      "progress_percent": 43.8
+    },
+    {
+      "phase_key": "repetition_4_acquisition",
+      "phase_label": "Run automatic acquisition",
+      "status": "running",
+      "detail": "Creating a fresh forensic case and starting volatility-first DFIR acquisition over fuxa, plc, and victim: memory first, rolling-PCAP context import second, disk third.",
+      "updated_at": "2026-07-07T03:05:25.292433+00:00",
+      "progress_percent": 43.8
+    },
+    {
+      "phase_key": "repetition_4_acquisition",
+      "phase_label": "Run automatic acquisition",
+      "status": "completed_with_degradation",
+      "detail": "Case case-e51b2792 created. Acquisition scope=fuxa, plc, victim. Memory=ok (3 host(s)); network_import preserved=20 pending=5; disk=error (3 host(s)).",
+      "updated_at": "2026-07-07T03:42:01.974789+00:00",
+      "progress_percent": 44.5
+    },
+    {
+      "phase_key": "repetition_4_seal",
+      "phase_label": "Seal and register case",
+      "status": "running",
+      "detail": "Finalizing custody/digest state so the new case can feed the scientific analysis and reconstruction pipeline.",
+      "updated_at": "2026-07-07T03:42:01.998619+00:00",
+      "progress_percent": 44.5
+    },
+    {
+      "phase_key": "repetition_4_seal",
+      "phase_label": "Seal and register case",
+      "status": "completed",
+      "detail": "Case case-e51b2792 is registered for downstream analysis.",
+      "updated_at": "2026-07-07T03:42:02.007007+00:00",
+      "progress_percent": 45.2
+    },
+    {
+      "phase_key": "repetition_4_analysis",
+      "phase_label": "Run multilayer analysis",
+      "status": "running",
+      "detail": "Running the existing preserved-case lifecycle backend over case-e51b2792.",
+      "updated_at": "2026-07-07T03:42:02.019164+00:00",
+      "progress_percent": 45.2
+    },
+    {
+      "phase_key": "repetition_4_analysis",
+      "phase_label": "Run multilayer analysis",
+      "status": "completed_with_degradation",
+      "detail": "Lifecycle analysis finished with warnings or scientific degradation.",
+      "updated_at": "2026-07-07T03:43:41.131268+00:00",
+      "progress_percent": 45.9
+    },
+    {
+      "phase_key": "repetition_4_reconstruction",
+      "phase_label": "Run reconstruction/dependency analysis",
+      "status": "running",
+      "detail": "Attaching the fresh case back into the repetition workspace and generating the normalized comparison/result-card outputs.",
+      "updated_at": "2026-07-07T03:43:41.140812+00:00",
+      "progress_percent": 45.9
+    },
+    {
+      "phase_key": "repetition_4_reconstruction",
+      "phase_label": "Run reconstruction/dependency analysis",
+      "status": "completed_with_degradation",
+      "detail": "Execution EXEC-0004 now points to case case-e51b2792 with comparison family family-995d93342e451201.",
+      "updated_at": "2026-07-07T03:43:41.264768+00:00",
+      "progress_percent": 46.6
+    },
+    {
+      "phase_key": "repetition_4_store",
+      "phase_label": "Store repetition result",
+      "status": "running",
+      "detail": "Launching nested Level A scientific report for case case-e51b2792 using 2 dry-run repetitions inside child campaign CMP-20260707-034341-2C79.",
+      "updated_at": "2026-07-07T03:43:41.275142+00:00",
+      "progress_percent": 46.6
+    },
+    {
+      "phase_key": "repetition_4_cleanup",
+      "phase_label": "Clean heavy generated case",
+      "status": "running",
+      "detail": "Cleaning heavy artifacts for case case-e51b2792 after nested Level A analysis so the next Level B repetition can create a fresh case without coexisting heavy cases.",
+      "updated_at": "2026-07-07T04:09:16.482131+00:00",
+      "progress_percent": 46.6
+    },
+    {
+      "phase_key": "repetition_4_cleanup",
+      "phase_label": "Clean heavy generated case",
+      "status": "completed",
+      "detail": "Heavy generated case case-e51b2792 was cleaned after nested Level A analysis. Lightweight retained bundle: app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260707-000220-CBFB/level_B/EXEC-0004/retained_case_lightweight_bundle/case-e51b2792/lightweight_case_bundle_manifest.json.",
+      "updated_at": "2026-07-07T04:09:21.832613+00:00",
+      "progress_percent": 47.3
+    },
+    {
+      "phase_key": "repetition_4_post_cleanup_node_space",
+      "phase_label": "Free space cleanup on fuxa/plc",
+      "status": "completed",
+      "detail": "Applied safe free-space cleanup on fuxa/plc after deleting heavy case case-e51b2792. Cleaned roles: fuxa, plc.",
+      "updated_at": "2026-07-07T04:09:40.448019+00:00",
+      "progress_percent": 47.3
+    },
+    {
+      "phase_key": "repetition_4_store",
+      "phase_label": "Store repetition result",
+      "status": "completed_with_degradation",
+      "detail": "Stored repetition 4/10 result with status partial and case case-e51b2792.",
+      "updated_at": "2026-07-07T04:09:40.458065+00:00",
+      "progress_percent": 48.0
+    },
+    {
+      "phase_key": "repetition_5_pre_attack_node_space",
+      "phase_label": "Free space cleanup before next attack",
+      "status": "running",
+      "detail": "Running mandatory free-space cleanup on fuxa/plc before launching repetition 5/10. This ensures node-local storage is reclaimed before the next Level B attack.",
+      "updated_at": "2026-07-07T04:09:40.502109+00:00",
+      "progress_percent": 48.0
+    },
+    {
+      "phase_key": "repetition_5_pre_attack_node_space",
+      "phase_label": "Free space cleanup before next attack",
+      "status": "completed",
+      "detail": "Mandatory free-space cleanup completed on fuxa/plc before repetition 5. Cleaned roles: fuxa, plc.",
+      "updated_at": "2026-07-07T04:09:48.562268+00:00",
+      "progress_percent": 48.7
+    },
+    {
+      "phase_key": "repetition_5_start",
+      "phase_label": "Start repetition 5/10",
+      "status": "running",
+      "detail": "Execution workspace EXEC-0005 created. Starting independent Level B repetition 5 of 10.",
+      "updated_at": "2026-07-07T04:09:48.603364+00:00",
+      "progress_percent": 48.0
+    },
+    {
+      "phase_key": "repetition_5_start",
+      "phase_label": "Start repetition 5/10",
+      "status": "completed",
+      "detail": "Independent Level B repetition 5 has started with execution EXEC-0005.",
+      "updated_at": "2026-07-07T04:09:48.617328+00:00",
+      "progress_percent": 48.7
+    },
+    {
+      "phase_key": "repetition_5_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.22 (attempt 1/10).",
+      "updated_at": "2026-07-07T04:09:48.632680+00:00",
+      "progress_percent": 48.7
+    },
+    {
+      "phase_key": "repetition_5_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed",
+      "detail": "Attack completed successfully (attempt 1/10). Output directory: /home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260707T040949Z_T0831_MANIPULATION_OF_CONTROL_MODBUS.",
+      "updated_at": "2026-07-07T04:10:08.511938+00:00",
+      "progress_percent": 49.4
+    },
+    {
+      "phase_key": "repetition_5_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "running",
+      "detail": "Watching monitor 10.0.2.136 for a HIGH/CRITICAL alert matching the OT attack profile (attempt 1/10).",
+      "updated_at": "2026-07-07T04:10:08.526886+00:00",
+      "progress_percent": 49.4
+    },
+    {
+      "phase_key": "repetition_5_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "completed_with_degradation",
+      "detail": "No alert matching this attack's detection criteria was observed within the configured timeout (attempt 1/10). Wazuh emitted 15 event(s) but none matched severity=HIGH/CRITICAL with forensic recommendation and attack content.",
+      "updated_at": "2026-07-07T04:20:13.543172+00:00",
+      "progress_percent": 50.1
+    },
+    {
+      "phase_key": "repetition_5_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.22 (attempt 2/10).",
+      "updated_at": "2026-07-07T04:20:23.557837+00:00",
+      "progress_percent": 48.7
+    },
+    {
+      "phase_key": "repetition_5_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed",
+      "detail": "Attack completed successfully (attempt 2/10). Output directory: /home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260707T042024Z_T0831_MANIPULATION_OF_CONTROL_MODBUS.",
+      "updated_at": "2026-07-07T04:20:45.493201+00:00",
+      "progress_percent": 49.4
+    },
+    {
+      "phase_key": "repetition_5_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "running",
+      "detail": "Watching monitor 10.0.2.136 for a HIGH/CRITICAL alert matching the OT attack profile (attempt 2/10).",
+      "updated_at": "2026-07-07T04:20:45.507263+00:00",
+      "progress_percent": 49.4
+    },
+    {
+      "phase_key": "repetition_5_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "completed",
+      "detail": "Matched alert 752d91bd472440568f7e03197833dd14 with severity HIGH (attempt 2/10).",
+      "updated_at": "2026-07-07T04:20:52.986691+00:00",
+      "progress_percent": 50.1
+    },
+    {
+      "phase_key": "repetition_5_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "running",
+      "detail": "Verifying that the matched alert is eligible for forensic intervention and that automatic acquisition may start from this trigger (attempt 2/10).",
+      "updated_at": "2026-07-07T04:20:53.004829+00:00",
+      "progress_percent": 50.1
+    },
+    {
+      "phase_key": "repetition_5_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "completed",
+      "detail": "The matched high-severity alert is eligible for automatic forensic intervention and DFIR mode is ON (attempt 2/10).",
+      "updated_at": "2026-07-07T04:20:53.019849+00:00",
+      "progress_percent": 50.8
+    },
+    {
+      "phase_key": "repetition_5_acquisition",
+      "phase_label": "Run automatic acquisition",
+      "status": "running",
+      "detail": "Creating a fresh forensic case and starting volatility-first DFIR acquisition over fuxa, plc, and victim: memory first, rolling-PCAP context import second, disk third.",
+      "updated_at": "2026-07-07T04:20:53.036724+00:00",
+      "progress_percent": 50.8
+    },
+    {
+      "phase_key": "repetition_5_acquisition",
+      "phase_label": "Run automatic acquisition",
+      "status": "completed_with_degradation",
+      "detail": "Case case-7efda4ef created. Acquisition scope=fuxa, plc, victim. Memory=ok (3 host(s)); network_import preserved=20 pending=5; disk=error (3 host(s)).",
+      "updated_at": "2026-07-07T04:46:15.221763+00:00",
+      "progress_percent": 51.5
+    },
+    {
+      "phase_key": "repetition_5_seal",
+      "phase_label": "Seal and register case",
+      "status": "running",
+      "detail": "Finalizing custody/digest state so the new case can feed the scientific analysis and reconstruction pipeline.",
+      "updated_at": "2026-07-07T04:46:15.256311+00:00",
+      "progress_percent": 51.5
+    },
+    {
+      "phase_key": "repetition_5_seal",
+      "phase_label": "Seal and register case",
+      "status": "completed",
+      "detail": "Case case-7efda4ef is registered for downstream analysis.",
+      "updated_at": "2026-07-07T04:46:15.271092+00:00",
+      "progress_percent": 52.2
+    },
+    {
+      "phase_key": "repetition_5_analysis",
+      "phase_label": "Run multilayer analysis",
+      "status": "running",
+      "detail": "Running the existing preserved-case lifecycle backend over case-7efda4ef.",
+      "updated_at": "2026-07-07T04:46:15.289328+00:00",
+      "progress_percent": 52.2
+    },
+    {
+      "phase_key": "repetition_5_analysis",
+      "phase_label": "Run multilayer analysis",
+      "status": "completed_with_degradation",
+      "detail": "Lifecycle analysis finished with warnings or scientific degradation.",
+      "updated_at": "2026-07-07T04:47:13.319374+00:00",
+      "progress_percent": 52.9
+    },
+    {
+      "phase_key": "repetition_5_reconstruction",
+      "phase_label": "Run reconstruction/dependency analysis",
+      "status": "running",
+      "detail": "Attaching the fresh case back into the repetition workspace and generating the normalized comparison/result-card outputs.",
+      "updated_at": "2026-07-07T04:47:13.339247+00:00",
+      "progress_percent": 52.9
+    },
+    {
+      "phase_key": "repetition_5_reconstruction",
+      "phase_label": "Run reconstruction/dependency analysis",
+      "status": "completed_with_degradation",
+      "detail": "Execution EXEC-0005 now points to case case-7efda4ef with comparison family family-8787d84d94521a38.",
+      "updated_at": "2026-07-07T04:47:13.975959+00:00",
+      "progress_percent": 53.6
+    },
+    {
+      "phase_key": "repetition_5_store",
+      "phase_label": "Store repetition result",
+      "status": "running",
+      "detail": "Launching nested Level A scientific report for case case-7efda4ef using 2 dry-run repetitions inside child campaign CMP-20260707-044713-E8D3.",
+      "updated_at": "2026-07-07T04:47:13.989762+00:00",
+      "progress_percent": 53.6
+    },
+    {
+      "phase_key": "repetition_5_cleanup",
+      "phase_label": "Clean heavy generated case",
+      "status": "running",
+      "detail": "Cleaning heavy artifacts for case case-7efda4ef after nested Level A analysis so the next Level B repetition can create a fresh case without coexisting heavy cases.",
+      "updated_at": "2026-07-07T05:09:20.020606+00:00",
+      "progress_percent": 53.6
+    },
+    {
+      "phase_key": "repetition_5_cleanup",
+      "phase_label": "Clean heavy generated case",
+      "status": "completed",
+      "detail": "Heavy generated case case-7efda4ef was cleaned after nested Level A analysis. Lightweight retained bundle: app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260707-000220-CBFB/level_B/EXEC-0005/retained_case_lightweight_bundle/case-7efda4ef/lightweight_case_bundle_manifest.json.",
+      "updated_at": "2026-07-07T05:09:22.657892+00:00",
+      "progress_percent": 54.3
+    },
+    {
+      "phase_key": "repetition_5_post_cleanup_node_space",
+      "phase_label": "Free space cleanup on fuxa/plc",
+      "status": "completed",
+      "detail": "Applied safe free-space cleanup on fuxa/plc after deleting heavy case case-7efda4ef. Cleaned roles: fuxa, plc.",
+      "updated_at": "2026-07-07T05:09:42.423357+00:00",
+      "progress_percent": 54.3
+    },
+    {
+      "phase_key": "repetition_5_store",
+      "phase_label": "Store repetition result",
+      "status": "completed_with_degradation",
+      "detail": "Stored repetition 5/10 result with status partial and case case-7efda4ef.",
+      "updated_at": "2026-07-07T05:09:42.446962+00:00",
+      "progress_percent": 55.0
+    },
+    {
+      "phase_key": "repetition_6_pre_attack_node_space",
+      "phase_label": "Free space cleanup before next attack",
+      "status": "running",
+      "detail": "Running mandatory free-space cleanup on fuxa/plc before launching repetition 6/10. This ensures node-local storage is reclaimed before the next Level B attack.",
+      "updated_at": "2026-07-07T05:09:42.526969+00:00",
+      "progress_percent": 55.0
+    },
+    {
+      "phase_key": "repetition_6_pre_attack_node_space",
+      "phase_label": "Free space cleanup before next attack",
+      "status": "completed",
+      "detail": "Mandatory free-space cleanup completed on fuxa/plc before repetition 6. Cleaned roles: fuxa, plc.",
+      "updated_at": "2026-07-07T05:09:49.916363+00:00",
+      "progress_percent": 55.7
+    },
+    {
+      "phase_key": "repetition_6_start",
+      "phase_label": "Start repetition 6/10",
+      "status": "running",
+      "detail": "Execution workspace EXEC-0006 created. Starting independent Level B repetition 6 of 10.",
+      "updated_at": "2026-07-07T05:09:49.965837+00:00",
+      "progress_percent": 55.0
+    },
+    {
+      "phase_key": "repetition_6_start",
+      "phase_label": "Start repetition 6/10",
+      "status": "completed",
+      "detail": "Independent Level B repetition 6 has started with execution EXEC-0006.",
+      "updated_at": "2026-07-07T05:09:49.989852+00:00",
+      "progress_percent": 55.7
+    },
+    {
+      "phase_key": "repetition_6_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.22 (attempt 1/10).",
+      "updated_at": "2026-07-07T05:09:50.005759+00:00",
+      "progress_percent": 55.7
+    },
+    {
+      "phase_key": "repetition_6_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed",
+      "detail": "Attack completed successfully (attempt 1/10). Output directory: /home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260707T050950Z_T0831_MANIPULATION_OF_CONTROL_MODBUS.",
+      "updated_at": "2026-07-07T05:10:09.462435+00:00",
+      "progress_percent": 56.4
+    },
+    {
+      "phase_key": "repetition_6_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "running",
+      "detail": "Watching monitor 10.0.2.136 for a HIGH/CRITICAL alert matching the OT attack profile (attempt 1/10).",
+      "updated_at": "2026-07-07T05:10:09.476009+00:00",
+      "progress_percent": 56.4
+    },
+    {
+      "phase_key": "repetition_6_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "completed_with_degradation",
+      "detail": "No alert matching this attack's detection criteria was observed within the configured timeout (attempt 1/10). Wazuh emitted 12 event(s) but none matched severity=HIGH/CRITICAL with forensic recommendation and attack content.",
+      "updated_at": "2026-07-07T05:20:14.496100+00:00",
+      "progress_percent": 57.1
+    },
+    {
+      "phase_key": "repetition_6_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.22 (attempt 2/10).",
+      "updated_at": "2026-07-07T05:20:24.516539+00:00",
+      "progress_percent": 55.7
+    },
+    {
+      "phase_key": "repetition_6_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed",
+      "detail": "Attack completed successfully (attempt 2/10). Output directory: /home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260707T052025Z_T0831_MANIPULATION_OF_CONTROL_MODBUS.",
+      "updated_at": "2026-07-07T05:20:44.414907+00:00",
+      "progress_percent": 56.4
+    },
+    {
+      "phase_key": "repetition_6_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "running",
+      "detail": "Watching monitor 10.0.2.136 for a HIGH/CRITICAL alert matching the OT attack profile (attempt 2/10).",
+      "updated_at": "2026-07-07T05:20:44.440126+00:00",
+      "progress_percent": 56.4
+    },
+    {
+      "phase_key": "repetition_6_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "completed",
+      "detail": "Matched alert 96b239fce92b430cba1d2e0ecbc4227d with severity HIGH (attempt 2/10).",
+      "updated_at": "2026-07-07T05:20:52.199433+00:00",
+      "progress_percent": 57.1
+    },
+    {
+      "phase_key": "repetition_6_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "running",
+      "detail": "Verifying that the matched alert is eligible for forensic intervention and that automatic acquisition may start from this trigger (attempt 2/10).",
+      "updated_at": "2026-07-07T05:20:52.223643+00:00",
+      "progress_percent": 57.1
+    },
+    {
+      "phase_key": "repetition_6_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "completed",
+      "detail": "The matched high-severity alert is eligible for automatic forensic intervention and DFIR mode is ON (attempt 2/10).",
+      "updated_at": "2026-07-07T05:20:52.268258+00:00",
+      "progress_percent": 57.8
+    },
+    {
+      "phase_key": "repetition_6_acquisition",
+      "phase_label": "Run automatic acquisition",
+      "status": "running",
+      "detail": "Creating a fresh forensic case and starting volatility-first DFIR acquisition over fuxa, plc, and victim: memory first, rolling-PCAP context import second, disk third.",
+      "updated_at": "2026-07-07T05:20:52.284336+00:00",
+      "progress_percent": 57.8
+    }
+  ],
+  "nested_current_phase_label": "Run automatic acquisition",
+  "nested_current_phase_detail": "Creating a fresh forensic case and starting volatility-first DFIR acquisition over fuxa, plc, and victim: memory first, rolling-PCAP context import second, disk third.",
+  "nested_progress_percent": 57.8
+}

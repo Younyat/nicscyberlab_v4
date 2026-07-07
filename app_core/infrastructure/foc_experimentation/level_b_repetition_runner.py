@@ -3020,8 +3020,52 @@ def _run_single_repetition(
                 _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_alert", phase_label="Wait for high-severity alert", status="completed_with_degradation", detail=reason, category="repetition", index=2, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_alert_status": "completed_with_degradation", "trigger_attempt": attempt_number, "adopted_background_case": background_case_id, **phase_extra})
                 _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_trigger", phase_label="Verify forensic intervention trigger", status="completed_with_degradation", detail=f"Automatic forensic preservation has already started for case {background_case_id or 'not_available'} even though the explicit Level B alert matcher did not align perfectly with the observed alert taxonomy. The workflow will adopt the background DFIR case and continue with analysis instead of launching another case.", category="repetition", index=3, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"trigger_attempt": attempt_number, "adopted_background_case": background_case_id, **phase_extra})
                 break
-            reason = f"No alert matching this attack's detection criteria was observed within the configured timeout ({attempt_suffix})."
-            _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_alert", phase_label="Wait for high-severity alert", status="completed_with_degradation" if attempt_number < MAX_TRIGGER_ARMING_ATTEMPTS else "failed", detail=reason, category="repetition", index=2, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_alert_status": "failed", "trigger_attempt": attempt_number, **phase_extra})
+            observed_count = len(list(matched.get("observed_alerts") or []))
+            if observed_count == 0:
+                # The Wazuh stream emitted zero events — Suricata/Wazuh chain is silent,
+                # not just non-matching. Retrying the attack won't fix infrastructure.
+                # Stop early after 2 consecutive silent attempts to avoid 100-minute waits.
+                consecutive_silent = sum(
+                    1 for t in trigger_attempt_trace
+                    if t.get("observed_alerts_count", 0) == 0
+                )
+                reason = (
+                    f"Detection stream silent for attempt {attempt_number}/{MAX_TRIGGER_ARMING_ATTEMPTS}: "
+                    f"zero Wazuh/Suricata events received during the {int(detection_timeout_seconds)}s window. "
+                    f"This indicates an infrastructure issue — Suricata may not be running, "
+                    f"the Wazuh integration may be broken, or the monitored interface (tap) is not "
+                    f"receiving the attack traffic. Retrying the attack will not resolve this. "
+                    f"Check Suricata status on monitor node {monitor.get('vm_ip')} and verify "
+                    f"that /var/ossec/logs/alerts/alerts.json is being updated by Suricata events."
+                )
+                _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_alert", phase_label="Wait for high-severity alert", status="completed_with_degradation", detail=reason, category="repetition", index=2, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_alert_status": "detection_stream_silent", "trigger_attempt": attempt_number, "observed_alerts_count": 0, "consecutive_silent_attempts": consecutive_silent, **phase_extra})
+                if consecutive_silent >= 2:
+                    # Infrastructure confirmed down — stop immediately, don't burn 8 more attempts
+                    final_reason, derived_blockers = _diagnose_trigger_failure(trigger_attempt_trace, dfir_mode_after)
+                    final_reason = (
+                        f"Detection stream silent for {consecutive_silent} consecutive attempts. "
+                        f"{final_reason}"
+                    )
+                    return _failed_repetition_result(
+                        repetition_number=repetition_number,
+                        campaign_id=campaign_id,
+                        execution_id=execution_id,
+                        attack=attack,
+                        dfir_mode_before=dfir_mode_before,
+                        dfir_mode_after=dfir_mode_after,
+                        attack_started_at=attack_started_at,
+                        attack_completed_at=attack_completed_at,
+                        reason=final_reason,
+                        blockers=["detection_stream_silent"] + derived_blockers,
+                        target=target,
+                        attack_result=attack_result,
+                        matched_alert=None,
+                        trigger_attempt_trace=trigger_attempt_trace,
+                    )
+                time.sleep(TRIGGER_ARMING_INTERVAL_SECONDS)
+                continue
+            reason = f"No alert matching this attack's detection criteria was observed within the configured timeout ({attempt_suffix}). Wazuh emitted {observed_count} event(s) but none matched severity=HIGH/CRITICAL with forensic recommendation and attack content."
+            _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_alert", phase_label="Wait for high-severity alert", status="completed_with_degradation" if attempt_number < MAX_TRIGGER_ARMING_ATTEMPTS else "failed", detail=reason, category="repetition", index=2, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_alert_status": "failed", "trigger_attempt": attempt_number, "observed_alerts_count": observed_count, **phase_extra})
             if attempt_number < MAX_TRIGGER_ARMING_ATTEMPTS:
                 time.sleep(TRIGGER_ARMING_INTERVAL_SECONDS)
                 continue

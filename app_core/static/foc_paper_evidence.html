@@ -206,6 +206,18 @@
 
         <section class="glass rounded-[28px] p-6">
           <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">FORGE-VI Audit</div>
+          <h2 class="text-2xl font-black mt-2">CPR Edge Matrix Export</h2>
+          <p class="mt-3 text-sm text-slate-300">Generate the CPR edge-by-edge matrix from on-disk artifacts. Reads <span class="mono">forensic_comparison_profile.json</span>, <span class="mono">causal_graph.json</span>, and <span class="mono">reconstruction_metrics.json</span> for each execution. Produces <span class="mono">CPR_Edge_Matrix.json/csv</span>, <span class="mono">CPR_Aggregate.json</span>, <span class="mono">CPR_Interpretation.md</span>, and per-execution diagnostics. CPR appears only as a reconstruction diagnostic metric — not as a global workflow metric.</p>
+          <div class="mt-5 flex gap-3 flex-wrap">
+            <button id="paper-run-cpr-edge-matrix-btn" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Generate CPR Edge Matrix</button>
+            <button id="paper-cpr-edge-matrix-refresh-btn" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Refresh</button>
+          </div>
+          <div id="paper-cpr-edge-matrix-status" class="mt-4 text-sm text-slate-300"></div>
+          <div id="paper-cpr-edge-matrix-files" class="mt-4 space-y-2 text-sm text-slate-300"></div>
+        </section>
+
+        <section class="glass rounded-[28px] p-6">
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">FORGE-VI Audit</div>
           <h2 class="text-2xl font-black mt-2">Level A + Level B Truthful Evaluation</h2>
           <p class="mt-3 text-sm text-slate-300">Generate the second-phase truthful evaluation package over the current Level A and Level B artifacts only. This path does not rerun acquisition or analysis. It separates standalone Level A, analysis over Level B cases, and Level B case evidence, and marks missing or declared-only values explicitly.</p>
           <div class="mt-5 flex gap-3 flex-wrap">
