@@ -1,0 +1,65 @@
+{
+  "report_id": "forge_vi_levela_levelb_truthful_evaluation_2026-07-07T104454_013127Z",
+  "generated_at": "2026-07-07T10:44:55Z",
+  "output_dir": "app_core/infrastructure/forensics/evidence_store/validation_reports/forge_vi_levela_levelb_truthful_evaluation_2026-07-07T104454_013127Z",
+  "decision": "Decision B: current artifacts are sufficient only for preliminary Level A/Level B audit.",
+  "option": "Option C: not enough; requires reporting/preservation fixes and a fresh Level B campaign before final paper use.",
+  "accepted_level_b_cases": 10,
+  "standalone_level_a_executions": 0,
+  "nested_level_a_executions": 20,
+  "denominators": {
+    "N_A_total": 0,
+    "N_A_accepted": 0,
+    "N_A_excluded": 0,
+    "N_A_over_Level_B_cases": 20,
+    "N_B_total": 10,
+    "N_B_accepted": 10,
+    "N_B_excluded": 0
+  },
+  "package_consistency_checks": [
+    {
+      "check_name": "Decision consistency",
+      "status": "pass",
+      "detail": "Decision='Decision B: current artifacts are sufficient only for preliminary Level A/Level B audit.' Option='Option C: not enough; requires reporting/preservation fixes and a fresh Level B campaign before final paper use.'"
+    },
+    {
+      "check_name": "Level A standalone denominator consistency",
+      "status": "pass",
+      "detail": "N_A_total=0, N_A_accepted=0, N_A_excluded=0"
+    },
+    {
+      "check_name": "Level B denominator consistency",
+      "status": "pass",
+      "detail": "N_B_total=10, N_B_accepted=10, N_B_excluded=0"
+    },
+    {
+      "check_name": "Nested Level A count consistency",
+      "status": "pass",
+      "detail": "N_A_over_Level_B_cases=20, Table A rows=20"
+    },
+    {
+      "check_name": "Level B case index consistency",
+      "status": "pass",
+      "detail": "N_B_accepted=10, accepted Table C rows=10, unique_case_ids=10"
+    },
+    {
+      "check_name": "Parent-child campaign linkage consistency",
+      "status": "pass",
+      "detail": "Level B campaign(s)=['CMP-20260707-000220-CBFB'], nested Level A campaigns=['CMP-20260707-003413-941B', 'CMP-20260707-013725-3103', 'CMP-20260707-023407-57F2', 'CMP-20260707-034341-2C79', 'CMP-20260707-044713-E8D3', 'CMP-20260707-054954-719C', 'CMP-20260707-064943-45B8', 'CMP-20260707-080204-64C7', 'CMP-20260707-090447-F7FE', 'CMP-20260707-101125-3A3A']"
+    },
+    {
+      "check_name": "Case ID reuse consistency",
+      "status": "pass",
+      "detail": "Table A source_case_ids=['case-0baf5deb', 'case-0f9a0a23', 'case-11d0a562', 'case-1f159b69', 'case-4bd7a2e5', 'case-7b45be16', 'case-7efda4ef', 'case-d997e30f', 'case-e51b2792', 'case-f9b84046'], Table C case_ids=['case-0baf5deb', 'case-0f9a0a23', 'case-11d0a562', 'case-1f159b69', 'case-4bd7a2e5', 'case-7b45be16', 'case-7efda4ef', 'case-d997e30f', 'case-e51b2792', 'case-f9b84046']"
+    }
+  ],
+  "files": {
+    "evaluation_report": "app_core/infrastructure/forensics/evidence_store/validation_reports/forge_vi_levela_levelb_truthful_evaluation_2026-07-07T104454_013127Z/FORGE-VI_LevelA_LevelB_Truthful_Evaluation_Report.md",
+    "table_values": "app_core/infrastructure/forensics/evidence_store/validation_reports/forge_vi_levela_levelb_truthful_evaluation_2026-07-07T104454_013127Z/FORGE-VI_LevelA_LevelB_Truthful_Table_Values.json",
+    "data_provenance": "app_core/infrastructure/forensics/evidence_store/validation_reports/forge_vi_levela_levelb_truthful_evaluation_2026-07-07T104454_013127Z/FORGE-VI_LevelA_LevelB_Truthful_Data_Provenance.csv",
+    "availability_matrix": "app_core/infrastructure/forensics/evidence_store/validation_reports/forge_vi_levela_levelb_truthful_evaluation_2026-07-07T104454_013127Z/FORGE-VI_LevelA_LevelB_Truthful_Data_Availability_Matrix.csv",
+    "gap_report": "app_core/infrastructure/forensics/evidence_store/validation_reports/forge_vi_levela_levelb_truthful_evaluation_2026-07-07T104454_013127Z/FORGE-VI_LevelA_LevelB_Truthful_Gap_Report.md",
+    "paper_tables": "app_core/infrastructure/forensics/evidence_store/validation_reports/forge_vi_levela_levelb_truthful_evaluation_2026-07-07T104454_013127Z/FORGE-VI_LevelA_LevelB_Truthful_Paper_Tables.md",
+    "rerun_plan": "app_core/infrastructure/forensics/evidence_store/validation_reports/forge_vi_levela_levelb_truthful_evaluation_2026-07-07T104454_013127Z/FORGE-VI_LevelA_LevelB_Rerun_Readiness_Plan.md"
+  }
+}
