@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-04T11:38:52.997410Z",
+  "generated_at": "2026-07-07T11:57:40.661252Z",
   "node": {
     "id": "16583180-627d-4c40-bd65-aa9db704d75c",
     "name": "victim 3",
@@ -13,27 +13,27 @@
       "os_pretty": "Debian GNU/Linux 12 (bookworm)",
       "kernel": "6.1.0-43-cloud-amd64",
       "machine": "x86_64",
-      "date_utc": "2026-07-04T11:49:25Z",
-      "uptime_pretty": "up 17 weeks, 5 days, 20 hours, 28 minutes",
-      "loadavg": "0.05 0.02 0.02",
+      "date_utc": "2026-07-07T12:08:09Z",
+      "uptime_pretty": "up 18 weeks, 1 day, 20 hours, 46 minutes",
+      "loadavg": "0.04 0.01 0.00",
       "cpu_cores": "1",
       "cpu_usage_pct": "100.00",
       "mem_total_mb": "1979",
-      "mem_used_mb": "365",
-      "mem_avail_mb": "1613",
+      "mem_used_mb": "367",
+      "mem_avail_mb": "1612",
       "swap_total_mb": "0",
       "swap_used_mb": "0",
       "swap_free_mb": "0",
       "root_total_bytes": "20922114048",
-      "root_used_bytes": "5818695680",
-      "root_avail_bytes": "14202220544",
+      "root_used_bytes": "5840322560",
+      "root_avail_bytes": "14180593664",
       "root_use_pct": "30%",
       "root_inodes_use_pct": "11%",
-      "var_log_size_bytes": "44967065",
-      "suricata_log_size_bytes": "21386252",
+      "var_log_size_bytes": "62915616",
+      "suricata_log_size_bytes": "25354783",
       "tmp_size_bytes": "2151388319",
       "var_tmp_size_bytes": "20480",
-      "apt_cache_size_bytes": "24576"
+      "apt_cache_size_bytes": "3709484"
     },
     "sections": {
       "services": [
@@ -59,37 +59,37 @@
       ],
       "top_cpu": [
         "    PID COMMAND         %CPU %MEM",
-        "1810095 ps               100  0.2",
-        "1809978 systemd          9.3  0.4",
-        "1809975 sshd             6.2  0.5",
-        "1809999 bash             4.3  0.1",
+        "1883541 systemd          9.3  0.4",
+        "1883538 sshd             4.9  0.5",
+        "1883563 bash             4.6  0.1",
+        "1883562 sshd             2.0  0.3",
         "    446 Suricata-Main    0.7  1.6",
         "      1 systemd          0.0  0.4",
-        "    496 wazuh-syscheckd  0.0  0.5"
+        "    496 wazuh-syscheckd  0.0  0.4"
       ],
       "top_mem": [
         "    PID COMMAND         %CPU %MEM",
         "    526 wazuh-modulesd   0.0  2.3",
         "    446 Suricata-Main    0.7  1.6",
-        "1082309 systemd-journal  0.0  0.9",
-        "1809975 sshd             6.2  0.5",
-        "    496 wazuh-syscheckd  0.0  0.5",
-        "1809978 systemd          9.2  0.4",
-        "    430 unattended-upgr  0.0  0.4"
+        "1082309 systemd-journal  0.0  1.4",
+        "1883538 sshd             4.8  0.5",
+        "1883541 systemd          9.2  0.4",
+        "    430 unattended-upgr  0.0  0.4",
+        "    496 wazuh-syscheckd  0.0  0.4"
       ],
       "largest_var": [
-        "1.5M\t/var/backups",
         "2.0M\t/var/cache/man",
         "2.2M\t/var/cache/debconf",
-        "4.2M\t/var/cache",
-        "21M\t/var/log/journal",
-        "21M\t/var/log/journal/16583180627d4c40bd65aa9db704d75c",
-        "21M\t/var/log/suricata",
+        "3.6M\t/var/cache/apt",
+        "7.7M\t/var/cache",
         "24M\t/var/lib/dpkg/info",
         "25M\t/var/lib/dpkg",
+        "25M\t/var/log/suricata",
         "26M\t/var/lib",
-        "43M\t/var/log",
-        "74M\t/var"
+        "34M\t/var/log/journal",
+        "34M\t/var/log/journal/16583180627d4c40bd65aa9db704d75c",
+        "60M\t/var/log",
+        "95M\t/var"
       ]
     },
     "identity": {
@@ -97,9 +97,9 @@
       "os": "Debian GNU/Linux 12 (bookworm)",
       "kernel": "6.1.0-43-cloud-amd64",
       "machine": "x86_64",
-      "date_utc": "2026-07-04T11:49:25Z",
-      "uptime": "up 17 weeks, 5 days, 20 hours, 28 minutes",
-      "loadavg": "0.05 0.02 0.02"
+      "date_utc": "2026-07-07T12:08:09Z",
+      "uptime": "up 18 weeks, 1 day, 20 hours, 46 minutes",
+      "loadavg": "0.04 0.01 0.00"
     },
     "cpu": {
       "cores": 1,
@@ -108,9 +108,9 @@
     },
     "memory": {
       "total_mb": 1979,
-      "used_mb": 365,
-      "available_mb": 1613,
-      "usage_pct": 18.44,
+      "used_mb": 367,
+      "available_mb": 1612,
+      "usage_pct": 18.54,
       "swap_total_mb": 0,
       "swap_used_mb": 0,
       "swap_free_mb": 0,
@@ -119,15 +119,15 @@
     },
     "disk": {
       "root_total_bytes": 20922114048,
-      "root_used_bytes": 5818695680,
-      "root_avail_bytes": 14202220544,
+      "root_used_bytes": 5840322560,
+      "root_avail_bytes": 14180593664,
       "root_use_pct": 30,
       "root_inodes_use_pct": 11,
-      "var_log_size_bytes": 44967065,
-      "suricata_log_size_bytes": 21386252,
+      "var_log_size_bytes": 62915616,
+      "suricata_log_size_bytes": 25354783,
       "tmp_size_bytes": 2151388319,
       "var_tmp_size_bytes": 20480,
-      "apt_cache_size_bytes": 24576,
+      "apt_cache_size_bytes": 3709484,
       "severity": "ok"
     },
     "services": {
@@ -150,39 +150,39 @@
       ],
       "top_cpu": [
         "    PID COMMAND         %CPU %MEM",
-        "1810095 ps               100  0.2",
-        "1809978 systemd          9.3  0.4",
-        "1809975 sshd             6.2  0.5",
-        "1809999 bash             4.3  0.1",
+        "1883541 systemd          9.3  0.4",
+        "1883538 sshd             4.9  0.5",
+        "1883563 bash             4.6  0.1",
+        "1883562 sshd             2.0  0.3",
         "    446 Suricata-Main    0.7  1.6",
         "      1 systemd          0.0  0.4",
-        "    496 wazuh-syscheckd  0.0  0.5"
+        "    496 wazuh-syscheckd  0.0  0.4"
       ],
       "top_mem": [
         "    PID COMMAND         %CPU %MEM",
         "    526 wazuh-modulesd   0.0  2.3",
         "    446 Suricata-Main    0.7  1.6",
-        "1082309 systemd-journal  0.0  0.9",
-        "1809975 sshd             6.2  0.5",
-        "    496 wazuh-syscheckd  0.0  0.5",
-        "1809978 systemd          9.2  0.4",
-        "    430 unattended-upgr  0.0  0.4"
+        "1082309 systemd-journal  0.0  1.4",
+        "1883538 sshd             4.8  0.5",
+        "1883541 systemd          9.2  0.4",
+        "    430 unattended-upgr  0.0  0.4",
+        "    496 wazuh-syscheckd  0.0  0.4"
       ],
       "largest_var": [
-        "1.5M\t/var/backups",
         "2.0M\t/var/cache/man",
         "2.2M\t/var/cache/debconf",
-        "4.2M\t/var/cache",
-        "21M\t/var/log/journal",
-        "21M\t/var/log/journal/16583180627d4c40bd65aa9db704d75c",
-        "21M\t/var/log/suricata",
+        "3.6M\t/var/cache/apt",
+        "7.7M\t/var/cache",
         "24M\t/var/lib/dpkg/info",
         "25M\t/var/lib/dpkg",
+        "25M\t/var/log/suricata",
         "26M\t/var/lib",
-        "43M\t/var/log",
-        "74M\t/var"
+        "34M\t/var/log/journal",
+        "34M\t/var/log/journal/16583180627d4c40bd65aa9db704d75c",
+        "60M\t/var/log",
+        "95M\t/var"
       ]
     }
   },
-  "stdout": "KV\thostname\tvictim-3\nKV\tos_pretty\tDebian GNU/Linux 12 (bookworm)\nKV\tkernel\t6.1.0-43-cloud-amd64\nKV\tmachine\tx86_64\nKV\tdate_utc\t2026-07-04T11:49:25Z\nKV\tuptime_pretty\tup 17 weeks, 5 days, 20 hours, 28 minutes\nKV\tloadavg\t0.05 0.02 0.02\nKV\tcpu_cores\t1\nKV\tcpu_usage_pct\t100.00\nKV\tmem_total_mb\t1979\nKV\tmem_used_mb\t365\nKV\tmem_avail_mb\t1613\nKV\tswap_total_mb\t0\nKV\tswap_used_mb\t0\nKV\tswap_free_mb\t0\nKV\troot_total_bytes\t20922114048\nKV\troot_used_bytes\t5818695680\nKV\troot_avail_bytes\t14202220544\nKV\troot_use_pct\t30%\nKV\troot_inodes_use_pct\t11%\nKV\tvar_log_size_bytes\t44967065\nKV\tsuricata_log_size_bytes\t21386252\nKV\ttmp_size_bytes\t2151388319\nKV\tvar_tmp_size_bytes\t20480\nKV\tapt_cache_size_bytes\t24576\nSECTION\tservices\tBEGIN\nsuricata=active\nwazuh-agent=active\nwazuh-manager=inactive\nnot_installed\nzeek=inactive\nnot_installed\nsnort=inactive\nnot_installed\nopenplc=inactive\nnot_installed\ndocker=inactive\nnot_installed\nSECTION\tservices\tEND\nSECTION\tfilesystems\tBEGIN\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/vda1        20G  5.5G   14G  30% /\n/dev/vda1        20G  5.5G   14G  30% /\n/dev/vda1        20G  5.5G   14G  30% /\n/dev/vda1        20G  5.5G   14G  30% /\nSECTION\tfilesystems\tEND\nSECTION\ttop_cpu\tBEGIN\n    PID COMMAND         %CPU %MEM\n1810095 ps               100  0.2\n1809978 systemd          9.3  0.4\n1809975 sshd             6.2  0.5\n1809999 bash             4.3  0.1\n    446 Suricata-Main    0.7  1.6\n      1 systemd          0.0  0.4\n    496 wazuh-syscheckd  0.0  0.5\nSECTION\ttop_cpu\tEND\nSECTION\ttop_mem\tBEGIN\n    PID COMMAND         %CPU %MEM\n    526 wazuh-modulesd   0.0  2.3\n    446 Suricata-Main    0.7  1.6\n1082309 systemd-journal  0.0  0.9\n1809975 sshd             6.2  0.5\n    496 wazuh-syscheckd  0.0  0.5\n1809978 systemd          9.2  0.4\n    430 unattended-upgr  0.0  0.4\nSECTION\ttop_mem\tEND\nSECTION\tlargest_var\tBEGIN\n1.5M\t/var/backups\n2.0M\t/var/cache/man\n2.2M\t/var/cache/debconf\n4.2M\t/var/cache\n21M\t/var/log/journal\n21M\t/var/log/journal/16583180627d4c40bd65aa9db704d75c\n21M\t/var/log/suricata\n24M\t/var/lib/dpkg/info\n25M\t/var/lib/dpkg\n26M\t/var/lib\n43M\t/var/log\n74M\t/var\nSECTION\tlargest_var\tEND\n"
+  "stdout": "KV\thostname\tvictim-3\nKV\tos_pretty\tDebian GNU/Linux 12 (bookworm)\nKV\tkernel\t6.1.0-43-cloud-amd64\nKV\tmachine\tx86_64\nKV\tdate_utc\t2026-07-07T12:08:09Z\nKV\tuptime_pretty\tup 18 weeks, 1 day, 20 hours, 46 minutes\nKV\tloadavg\t0.04 0.01 0.00\nKV\tcpu_cores\t1\nKV\tcpu_usage_pct\t100.00\nKV\tmem_total_mb\t1979\nKV\tmem_used_mb\t367\nKV\tmem_avail_mb\t1612\nKV\tswap_total_mb\t0\nKV\tswap_used_mb\t0\nKV\tswap_free_mb\t0\nKV\troot_total_bytes\t20922114048\nKV\troot_used_bytes\t5840322560\nKV\troot_avail_bytes\t14180593664\nKV\troot_use_pct\t30%\nKV\troot_inodes_use_pct\t11%\nKV\tvar_log_size_bytes\t62915616\nKV\tsuricata_log_size_bytes\t25354783\nKV\ttmp_size_bytes\t2151388319\nKV\tvar_tmp_size_bytes\t20480\nKV\tapt_cache_size_bytes\t3709484\nSECTION\tservices\tBEGIN\nsuricata=active\nwazuh-agent=active\nwazuh-manager=inactive\nnot_installed\nzeek=inactive\nnot_installed\nsnort=inactive\nnot_installed\nopenplc=inactive\nnot_installed\ndocker=inactive\nnot_installed\nSECTION\tservices\tEND\nSECTION\tfilesystems\tBEGIN\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/vda1        20G  5.5G   14G  30% /\n/dev/vda1        20G  5.5G   14G  30% /\n/dev/vda1        20G  5.5G   14G  30% /\n/dev/vda1        20G  5.5G   14G  30% /\nSECTION\tfilesystems\tEND\nSECTION\ttop_cpu\tBEGIN\n    PID COMMAND         %CPU %MEM\n1883541 systemd          9.3  0.4\n1883538 sshd             4.9  0.5\n1883563 bash             4.6  0.1\n1883562 sshd             2.0  0.3\n    446 Suricata-Main    0.7  1.6\n      1 systemd          0.0  0.4\n    496 wazuh-syscheckd  0.0  0.4\nSECTION\ttop_cpu\tEND\nSECTION\ttop_mem\tBEGIN\n    PID COMMAND         %CPU %MEM\n    526 wazuh-modulesd   0.0  2.3\n    446 Suricata-Main    0.7  1.6\n1082309 systemd-journal  0.0  1.4\n1883538 sshd             4.8  0.5\n1883541 systemd          9.2  0.4\n    430 unattended-upgr  0.0  0.4\n    496 wazuh-syscheckd  0.0  0.4\nSECTION\ttop_mem\tEND\nSECTION\tlargest_var\tBEGIN\n2.0M\t/var/cache/man\n2.2M\t/var/cache/debconf\n3.6M\t/var/cache/apt\n7.7M\t/var/cache\n24M\t/var/lib/dpkg/info\n25M\t/var/lib/dpkg\n25M\t/var/log/suricata\n26M\t/var/lib\n34M\t/var/log/journal\n34M\t/var/log/journal/16583180627d4c40bd65aa9db704d75c\n60M\t/var/log\n95M\t/var\nSECTION\tlargest_var\tEND\n"
 }

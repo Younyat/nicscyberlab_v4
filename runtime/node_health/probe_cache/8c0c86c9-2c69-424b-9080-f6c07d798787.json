@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-04T11:38:55.574000Z",
+  "generated_at": "2026-07-07T11:57:42.439979Z",
   "node": {
     "id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
     "name": "PLC_Instance",
@@ -13,27 +13,27 @@
       "os_pretty": "Ubuntu 22.04.5 LTS",
       "kernel": "5.15.0-177-generic",
       "machine": "x86_64",
-      "date_utc": "2026-07-04T11:49:27Z",
-      "uptime_pretty": "up 6 weeks, 3 days, 47 minutes",
-      "loadavg": "1.07 0.85 0.75",
+      "date_utc": "2026-07-07T12:08:11Z",
+      "uptime_pretty": "up 6 weeks, 6 days, 1 hour, 5 minutes",
+      "loadavg": "0.36 0.42 0.44",
       "cpu_cores": "1",
-      "cpu_usage_pct": "41.20",
+      "cpu_usage_pct": "25.00",
       "mem_total_mb": "957",
-      "mem_used_mb": "328",
-      "mem_avail_mb": "447",
+      "mem_used_mb": "333",
+      "mem_avail_mb": "439",
       "swap_total_mb": "0",
       "swap_used_mb": "0",
       "swap_free_mb": "0",
       "root_total_bytes": "10213466112",
-      "root_used_bytes": "4569706496",
-      "root_avail_bytes": "5626982400",
-      "root_use_pct": "45%",
+      "root_used_bytes": "3948732416",
+      "root_avail_bytes": "6247956480",
+      "root_use_pct": "39%",
       "root_inodes_use_pct": "12%",
-      "var_log_size_bytes": "309995384",
-      "suricata_log_size_bytes": "2932316",
-      "tmp_size_bytes": "1077358842",
+      "var_log_size_bytes": "761533590",
+      "suricata_log_size_bytes": "1947791",
+      "tmp_size_bytes": "4166842",
       "var_tmp_size_bytes": "20480",
-      "apt_cache_size_bytes": "16384"
+      "apt_cache_size_bytes": "3799680"
     },
     "sections": {
       "services": [
@@ -51,44 +51,44 @@
       ],
       "filesystems": [
         "Filesystem      Size  Used Avail Use% Mounted on",
-        "/dev/vda1       9.6G  4.3G  5.3G  45% /",
-        "/dev/vda1       9.6G  4.3G  5.3G  45% /",
-        "/dev/vda1       9.6G  4.3G  5.3G  45% /",
-        "/dev/vda1       9.6G  4.3G  5.3G  45% /"
+        "/dev/vda1       9.6G  3.7G  5.9G  39% /",
+        "/dev/vda1       9.6G  3.7G  5.9G  39% /",
+        "/dev/vda1       9.6G  3.7G  5.9G  39% /",
+        "/dev/vda1       9.6G  3.7G  5.9G  39% /"
       ],
       "top_cpu": [
         "    PID COMMAND         %CPU %MEM",
-        " 267109 Suricata-Main   11.8  3.1",
-        " 266724 systemd          5.0  0.9",
-        " 179664 systemd-journal  2.4 22.4",
-        " 266719 sshd             2.2  1.0",
-        "    736 wazuh-agentd     1.8  0.4",
-        "    595 rsyslogd         0.9  0.5",
-        "    610 python3          0.9  5.1"
+        " 267109 Suricata-Main   11.9  3.3",
+        " 859570 systemd          6.0  0.9",
+        " 859565 sshd             2.3  1.1",
+        "    736 wazuh-agentd     2.1  0.4",
+        " 820718 systemd-journal  1.9 18.2",
+        "    610 python3          1.0  5.1",
+        "    595 rsyslogd         0.9  0.5"
       ],
       "top_mem": [
         "    PID COMMAND         %CPU %MEM",
-        " 179664 systemd-journal  2.4 22.4",
-        "   2143 openplc          0.2  6.8",
-        "    610 python3          0.9  5.1",
-        " 267109 Suricata-Main   11.8  3.1",
+        " 820718 systemd-journal  1.9 18.2",
+        "   2143 openplc          0.2  7.6",
+        "    610 python3          1.0  5.1",
+        " 267109 Suricata-Main   11.9  3.3",
         "    379 multipathd       0.0  2.7",
-        "3347070 snapd            0.0  2.4",
-        "    671 unattended-upgr  0.0  1.3"
+        "3347070 snapd            0.0  1.4",
+        "    671 unattended-upgr  0.0  1.4"
       ],
       "largest_var": [
-        "11M\t/var/cache",
+        "15M\t/var/cache",
         "35M\t/var/lib/dpkg/info",
         "37M\t/var/lib/dpkg",
         "207M\t/var/lib/snapd/seed",
         "207M\t/var/lib/snapd/seed/snaps",
-        "258M\t/var/log/journal",
-        "258M\t/var/log/journal/8c0c86c92c69424b9080f6c07d798787",
-        "296M\t/var/log",
         "409M\t/var/lib/snapd/snaps",
         "617M\t/var/lib/snapd",
+        "632M\t/var/log/journal",
+        "632M\t/var/log/journal/8c0c86c92c69424b9080f6c07d798787",
         "665M\t/var/lib",
-        "973M\t/var"
+        "727M\t/var/log",
+        "1.4G\t/var"
       ]
     },
     "identity": {
@@ -96,20 +96,20 @@
       "os": "Ubuntu 22.04.5 LTS",
       "kernel": "5.15.0-177-generic",
       "machine": "x86_64",
-      "date_utc": "2026-07-04T11:49:27Z",
-      "uptime": "up 6 weeks, 3 days, 47 minutes",
-      "loadavg": "1.07 0.85 0.75"
+      "date_utc": "2026-07-07T12:08:11Z",
+      "uptime": "up 6 weeks, 6 days, 1 hour, 5 minutes",
+      "loadavg": "0.36 0.42 0.44"
     },
     "cpu": {
       "cores": 1,
-      "usage_pct": 41.2,
+      "usage_pct": 25.0,
       "severity": "ok"
     },
     "memory": {
       "total_mb": 957,
-      "used_mb": 328,
-      "available_mb": 447,
-      "usage_pct": 34.27,
+      "used_mb": 333,
+      "available_mb": 439,
+      "usage_pct": 34.8,
       "swap_total_mb": 0,
       "swap_used_mb": 0,
       "swap_free_mb": 0,
@@ -118,15 +118,15 @@
     },
     "disk": {
       "root_total_bytes": 10213466112,
-      "root_used_bytes": 4569706496,
-      "root_avail_bytes": 5626982400,
-      "root_use_pct": 45,
+      "root_used_bytes": 3948732416,
+      "root_avail_bytes": 6247956480,
+      "root_use_pct": 39,
       "root_inodes_use_pct": 12,
-      "var_log_size_bytes": 309995384,
-      "suricata_log_size_bytes": 2932316,
-      "tmp_size_bytes": 1077358842,
+      "var_log_size_bytes": 761533590,
+      "suricata_log_size_bytes": 1947791,
+      "tmp_size_bytes": 4166842,
       "var_tmp_size_bytes": 20480,
-      "apt_cache_size_bytes": 16384,
+      "apt_cache_size_bytes": 3799680,
       "severity": "ok"
     },
     "services": {
@@ -142,46 +142,46 @@
     "tables": {
       "filesystems": [
         "Filesystem      Size  Used Avail Use% Mounted on",
-        "/dev/vda1       9.6G  4.3G  5.3G  45% /",
-        "/dev/vda1       9.6G  4.3G  5.3G  45% /",
-        "/dev/vda1       9.6G  4.3G  5.3G  45% /",
-        "/dev/vda1       9.6G  4.3G  5.3G  45% /"
+        "/dev/vda1       9.6G  3.7G  5.9G  39% /",
+        "/dev/vda1       9.6G  3.7G  5.9G  39% /",
+        "/dev/vda1       9.6G  3.7G  5.9G  39% /",
+        "/dev/vda1       9.6G  3.7G  5.9G  39% /"
       ],
       "top_cpu": [
         "    PID COMMAND         %CPU %MEM",
-        " 267109 Suricata-Main   11.8  3.1",
-        " 266724 systemd          5.0  0.9",
-        " 179664 systemd-journal  2.4 22.4",
-        " 266719 sshd             2.2  1.0",
-        "    736 wazuh-agentd     1.8  0.4",
-        "    595 rsyslogd         0.9  0.5",
-        "    610 python3          0.9  5.1"
+        " 267109 Suricata-Main   11.9  3.3",
+        " 859570 systemd          6.0  0.9",
+        " 859565 sshd             2.3  1.1",
+        "    736 wazuh-agentd     2.1  0.4",
+        " 820718 systemd-journal  1.9 18.2",
+        "    610 python3          1.0  5.1",
+        "    595 rsyslogd         0.9  0.5"
       ],
       "top_mem": [
         "    PID COMMAND         %CPU %MEM",
-        " 179664 systemd-journal  2.4 22.4",
-        "   2143 openplc          0.2  6.8",
-        "    610 python3          0.9  5.1",
-        " 267109 Suricata-Main   11.8  3.1",
+        " 820718 systemd-journal  1.9 18.2",
+        "   2143 openplc          0.2  7.6",
+        "    610 python3          1.0  5.1",
+        " 267109 Suricata-Main   11.9  3.3",
         "    379 multipathd       0.0  2.7",
-        "3347070 snapd            0.0  2.4",
-        "    671 unattended-upgr  0.0  1.3"
+        "3347070 snapd            0.0  1.4",
+        "    671 unattended-upgr  0.0  1.4"
       ],
       "largest_var": [
-        "11M\t/var/cache",
+        "15M\t/var/cache",
         "35M\t/var/lib/dpkg/info",
         "37M\t/var/lib/dpkg",
         "207M\t/var/lib/snapd/seed",
         "207M\t/var/lib/snapd/seed/snaps",
-        "258M\t/var/log/journal",
-        "258M\t/var/log/journal/8c0c86c92c69424b9080f6c07d798787",
-        "296M\t/var/log",
         "409M\t/var/lib/snapd/snaps",
         "617M\t/var/lib/snapd",
+        "632M\t/var/log/journal",
+        "632M\t/var/log/journal/8c0c86c92c69424b9080f6c07d798787",
         "665M\t/var/lib",
-        "973M\t/var"
+        "727M\t/var/log",
+        "1.4G\t/var"
       ]
     }
   },
-  "stdout": "KV\thostname\tplc-instance\nKV\tos_pretty\tUbuntu 22.04.5 LTS\nKV\tkernel\t5.15.0-177-generic\nKV\tmachine\tx86_64\nKV\tdate_utc\t2026-07-04T11:49:27Z\nKV\tuptime_pretty\tup 6 weeks, 3 days, 47 minutes\nKV\tloadavg\t1.07 0.85 0.75\nKV\tcpu_cores\t1\nKV\tcpu_usage_pct\t41.20\nKV\tmem_total_mb\t957\nKV\tmem_used_mb\t328\nKV\tmem_avail_mb\t447\nKV\tswap_total_mb\t0\nKV\tswap_used_mb\t0\nKV\tswap_free_mb\t0\nKV\troot_total_bytes\t10213466112\nKV\troot_used_bytes\t4569706496\nKV\troot_avail_bytes\t5626982400\nKV\troot_use_pct\t45%\nKV\troot_inodes_use_pct\t12%\nKV\tvar_log_size_bytes\t309995384\nKV\tsuricata_log_size_bytes\t2932316\nKV\ttmp_size_bytes\t1077358842\nKV\tvar_tmp_size_bytes\t20480\nKV\tapt_cache_size_bytes\t16384\nSECTION\tservices\tBEGIN\nsuricata=active\nwazuh-agent=active\nwazuh-manager=inactive\nnot_installed\nzeek=inactive\nnot_installed\nsnort=inactive\nnot_installed\nopenplc=active\ndocker=inactive\nnot_installed\nSECTION\tservices\tEND\nSECTION\tfilesystems\tBEGIN\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/vda1       9.6G  4.3G  5.3G  45% /\n/dev/vda1       9.6G  4.3G  5.3G  45% /\n/dev/vda1       9.6G  4.3G  5.3G  45% /\n/dev/vda1       9.6G  4.3G  5.3G  45% /\nSECTION\tfilesystems\tEND\nSECTION\ttop_cpu\tBEGIN\n    PID COMMAND         %CPU %MEM\n 267109 Suricata-Main   11.8  3.1\n 266724 systemd          5.0  0.9\n 179664 systemd-journal  2.4 22.4\n 266719 sshd             2.2  1.0\n    736 wazuh-agentd     1.8  0.4\n    595 rsyslogd         0.9  0.5\n    610 python3          0.9  5.1\nSECTION\ttop_cpu\tEND\nSECTION\ttop_mem\tBEGIN\n    PID COMMAND         %CPU %MEM\n 179664 systemd-journal  2.4 22.4\n   2143 openplc          0.2  6.8\n    610 python3          0.9  5.1\n 267109 Suricata-Main   11.8  3.1\n    379 multipathd       0.0  2.7\n3347070 snapd            0.0  2.4\n    671 unattended-upgr  0.0  1.3\nSECTION\ttop_mem\tEND\nSECTION\tlargest_var\tBEGIN\n11M\t/var/cache\n35M\t/var/lib/dpkg/info\n37M\t/var/lib/dpkg\n207M\t/var/lib/snapd/seed\n207M\t/var/lib/snapd/seed/snaps\n258M\t/var/log/journal\n258M\t/var/log/journal/8c0c86c92c69424b9080f6c07d798787\n296M\t/var/log\n409M\t/var/lib/snapd/snaps\n617M\t/var/lib/snapd\n665M\t/var/lib\n973M\t/var\nSECTION\tlargest_var\tEND\n"
+  "stdout": "KV\thostname\tplc-instance\nKV\tos_pretty\tUbuntu 22.04.5 LTS\nKV\tkernel\t5.15.0-177-generic\nKV\tmachine\tx86_64\nKV\tdate_utc\t2026-07-07T12:08:11Z\nKV\tuptime_pretty\tup 6 weeks, 6 days, 1 hour, 5 minutes\nKV\tloadavg\t0.36 0.42 0.44\nKV\tcpu_cores\t1\nKV\tcpu_usage_pct\t25.00\nKV\tmem_total_mb\t957\nKV\tmem_used_mb\t333\nKV\tmem_avail_mb\t439\nKV\tswap_total_mb\t0\nKV\tswap_used_mb\t0\nKV\tswap_free_mb\t0\nKV\troot_total_bytes\t10213466112\nKV\troot_used_bytes\t3948732416\nKV\troot_avail_bytes\t6247956480\nKV\troot_use_pct\t39%\nKV\troot_inodes_use_pct\t12%\nKV\tvar_log_size_bytes\t761533590\nKV\tsuricata_log_size_bytes\t1947791\nKV\ttmp_size_bytes\t4166842\nKV\tvar_tmp_size_bytes\t20480\nKV\tapt_cache_size_bytes\t3799680\nSECTION\tservices\tBEGIN\nsuricata=active\nwazuh-agent=active\nwazuh-manager=inactive\nnot_installed\nzeek=inactive\nnot_installed\nsnort=inactive\nnot_installed\nopenplc=active\ndocker=inactive\nnot_installed\nSECTION\tservices\tEND\nSECTION\tfilesystems\tBEGIN\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/vda1       9.6G  3.7G  5.9G  39% /\n/dev/vda1       9.6G  3.7G  5.9G  39% /\n/dev/vda1       9.6G  3.7G  5.9G  39% /\n/dev/vda1       9.6G  3.7G  5.9G  39% /\nSECTION\tfilesystems\tEND\nSECTION\ttop_cpu\tBEGIN\n    PID COMMAND         %CPU %MEM\n 267109 Suricata-Main   11.9  3.3\n 859570 systemd          6.0  0.9\n 859565 sshd             2.3  1.1\n    736 wazuh-agentd     2.1  0.4\n 820718 systemd-journal  1.9 18.2\n    610 python3          1.0  5.1\n    595 rsyslogd         0.9  0.5\nSECTION\ttop_cpu\tEND\nSECTION\ttop_mem\tBEGIN\n    PID COMMAND         %CPU %MEM\n 820718 systemd-journal  1.9 18.2\n   2143 openplc          0.2  7.6\n    610 python3          1.0  5.1\n 267109 Suricata-Main   11.9  3.3\n    379 multipathd       0.0  2.7\n3347070 snapd            0.0  1.4\n    671 unattended-upgr  0.0  1.4\nSECTION\ttop_mem\tEND\nSECTION\tlargest_var\tBEGIN\n15M\t/var/cache\n35M\t/var/lib/dpkg/info\n37M\t/var/lib/dpkg\n207M\t/var/lib/snapd/seed\n207M\t/var/lib/snapd/seed/snaps\n409M\t/var/lib/snapd/snaps\n617M\t/var/lib/snapd\n632M\t/var/log/journal\n632M\t/var/log/journal/8c0c86c92c69424b9080f6c07d798787\n665M\t/var/lib\n727M\t/var/log\n1.4G\t/var\nSECTION\tlargest_var\tEND\n"
 }

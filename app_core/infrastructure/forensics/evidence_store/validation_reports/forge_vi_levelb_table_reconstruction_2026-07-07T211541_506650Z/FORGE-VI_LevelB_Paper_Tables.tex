@@ -1,0 +1,47 @@
+% Auto-generated Level B paper tables
+\begin{table*}[t]
+\centering
+\caption{Aggregate operational metrics across the latest accepted Level B repetitions.}
+\small
+\begin{tabular}{p{6.4cm}p{3.6cm}p{6.4cm}}
+\hline
+\textbf{Metric} & \textbf{Result} & \textbf{Interpretation} \\
+\hline
+Deploy time in seconds & \texttt{0 \(\pm\) 0} & Level B reuses the active deployment; redeployment is not part of the batch. \\
+Teardown plus redeploy time in seconds & \texttt{0 \(\pm\) 0} & Reported as zero under the current Level B execution model. \\
+Alert to memory acquisition start & \texttt{2.9713 \(\pm\) 52.680675} & Latency from Wazuh HIGH/CRITICAL alert observation to LiME memory dump start. Dominated by SIEM polling interval and DFIR orchestrator arming; excludes retry overhead (see retries count). \\
+Alert to memory preserved & \texttt{323.7763 \(\pm\) 41.283511} & Time until memory evidence is sealed into the case across all acquisition targets (fuxa, plc, victim). \\
+Alert to industrial and OT export preserved & \texttt{1103.9019 \(\pm\) 222.985801} & Time until the OT export derived from the rolling PCAP incident window is preserved. OT export is not a reactive capture; it is extracted from the continuous pre-trigger PCAP after the alert fires. High variance reflects variable PCAP import duration across executions. \\
+Alert to disk snapshot start & \texttt{1104.9654 \(\pm\) 222.903295} & Disk acquisition starts immediately after PCAP import completes; nearly identical to OT export preserved ($\Delta \approx 1$\,s). \\
+Alert to disk snapshot preserved & \texttt{1737.156 \(\pm\) 324.08323} & Time until disk image is sealed. High variance reflects node-level disk I/O variability across executions. \\
+$T_{first\_sealed}$ & \texttt{1736.6019 \(\pm\) 323.977577} & First critical artifact sealed after trigger (disk image, last in the volatile-first pipeline). \\
+$T_{case\_sealed}$ & \texttt{1736.6019 \(\pm\) 323.977577} & Full case seal latency including all artifact types and chain-of-custody finalisation. \\
+PCAP size for periodic context segments in GiB & \texttt{2.537306 \(\pm\) 0.663463} & Continuous rolling PCAP observation with case-bound incident-window segment import. \\
+PCAP size for reactive alert-triggered captures in bytes & \texttt{0 \(\pm\) 0} & No separate reactive PCAP capture is used in the current memory-first design. \\
+Memory dump size in bytes & \texttt{4293317824 \(\pm\) 0} & Total preserved memory size across acquisition targets. \\
+Disk snapshot or image size in bytes & \texttt{26843545600 \(\pm\) 11597737230.632483} & Total preserved disk size across acquisition targets. \\
+Retries or failures count & \texttt{0.8 \(\pm\) 0.632456} & Number of failed attack-and-detection attempts per execution before a qualifying Wazuh HIGH/CRITICAL alert was matched (rule~910836102, ICS Modbus write). Each retry adds a full detection-window timeout ($\approx$10\,min) and directly inflates the reported alert-to-memory-start latency for that execution. \\
+\hline
+\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\centering
+\caption{Aggregate causal-reconstruction metrics across the latest accepted Level B repetitions.}
+\small
+\begin{tabular}{p{6.4cm}p{3.6cm}p{6.4cm}}
+\hline
+\textbf{Metric} & \textbf{Result} & \textbf{Interpretation} \\
+\hline
+Expected relations & \texttt{8 \(\pm\) 0} & Ground-truth causal relations declared for evaluation. \\
+Recovered relations & \texttt{not computed} & Fully supported causal links. \\
+Degraded relations & \texttt{not computed} & Links weakened by timestamp or evidential limitations. \\
+Missing relations & \texttt{not computed} & Expected links not defensible from preserved evidence. \\
+Ambiguous relations & \texttt{not computed} & Unresolved competing interpretations. \\
+CPR & \texttt{not computed} & Unweighted causal-path recoverability. \\
+WCPR & \texttt{not computed} & Weighted causal-path recoverability. \\
+Scientifically complete repetitions & \texttt{10/10} & Repetitions whose critical-evidence gate passed. \\
+Diagnostic-only repetitions & \texttt{0/10} & Repetitions whose causal interpretation must remain diagnostic only. \\
+\hline
+\end{tabular}
+\end{table*}

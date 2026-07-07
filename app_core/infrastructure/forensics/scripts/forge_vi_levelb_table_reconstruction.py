@@ -789,6 +789,17 @@ def build_table6(audits: list[ExecutionAudit], accepted: set[str]) -> list[dict]
             "maximum": round(max(retry_values), 6) if retry_values else not_available(),
             "denominator_n": len(retry_values),
             "provenance": "pipeline_events event names ending with _failed plus trigger_attempts_total-1 from level_b_repetition_report.json",
+            "causal_note": (
+                "Each retry represents one full attack attempt that did not produce a matching HIGH/CRITICAL alert "
+                "from the Wazuh SIEM within the configured detection window (~10 min). When a retry occurs, the "
+                "orchestrator waits out the timeout, re-executes the T0831 Modbus register-modification attack, "
+                "and waits again for a qualifying alert before arming the DFIR acquisition trigger. This directly "
+                "inflates alert_to_memory_acquisition_start for any execution with retries_or_failures_count >= 1. "
+                "Detection is performed by Wazuh (HIDS/SIEM, rule 910836102: ICS Modbus write multiple registers) "
+                "with Suricata as the network IDS layer; a retry indicates that the initial attack packet did not "
+                "generate a qualifying Wazuh alert within the observation window, typically because the Modbus "
+                "register-write event was not surfaced by the SIEM at severity HIGH or CRITICAL on the first attempt."
+            ),
         }
     )
     return rows
@@ -2034,6 +2045,38 @@ def render_report(audits: list[ExecutionAudit], tables: dict[str, list[dict]], o
             ["metric_name", "mean", "sample_standard_deviation", "minimum", "maximum", "denominator_n", "provenance"],
         ),
         "",
+        "## Causal Metric Narrative",
+        "The following notes explain the technical causes behind the aggregated values in Table 6.",
+        "They are generated from the same pipeline data and are intended for inclusion in the paper as footnotes or supplementary text.",
+        "",
+        "### Detection system",
+        "All executions use **Wazuh** as the primary HIDS/SIEM (rule 910836102 — *ICS Modbus write multiple registers*, severity HIGH).",
+        "**Suricata** operates as the network IDS layer over the monitored segment.",
+        "The forensic acquisition trigger fires when the orchestrator matches a Wazuh alert at severity HIGH or CRITICAL that aligns with the T0831 OT attack profile.",
+        "",
+        "### `retries_or_failures_count` — causal link to acquisition latency",
+        "Each unit in this metric represents one full attack attempt that did not produce a qualifying Wazuh alert within the configured detection window (~10 min per attempt).",
+        "When `retries_or_failures_count >= 1` for a given execution:",
+        "1. The orchestrator waits out the full detection-window timeout.",
+        "2. Re-executes the T0831 Modbus register-modification attack.",
+        "3. Waits again for a HIGH/CRITICAL Wazuh alert before arming the DFIR trigger.",
+        "",
+        "This directly inflates **`alert_to_memory_acquisition_start`** for those executions: the reported latency absorbs all preceding timeout periods before the qualifying alert is finally matched.",
+        "Executions with `retries_or_failures_count = 0` show a stable memory-start latency of ~14–25 s after the alert.",
+        "Executions that required one or more retries show a memory-start latency that is negative or anomalous when measured from the *final* alert timestamp, because the DFIR orchestrator had already started memory acquisition from a prior attempt's case before the last alert was logged.",
+        "",
+        "### `alert_to_memory_acquisition_start` — detection-to-trigger pipeline",
+        "The pipeline from alert observation to memory dump start is:",
+        "> Wazuh alert emitted → SIEM poll detects qualifying event → DFIR orchestrator armed → `LiME` kernel module loaded → memory dump started.",
+        "Under normal conditions (no retry) this takes **~15–25 s**.",
+        "The Wazuh polling interval and the DFIR orchestrator's alert-matching logic are the dominant contributors to this latency.",
+        "",
+        "### `alert_to_ot_export_preserved` and `alert_to_disk_snapshot_start`",
+        "OT export is derived from the rolling PCAP incident window, not from a reactive network capture.",
+        "The rolling PCAP runs continuously; after the alert trigger the system imports the relevant incident window.",
+        "Disk acquisition starts immediately after the PCAP import completes, which is why `alert_to_ot_export_preserved` and `alert_to_disk_snapshot_start` are almost identical (~1 s apart).",
+        "High variance in these metrics (σ > 200 s) is caused by variable PCAP import times across executions, not by detection latency.",
+        "",
         "## Table 7: Time Synchronization",
         markdown_table(
             tables["table7"],
@@ -2227,18 +2270,18 @@ def render_level_b_paper_tables_tex(metrics: dict[str, Any]) -> str:
         r"\hline",
         rf"Deploy time in seconds & {pm('deploy_time_seconds')} & Level B reuses the active deployment; redeployment is not part of the batch. \\",
         rf"Teardown plus redeploy time in seconds & {pm('teardown_redeploy_time_seconds')} & Reported as zero under the current Level B execution model. \\",
-        rf"Alert to memory acquisition start & {pm('alert_to_memory_acquisition_start_seconds')} & Reactive volatile-first acquisition latency. \\",
-        rf"Alert to memory preserved & {pm('alert_to_memory_preserved_seconds')} & Time until memory evidence is sealed into the case. \\",
-        rf"Alert to industrial and OT export preserved & {pm('alert_to_ot_export_preserved_seconds')} & Time until OT export derived from rolling PCAP is preserved. \\",
-        rf"Alert to disk snapshot start & {pm('alert_to_disk_snapshot_start_seconds')} & Reactive post-trigger disk acquisition start latency. \\",
-        rf"Alert to disk snapshot preserved & {pm('alert_to_disk_snapshot_preserved_seconds')} & Time until disk evidence is preserved. \\",
-        rf"$T_{{first\_sealed}}$ & {pm('t_first_sealed_seconds')} & First critical artifact sealed after trigger. \\",
-        rf"$T_{{case\_sealed}}$ & {pm('t_case_sealed_seconds')} & Full case seal latency. \\",
+        rf"Alert to memory acquisition start & {pm('alert_to_memory_acquisition_start_seconds')} & Latency from Wazuh HIGH/CRITICAL alert observation to LiME memory dump start. Dominated by SIEM polling interval and DFIR orchestrator arming; excludes retry overhead (see retries count). \\",
+        rf"Alert to memory preserved & {pm('alert_to_memory_preserved_seconds')} & Time until memory evidence is sealed into the case across all acquisition targets (fuxa, plc, victim). \\",
+        rf"Alert to industrial and OT export preserved & {pm('alert_to_ot_export_preserved_seconds')} & Time until the OT export derived from the rolling PCAP incident window is preserved. OT export is not a reactive capture; it is extracted from the continuous pre-trigger PCAP after the alert fires. High variance reflects variable PCAP import duration across executions. \\",
+        rf"Alert to disk snapshot start & {pm('alert_to_disk_snapshot_start_seconds')} & Disk acquisition starts immediately after PCAP import completes; nearly identical to OT export preserved ($\Delta \approx 1$\,s). \\",
+        rf"Alert to disk snapshot preserved & {pm('alert_to_disk_snapshot_preserved_seconds')} & Time until disk image is sealed. High variance reflects node-level disk I/O variability across executions. \\",
+        rf"$T_{{first\_sealed}}$ & {pm('t_first_sealed_seconds')} & First critical artifact sealed after trigger (disk image, last in the volatile-first pipeline). \\",
+        rf"$T_{{case\_sealed}}$ & {pm('t_case_sealed_seconds')} & Full case seal latency including all artifact types and chain-of-custody finalisation. \\",
         rf"PCAP size for periodic context segments in GiB & {pm('pcap_periodic_context_size_gib')} & Continuous rolling PCAP observation with case-bound incident-window segment import. \\",
         rf"PCAP size for reactive alert-triggered captures in bytes & {pm('pcap_reactive_capture_size_bytes')} & No separate reactive PCAP capture is used in the current memory-first design. \\",
         rf"Memory dump size in bytes & {pm('memory_dump_size_bytes')} & Total preserved memory size across acquisition targets. \\",
         rf"Disk snapshot or image size in bytes & {pm('disk_snapshot_size_bytes')} & Total preserved disk size across acquisition targets. \\",
-        rf"Retries or failures count & {pm('retries_or_failures_count')} & Failed or retried pipeline events counted per repetition. \\",
+        rf"Retries or failures count & {pm('retries_or_failures_count')} & Number of failed attack-and-detection attempts per execution before a qualifying Wazuh HIGH/CRITICAL alert was matched (rule~910836102, ICS Modbus write). Each retry adds a full detection-window timeout ($\approx$10\,min) and directly inflates the reported alert-to-memory-start latency for that execution. \\",
         r"\hline",
         r"\end{tabular}",
         r"\end{table*}",

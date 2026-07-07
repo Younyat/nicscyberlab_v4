@@ -162,11 +162,12 @@
 
   .brand-title p {
     margin: 6px 0 0 0;
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: 0.28em;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
     color: rgba(203, 213, 225, 0.7);
     text-transform: uppercase;
+    line-height: 1.3;
   }
 
   .kpi-strip {
@@ -1922,10 +1923,10 @@
     <div class="topbar">
       <div class="brand-card">
         <div class="hamburger">≡</div>
-        <div class="brand-mark">N</div>
+        <div class="brand-mark">F</div>
         <div class="brand-title">
-          <h1>NICS <span>CyberLab</span></h1>
-          <p>NICS | CyberLab Platform</p>
+          <h1>FORGE<span>-VI</span></h1>
+          <p>Forensic Reproducibility &amp; Grounded Experimentation for Virtualized Infrastructures</p>
         </div>
       </div>
 
@@ -2126,7 +2127,7 @@
       <div class="workspace-inner">
         <section class="story-header" id="mainHeader">
           <div>
-            <h2>FORG-VI</h2>
+            <h2>FORGE-VI</h2>
             <p id="sub-title"
                class="text-content"
                data-es="Flujo progresivo para crear escenarios, desplegar herramientas, ejecutar ataques, validar defensas y reconstruir evidencias forenses."
@@ -2439,11 +2440,11 @@
     <div class="flex-1 bg-white flex flex-col">
       <header class="h-16 border-b border-slate-50 flex items-center justify-between px-10">
         <span id="overlayTitle" class="text-[10px] font-black text-slate-900 uppercase tracking-[0.4em]">
-          NICS | CyberLab v2.0
+          FORGE-VI v2.0
         </span>
 
         <div class="flex items-center gap-3">
-          <div class="text-[9px] font-bold text-slate-300 tracking-widest uppercase">NICS SYSTEM ACTIVE</div>
+          <div class="text-[9px] font-bold text-slate-300 tracking-widest uppercase">FORGE-VI ACTIVE</div>
 
           <button id="dfirAutoBtn"
                   class="px-3 py-2 rounded-full border border-slate-200 bg-white text-[10px] font-black tracking-[0.2em] uppercase shadow-sm hover:border-blue-500 transition">
@@ -2491,7 +2492,7 @@
        class="fixed bottom-24 right-6 w-[420px] h-[520px] bg-white rounded-3xl shadow-2xl border border-slate-200 flex flex-col">
 
     <div class="h-12 bg-slate-900 text-white flex items-center justify-between px-4">
-      <span class="text-xs font-black tracking-widest uppercase">NICS Copilot</span>
+      <span class="text-xs font-black tracking-widest uppercase">FORGE-VI Copilot</span>
       <button onclick="toggleCopilot()" class="text-slate-400 hover:text-white">✕</button>
     </div>
 
@@ -3636,7 +3637,7 @@
       if ([
         "idle", "incomplete", "pending", "stale", "partial",
         "mostly-available", "reconnecting", "no-case", "not-started",
-        "not-configured", "running", "no-artifacts"
+        "not-configured", "running", "no-artifacts", "degraded"
       ].includes(normalized)) {
         return "status-incomplete";
       }
@@ -3693,6 +3694,10 @@
         ["wf-forensic-lab", data.forensicLabStatus],
         ["wf-forensic-report", data.forensicReportStatus],
         ["wf-foc-reconstruction", data.focStatusLabel],
+        ["wf-foc-scientific-lifecycle", data.focScientificLifecycleStatus],
+        ["wf-foc-repetition-manager", data.focRepetitionManagerStatus],
+        ["wf-foc-comparability", data.focComparabilityStatus],
+        ["wf-foc-paper-evidence", data.focPaperEvidenceStatus],
         ["wf-comparisons", data.comparisonsStatus],
       ];
 
@@ -3915,8 +3920,9 @@
       const note = document.getElementById("openstack-health-note");
       if (nodeStateEl) {
         const state = summary?.overall_state || "unknown";
-        nodeStateEl.textContent = homeDisplayStatus(state);
-        nodeStateEl.className = `side-state ${homeStatusClass(state === "completed" ? "completed" : (state === "partial" ? "partial" : "failed"))}`;
+        const sidebarState = state === "failed" ? "degraded" : state;
+        nodeStateEl.textContent = homeDisplayStatus(sidebarState);
+        nodeStateEl.className = `side-state ${homeStatusClass(sidebarState)}`;
       }
       if (!title || !detail || !source || !time || !note) return;
 
@@ -4384,6 +4390,10 @@
           forensicLabStatus: forensic?.state || "not_started",
           forensicReportStatus: activeCase?.artifact_count ? "completed" : (forensic?.state || "not_started"),
           focStatusLabel: foc?.state || "unknown",
+          focScientificLifecycleStatus: foc?.state || "unknown",
+          focRepetitionManagerStatus: foc?.evaluable ? "active" : (foc?.state || "not_started"),
+          focComparabilityStatus: foc?.evaluable ? "completed" : "not_started",
+          focPaperEvidenceStatus: (evidence?.artifact_count > 0 && foc?.evaluable) ? "completed" : (foc?.state || "not_started"),
           comparisonsStatus: foc?.evaluable ? "completed" : "not_started",
           workflowHeadline,
           workflowMeta: scenarioState?.state === "completed"

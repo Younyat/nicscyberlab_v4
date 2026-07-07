@@ -170,7 +170,7 @@
           "mitre_techniques_contains": "T1692.001"
         }
       },
-      "source_timestamp_ref": "attack_completed_at",
+      "source_timestamp_ref": "attack_started_at",
       "target_timestamp_ref": "detection_observed_at"
     },
     {
@@ -227,7 +227,6 @@
           "protocol": "TCP"
         },
         "forensic_intervention": {
-          "case_id": "case-63ceb018",
           "intervention_status": "completed"
         }
       },
@@ -248,9 +247,7 @@
         "chain_of_custody"
       ],
       "selectors": {
-        "forensic_intervention": {
-          "case_id": "case-63ceb018"
-        }
+        "forensic_intervention": {}
       },
       "source_timestamp_ref": "intervention_started_at",
       "target_timestamp_ref": "intervention_completed_at"

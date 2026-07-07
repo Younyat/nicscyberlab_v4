@@ -356,13 +356,21 @@ def _persist_normalized_causal_timestamps(
 ) -> dict:
     profile = _json_load(case_dir / "metadata" / "acquisition_profile.json") or {}
     events = _read_jsonl(case_dir / "metadata" / "pipeline_events.jsonl")
+    _alert_ts = ((matched_alert or {}).get("primary") or {}).get("ts_utc") or ((matched_alert or {}).get("primary") or {}).get("timestamp")
     payload = {
         "generated_at_utc": utc_now(),
         "execution_id": execution_id,
         "case_id": case_id,
         "attack_started_at_utc": attack_started_at,
         "attack_completed_at_utc": attack_completed_at,
-        "alert_observed_at_utc": ((matched_alert or {}).get("primary") or {}).get("ts_utc") or ((matched_alert or {}).get("primary") or {}).get("timestamp"),
+        "alert_observed_at_utc": _alert_ts,
+        # detection_surface_hit_at_utc: the platform reads Suricata through the Wazuh SIEM pipeline.
+        # The IDS engine-level timestamp is not exported independently from the SIEM alert timestamp.
+        # This field is set to the Wazuh alert timestamp as the earliest available proxy for the
+        # detection surface event. A separate suricata_event_at_utc requires direct eve.json export.
+        "detection_surface_hit_at_utc": _alert_ts,
+        "suricata_event_at_utc": None,
+        "suricata_timestamp_exported": False,
         "forensic_intervention_started_at_utc": profile.get("acquisition_started_utc") or _find_event_time(events, "active_preservation_claimed"),
         "memory_acquisition_started_at_utc": profile.get("memory_started_utc") or _find_event_time(events, "memory_start"),
         "memory_preserved_at_utc": profile.get("memory_completed_utc") or _latest_event_time(events, "memory_preserved"),

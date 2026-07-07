@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-04T11:38:53.249266Z",
+  "generated_at": "2026-07-07T11:57:40.506557Z",
   "node": {
     "id": "fd472bac-f010-4bf9-9a15-89e95998f4f1",
     "name": "attack 2",
@@ -13,27 +13,27 @@
       "os_pretty": "Debian GNU/Linux 12 (bookworm)",
       "kernel": "6.1.0-48-cloud-amd64",
       "machine": "x86_64",
-      "date_utc": "2026-07-04T11:49:25Z",
-      "uptime_pretty": "up 6 weeks, 3 days, 46 minutes",
-      "loadavg": "0.08 0.02 0.01",
+      "date_utc": "2026-07-07T12:08:09Z",
+      "uptime_pretty": "up 6 weeks, 6 days, 1 hour, 5 minutes",
+      "loadavg": "0.00 0.02 0.00",
       "cpu_cores": "1",
       "cpu_usage_pct": "100.00",
       "mem_total_mb": "1979",
-      "mem_used_mb": "397",
-      "mem_avail_mb": "1581",
+      "mem_used_mb": "393",
+      "mem_avail_mb": "1586",
       "swap_total_mb": "0",
       "swap_used_mb": "0",
       "swap_free_mb": "0",
       "root_total_bytes": "20922114048",
-      "root_used_bytes": "4051070976",
-      "root_avail_bytes": "15969845248",
+      "root_used_bytes": "4086247424",
+      "root_avail_bytes": "15934668800",
       "root_use_pct": "21%",
       "root_inodes_use_pct": "7%",
-      "var_log_size_bytes": "132765496",
+      "var_log_size_bytes": "166367305",
       "suricata_log_size_bytes": "not_available",
       "tmp_size_bytes": "42837",
       "var_tmp_size_bytes": "20480",
-      "apt_cache_size_bytes": "266572994"
+      "apt_cache_size_bytes": "266657388"
     },
     "sections": {
       "services": [
@@ -54,44 +54,44 @@
       ],
       "filesystems": [
         "Filesystem      Size  Used Avail Use% Mounted on",
-        "/dev/vda1        20G  3.8G   15G  21% /",
-        "/dev/vda1        20G  3.8G   15G  21% /",
-        "/dev/vda1        20G  3.8G   15G  21% /",
-        "/dev/vda1        20G  3.8G   15G  21% /"
+        "/dev/vda1        20G  3.9G   15G  21% /",
+        "/dev/vda1        20G  3.9G   15G  21% /",
+        "/dev/vda1        20G  3.9G   15G  21% /",
+        "/dev/vda1        20G  3.9G   15G  21% /"
       ],
       "top_cpu": [
         "    PID COMMAND         %CPU %MEM",
-        "  85817 systemd          8.9  0.5",
-        "  85814 sshd             7.3  0.5",
-        "  85840 bash             4.5  0.1",
-        "    396 python3          0.0  6.5",
-        "    418 unattended-upgr  0.0  0.9",
-        "    399 dbus-daemon      0.0  0.2",
-        "  85611 kworker/0:4-eve  0.0  0.0"
+        " 116458 ps               100  0.2",
+        " 116339 systemd          9.0  0.5",
+        " 116336 sshd             4.5  0.5",
+        " 116362 bash             4.5  0.1",
+        " 114182 systemd-journal  0.1  1.6",
+        "    396 python3          0.0  6.6",
+        "    418 unattended-upgr  0.0  0.9"
       ],
       "top_mem": [
         "    PID COMMAND         %CPU %MEM",
-        "    396 python3          0.0  6.5",
-        "   2999 systemd-journal  0.0  3.7",
+        "    396 python3          0.0  6.6",
+        " 114182 systemd-journal  0.1  1.6",
         "    418 unattended-upgr  0.0  0.9",
         "      1 systemd          0.0  0.6",
         "   3166 systemd-resolve  0.0  0.5",
-        "  85814 sshd             7.3  0.5",
-        "  85817 systemd          8.8  0.5"
+        " 116336 sshd             4.5  0.5",
+        " 116339 systemd          8.8  0.5"
       ],
       "largest_var": [
         "16M\t/var/lib/dpkg/info",
         "17M\t/var/lib/dpkg",
-        "125M\t/var/log/journal",
-        "125M\t/var/log/journal/fd472bacf0104bf99a1589e95998f4f1",
-        "127M\t/var/log",
-        "143M\t/var/lib/apt",
-        "143M\t/var/lib/apt/lists",
-        "160M\t/var/lib",
+        "144M\t/var/lib/apt",
+        "144M\t/var/lib/apt/lists",
+        "157M\t/var/log/journal",
+        "157M\t/var/log/journal/fd472bacf0104bf99a1589e95998f4f1",
+        "159M\t/var/log",
+        "161M\t/var/lib",
         "177M\t/var/cache/apt/archives",
         "255M\t/var/cache/apt",
         "259M\t/var/cache",
-        "547M\t/var"
+        "579M\t/var"
       ]
     },
     "identity": {
@@ -99,9 +99,9 @@
       "os": "Debian GNU/Linux 12 (bookworm)",
       "kernel": "6.1.0-48-cloud-amd64",
       "machine": "x86_64",
-      "date_utc": "2026-07-04T11:49:25Z",
-      "uptime": "up 6 weeks, 3 days, 46 minutes",
-      "loadavg": "0.08 0.02 0.01"
+      "date_utc": "2026-07-07T12:08:09Z",
+      "uptime": "up 6 weeks, 6 days, 1 hour, 5 minutes",
+      "loadavg": "0.00 0.02 0.00"
     },
     "cpu": {
       "cores": 1,
@@ -110,9 +110,9 @@
     },
     "memory": {
       "total_mb": 1979,
-      "used_mb": 397,
-      "available_mb": 1581,
-      "usage_pct": 20.06,
+      "used_mb": 393,
+      "available_mb": 1586,
+      "usage_pct": 19.86,
       "swap_total_mb": 0,
       "swap_used_mb": 0,
       "swap_free_mb": 0,
@@ -121,15 +121,15 @@
     },
     "disk": {
       "root_total_bytes": 20922114048,
-      "root_used_bytes": 4051070976,
-      "root_avail_bytes": 15969845248,
+      "root_used_bytes": 4086247424,
+      "root_avail_bytes": 15934668800,
       "root_use_pct": 21,
       "root_inodes_use_pct": 7,
-      "var_log_size_bytes": 132765496,
+      "var_log_size_bytes": 166367305,
       "suricata_log_size_bytes": null,
       "tmp_size_bytes": 42837,
       "var_tmp_size_bytes": 20480,
-      "apt_cache_size_bytes": 266572994,
+      "apt_cache_size_bytes": 266657388,
       "severity": "ok"
     },
     "services": {
@@ -145,46 +145,46 @@
     "tables": {
       "filesystems": [
         "Filesystem      Size  Used Avail Use% Mounted on",
-        "/dev/vda1        20G  3.8G   15G  21% /",
-        "/dev/vda1        20G  3.8G   15G  21% /",
-        "/dev/vda1        20G  3.8G   15G  21% /",
-        "/dev/vda1        20G  3.8G   15G  21% /"
+        "/dev/vda1        20G  3.9G   15G  21% /",
+        "/dev/vda1        20G  3.9G   15G  21% /",
+        "/dev/vda1        20G  3.9G   15G  21% /",
+        "/dev/vda1        20G  3.9G   15G  21% /"
       ],
       "top_cpu": [
         "    PID COMMAND         %CPU %MEM",
-        "  85817 systemd          8.9  0.5",
-        "  85814 sshd             7.3  0.5",
-        "  85840 bash             4.5  0.1",
-        "    396 python3          0.0  6.5",
-        "    418 unattended-upgr  0.0  0.9",
-        "    399 dbus-daemon      0.0  0.2",
-        "  85611 kworker/0:4-eve  0.0  0.0"
+        " 116458 ps               100  0.2",
+        " 116339 systemd          9.0  0.5",
+        " 116336 sshd             4.5  0.5",
+        " 116362 bash             4.5  0.1",
+        " 114182 systemd-journal  0.1  1.6",
+        "    396 python3          0.0  6.6",
+        "    418 unattended-upgr  0.0  0.9"
       ],
       "top_mem": [
         "    PID COMMAND         %CPU %MEM",
-        "    396 python3          0.0  6.5",
-        "   2999 systemd-journal  0.0  3.7",
+        "    396 python3          0.0  6.6",
+        " 114182 systemd-journal  0.1  1.6",
         "    418 unattended-upgr  0.0  0.9",
         "      1 systemd          0.0  0.6",
         "   3166 systemd-resolve  0.0  0.5",
-        "  85814 sshd             7.3  0.5",
-        "  85817 systemd          8.8  0.5"
+        " 116336 sshd             4.5  0.5",
+        " 116339 systemd          8.8  0.5"
       ],
       "largest_var": [
         "16M\t/var/lib/dpkg/info",
         "17M\t/var/lib/dpkg",
-        "125M\t/var/log/journal",
-        "125M\t/var/log/journal/fd472bacf0104bf99a1589e95998f4f1",
-        "127M\t/var/log",
-        "143M\t/var/lib/apt",
-        "143M\t/var/lib/apt/lists",
-        "160M\t/var/lib",
+        "144M\t/var/lib/apt",
+        "144M\t/var/lib/apt/lists",
+        "157M\t/var/log/journal",
+        "157M\t/var/log/journal/fd472bacf0104bf99a1589e95998f4f1",
+        "159M\t/var/log",
+        "161M\t/var/lib",
         "177M\t/var/cache/apt/archives",
         "255M\t/var/cache/apt",
         "259M\t/var/cache",
-        "547M\t/var"
+        "579M\t/var"
       ]
     }
   },
-  "stdout": "KV\thostname\tattack-2\nKV\tos_pretty\tDebian GNU/Linux 12 (bookworm)\nKV\tkernel\t6.1.0-48-cloud-amd64\nKV\tmachine\tx86_64\nKV\tdate_utc\t2026-07-04T11:49:25Z\nKV\tuptime_pretty\tup 6 weeks, 3 days, 46 minutes\nKV\tloadavg\t0.08 0.02 0.01\nKV\tcpu_cores\t1\nKV\tcpu_usage_pct\t100.00\nKV\tmem_total_mb\t1979\nKV\tmem_used_mb\t397\nKV\tmem_avail_mb\t1581\nKV\tswap_total_mb\t0\nKV\tswap_used_mb\t0\nKV\tswap_free_mb\t0\nKV\troot_total_bytes\t20922114048\nKV\troot_used_bytes\t4051070976\nKV\troot_avail_bytes\t15969845248\nKV\troot_use_pct\t21%\nKV\troot_inodes_use_pct\t7%\nKV\tvar_log_size_bytes\t132765496\nKV\tsuricata_log_size_bytes\tnot_available\nKV\ttmp_size_bytes\t42837\nKV\tvar_tmp_size_bytes\t20480\nKV\tapt_cache_size_bytes\t266572994\nSECTION\tservices\tBEGIN\nsuricata=inactive\nnot_installed\nwazuh-agent=inactive\nnot_installed\nwazuh-manager=inactive\nnot_installed\nzeek=inactive\nnot_installed\nsnort=inactive\nnot_installed\nopenplc=inactive\nnot_installed\ndocker=inactive\nnot_installed\nSECTION\tservices\tEND\nSECTION\tfilesystems\tBEGIN\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/vda1        20G  3.8G   15G  21% /\n/dev/vda1        20G  3.8G   15G  21% /\n/dev/vda1        20G  3.8G   15G  21% /\n/dev/vda1        20G  3.8G   15G  21% /\nSECTION\tfilesystems\tEND\nSECTION\ttop_cpu\tBEGIN\n    PID COMMAND         %CPU %MEM\n  85817 systemd          8.9  0.5\n  85814 sshd             7.3  0.5\n  85840 bash             4.5  0.1\n    396 python3          0.0  6.5\n    418 unattended-upgr  0.0  0.9\n    399 dbus-daemon      0.0  0.2\n  85611 kworker/0:4-eve  0.0  0.0\nSECTION\ttop_cpu\tEND\nSECTION\ttop_mem\tBEGIN\n    PID COMMAND         %CPU %MEM\n    396 python3          0.0  6.5\n   2999 systemd-journal  0.0  3.7\n    418 unattended-upgr  0.0  0.9\n      1 systemd          0.0  0.6\n   3166 systemd-resolve  0.0  0.5\n  85814 sshd             7.3  0.5\n  85817 systemd          8.8  0.5\nSECTION\ttop_mem\tEND\nSECTION\tlargest_var\tBEGIN\n16M\t/var/lib/dpkg/info\n17M\t/var/lib/dpkg\n125M\t/var/log/journal\n125M\t/var/log/journal/fd472bacf0104bf99a1589e95998f4f1\n127M\t/var/log\n143M\t/var/lib/apt\n143M\t/var/lib/apt/lists\n160M\t/var/lib\n177M\t/var/cache/apt/archives\n255M\t/var/cache/apt\n259M\t/var/cache\n547M\t/var\nSECTION\tlargest_var\tEND\n"
+  "stdout": "KV\thostname\tattack-2\nKV\tos_pretty\tDebian GNU/Linux 12 (bookworm)\nKV\tkernel\t6.1.0-48-cloud-amd64\nKV\tmachine\tx86_64\nKV\tdate_utc\t2026-07-07T12:08:09Z\nKV\tuptime_pretty\tup 6 weeks, 6 days, 1 hour, 5 minutes\nKV\tloadavg\t0.00 0.02 0.00\nKV\tcpu_cores\t1\nKV\tcpu_usage_pct\t100.00\nKV\tmem_total_mb\t1979\nKV\tmem_used_mb\t393\nKV\tmem_avail_mb\t1586\nKV\tswap_total_mb\t0\nKV\tswap_used_mb\t0\nKV\tswap_free_mb\t0\nKV\troot_total_bytes\t20922114048\nKV\troot_used_bytes\t4086247424\nKV\troot_avail_bytes\t15934668800\nKV\troot_use_pct\t21%\nKV\troot_inodes_use_pct\t7%\nKV\tvar_log_size_bytes\t166367305\nKV\tsuricata_log_size_bytes\tnot_available\nKV\ttmp_size_bytes\t42837\nKV\tvar_tmp_size_bytes\t20480\nKV\tapt_cache_size_bytes\t266657388\nSECTION\tservices\tBEGIN\nsuricata=inactive\nnot_installed\nwazuh-agent=inactive\nnot_installed\nwazuh-manager=inactive\nnot_installed\nzeek=inactive\nnot_installed\nsnort=inactive\nnot_installed\nopenplc=inactive\nnot_installed\ndocker=inactive\nnot_installed\nSECTION\tservices\tEND\nSECTION\tfilesystems\tBEGIN\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/vda1        20G  3.9G   15G  21% /\n/dev/vda1        20G  3.9G   15G  21% /\n/dev/vda1        20G  3.9G   15G  21% /\n/dev/vda1        20G  3.9G   15G  21% /\nSECTION\tfilesystems\tEND\nSECTION\ttop_cpu\tBEGIN\n    PID COMMAND         %CPU %MEM\n 116458 ps               100  0.2\n 116339 systemd          9.0  0.5\n 116336 sshd             4.5  0.5\n 116362 bash             4.5  0.1\n 114182 systemd-journal  0.1  1.6\n    396 python3          0.0  6.6\n    418 unattended-upgr  0.0  0.9\nSECTION\ttop_cpu\tEND\nSECTION\ttop_mem\tBEGIN\n    PID COMMAND         %CPU %MEM\n    396 python3          0.0  6.6\n 114182 systemd-journal  0.1  1.6\n    418 unattended-upgr  0.0  0.9\n      1 systemd          0.0  0.6\n   3166 systemd-resolve  0.0  0.5\n 116336 sshd             4.5  0.5\n 116339 systemd          8.8  0.5\nSECTION\ttop_mem\tEND\nSECTION\tlargest_var\tBEGIN\n16M\t/var/lib/dpkg/info\n17M\t/var/lib/dpkg\n144M\t/var/lib/apt\n144M\t/var/lib/apt/lists\n157M\t/var/log/journal\n157M\t/var/log/journal/fd472bacf0104bf99a1589e95998f4f1\n159M\t/var/log\n161M\t/var/lib\n177M\t/var/cache/apt/archives\n255M\t/var/cache/apt\n259M\t/var/cache\n579M\t/var\nSECTION\tlargest_var\tEND\n"
 }
