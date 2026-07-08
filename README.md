@@ -489,6 +489,62 @@ This is the central methodological rule of the project:
 
 ## 3. Main platform services
 
+## FORGE-VI Home Dashboard
+
+The home view (`index.html`) is the unified entry point to the platform. It presents the full operational and scientific state of the active experiment in a single screen, without requiring navigation to individual views. This is the first view the user sees after starting the platform and the natural starting point for understanding what is deployed, what has been detected, and how far the current experiment has progressed toward a complete forensic reconstruction.
+
+![FORGE-VI Home Page](Images_readme/FORGE_VI_HOME_PAGE.png)
+
+The top KPI bar summarises the most critical metrics of the active experiment:
+
+| KPI | Meaning |
+|-----|---------|
+| **OpenStack Instances** | Number of virtual nodes currently synchronized from the OpenStack inventory |
+| **Installed Tools** | Total number of tools installed across all scenario nodes |
+| **Detected Alerts** | Number of detection events indexed in the active forensic alert store |
+| **Forensic Cases** | Number of preserved forensic cases in the evidence store |
+| **Evidence Artifacts** | Total number of indexed artifacts across all preserved cases |
+| **FOC Readiness** | Quantified FOC reconstruction readiness score for the current experiment |
+
+Directly below the KPI bar, the **FORGE-VI Scientific Results** banner presents the real-time scientific summary of the active campaign. It includes:
+
+- campaign identifier (`CMP-…`) and scenario identifier (`scn-…`)
+- number of evaluated experimental executions and sealed forensic cases
+- **Causal Path Recoverability (CPR)** across all runs, expressed as a percentage
+- recovered versus total causal edges (`rec/total`)
+- per-edge state summary (`e1` through `e8`), color-coded as recovered, ambiguous, degraded, or missing
+
+This banner is clickable and opens the **FORGE-VI Scientific Dashboard** for the full experimental view.
+
+The two notification bars show:
+
+- **Live Alert Indicator** — most recent Wazuh and Suricata detection events, displayed as dual-source rows with source badges, alert summary, and type annotation
+- **OpenStack Health** — current health and synchronization state of the OpenStack node cluster
+
+The central area presents the **staged workflow navigation**. Each stage card represents a discrete phase of the end-to-end experimental and forensic workflow:
+
+1. **Attack Lab** — ATT&CK-aligned attack execution and node intelligence
+2. **Detection & Prevention** — monitoring, alert inspection, and detection coverage
+3. **Forensic Lab** — evidence acquisition, preservation, and case management
+4. **Forensic Report** — case-centered artifact review, manifest, custody, and pipeline events
+5. **FOC** — FOC Reconstruction and causal reconstruction readiness
+6. **FOC Scientific Life Tool** — evidence lifecycle and scientific interpretation surface
+7. **FOC Experiment Manager** — campaign management, repetition control, and comparability
+
+The bottom panel provides five parallel readiness panels visible simultaneously without scrolling:
+
+- **Scenario Readiness** — per-component status of the IT scenario, OT scenario, inventory, tools, detection, forensics, and FOC layers
+- **Recent Activity** — chronological list of the last observable events across all platform layers
+- **Detection Coverage** — operational state of Wazuh Agent, Suricata, FIM, Modbus Detection, and Traffic Capture sensors
+- **Attack Catalog Status** — ATT&CK execution readiness, detection linkage, and forensic acquisition outcome for the active attack profile
+- **Forensic / FOC Readiness** — scientific reconstruction completeness including scenario BOM, tools BOM, detection attestation, forensic analysis manifest, and FOC readiness verdict
+
+### Why it matters
+
+The home view makes the entire experimental state inspectable in a single glance. The operator can assess whether the scenario is deployed, whether tools are installed, whether attacks have been detected, whether a forensic case has been sealed, and whether the causal reconstruction is complete — all before opening any individual view. The embedded FORGE-VI Scientific Results banner means that the CPR, edge states, and reproducibility metrics from the active campaign are always visible at a glance, even when the operator is not inside the scientific dashboard itself.
+
+---
+
 ## IT Scenario Editor
 
 The **IT Scenario Editor** is the service used to create and deploy the base IT scenario on the virtualized infrastructure.
@@ -1583,56 +1639,6 @@ This same relationship is reflected in the home dashboard through:
 - short real-time alert descriptions
 - explicit detection status instead of generic `Unknown`
 - FOC missing-component reporting when reconstruction is still incomplete
-
-### FORGE-VI Home Dashboard — operational and scientific overview
-
-The home view (`index.html`) is the unified entry point to the platform. It presents the full operational and scientific state of the active experiment in a single screen, without requiring navigation to individual views.
-
-![FORGE-VI Home Page](Images_readme/FORGE_VI_HOME_PAGE.png)
-
-The top KPI bar summarises the most critical metrics of the active experiment:
-
-| KPI | Meaning |
-|-----|---------|
-| **OpenStack Instances** | Number of virtual nodes currently synchronized from the OpenStack inventory |
-| **Installed Tools** | Total number of tools installed across all scenario nodes |
-| **Detected Alerts** | Number of detection events indexed in the active forensic alert store |
-| **Forensic Cases** | Number of preserved forensic cases in the evidence store |
-| **Evidence Artifacts** | Total number of indexed artifacts across all preserved cases |
-| **FOC Readiness** | Quantified FOC reconstruction readiness score for the current experiment |
-
-Directly below the KPI bar, the **FORGE-VI Scientific Results** banner presents the real-time scientific summary of the active campaign. It includes:
-
-- campaign identifier (`CMP-…`) and scenario identifier (`scn-…`)
-- number of evaluated experimental executions and sealed forensic cases
-- **Causal Path Recoverability (CPR)** across all runs, expressed as a percentage
-- recovered versus total causal edges (`rec/total`)
-- per-edge state summary (`e1` through `e8`), color-coded as recovered, ambiguous, degraded, or missing
-
-This banner is clickable and opens the **FORGE-VI Scientific Dashboard** for the full experimental view.
-
-The two notification bars show:
-
-- **Live Alert Indicator** — most recent Wazuh and Suricata detection events, displayed as dual-source rows with source badges, alert summary, and type annotation
-- **OpenStack Health** — current health and synchronization state of the OpenStack node cluster
-
-The central area presents the **staged workflow navigation**. Each stage card represents a discrete phase of the end-to-end experimental and forensic workflow:
-
-1. **Attack Lab** — ATT&CK-aligned attack execution and node intelligence
-2. **Detection & Prevention** — monitoring, alert inspection, and detection coverage
-3. **Forensic Lab** — evidence acquisition, preservation, and case management
-4. **Forensic Report** — case-centered artifact review, manifest, custody, and pipeline events
-5. **FOC** — FOC Reconstruction and causal reconstruction readiness
-6. **FOC Scientific Life Tool** — evidence lifecycle and scientific interpretation surface
-7. **FOC Experiment Manager** — campaign management, repetition control, and comparability
-
-The bottom panel provides five parallel readiness panels:
-
-- **Scenario Readiness** — per-component status of the IT scenario, OT scenario, inventory, tools, detection, forensics, and FOC layers
-- **Recent Activity** — chronological list of the last observable events across all platform layers
-- **Detection Coverage** — operational state of Wazuh Agent, Suricata, FIM, Modbus Detection, and Traffic Capture sensors
-- **Attack Catalog Status** — ATT&CK execution readiness, detection linkage, and forensic acquisition outcome for the active attack profile
-- **Forensic / FOC Readiness** — scientific reconstruction completeness including scenario BOM, tools BOM, detection attestation, forensic analysis manifest, and FOC readiness verdict
 
 ---
 
