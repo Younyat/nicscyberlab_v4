@@ -4524,6 +4524,110 @@ document.addEventListener("DOMContentLoaded", async () => {
     btn.addEventListener("click", () => exportJson(btn.dataset.export));
   });
 
+  // CPR All Cases
+  byId("btn-run-all-cpr")?.addEventListener("click", runAllCprReconstruction);
+  byId("cpr-all-modal-close")?.addEventListener("click", () => {
+    const m = byId("cpr-all-modal");
+    if (m) { m.classList.remove("is-active"); m.setAttribute("aria-hidden", "true"); }
+  });
+  byId("cpr-all-modal")?.addEventListener("click", (ev) => {
+    if (ev.target?.id === "cpr-all-modal") {
+      const m = byId("cpr-all-modal");
+      if (m) { m.classList.remove("is-active"); m.setAttribute("aria-hidden", "true"); }
+    }
+  });
+
   await loadAll(true);
   connectStream();
 });
+
+// ── CPR batch run ──────────────────────────────────────────────────────────
+
+const _CPR_EDGE_LABELS = ["e1", "e2", "e3", "e4", "e5", "e6", "e7", "e8"];
+
+function _cprEdgeCell(state) {
+  const map = {
+    recovered: ["rec", "#22c55e"],
+    ambiguous: ["amb", "#eab308"],
+    degraded:  ["deg", "#f97316"],
+    missing:   ["mis", "#ef4444"],
+  };
+  const [label, color] = map[state] || ["?", "#64748b"];
+  return `<td class="pr-2 text-center mono" style="color:${color};font-weight:900;font-size:11px;">${label}</td>`;
+}
+
+function _cprKpiCard(label, value, sub = "") {
+  return `<div class="glass-soft rounded-2xl p-4 text-center">
+    <div class="text-[10px] uppercase tracking-[0.22em] text-slate-400 font-black">${label}</div>
+    <div class="text-3xl font-black mt-2" style="color:#7c3aed;">${value}</div>
+    ${sub ? `<div class="text-xs text-slate-400 mt-1">${sub}</div>` : ""}
+  </div>`;
+}
+
+async function runAllCprReconstruction() {
+  const modal = byId("cpr-all-modal");
+  const aggregate = byId("cpr-all-aggregate");
+  const tbody = byId("cpr-all-table-body");
+  const statusEl = byId("cpr-all-status");
+
+  if (!modal) return;
+  modal.classList.add("is-active");
+  modal.setAttribute("aria-hidden", "false");
+
+  if (aggregate) aggregate.innerHTML = "";
+  if (tbody) tbody.innerHTML = `<tr><td colspan="10" class="text-slate-400 py-6 text-center">Running causal reconstruction on all cases…</td></tr>`;
+  if (statusEl) statusEl.textContent = "Sending request…";
+
+  const btn = byId("btn-run-all-cpr");
+  if (btn) { btn.disabled = true; btn.textContent = "Running…"; }
+
+  try {
+    const res = await fetchJson("/api/foc/causal/run-all", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+
+    // Aggregate KPIs
+    if (aggregate) {
+      const cpr = res.mean_cpr != null ? (res.mean_cpr * 100).toFixed(1) + "%" : "—";
+      const wcpr = res.mean_wcpr != null ? (res.mean_wcpr * 100).toFixed(1) + "%" : "—";
+      const sigma = res.sigma_cpr != null ? res.sigma_cpr.toFixed(4) : "—";
+      aggregate.innerHTML =
+        _cprKpiCard("Mean CPR", cpr, `${res.completed_count ?? 0} / ${res.case_count ?? 0} cases`) +
+        _cprKpiCard("Mean WCPR", wcpr, "Weighted recoverability") +
+        _cprKpiCard("σ (CPR)", sigma, "Population std-dev") +
+        _cprKpiCard("N", String(res.completed_count ?? 0), "Completed evaluations");
+    }
+
+    // Per-case table
+    if (tbody) {
+      const rows = (res.per_case || []).map((c, i) => {
+        const name = c.source_case_name || c.case_id || `Case ${i + 1}`;
+        const execLabel = `EXEC-${String(i + 1).padStart(4, "0")}`;
+        const cprVal = c.cpr != null ? (c.cpr * 100).toFixed(1) + "%" : "—";
+        const cprColor = c.cpr >= 0.875 ? "#22c55e" : c.cpr >= 0.625 ? "#eab308" : "#ef4444";
+        const edgeCells = _CPR_EDGE_LABELS.map(lbl => _cprEdgeCell((c.edge_states || {})[lbl] || "unknown")).join("");
+        return `<tr class="border-t border-slate-800/60">
+          <td class="py-2 pr-4">
+            <div class="font-black text-xs">${esc(execLabel)}</div>
+            <div class="text-[10px] text-slate-500 mono">${esc(name)}</div>
+          </td>
+          <td class="pr-4 text-center font-black" style="color:${cprColor};">${cprVal}</td>
+          ${edgeCells}
+        </tr>`;
+      });
+      tbody.innerHTML = rows.join("") || `<tr><td colspan="10" class="text-slate-400 py-4 text-center">No cases returned.</td></tr>`;
+    }
+
+    if (statusEl) {
+      statusEl.textContent = `Completed at ${new Date().toLocaleTimeString()}. Results written to derived/reconstruction/ in each case directory.`;
+    }
+    await loadAll(true);
+  } catch (err) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="10" class="text-red-400 py-4 text-center">Error: ${esc(String(err))}</td></tr>`;
+    if (statusEl) statusEl.textContent = "Request failed. Check server logs.";
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "Run CPR — All Cases"; }
+  }
+}

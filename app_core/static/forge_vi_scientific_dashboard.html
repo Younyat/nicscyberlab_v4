@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FORGE-VI Scientific Dashboard</title>
+  <script>document.documentElement.setAttribute('data-theme',(function(){try{return localStorage.getItem('nics-cyberlab-theme')||'dark';}catch(e){return 'dark';}}()));</script>
+  <link rel="stylesheet" href="/css/theme.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg:    var(--t-bg,    #07101e);
+      --panel: var(--t-panel, rgba(10,22,44,0.86));
+      --p2:    var(--t-panel-2, rgba(8,16,32,0.92));
+      --line:  var(--t-border, rgba(148,163,184,0.14));
+      --ink:   var(--t-text,  #e2e8f0);
+      --muted: var(--t-text-muted, #8fa3bf);
+      --ok:    #22c55e;
+      --amb:   #eab308;
+      --deg:   #f97316;
+      --mis:   #ef4444;
+      --unk:   #64748b;
+      --info:  #38bdf8;
+      --acc:   #7c3aed;
+    }
+    body { margin:0; font-family: Inter,ui-sans-serif,system-ui,sans-serif; background:#07101e; color:var(--ink); font-size:15px; }
+    .glass { background:var(--panel); backdrop-filter:blur(14px); border:1px solid var(--line); }
+    .glass2 { background:var(--p2); border:1px solid var(--line); }
+    .mono { font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; }
+    .btn-p { background:linear-gradient(135deg,#0ea5e9,#2563eb); color:#fff; border:none; }
+    .btn-s { background:rgba(15,23,42,0.84); border:1px solid rgba(148,163,184,0.18); color:var(--ink); }
+    .btn-v { background:linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff; border:none; }
+
+    /* status colours */
+    .st-recovered,.st-satisfied,.st-preserved { color:var(--ok); }
+    .st-ambiguous,.st-partial { color:var(--amb); }
+    .st-degraded { color:var(--deg); }
+    .st-missing,.st-failed { color:var(--mis); }
+    .st-unknown,.st-not_applicable { color:var(--unk); }
+
+    /* KPI card */
+    .kpi { text-align:center; }
+    .kpi .kpi-val { font-size:2.4rem; font-weight:900; line-height:1; }
+    .kpi .kpi-lbl { font-size:13px; text-transform:uppercase; letter-spacing:.22em; color:var(--muted); font-weight:900; margin-top:6px; }
+    .kpi .kpi-sub { font-size:13px; color:var(--muted); margin-top:4px; }
+
+    /* Pipeline */
+    .pipe-step { display:flex; flex-direction:column; align-items:center; gap:8px; min-width:90px; }
+    .pipe-icon { width:60px; height:60px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:26px; border:2.5px solid; }
+    .pipe-label { font-size:13px; text-align:center; line-height:1.4; font-weight:700; max-width:90px; }
+    .pipe-arrow { width:28px; height:2px; background:rgba(148,163,184,0.28); align-self:flex-start; margin-top:29px; flex-shrink:0; position:relative; }
+    .pipe-arrow::after { content:''; position:absolute; right:-5px; top:-4px; border:5px solid transparent; border-left-color:rgba(148,163,184,0.45); }
+
+    /* Heatmap */
+    .hm-cell { width:72px; height:42px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:900; cursor:default; }
+
+    /* Edge detail */
+    .edge-row { cursor:pointer; transition:background 120ms; }
+    .edge-row:hover { background:rgba(148,163,184,0.06); }
+
+    /* Publication mode — warm off-white, all semantic colours preserved */
+    body.pub-mode .pub-hide { display:none !important; }
+
+    body.pub-mode {
+      background: #f2efe9;
+      color: #1b1b2e;
+      font-weight: 500;
+      /* Redefine every CSS variable for light mode */
+      --bg:    #f2efe9;
+      --panel: #ffffff;
+      --p2:    #f7f5f1;
+      --line:  rgba(0,0,0,0.09);
+      --ink:   #1b1b2e;
+      --muted: #5a5870;
+      /* Status colours — darker variants readable on light bg */
+      --ok:    #166534;
+      --amb:   #92400e;
+      --deg:   #9a3412;
+      --mis:   #991b1b;
+      --unk:   #475569;
+      --info:  #0369a1;
+      --acc:   #5b21b6;
+    }
+
+    body.pub-mode .glass {
+      background: #ffffff;
+      border: 1px solid #dbd7cf;
+      backdrop-filter: none;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    }
+    body.pub-mode .glass2 {
+      background: #f7f5f1;
+      border: 1px solid #dbd7cf;
+    }
+    body.pub-mode .kpi .kpi-val  { font-weight: 900; }
+    body.pub-mode .kpi .kpi-lbl  { font-weight: 800; }
+    body.pub-mode .mono          { color: #1b1b2e; }
+    body.pub-mode th             { color: #5a5870; font-weight: 800; }
+    body.pub-mode td             { font-weight: 500; }
+    body.pub-mode .sec-h         { color: #1b1b2e; font-weight: 900; }
+    body.pub-mode .sec-sub       { color: #5a5870; }
+    body.pub-mode .pipe-label    { font-weight: 800; }
+    body.pub-mode .tag-pill      { font-weight: 900; }
+    body.pub-mode .btn-s         { background:#ede9e1; border-color:#c8c4bc; color:#1b1b2e; }
+    body.pub-mode ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); }
+
+    /* scroll */
+    ::-webkit-scrollbar { width:6px; height:6px; }
+    ::-webkit-scrollbar-thumb { background:rgba(148,163,184,0.2); border-radius:999px; }
+
+    /* loading */
+    #loading-overlay { position:fixed; inset:0; background:rgba(4,10,20,.9); display:flex; align-items:center; justify-content:center; z-index:100; }
+    .loading-bar { width:240px; height:6px; background:rgba(148,163,184,0.12); border-radius:999px; overflow:hidden; margin-top:16px; }
+    .loading-bar-inner { height:100%; width:35%; border-radius:999px; background:linear-gradient(90deg,#38bdf8,#7c3aed); animation:sweep 1s ease-in-out infinite; }
+    @keyframes sweep { 0%{transform:translateX(-120%)} 100%{transform:translateX(400%)} }
+
+    /* tooltip */
+    .has-tooltip { position:relative; }
+    .has-tooltip:hover .tooltip { display:block; }
+    .tooltip { display:none; position:absolute; bottom:110%; left:50%; transform:translateX(-50%); background:#0f172a; border:1px solid rgba(148,163,184,0.2); border-radius:8px; padding:6px 10px; font-size:13px; white-space:nowrap; z-index:50; pointer-events:none; color:var(--ink); box-shadow:0 4px 16px rgba(0,0,0,.4); }
+
+    /* Section header */
+    .sec-tag { font-size:13px; letter-spacing:.3em; text-transform:uppercase; color:var(--info); font-weight:900; }
+    .sec-h { font-size:1.6rem; font-weight:900; margin-top:6px; }
+    .sec-sub { font-size:15px; color:var(--muted); margin-top:4px; max-width:700px; }
+
+    /* Tables */
+    th { font-size:13px; text-transform:uppercase; letter-spacing:.18em; color:var(--muted); font-weight:900; padding-bottom:10px; text-align:left; }
+    td { font-size:15px; padding:8px 8px 8px 0; border-top:1px solid rgba(148,163,184,0.08); vertical-align:top; }
+    .tag-pill { display:inline-block; border-radius:999px; padding:3px 10px; font-size:13px; font-weight:900; border:1px solid; }
+
+    /* Bar chart */
+    .bar-track { height:8px; background:rgba(148,163,184,0.1); border-radius:999px; overflow:hidden; }
+    .bar-fill { height:100%; border-radius:999px; }
+
+    /* Upscale Tailwind micro-text classes */
+    .text-xs  { font-size:14px !important; line-height:1.5 !important; }
+    .text-sm  { font-size:15px !important; line-height:1.55 !important; }
+  </style>
+</head>
+<body>
+
+<div id="loading-overlay">
+  <div style="text-align:center;">
+    <div style="font-size:11px;letter-spacing:.35em;text-transform:uppercase;color:#38bdf8;font-weight:900;">FORGE-VI</div>
+    <div style="font-size:1.6rem;font-weight:900;margin-top:10px;">Loading Scientific Dashboard…</div>
+    <div style="font-size:13px;color:#8fa3bf;margin-top:6px;">Aggregating campaign data, CPR metrics and causal graph.</div>
+    <div class="loading-bar"><div class="loading-bar-inner"></div></div>
+  </div>
+</div>
+
+<div id="app" style="display:none;" class="px-6 py-6 md:px-10 md:py-8">
+
+  <!-- ── HEADER ── -->
+  <header class="glass rounded-[28px] p-6 md:p-8 mb-6">
+    <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div>
+        <div style="font-size:11px;letter-spacing:.35em;text-transform:uppercase;color:#38bdf8;font-weight:900;">FORGE-VI</div>
+        <h1 style="font-size:2rem;font-weight:900;margin-top:6px;">Scientific Reproducibility Dashboard</h1>
+        <p style="font-size:13px;color:var(--muted);margin-top:6px;max-width:680px;">Forensic Observational Context — Causal Path Recoverability and Experimental Reproducibility. Evaluated campaign · read-only scientific view.</p>
+        <div id="campaign-badges" class="flex flex-wrap gap-2 mt-4"></div>
+      </div>
+      <div class="flex flex-wrap gap-2 items-start pub-hide">
+        <div id="theme-switcher-mount"></div>
+        <button id="btn-pub-mode" class="btn-v rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[.16em] uppercase cursor-pointer">Publication Mode</button>
+        <button id="btn-refresh" class="btn-s rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[.16em] uppercase cursor-pointer">Refresh</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── KPI STRIP ── -->
+  <section class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4 mb-6" id="kpi-strip"></section>
+
+  <!-- ── PIPELINE ── -->
+  <section class="glass rounded-[28px] p-6 mb-6">
+    <div class="sec-tag">Experimental Pipeline</div>
+    <h2 class="sec-h">End-to-End Forensic Workflow</h2>
+    <p class="sec-sub">Active steps share a single accent. Orange = partially covered across runs.</p>
+    <div class="overflow-x-auto mt-8">
+      <div id="pipeline-diagram" class="flex items-start justify-center gap-0 py-4" style="min-width:900px;"></div>
+    </div>
+  </section>
+
+  <!-- ── CPR ── -->
+  <section class="glass rounded-[28px] p-6 mb-6">
+    <div class="sec-tag">CPR</div>
+    <h2 class="sec-h">Causal Path Recoverability</h2>
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8 mt-5">
+      <div class="flex flex-col items-center" id="cpr-donut-wrap"></div>
+      <div class="xl:col-span-2 flex flex-col gap-6" id="cpr-stats"></div>
+    </div>
+  </section>
+
+  <!-- ── HEATMAP edge × run — full width ── -->
+  <section class="glass rounded-[28px] p-6 mb-6">
+    <div class="sec-tag">Causal Graph</div>
+    <h2 class="sec-h">Edge × Run Heatmap</h2>
+    <p class="sec-sub">Each cell shows the support status of an expected causal relation across all evaluated executions.</p>
+    <div id="causal-heatmap" class="overflow-x-auto mt-5"></div>
+  </section>
+
+  <!-- edge detail table -->
+  <section class="glass rounded-[28px] p-6 mb-6">
+    <div class="sec-tag">Causal Relations</div>
+    <h2 class="sec-h">Expected Causal Edge Breakdown</h2>
+    <p class="sec-sub">Click a row to expand evidence references and temporal support details.</p>
+    <div class="overflow-x-auto mt-4">
+      <table class="w-full min-w-[800px]" style="border-collapse:separate;">
+        <thead>
+          <tr>
+            <th>Edge</th><th>Relation</th><th>Required Evidence</th><th>Support</th><th>Temporal</th><th>Stable</th>
+          </tr>
+        </thead>
+        <tbody id="edge-table"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── EVIDENCE MATRIX ── -->
+  <section class="glass rounded-[28px] p-6 mb-6">
+    <div class="sec-tag">Evidence Preservation</div>
+    <h2 class="sec-h">Run × Evidence Layer Matrix</h2>
+    <p class="sec-sub">Coverage of each evidence category across all evaluated executions.</p>
+    <div class="overflow-x-auto mt-4" id="evidence-matrix"></div>
+  </section>
+
+  <!-- ── OPERATIONAL METRICS ── -->
+  <section class="glass rounded-[28px] p-6 mb-6">
+    <div class="sec-tag">Operational Metrics M1–M4</div>
+    <h2 class="sec-h">Reproducibility and Latency Metrics</h2>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-5">
+      <!-- M1 Validation -->
+      <div class="glass2 rounded-[22px] p-5">
+        <div class="text-xs uppercase tracking-[.22em] text-slate-400 font-black mb-3">M1 — Infrastructure Validation Gate</div>
+        <div id="m1-panel"></div>
+      </div>
+      <!-- M4 Failures -->
+      <div class="glass2 rounded-[22px] p-5">
+        <div class="text-xs uppercase tracking-[.22em] text-slate-400 font-black mb-3">M4 — Acquisition Failures per Run</div>
+        <div id="m4-panel"></div>
+      </div>
+      <!-- M2 Latencies -->
+      <div class="glass2 rounded-[22px] p-5 xl:col-span-2">
+        <div class="text-xs uppercase tracking-[.22em] text-slate-400 font-black mb-3">M2 — Preservation Latency Decomposition (seconds)</div>
+        <div id="m2-panel"></div>
+      </div>
+      <!-- M3 Volumes -->
+      <div class="glass2 rounded-[22px] p-5 xl:col-span-2">
+        <div class="text-xs uppercase tracking-[.22em] text-slate-400 font-black mb-3">M3 — Artifact Volume per Run (GiB)</div>
+        <div id="m3-panel"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── C1-C5 + E1-E4 ── -->
+  <section class="grid grid-cols-1 xl:grid-cols-2 gap-5 mb-6">
+    <div class="glass rounded-[28px] p-6">
+      <div class="sec-tag">Forensic Invariants</div>
+      <h2 class="sec-h">C1–C5 Reproducibility Criteria</h2>
+      <p class="sec-sub" style="font-size:12px;">Satisfaction matrix across all evaluations.</p>
+      <div id="c-matrix" class="mt-4"></div>
+    </div>
+    <div class="glass rounded-[28px] p-6">
+      <div class="sec-tag">Evidence Quality</div>
+      <h2 class="sec-h">E1–E4 Quality Criteria</h2>
+      <p class="sec-sub" style="font-size:12px;">Evidence completeness, integrity, analysis and cross-layer corroboration.</p>
+      <div id="e-matrix" class="mt-4"></div>
+    </div>
+  </section>
+
+  <!-- ── INTEGRITY & CUSTODY ── -->
+  <section class="glass rounded-[28px] p-6 mb-6">
+    <div class="sec-tag">Evidence Integrity and Custody</div>
+    <h2 class="sec-h">Manifest Verification and Custody Chain</h2>
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-5 mt-5" id="integrity-panel"></div>
+  </section>
+
+  <!-- ── FOC MODEL ── -->
+  <section class="glass rounded-[28px] p-6 mb-6">
+    <div class="sec-tag">Forensic Observational Context</div>
+    <h2 class="sec-h">FOC Model — Case Summary</h2>
+    <p class="sec-sub">Select a run to inspect its FOC model.</p>
+    <div class="flex flex-wrap gap-2 mt-4" id="foc-run-selector"></div>
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-5 mt-5" id="foc-panel"></div>
+  </section>
+
+  <!-- ── FOOTER ── -->
+  <footer class="text-center text-xs text-slate-600 py-8 pub-hide">
+    FORGE-VI Scientific Dashboard · Read-only · Data from preserved case artifacts and causal reconstruction outputs.
+  </footer>
+</div>
+
+<!-- ── EDGE DETAIL MODAL ── -->
+<div id="edge-modal" style="display:none;position:fixed;inset:0;background:rgba(2,8,23,.75);backdrop-filter:blur(10px);z-index:80;align-items:center;justify-content:center;padding:24px;">
+  <div class="glass rounded-[28px] p-7" style="width:min(96vw,780px);max-height:88vh;overflow:auto;">
+    <div class="flex items-start justify-between gap-4 mb-5">
+      <div>
+        <div class="sec-tag">Causal Edge Detail</div>
+        <h3 id="edge-modal-title" class="sec-h" style="font-size:1.3rem;"></h3>
+      </div>
+      <button id="edge-modal-close" class="btn-s rounded-2xl px-4 py-2 text-sm font-extrabold tracking-[.14em] uppercase">Close</button>
+    </div>
+    <div id="edge-modal-body" class="text-sm text-slate-300 space-y-4"></div>
+  </div>
+</div>
+
+<script src="/js/theme-switcher.js"></script>
+<script>window.NicsThemeSwitcher?.mount('#theme-switcher-mount');</script>
+<script src="/js/forge_vi_scientific_dashboard.js?v=20260708-1"></script>
+</body>
+</html>

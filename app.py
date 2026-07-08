@@ -179,6 +179,14 @@ def create_app():
     flask_app = Flask(__name__)
     CORS(flask_app)
     flask_app.register_blueprint(api_bp)
+
+    try:
+        from app_core.infrastructure.forge_vi_dashboard.endpoints import forge_vi_bp
+        flask_app.register_blueprint(forge_vi_bp)
+        logger.info("[OK] FORGE-VI Scientific Dashboard Blueprint cargado correctamente")
+    except Exception as e:
+        logger.warning(f"[WARN] forge_vi_bp no cargado: {e}")
+
     return flask_app
 
 

@@ -38,15 +38,19 @@ def create_app():
         app.register_blueprint(host_tools_bp, url_prefix='/api/host')
         print("[OK] Host Tools Blueprint cargado correctamente")
 
-
-
-
         from app_core.presentation.api import api_bp
 
         app.register_blueprint(api_bp, url_prefix='/api')
 
     except Exception:
         # Permite iniciar mientras se migra código.
+        pass
+
+    try:
+        from app_core.infrastructure.forge_vi_dashboard.endpoints import forge_vi_bp
+        app.register_blueprint(forge_vi_bp)
+        print("[OK] FORGE-VI Scientific Dashboard Blueprint cargado correctamente")
+    except Exception:
         pass
 
     return app

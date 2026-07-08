@@ -147,6 +147,7 @@
           <div id="theme-switcher-mount"></div>
           <button id="btn-bootstrap" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Bootstrap FOC</button>
           <button id="btn-regenerate" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Regenerate Reconstruction</button>
+          <button id="btn-run-all-cpr" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">Run CPR — All Cases</button>
           <button id="btn-refresh" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Refresh</button>
         </div>
       </div>
@@ -620,6 +621,43 @@
         <button id="causal-report-modal-close" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Close</button>
       </div>
       <div id="causal-report-modal-panel" class="mt-6 text-sm text-slate-300">No causal report loaded.</div>
+    </div>
+  </div>
+
+  <div id="cpr-all-modal" class="modal-shell" aria-hidden="true">
+    <div class="modal-card-wide">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <div class="text-[11px] tracking-[0.28em] uppercase text-slate-400 font-black">Causal Path Recoverability</div>
+          <h2 class="text-2xl font-black mt-2">CPR — All Cases</h2>
+          <p class="text-sm text-slate-300 mt-3">Batch causal reconstruction across all indexed cases. Each row is one forensic case; each column is one expected causal edge.</p>
+        </div>
+        <button id="cpr-all-modal-close" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Close</button>
+      </div>
+
+      <div id="cpr-all-aggregate" class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6"></div>
+
+      <div class="mt-6 overflow-x-auto">
+        <table class="w-full text-sm min-w-[860px]" style="border-collapse:separate;border-spacing:0;">
+          <thead>
+            <tr class="text-left text-slate-400 uppercase tracking-[0.16em] text-[10px]">
+              <th class="pb-3 pr-4">Case</th>
+              <th class="pb-3 pr-4 text-center">CPR</th>
+              <th class="pb-3 pr-2 text-center">e1</th>
+              <th class="pb-3 pr-2 text-center">e2</th>
+              <th class="pb-3 pr-2 text-center">e3</th>
+              <th class="pb-3 pr-2 text-center">e4</th>
+              <th class="pb-3 pr-2 text-center">e5</th>
+              <th class="pb-3 pr-2 text-center">e6</th>
+              <th class="pb-3 pr-2 text-center">e7</th>
+              <th class="pb-3 pr-2 text-center">e8</th>
+            </tr>
+          </thead>
+          <tbody id="cpr-all-table-body"></tbody>
+        </table>
+      </div>
+
+      <div id="cpr-all-status" class="mt-5 text-sm text-slate-400"></div>
     </div>
   </div>
 

@@ -186,8 +186,8 @@
   }
 
   .kpi-icon {
-    width: 40px;
-    height: 40px;
+    width: 52px;
+    height: 52px;
     border-radius: 14px;
     border: 1px solid rgba(56, 189, 248, 0.25);
     display: flex;
@@ -195,12 +195,13 @@
     justify-content: center;
     color: var(--blue);
     font-weight: 900;
-    font-size: 12px;
+    font-size: 16px;
     background: rgba(14, 165, 233, 0.08);
+    flex-shrink: 0;
   }
 
   .kpi-label {
-    font-size: 10px;
+    font-size: 13px;
     color: var(--muted);
     font-weight: 700;
     white-space: nowrap;
@@ -212,13 +213,13 @@
     align-items: baseline;
     gap: 8px;
     color: white;
-    font-size: 22px;
+    font-size: 29px;
     font-weight: 900;
     letter-spacing: -0.04em;
   }
 
   .kpi-delta {
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 800;
     color: #4ade80;
     letter-spacing: 0;
@@ -433,7 +434,7 @@
 
   .story-header {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 3fr 7fr;
     gap: 20px;
     align-items: start;
   }
@@ -457,30 +458,97 @@
   }
 
   .range-summary {
-    min-width: 530px;
     border-radius: 16px;
     border: 1px solid rgba(56, 189, 248, 0.18);
     background: rgba(3, 10, 23, 0.50);
-    padding: 16px 18px;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: row;
+    gap: 0;
+    align-items: stretch;
   }
-
-  .range-summary span {
+  .range-fvi {
+    flex: 1 1 0;
+    border-right: 1px solid rgba(124,58,237,0.18);
+    padding-right: 18px;
+    cursor: pointer;
+  }
+  .range-ops {
+    flex: 0 0 auto;
+    width: 26%;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 12px;
+    align-content: start;
+    padding-left: 16px;
+  }
+  .range-ops span {
     display: block;
-    font-size: 10px;
+    font-size: 14px;
     font-weight: 800;
     color: rgba(203, 213, 225, 0.62);
-    margin-bottom: 7px;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
   }
-
-  .range-summary strong {
+  .range-ops strong {
     display: block;
     color: var(--cyan);
-    font-size: 13px;
+    font-size: 17px;
     font-weight: 900;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
+  .range-fvi-head {
+    display: flex; align-items: center; gap: 7px; margin-bottom: 9px;
+  }
+  .range-fvi-dot {
+    width: 7px; height: 7px; border-radius: 999px;
+    background: #7c3aed;
+    box-shadow: 0 0 0 0 rgba(124,58,237,0.5);
+    animation: pulseVi 2.4s infinite;
+    flex-shrink: 0;
+  }
+  .range-fvi-title {
+    font-size: 16px; font-weight: 900; letter-spacing: .20em;
+    text-transform: uppercase; color: rgba(167,139,250,0.95);
+  }
+  .range-fvi-desc {
+    font-size: 16px; font-weight: 600; color: rgba(148,163,184,0.80);
+    line-height: 1.4; margin-bottom: 7px;
+  }
+  .range-fvi-meta {
+    display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center;
+    margin-bottom: 10px;
+  }
+  .rfvi-meta-item {
+    font-size: 16px; font-weight: 800; color: rgba(148,163,184,0.72);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .rfvi-meta-item b {
+    color: rgba(226,232,240,0.92); font-weight: 900; font-size: 16px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+  .rfvi-meta-sep { color: rgba(148,163,184,0.30); font-size: 17px; }
+  .range-fvi-metrics {
+    display: flex; flex-wrap: wrap; gap: 7px 10px; align-items: center;
+  }
+  .rfvi-kpi {
+    display: flex; flex-direction: column; align-items: center;
+    background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.2);
+    border-radius: 8px; padding: 5px 12px;
+  }
+  .rfvi-kpi-val { font-size: 22px; font-weight: 900; line-height: 1.1; }
+  .rfvi-kpi-lbl { font-size: 13px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: rgba(148,163,184,0.75); margin-top: 2px; }
+  .rfvi-sep { width: 1px; height: 36px; background: rgba(148,163,184,0.14); }
+  .rfvi-edges { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+  .rfvi-edge {
+    font-size: 14px; font-weight: 900; border-radius: 5px;
+    padding: 3px 9px; border: 1px solid;
+  }
+  .rfvi-loading { font-size: 11px; color: rgba(148,163,184,0.5); font-style: italic; }
 
   #sliderContainer {
     min-height: 0;
@@ -707,19 +775,21 @@
     padding: 16px 18px;
     overflow: hidden;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
   }
 
   .bottom-panel h3 {
     margin: 0 0 14px 0;
     color: rgba(226, 232, 240, 0.86);
-    font-size: 12px;
+    font-size: 16px;
     font-weight: 800;
   }
 
   .panel-note {
     margin: -4px 0 14px 0;
     color: rgba(148, 163, 184, 0.78);
-    font-size: 10px;
+    font-size: 13px;
     line-height: 1.35;
     font-weight: 700;
   }
@@ -728,7 +798,13 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
   }
+  .panel-list::-webkit-scrollbar { width: 3px; }
+  .panel-list::-webkit-scrollbar-track { background: transparent; }
+  .panel-list::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.22); border-radius: 999px; }
 
   .panel-row {
     display: flex;
@@ -743,18 +819,18 @@
 
   .panel-row strong {
     color: rgba(241, 245, 249, 0.94);
-    font-size: 11px;
+    font-size: 14px;
     font-weight: 800;
   }
 
   .panel-row span {
     color: rgba(148, 163, 184, 0.78);
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 700;
   }
 
   .panel-status {
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 900;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -767,10 +843,22 @@
 
   .panel-empty {
     color: rgba(148, 163, 184, 0.76);
-    font-size: 11px;
+    font-size: 14px;
     font-weight: 700;
     line-height: 1.45;
   }
+  .story-notif-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+  }
+  .story-notif-stack .live-alert-bar,
+  .story-notif-stack .health-note-bar {
+    margin-top: 0;
+    flex: 1 1 0;
+  }
+
   .live-alert-bar {
     margin-top: 18px;
     border: 1px solid rgba(239, 68, 68, 0.18);
@@ -793,14 +881,14 @@
     width: 10px;
     height: 10px;
     border-radius: 999px;
-    background: var(--red);
-    box-shadow: 0 0 0 0 rgba(46, 219, 7, 0.45);
+    background: var(--green);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5);
     animation: pulseAlert 1.8s infinite;
   }
   @keyframes pulseAlert {
-    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45); }
-    70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
+    70% { box-shadow: 0 0 0 12px rgba(34, 197, 94, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
   }
   .live-alert-title {
     font-size: 10px;
@@ -809,6 +897,24 @@
     text-transform: uppercase;
     color: rgba(226, 232, 240, 0.78);
   }
+  .live-alert-row {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    min-width: 0;
+  }
+  .live-alert-row + .live-alert-row {
+    margin-top: 5px;
+    padding-top: 5px;
+    border-top: 1px solid rgba(148,163,184,0.10);
+  }
+  .lab-src-badge {
+    flex-shrink: 0;
+    font-size: 9px; font-weight: 900; letter-spacing: .12em;
+    text-transform: uppercase; padding: 2px 6px; border-radius: 5px; border: 1px solid;
+  }
+  .lab-src-badge--wazuh  { color:#38bdf8; background:rgba(56,189,248,.10); border-color:rgba(56,189,248,.28); }
+  .lab-src-badge--suri   { color:#a78bfa; background:rgba(167,139,250,.10); border-color:rgba(167,139,250,.28); }
   .live-alert-body strong {
     display: block;
     color: rgba(248, 250, 252, 0.96);
@@ -859,6 +965,55 @@
     border-color: rgba(248, 113, 113, 0.42);
     transform: translateY(-1px);
   }
+
+  /* FORGE-VI scientific metrics bar */
+  .fvi-bar {
+    margin-top: 14px;
+    border: 1px solid rgba(124, 58, 237, 0.28);
+    background: linear-gradient(135deg, rgba(124,58,237,0.07), rgba(3,10,23,0.92)), rgba(3,10,23,0.92);
+    border-radius: 18px;
+    padding: 14px 18px;
+    cursor: pointer;
+    transition: border-color 180ms ease, transform 180ms ease;
+  }
+  .fvi-bar:hover { border-color: rgba(124,58,237,0.52); transform: translateY(-1px); }
+  .fvi-bar-head {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+  }
+  .fvi-dot {
+    width: 9px; height: 9px; border-radius: 999px;
+    background: #7c3aed;
+    box-shadow: 0 0 0 0 rgba(124,58,237,0.5);
+    animation: pulseVi 2.4s infinite;
+    flex-shrink: 0;
+  }
+  @keyframes pulseVi {
+    0%   { box-shadow: 0 0 0 0   rgba(124,58,237,0.5); }
+    70%  { box-shadow: 0 0 0 10px rgba(124,58,237,0);   }
+    100% { box-shadow: 0 0 0 0   rgba(124,58,237,0);    }
+  }
+  .fvi-bar-title {
+    font-size: 10px; font-weight: 900; letter-spacing: .26em;
+    text-transform: uppercase; color: rgba(167,139,250,0.9);
+  }
+  .fvi-metrics {
+    display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center;
+  }
+  .fvi-kpi {
+    display: flex; flex-direction: column; align-items: center;
+    background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.22);
+    border-radius: 10px; padding: 6px 12px; min-width: 60px;
+  }
+  .fvi-kpi-val { font-size: 16px; font-weight: 900; line-height: 1; }
+  .fvi-kpi-lbl { font-size: 10px; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: rgba(148,163,184,0.8); margin-top: 3px; }
+  .fvi-edge-strip { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+  .fvi-edge-pill {
+    font-size: 11px; font-weight: 900; border-radius: 6px;
+    padding: 3px 8px; border: 1px solid;
+  }
+  .fvi-divider { width: 1px; height: 36px; background: rgba(148,163,184,0.15); flex-shrink: 0; }
+  .fvi-loading { font-size: 11px; color: rgba(148,163,184,0.6); font-style: italic; }
   .health-note-dot {
     width: 10px;
     height: 10px;
@@ -939,15 +1094,21 @@
     display: flex;
     flex-direction: column;
     gap: 11px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
   }
+  .activity-list::-webkit-scrollbar { width: 3px; }
+  .activity-list::-webkit-scrollbar-track { background: transparent; }
+  .activity-list::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.22); border-radius: 999px; }
 
   .activity-item {
     display: grid;
-    grid-template-columns: 20px 1fr auto;
+    grid-template-columns: 26px 1fr auto;
     gap: 10px;
     align-items: center;
     color: rgba(226, 232, 240, 0.80);
-    font-size: 11px;
+    font-size: 14px;
     font-weight: 700;
   }
 
@@ -958,7 +1119,7 @@
 
   .activity-item time {
     color: rgba(148, 163, 184, 0.62);
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 700;
   }
 
@@ -1759,6 +1920,8 @@
 
     .range-summary {
       min-width: 430px;
+    }
+    .range-ops {
       grid-template-columns: repeat(2, 1fr);
     }
 
@@ -2126,63 +2289,86 @@
     <main class="workspace">
       <div class="workspace-inner">
         <section class="story-header" id="mainHeader">
-          <div>
-            <h2>FORGE-VI</h2>
-            <p id="sub-title"
-               class="text-content"
-               data-es="Flujo progresivo para crear escenarios, desplegar herramientas, ejecutar ataques, validar defensas y reconstruir evidencias forenses."
-               data-en="Progressive workflow for scenario creation, tool deployment, attack execution, defense validation, and forensic reconstruction.">
-              Flujo progresivo para crear escenarios, desplegar herramientas, ejecutar ataques, validar defensas y reconstruir evidencias forenses.
-            </p>
+          <div class="story-notif-stack">
+            <div class="live-alert-bar">
+              <div class="live-alert-head">
+                <span class="live-alert-dot"></span>
+                <div class="live-alert-title">Live Alert Indicator</div>
+              </div>
+              <div class="live-alert-body">
+                <div class="live-alert-row">
+                  <span class="lab-src-badge lab-src-badge--wazuh">Wazuh</span>
+                  <strong id="live-alert-title-wazuh">—</strong>
+                  <span id="live-alert-detail-wazuh" style="font-size:10px;color:rgba(148,163,184,0.75);">No telemetry</span>
+                </div>
+                <div class="live-alert-row">
+                  <span class="lab-src-badge lab-src-badge--suri">Suricata</span>
+                  <strong id="live-alert-title-suri">—</strong>
+                  <span id="live-alert-detail-suri" style="font-size:10px;color:rgba(148,163,184,0.75);">No telemetry</span>
+                </div>
+              </div>
+              <div class="live-alert-meta">
+                <strong id="live-alert-source" style="display:none;"></strong>
+                <span id="live-alert-time">--</span>
+              </div>
+            </div>
+            <div id="openstack-health-note" class="health-note-bar" role="button" tabindex="0" onclick="openView('node_health')">
+              <div class="live-alert-head">
+                <span class="health-note-dot"></span>
+                <div class="health-note-title">OpenStack Health</div>
+              </div>
+              <div class="health-note-body">
+                <strong id="openstack-health-title">Node health telemetry not loaded yet</strong>
+                <span id="openstack-health-detail">Click to open Node Health and inspect OpenStack services, host pressure and per-node resource state.</span>
+              </div>
+              <div class="health-note-meta">
+                <strong id="openstack-health-source">Unknown</strong>
+                <span id="openstack-health-time">--</span>
+              </div>
+            </div>
           </div>
 
           <div class="range-summary">
-            <div>
-              <span>Scenario</span>
-              <strong id="summary-scenario">None</strong>
+            <div class="range-fvi" onclick="openView('forge_vi_scientific_dashboard')" title="Open FORGE-VI Scientific Dashboard">
+              <div class="range-fvi-head">
+                <span class="range-fvi-dot"></span>
+                <span class="range-fvi-title">FORGE-VI · Scientific Results</span>
+              </div>
+              <div class="range-fvi-desc">Forensic Observational Context — Causal Path Recoverability and Experimental Reproducibility. Evaluated campaign · read-only scientific view.</div>
+              <div class="range-fvi-meta" id="fvi-meta-body">
+                <span class="rfvi-meta-item">Campaign <b id="fvi-campaign-id">—</b></span>
+                <span class="rfvi-meta-sep">·</span>
+                <span class="rfvi-meta-item">Scenario <b id="fvi-scenario-id">—</b></span>
+                <span class="rfvi-meta-sep">·</span>
+                <span class="rfvi-meta-item">N executions <b id="fvi-n-exec">—</b></span>
+                <span class="rfvi-meta-sep">·</span>
+                <span class="rfvi-meta-item">Cases sealed <b id="fvi-cases-sealed">—</b></span>
+              </div>
+              <div class="range-fvi-metrics" id="fvi-metrics-body">
+                <span class="rfvi-loading">Loading…</span>
+              </div>
             </div>
-            <div>
-              <span>Infrastructure</span>
-              <strong id="summary-infrastructure">Unknown</strong>
-            </div>
-            <div>
-              <span>Monitoring</span>
-              <strong id="summary-monitoring">Unknown</strong>
-            </div>
-            <div>
-              <span>Active Case</span>
-              <strong id="summary-active-case">None</strong>
+            <div class="range-ops">
+              <div>
+                <span>Scenario</span>
+                <strong id="summary-scenario">None</strong>
+              </div>
+              <div>
+                <span>Infrastructure</span>
+                <strong id="summary-infrastructure">Unknown</strong>
+              </div>
+              <div>
+                <span>Monitoring</span>
+                <strong id="summary-monitoring">Unknown</strong>
+              </div>
+              <div>
+                <span>Active Case</span>
+                <strong id="summary-active-case">None</strong>
+              </div>
             </div>
           </div>
 
-          <div class="live-alert-bar">
-            <div class="live-alert-head">
-              <span class="live-alert-dot"></span>
-              <div class="live-alert-title">Live Alert Indicator</div>
-            </div>
-            <div class="live-alert-body">
-              <strong id="live-alert-title">No live alert telemetry</strong>
-              <span id="live-alert-detail">No recent detection signal is available yet.</span>
-            </div>
-            <div class="live-alert-meta">
-              <strong id="live-alert-source">Unknown</strong>
-              <span id="live-alert-time">--</span>
-            </div>
-          </div>
-          <div id="openstack-health-note" class="health-note-bar" role="button" tabindex="0" onclick="openView('node_health')">
-            <div class="live-alert-head">
-              <span class="health-note-dot"></span>
-              <div class="health-note-title">OpenStack Health</div>
-            </div>
-            <div class="health-note-body">
-              <strong id="openstack-health-title">Node health telemetry not loaded yet</strong>
-              <span id="openstack-health-detail">Click to open Node Health and inspect OpenStack services, host pressure and per-node resource state.</span>
-            </div>
-            <div class="health-note-meta">
-              <strong id="openstack-health-source">Unknown</strong>
-              <span id="openstack-health-time">--</span>
-            </div>
-          </div>
+
         </section>
 
         <section id="sliderContainer">
@@ -2366,6 +2552,15 @@
               <div class="stage-title text-content" data-es="advDetection" data-en="advDetection">advDetection</div>
               <div class="stage-desc text-content" data-es="Evaluación de evasión y robustez defensiva." data-en="Evasion assessment and defensive robustness.">Evaluación de evasión y robustez defensiva.</div>
               <div class="stage-dot"></div>
+            </div>
+
+            <div onclick="openView('forge_vi_scientific_dashboard')" class="card-option flex flex-col items-center justify-center p-5" style="border:1px solid rgba(124,58,237,0.35);background:rgba(124,58,237,0.06);">
+              <div class="stage-number" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;">FVI</div>
+              <div class="stage-icon" style="color:#a78bfa;">📊</div>
+              <div class="stage-kicker" style="color:#a78bfa;">SCIENTIFIC</div>
+              <div class="stage-title">FORGE-VI Dashboard</div>
+              <div class="stage-desc">CPR, causal graph, evidence matrix, C1–C5, E1–E4 and publication-ready exports.</div>
+              <div class="stage-dot" style="background:#7c3aed;"></div>
             </div>
 
           </div>
@@ -3807,34 +4002,47 @@
       if (activeCase) activeCase.textContent = data.activeCaseSummary;
     }
 
-    function homeRenderLiveAlert(alert) {
-      const title = document.getElementById("live-alert-title");
-      const detail = document.getElementById("live-alert-detail");
-      const source = document.getElementById("live-alert-source");
-      const time = document.getElementById("live-alert-time");
+    function _isSuricataAlert(a) {
+      return /suricata/i.test(a?.alert_type || "") ||
+             /suricata/i.test(a?.source || "") ||
+             /suricata/i.test(a?.decoder?.name || "") ||
+             /\[ids\/suricata\]/i.test(a?.alert_type || "");
+    }
 
-      if (!title || !detail || !source || !time) return;
-
+    function _renderAlertRow(titleId, detailId, alert) {
+      const tEl = document.getElementById(titleId);
+      const dEl = document.getElementById(detailId);
+      if (!tEl || !dEl) return;
       if (!alert) {
-        title.textContent = "No live alert telemetry";
-        detail.textContent = "No recent detection signal is available yet.";
-        source.textContent = "Unknown";
-        time.textContent = "--";
+        tEl.textContent = "—";
+        dEl.textContent = "No telemetry";
         return;
       }
-
       const kind = alert.alert_kind || "Detection alert";
       const summary = alert.alert_summary || kind;
-      const severity = homeDisplayStatus(alert.severity || alert.rule?.level || alert.level || "Unknown");
-      const detector = alert.decoder?.name || alert.rule?.groups?.[0] || alert.source || "Wazuh / Suricata";
-      const origin = alert.agent?.name || alert.agent_name || alert.hostname || alert.src?.ip || alert.src_ip || "Unknown source";
-      const ts = alert.timestamp || alert.ts || "--";
-      const briefTime = typeof ts === "string" && ts.includes("T") ? ts.split("T")[1].replace("Z", "").slice(0, 5) : ts;
+      const origin = alert.agent?.name || alert.agent_name || alert.hostname || alert.src?.ip || alert.src_ip || "";
+      tEl.textContent = summary;
+      dEl.textContent = origin ? `${kind} · ${origin}` : kind;
+    }
 
-      title.textContent = summary;
-      detail.textContent = `Type: ${kind} | Severity: ${severity} | Source: ${origin}`;
-      source.textContent = detector;
-      time.textContent = briefTime || "--";
+    function homeRenderLiveAlert(alertOrList) {
+      const timeEl = document.getElementById("live-alert-time");
+      const alerts = Array.isArray(alertOrList)
+        ? alertOrList
+        : (alertOrList ? [alertOrList] : []);
+
+      const wazuh   = alerts.find(a => !_isSuricataAlert(a)) || null;
+      const suricata = alerts.find(a =>  _isSuricataAlert(a)) || null;
+
+      _renderAlertRow("live-alert-title-wazuh", "live-alert-detail-wazuh", wazuh);
+      _renderAlertRow("live-alert-title-suri",  "live-alert-detail-suri",  suricata);
+
+      const newest = alerts[0];
+      if (timeEl && newest) {
+        const ts = newest.timestamp || newest.ts || "--";
+        timeEl.textContent = typeof ts === "string" && ts.includes("T")
+          ? ts.split("T")[1].replace("Z","").slice(0,5) : ts;
+      }
     }
 
     const HEALTH_ALERT_READ_KEY = "nics-health-alerts-read";
@@ -4299,8 +4507,8 @@
     async function refreshHomeLiveAlert(force = false) {
       if (!force && document.hidden) return;
       try {
-        const latestAlerts = await homeFetchJson("/api/forensics/alerts/latest?limit=1");
-        homeRenderLiveAlert(latestAlerts?.alerts?.[0] || null);
+        const latestAlerts = await homeFetchJson("/api/forensics/alerts/latest?limit=15");
+        homeRenderLiveAlert(latestAlerts?.alerts || []);
       } catch (_) {
         // Keep the previous alert rendered state.
       }
@@ -4445,11 +4653,61 @@
         homeRenderDetectionCoverage(data);
         homeRenderAttackCatalog(data);
         homeRenderForensicFoc(data);
-        if (latestAlert) homeRenderLiveAlert(latestAlert);
+        if (latestAlert) homeRenderLiveAlert([latestAlert]);
       } catch (_) {
         // Preserve previous dashboard state if summary refresh fails.
       } finally {
         homeSummaryInFlight = false;
+      }
+    }
+
+    async function loadFviMetrics() {
+      const el = document.getElementById("fvi-metrics-body");
+      if (!el) return;
+      try {
+        const res = await fetch("/api/forge-vi/dashboard", { cache: "no-store" });
+        if (!res.ok) throw new Error(res.status);
+        const d = await res.json();
+        const a = d.aggregate;
+        const edgeMeta = d.edge_meta || [];
+        const r0 = (d.runs || [])[0] || {};
+        const cmp = d.campaign || {};
+        const setT = (id, v) => { const n = document.getElementById(id); if (n) n.textContent = v || "—"; };
+        setT("fvi-campaign-id",  cmp.id          || "—");
+        setT("fvi-scenario-id",  cmp.scenario_id || "—");
+        setT("fvi-n-exec",       a.n             ?? "—");
+        setT("fvi-cases-sealed", a.cases_sealed  ?? "—");
+
+        const cpr = a.mean_cpr !== null ? (a.mean_cpr * 100).toFixed(1) : "—";
+        const cprColor = a.mean_cpr >= 0.875 ? "#22c55e" : a.mean_cpr >= 0.625 ? "#eab308" : "#ef4444";
+        const SC = { recovered:"#1d7a47", ambiguous:"#c47a0a", degraded:"#f97316", missing:"#ef4444", unknown:"#64748b" };
+        const SL = { recovered:"rec", ambiguous:"amb", degraded:"deg", missing:"mis", unknown:"?" };
+
+        const kpi = (val, lbl, color) =>
+          `<div class="rfvi-kpi"><span class="rfvi-kpi-val" style="color:${color};">${val}</span><span class="rfvi-kpi-lbl">${lbl}</span></div>`;
+
+        const recN = edgeMeta.filter(e => {
+          const st = r0.edge_states?.[e.label];
+          return (typeof st === "object" ? st?.support : st) === "recovered";
+        }).length;
+
+        const edgePills = edgeMeta.map(e => {
+          const st = r0.edge_states?.[e.label];
+          const sup = typeof st === "object" ? (st?.support || "unknown") : (st || "unknown");
+          const c = SC[sup] || "#64748b";
+          return `<span class="rfvi-edge" style="color:${c};background:${c}18;border-color:${c}44;">${e.label} <span style="opacity:.75;">${SL[sup]||"?"}</span></span>`;
+        }).join("");
+
+        el.innerHTML =
+          kpi(a.n,        "runs",    "#a78bfa") +
+          kpi(cpr + "%",  "CPR",     cprColor)  +
+          kpi(`${recN}/${edgeMeta.length}`, "rec/total", "#38bdf8") +
+          kpi(a.cases_sealed, "sealed", "#22c55e") +
+          `<div class="rfvi-sep"></div>` +
+          `<div class="rfvi-edges">${edgePills}</div>`;
+      } catch(_) {
+        const el2 = document.getElementById("fvi-metrics-body");
+        if (el2) el2.innerHTML = `<span class="rfvi-loading">Metrics unavailable</span>`;
       }
     }
 
@@ -4460,6 +4718,7 @@
       homeBindSidebarNavigation();
       loadHomeOperationalSummary(true).catch(() => {});
       refreshHomeNodeHealth(false).catch(() => {});
+      loadFviMetrics().catch(() => {});
 
       setInterval(() => {
         const monitoring = document.getElementById("summary-monitoring");

@@ -362,6 +362,126 @@ def api_foc_lifecycle_run_causal():
     return jsonify(result), http_code
 
 
+@foc_bp.route("/api/foc/causal/run-all", methods=["POST"])
+def api_foc_causal_run_all():
+    import time
+    import math
+    from .foc_case_analysis import _list_case_entries
+
+    entries = _list_case_entries()
+    if not entries:
+        return jsonify({"error": "no_cases_indexed"}), 404
+
+    # Trigger reconstruction for every case
+    running_pairs = []
+    results_map: dict = {}
+    for entry in entries:
+        cid = str(entry.get("case_id") or "").strip()
+        if not cid:
+            continue
+        try:
+            case_dir = _case_dir_from_entry(entry)
+        except Exception:
+            results_map[cid] = {"case_id": cid, "state": "error", "error": "path_unavailable"}
+            continue
+        res = run_causal_reconstruction(case_id=cid, case_path=case_dir, degraded_ok=True)
+        results_map[cid] = (res, case_dir)
+        if (res.get("status") or res.get("state") or "") in ("running", "queued"):
+            running_pairs.append((cid, case_dir))
+
+    # Poll running jobs (max 45 s each, check every 300 ms)
+    if running_pairs:
+        deadline = time.time() + 45
+        remaining = list(running_pairs)
+        while remaining and time.time() < deadline:
+            time.sleep(0.3)
+            still = []
+            for cid, case_dir in remaining:
+                st = causal_status_payload(cid, case_dir)
+                state = st.get("state") or st.get("status") or ""
+                if state in ("running", "queued", ""):
+                    still.append((cid, case_dir))
+                else:
+                    results_map[cid] = (st, case_dir)
+            remaining = still
+
+    # Build per-case summary + aggregate
+    per_case = []
+    cprs, wcprs = [], []
+
+    # Stable edge display order
+    _edge_label_map = {
+        "edge_attack_execution_to_ot_write": "e1",
+        "edge_ot_write_to_network_modbus_write": "e2",
+        "edge_network_modbus_write_to_detection_surface": "e3",
+        "edge_ot_write_to_plc_state_observation": "e4",
+        "edge_detection_surface_to_alert_observation": "e5",
+        "edge_alert_observation_to_forensic_case": "e6",
+        "edge_forensic_case_to_preserved_case_evidence": "e7",
+        "edge_preserved_case_evidence_to_multilayer_analysis": "e8",
+    }
+
+    for entry in entries:
+        cid = str(entry.get("case_id") or "").strip()
+        val = results_map.get(cid)
+        if not val or isinstance(val, dict) and val.get("error"):
+            per_case.append({"case_id": cid, "source_case_name": entry.get("source_case_name"), "state": "error"})
+            continue
+
+        result, case_dir = val if isinstance(val, tuple) else (val, None)
+        mp = result.get("metrics_preview") or {}
+        cpr = mp.get("causal_path_recoverability")
+        wcpr = mp.get("weighted_cpr")
+        if cpr is not None:
+            cprs.append(cpr)
+        if wcpr is not None:
+            wcprs.append(wcpr)
+
+        # Read edge states from causal_graph.json
+        edge_states: dict = {}
+        if case_dir is not None:
+            try:
+                import json as _json
+                cg_path = case_dir / "derived" / "reconstruction" / "causal_graph.json"
+                if cg_path.is_file():
+                    cg = _json.loads(cg_path.read_text(encoding="utf-8"))
+                    for e in (cg.get("edges") or []):
+                        label = _edge_label_map.get(e.get("edge_id") or "")
+                        if label:
+                            edge_states[label] = e.get("support_status") or "unknown"
+            except Exception:
+                pass
+
+        per_case.append({
+            "case_id": cid,
+            "source_case_name": entry.get("source_case_name"),
+            "state": result.get("state") or result.get("status"),
+            "cpr": cpr,
+            "wcpr": wcpr,
+            "recovered_edges": mp.get("recovered_edges"),
+            "ambiguous_edges": mp.get("ambiguous_edges"),
+            "degraded_edges": mp.get("degraded_edges"),
+            "missing_edges": mp.get("missing_edges"),
+            "expected_edges": mp.get("expected_edges"),
+            "edge_states": edge_states,
+        })
+
+    n = len(cprs)
+    mean_cpr = sum(cprs) / n if n else None
+    sigma_cpr = math.sqrt(sum((x - mean_cpr) ** 2 for x in cprs) / n) if n else None
+    mean_wcpr = sum(wcprs) / len(wcprs) if wcprs else None
+
+    return jsonify({
+        "status": "completed",
+        "case_count": len(entries),
+        "completed_count": n,
+        "mean_cpr": mean_cpr,
+        "sigma_cpr": sigma_cpr,
+        "mean_wcpr": mean_wcpr,
+        "per_case": per_case,
+    }), 200
+
+
 @foc_bp.route("/api/foc/lifecycle/run-full", methods=["POST"])
 def api_foc_lifecycle_run_full():
     body = request.get_json(silent=True) or {}
