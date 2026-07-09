@@ -59,6 +59,16 @@ _E_CRITERIA = [
 ]
 
 
+def _wps_val(wps: dict, field: str):
+    """Extract value from workflow_phase_summary pipeline_fields entry."""
+    entry = (wps.get("pipeline_fields") or {}).get(field) or {}
+    val = entry.get("value")
+    status = entry.get("status", "")
+    if val is None or status == "missing_from_existing_reports":
+        return None
+    return val
+
+
 def _per_case_data() -> list[dict]:
     """Build per-run data merging workflow_checks + current causal_status."""
     wf_checks = _load(_PAPER_EXPORTS / "FORGE-VI_LevelC_Workflow_Checks.json") or []
@@ -69,6 +79,7 @@ def _per_case_data() -> list[dict]:
         exec_id = f"EXEC-{str(i + 1).zfill(4)}"
         nts = _load(case_dir / "metadata" / "normalized_causal_timestamps.json") or {}
         fi = _load(case_dir / "metadata" / "forensic_intervention.json") or {}
+        wps = _load(case_dir / "metadata" / "workflow_phase_summary.json") or {}
         cs = _load(case_dir / "derived" / "reconstruction" / "causal_status.json") or {}
         cg = _load(case_dir / "derived" / "reconstruction" / "causal_graph.json") or {}
         manifest = _load(case_dir / "manifest.json") or {}
@@ -91,17 +102,17 @@ def _per_case_data() -> list[dict]:
                     }
                     break
 
-        # Evidence layers
+        # Evidence layers — prefer manifest truth over intervention flag for disk/memory
         preserved = fi.get("preserved_evidence_categories") or {}
         evidence_layers = {
-            "memory": preserved.get("memory", False),
-            "network": preserved.get("network_packet_context", False),
-            "disk": preserved.get("disk", False),
-            "ot": bool(nts.get("ot_export_preserved_at_utc")),
-            "alert": bool(nts.get("alert_observed_at_utc")),
+            "memory":   preserved.get("memory", False) or memory_gib > 0,
+            "network":  preserved.get("network_packet_context", False) or pcap_gib > 0,
+            "disk":     preserved.get("disk", False) or disk_gib > 0,
+            "ot":       bool(nts.get("ot_export_preserved_at_utc")),
+            "alert":    bool(nts.get("alert_observed_at_utc")),
             "metadata": True,
             "manifest": (case_dir / "manifest.json").is_file(),
-            "custody": (case_dir / "chain_of_custody.log").is_file(),
+            "custody":  (case_dir / "chain_of_custody.log").is_file(),
             "analysis": (case_dir / "analysis" / "forensic_analysis_report.json").is_file(),
         }
 
@@ -140,8 +151,9 @@ def _per_case_data() -> list[dict]:
 
         # Volumes from manifest artifacts
         artifacts = manifest.get("artifacts") or []
-        memory_gib = round(sum(a.get("size", 0) for a in artifacts if "memory" in str(a.get("type", ""))) / (1024 ** 3), 3)
-        pcap_gib = round(sum(a.get("size", 0) for a in artifacts if "pcap" in str(a.get("type", "")).lower() or "network" in str(a.get("type", "")).lower()) / (1024 ** 3), 3)
+        memory_gib = round(sum(a.get("size", 0) for a in artifacts if a.get("type") == "memory_lime") / (1024 ** 3), 3)
+        disk_gib   = round(sum(a.get("size", 0) for a in artifacts if a.get("type") == "disk_raw")    / (1024 ** 3), 3)
+        pcap_gib   = round(sum(a.get("size", 0) for a in artifacts if a.get("type") == "network_pcap") / (1024 ** 3), 3)
 
         # Merge wf_checks if available
         wf = {}
@@ -161,13 +173,15 @@ def _per_case_data() -> list[dict]:
         sha256_covered = sum(1 for a in artifacts if a.get("sha256"))
         integrity_ratio = round(sha256_covered / len(artifacts), 4) if artifacts else 0.0
 
-        # C1-C5 checks
+        # C1-C5 checks — prefer wf_checks, then wps pipeline_fields, then local derivation
         c_checks: dict = {}
         for cid, _, field, _ in _C_INVARIANTS:
             val = wf.get(field)
             if val is None:
+                val = _wps_val(wps, field)
+            if val is None:
                 val = {
-                    "C1": evidence_layers["metadata"],
+                    "C1": _wps_val(wps, "same_topology_instantiated") if _wps_val(wps, "same_topology_instantiated") is not None else evidence_layers["metadata"],
                     "C2": bool(fi.get("triggering_alert_id")),
                     "C3": True,
                     "C4": integrity_ratio > 0.8,
@@ -212,10 +226,12 @@ def _per_case_data() -> list[dict]:
             "evidence_layers": evidence_layers,
             "latencies": latencies,
             "volumes": {
-                "memory_gib": wf.get("memory_size_gib") or memory_gib,
-                "pcap_gib": wf.get("pcap_size_gib") or pcap_gib,
-                "disk_gib": wf.get("disk_size_gib") or 0.0,
+                "memory_gib":     wf.get("memory_size_gib") or memory_gib,
+                "disk_gib":       wf.get("disk_size_gib")   or disk_gib,
+                "pcap_gib":       wf.get("pcap_size_gib")   or pcap_gib,
                 "artifacts_count": len(artifacts),
+                "n_disk_images":  sum(1 for a in artifacts if a.get("type") == "disk_raw"),
+                "n_memory_dumps": sum(1 for a in artifacts if a.get("type") == "memory_lime"),
             },
             "custody_entries": custody_entries,
             "sha256_covered": sha256_covered,
@@ -227,7 +243,7 @@ def _per_case_data() -> list[dict]:
             "acquisition_profile": fi.get("acquisition_profile_id"),
             "analysis_layers_expected": wf.get("analysis_layers_expected") or mp.get("expected_analysis_layers"),
             "analysis_layers_useful": wf.get("analysis_layers_useful") or mp.get("layers_with_useful_output"),
-            "validation_gate_passed": wf.get("validation_gate_passed"),
+            "validation_gate_passed": wf.get("validation_gate_passed") if wf.get("validation_gate_passed") is not None else _wps_val(wps, "validation_gate_passed"),
         })
 
     return out
@@ -312,10 +328,12 @@ def _aggregate(runs: list[dict]) -> dict:
 
     # Volume stats
     def _vol_stats(key: str) -> dict | None:
-        vals = [r["volumes"].get(key) for r in runs if r.get("volumes") and r["volumes"].get(key)]
+        vals = [r["volumes"].get(key) for r in runs if r.get("volumes") and r["volumes"].get(key) is not None and r["volumes"].get(key) > 0]
         if not vals:
             return None
-        return {"mean": round(sum(vals) / len(vals), 3), "min": round(min(vals), 3), "max": round(max(vals), 3), "values": vals}
+        mean = sum(vals) / len(vals)
+        std = math.sqrt(sum((v - mean) ** 2 for v in vals) / len(vals)) if len(vals) > 1 else 0.0
+        return {"mean": round(mean, 3), "std": round(std, 3), "min": round(min(vals), 3), "max": round(max(vals), 3), "values": vals}
 
     # Integrity aggregate
     integrity_ratios = [r.get("integrity_ratio") for r in runs if r.get("integrity_ratio") is not None]
@@ -332,7 +350,8 @@ def _aggregate(runs: list[dict]) -> dict:
         "latency_stats": latency_stats,
         "volume_stats": {
             "memory_gib": _vol_stats("memory_gib"),
-            "pcap_gib": _vol_stats("pcap_gib"),
+            "disk_gib":   _vol_stats("disk_gib"),
+            "pcap_gib":   _vol_stats("pcap_gib"),
         },
         "c_aggregate": c_agg,
         "e_aggregate": e_agg,

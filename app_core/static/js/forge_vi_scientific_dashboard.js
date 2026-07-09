@@ -459,12 +459,15 @@ function renderEvidenceMatrix() {
 }
 
 // ── OPERATIONAL METRICS ──────────────────────────────────────────────────────
-function barRow(label, mean, std, min, max, maxVal, color) {
-  const w = maxVal > 0 ? Math.min(100, (mean / maxVal) * 100) : 0;
+function barRow(label, mean, std, min, max, maxVal, color, note) {
+  // For metrics where mean can be negative (pre-alert acquisition), clamp bar to 0 but show real value
+  const displayMean = Math.max(0, mean);
+  const w = maxVal > 0 ? Math.min(100, (displayMean / maxVal) * 100) : 0;
+  const noteHtml = note ? ` <span style="color:var(--muted);font-size:10px;">${esc(note)}</span>` : "";
   return `<div class="mb-3">
     <div class="flex items-center justify-between text-xs mb-1">
       <span style="color:var(--muted);">${esc(label)}</span>
-      <span style="font-weight:900;color:${color};">${fmt(mean,1)}s <span style="color:var(--muted);font-weight:400;">±${fmt(std,1)} [${fmt(min,0)}–${fmt(max,0)}]</span></span>
+      <span style="font-weight:900;color:${color};">${fmt(mean,1)}s <span style="color:var(--muted);font-weight:400;">±${fmt(std,1)} [${fmt(min,0)}–${fmt(max,0)}]</span>${noteHtml}</span>
     </div>
     <div class="bar-track">
       <div class="bar-fill" style="width:${w.toFixed(1)}%;background:${color};"></div>
@@ -475,50 +478,69 @@ function barRow(label, mean, std, min, max, maxVal, color) {
 function renderM2() {
   const ls = DATA.aggregate.latency_stats || {};
   const defs = [
-    ["Attack duration",          "attack_duration_s",          "#f97316"],
-    ["Attack → Alert",           "attack_to_alert_s",          "#eab308"],
-    ["Alert → Memory start",     "alert_to_memory_start_s",    "#7c3aed"],
-    ["Alert → Memory sealed",    "alert_to_memory_sealed_s",   "#a78bfa"],
-    ["Alert → Case sealed",      "alert_to_case_sealed_s",     "#38bdf8"],
-    ["Acquisition duration",     "acquisition_duration_s",     "#22c55e"],
+    ["Attack duration",          "attack_duration_s",           "#f97316", null],
+    ["Attack → Alert",           "attack_to_alert_s",           "#eab308", null],
+    ["Alert → Memory start",     "alert_to_memory_start_s",     "#7c3aed", ls.alert_to_memory_start_s?.min < 0 ? "pre-alert in 1 run" : null],
+    ["Alert → Memory sealed",    "alert_to_memory_sealed_s",    "#a78bfa", null],
+    ["Alert → Case sealed",      "alert_to_case_sealed_s",      "#38bdf8", null],
+    ["Acquisition duration",     "acquisition_duration_s",      "#22c55e", null],
   ];
   const maxVal = Math.max(...defs.map(([,k]) => ls[k]?.max || 0));
-  $("m2-panel").innerHTML = defs.map(([lbl, k, c]) => {
+  $("m2-panel").innerHTML = defs.map(([lbl, k, c, note]) => {
     const s = ls[k];
     if (!s) return `<div class="text-xs text-slate-500 mb-2">${esc(lbl)}: no data</div>`;
-    return barRow(lbl, s.mean, s.std, s.min, s.max, maxVal, c);
+    return barRow(lbl, s.mean, s.std, s.min, s.max, maxVal, c, note);
   }).join("");
 }
 
 function renderM3() {
   const vs = DATA.aggregate.volume_stats || {};
   const runs = DATA.runs;
-  const maxMemGib = Math.max(...runs.map(r => r.volumes?.memory_gib || 0), 1);
-  const maxPcapGib = Math.max(...runs.map(r => r.volumes?.pcap_gib || 0), 1);
+  const maxMemGib  = Math.max(...runs.map(r => r.volumes?.memory_gib || 0), 1);
+  const maxDiskGib = Math.max(...runs.map(r => r.volumes?.disk_gib   || 0), 1);
+  const maxPcapGib = Math.max(...runs.map(r => r.volumes?.pcap_gib   || 0), 1);
+
+  const aggMem  = vs.memory_gib;
+  const aggDisk = vs.disk_gib;
+  const aggPcap = vs.pcap_gib;
+
+  const aggRow = (label, s, color) => s
+    ? `<div class="text-xs mb-1" style="color:${color};">${esc(label)}: ${fmt(s.mean,2)} ± ${fmt(s.std,2)} GiB&nbsp;&nbsp;<span style="opacity:.6;">[${fmt(s.min,2)}–${fmt(s.max,2)}]</span></div>`
+    : "";
 
   const runBars = runs.map(r => {
-    const mem = r.volumes?.memory_gib || 0;
-    const pcap = r.volumes?.pcap_gib || 0;
-    const disk = r.volumes?.disk_gib || 0;
+    const mem  = r.volumes?.memory_gib || 0;
+    const disk = r.volumes?.disk_gib   || 0;
+    const pcap = r.volumes?.pcap_gib   || 0;
+    const nDisk = r.volumes?.n_disk_images || 0;
+    const nMem  = r.volumes?.n_memory_dumps || 0;
     return `<div class="mb-2">
       <div class="text-xs text-slate-500 mb-1">${esc(r.exec_id)}</div>
       <div class="flex gap-3 items-center">
         <div class="flex-1">
           <div class="bar-track mb-1"><div class="bar-fill" style="width:${(mem/maxMemGib*100).toFixed(1)}%;background:#7c3aed;"></div></div>
+          ${disk > 0 ? `<div class="bar-track mb-1"><div class="bar-fill" style="width:${(disk/maxDiskGib*100).toFixed(1)}%;background:#0ea5e9;"></div></div>` : ""}
           <div class="bar-track mb-1"><div class="bar-fill" style="width:${(pcap/maxPcapGib*100).toFixed(1)}%;background:#2563eb;"></div></div>
         </div>
-        <div class="text-xs mono" style="white-space:nowrap;min-width:140px;">
-          <span style="color:#7c3aed;">mem ${fmt(mem,2)} GiB</span> · <span style="color:#2563eb;">pcap ${fmt(pcap,2)} GiB</span>${disk > 0 ? ` · <span style="color:#64748b;">disk ${fmt(disk,1)} GiB</span>` : ""}
+        <div class="text-xs mono" style="white-space:nowrap;min-width:180px;">
+          <span style="color:#7c3aed;">mem ${fmt(mem,2)} GiB</span> (${nMem}×)<br>
+          ${disk > 0 ? `<span style="color:#0ea5e9;">disk ${fmt(disk,1)} GiB</span> (${nDisk}×)<br>` : ""}
+          <span style="color:#2563eb;">pcap ${fmt(pcap,2)} GiB</span>
         </div>
       </div>
     </div>`;
   }).join("");
 
   $("m3-panel").innerHTML = `
-    <div class="flex gap-4 text-xs mb-4">
+    <div class="flex gap-4 text-xs mb-3">
       <span style="color:#7c3aed;">■ Memory</span>
+      <span style="color:#0ea5e9;">■ Disk</span>
       <span style="color:#2563eb;">■ Network/PCAP</span>
-      <span style="color:#64748b;">■ Disk</span>
+    </div>
+    <div class="mb-3 p-2 rounded" style="background:rgba(255,255,255,.04);">
+      ${aggRow("Memory (mean ± σ)", aggMem, "#7c3aed")}
+      ${aggRow("Disk (mean ± σ)", aggDisk, "#0ea5e9")}
+      ${aggRow("PCAP (mean ± σ)", aggPcap, "#2563eb")}
     </div>
     ${runBars}`;
 }
