@@ -106,7 +106,7 @@ cat > "$BASE_DIR/suricata-modbus-register-detection.yml" <<'EOF'
         remote_src: true
         owner: root
         group: root
-        mode: '0640'
+        mode: '0644'
       when: previous_rule_file_stat.stat.exists
 
     - name: Ensure Suricata rules directory exists
@@ -123,7 +123,7 @@ cat > "$BASE_DIR/suricata-modbus-register-detection.yml" <<'EOF'
         content: "{{ rule_content }}"
         owner: root
         group: root
-        mode: '0640'
+        mode: '0644'
 
     - name: Verify whether the rule file is already registered in suricata.yaml
       shell: grep -q 'nics-modbus-register-manipulation.rules' "{{ suricata_yaml }}"
@@ -171,7 +171,7 @@ cat > "$BASE_DIR/suricata-modbus-register-detection.yml" <<'EOF'
         remote_src: true
         owner: root
         group: root
-        mode: '0640'
+        mode: '0644'
       when: suricata_test.rc != 0 and previous_rule_file_stat.stat.exists
 
     - name: Remove custom rule file if validation failed and no previous file existed

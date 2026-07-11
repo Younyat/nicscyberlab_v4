@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NICS CyberLab | Scenario Snapshot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --accent: #6366f1;
+      --accent-dim: rgba(99,102,241,0.18);
+      --border: rgba(71,85,105,0.55);
+      --surface: #0f172a;
+      --surface2: #1e293b;
+    }
+    body { background: var(--surface); color: #e2e8f0; }
+
+    /* scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #020617; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+
+    /* section card */
+    .ss-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px 24px;
+    }
+    .ss-card-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #94a3b8;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .ss-card-title .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+
+    /* status badges */
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 2px 9px; border-radius: 9999px;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+    }
+    .badge-pass    { background: rgba(16,185,129,.18); color: #34d399; border: 1px solid rgba(16,185,129,.3); }
+    .badge-warn    { background: rgba(245,158,11,.18); color: #fbbf24; border: 1px solid rgba(245,158,11,.3); }
+    .badge-fail    { background: rgba(239,68,68,.18);  color: #f87171; border: 1px solid rgba(239,68,68,.3); }
+    .badge-info    { background: rgba(99,102,241,.18); color: #a5b4fc; border: 1px solid rgba(99,102,241,.3); }
+    .badge-na      { background: rgba(71,85,105,.25);  color: #94a3b8; border: 1px solid rgba(71,85,105,.4); }
+    .badge-sealed  { background: rgba(124,58,237,.2);  color: #c4b5fd; border: 1px solid rgba(124,58,237,.4); }
+
+    /* progress blocks */
+    .prog-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 6px 0; font-size: 12px;
+    }
+    .prog-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      flex-shrink: 0;
+      background: #334155;
+    }
+    .prog-dot.done   { background: #34d399; }
+    .prog-dot.active { background: var(--accent); animation: pulse-dot 1s infinite; }
+    .prog-dot.warn   { background: #fbbf24; }
+    .prog-dot.fail   { background: #f87171; }
+    @keyframes pulse-dot {
+      0%,100% { opacity:1; } 50% { opacity:.4; }
+    }
+
+    /* table */
+    .ss-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .ss-table th {
+      text-align: left; padding: 7px 10px;
+      border-bottom: 1px solid var(--border);
+      color: #64748b; font-weight: 600; font-size: 10px;
+      letter-spacing: .08em; text-transform: uppercase;
+    }
+    .ss-table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid rgba(71,85,105,.25);
+      vertical-align: top;
+      color: #cbd5e1;
+    }
+    .ss-table tr:last-child td { border-bottom: none; }
+    .ss-table tr:hover td { background: rgba(255,255,255,.025); }
+
+    /* readiness grid */
+    .readiness-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+    }
+    .readiness-item {
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(15,23,42,.7);
+    }
+    .readiness-item .ri-label {
+      font-size: 10px; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: #94a3b8; margin-bottom: 6px;
+    }
+    .readiness-item .ri-val {
+      font-size: 18px; font-weight: 700;
+    }
+    .ri-pass { color: #34d399; }
+    .ri-fail { color: #f87171; }
+    .ri-warn { color: #fbbf24; }
+
+    /* chain view */
+    .chain-row {
+      display: flex; align-items: stretch; gap: 0;
+      padding: 10px 0; border-bottom: 1px solid rgba(71,85,105,.2);
+    }
+    .chain-row:last-child { border-bottom: none; }
+    .chain-node {
+      display: flex; flex-direction: column; align-items: center;
+      min-width: 90px; font-size: 10px;
+    }
+    .chain-box {
+      padding: 4px 8px; border-radius: 6px; font-weight: 700;
+      font-size: 10px; text-align: center; min-width: 70px;
+    }
+    .chain-arrow { color: #475569; margin: 0 4px; align-self: center; }
+    .cb-attack  { background: rgba(239,68,68,.18);  color: #fca5a5; border: 1px solid rgba(239,68,68,.3); }
+    .cb-alert   { background: rgba(245,158,11,.18); color: #fde68a; border: 1px solid rgba(245,158,11,.3); }
+    .cb-case    { background: rgba(99,102,241,.18); color: #c7d2fe; border: 1px solid rgba(99,102,241,.3); }
+    .cb-missing { background: rgba(71,85,105,.25);  color: #94a3b8; border: 1px solid rgba(71,85,105,.4); font-style: italic; }
+
+    /* capture button */
+    #btnCapture {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      transition: opacity .2s, transform .1s;
+    }
+    #btnCapture:hover:not(:disabled) { opacity: .85; transform: translateY(-1px); }
+    #btnCapture:disabled { opacity: .45; cursor: not-allowed; }
+
+    .action-btn {
+      padding: 6px 14px; border-radius: 6px; font-size: 11px;
+      font-weight: 700; border: 1px solid var(--border); cursor: pointer;
+      background: rgba(255,255,255,.04); color: #94a3b8;
+      transition: background .15s;
+    }
+    .action-btn:hover { background: rgba(255,255,255,.09); color: #e2e8f0; }
+    .action-btn.primary { background: var(--accent-dim); color: #a5b4fc; border-color: rgba(99,102,241,.4); }
+    .action-btn.danger  { color: #f87171; border-color: rgba(239,68,68,.3); }
+
+    /* collapsible sections */
+    details > summary {
+      cursor: pointer; list-style: none; padding: 8px 0;
+      font-size: 11px; font-weight: 700; color: #94a3b8;
+      letter-spacing: .08em; text-transform: uppercase;
+      display: flex; align-items: center; gap: 6px;
+    }
+    details > summary::before { content: "▶"; font-size: 9px; transition: transform .2s; }
+    details[open] > summary::before { transform: rotate(90deg); }
+    details > summary::-webkit-details-marker { display: none; }
+
+    .empty-note { color: #475569; font-size: 12px; font-style: italic; padding: 8px 0; }
+
+    /* tab bar */
+    .tab-bar { display: flex; gap: 4px; flex-wrap: wrap; }
+    .tab-btn {
+      padding: 6px 14px; border-radius: 6px 6px 0 0;
+      font-size: 11px; font-weight: 600;
+      border: 1px solid transparent; cursor: pointer;
+      background: transparent; color: #64748b;
+      border-bottom: none;
+    }
+    .tab-btn.active {
+      background: var(--surface2);
+      border-color: var(--border);
+      color: #e2e8f0;
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+  </style>
+</head>
+<body class="min-h-screen">
+<div class="max-w-[1800px] mx-auto px-6 py-6 space-y-5">
+
+  <!-- HEADER -->
+  <header class="ss-card flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div>
+      <div class="text-xs font-bold tracking-widest text-indigo-400 uppercase mb-1">NICS CyberLab · FORGE-VI</div>
+      <h1 class="text-xl font-bold text-white">Scenario Snapshot</h1>
+      <p class="text-xs text-slate-400 mt-1">Capture, validate and seal the complete state of the experimental scenario.</p>
+    </div>
+    <div class="flex items-center gap-3 flex-wrap">
+      <div id="captureStatusBadge" class="badge badge-na">IDLE</div>
+      <button id="btnCapture" onclick="startCapture()">Generate Scenario Snapshot</button>
+      <button class="action-btn" onclick="loadLatest()" title="Refresh from saved snapshots">↺ Refresh</button>
+    </div>
+  </header>
+
+  <!-- CAPTURE PROGRESS -->
+  <div id="captureProgress" class="ss-card" style="display:none">
+    <div class="ss-card-title"><span class="dot"></span>Capture Progress</div>
+    <div id="progressList" class="space-y-1">
+      <div class="prog-item" id="prog-scenario">   <span class="prog-dot" id="dot-scenario"></span>  Reading scenario definitions</div>
+      <div class="prog-item" id="prog-infra">      <span class="prog-dot" id="dot-infra"></span>    Reading runtime infrastructure</div>
+      <div class="prog-item" id="prog-tools">      <span class="prog-dot" id="dot-tools"></span>    Reading tools and services</div>
+      <div class="prog-item" id="prog-attacks">    <span class="prog-dot" id="dot-attacks"></span>  Reading attacks and alerts</div>
+      <div class="prog-item" id="prog-forensics">  <span class="prog-dot" id="dot-forensics"></span>Reading forensic cases</div>
+      <div class="prog-item" id="prog-campaigns">  <span class="prog-dot" id="dot-campaigns"></span>Reading campaigns and repetitions</div>
+      <div class="prog-item" id="prog-rel">        <span class="prog-dot" id="dot-rel"></span>      Building relationships</div>
+      <div class="prog-item" id="prog-val">        <span class="prog-dot" id="dot-val"></span>      Running validation</div>
+      <div class="prog-item" id="prog-done">       <span class="prog-dot" id="dot-done"></span>      Generating snapshot</div>
+    </div>
+  </div>
+
+  <!-- SNAPSHOT SELECTOR -->
+  <div class="ss-card flex flex-col gap-3 md:flex-row md:items-center md:justify-between" id="snapshotMeta">
+    <div class="flex items-center gap-4">
+      <div>
+        <div class="text-xs text-slate-500 font-semibold uppercase tracking-widest mb-1">Snapshot</div>
+        <select id="snapshotSelect" class="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 min-w-[260px]"
+                onchange="loadSnapshot(this.value)">
+          <option value="">— No snapshots yet —</option>
+        </select>
+      </div>
+      <div id="metaStatus" class="text-xs text-slate-400"></div>
+    </div>
+    <div class="flex items-center gap-2 flex-wrap">
+      <button class="action-btn primary" onclick="sealCurrent()" id="btnSeal">Seal</button>
+      <button class="action-btn" onclick="exportCurrent()" id="btnExport">Export JSON</button>
+      <button class="action-btn" onclick="verifyNodesCurrent()" id="btnVerify" title="SSH into nodes to verify tools and rules">Verify Nodes</button>
+      <button class="action-btn" onclick="validateCurrent()" id="btnValidate">Validate</button>
+      <button class="action-btn danger" onclick="deleteCurrent()" id="btnDelete">Delete</button>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT: tabs -->
+  <div id="mainContent" style="display:none">
+    <div class="tab-bar mb-0" id="tabBar">
+      <button class="tab-btn active" onclick="switchTab('overview')">Overview</button>
+      <button class="tab-btn" onclick="switchTab('readiness')">Readiness</button>
+      <button class="tab-btn" onclick="switchTab('scenario')">Scenario</button>
+      <button class="tab-btn" onclick="switchTab('infrastructure')">Infrastructure</button>
+      <button class="tab-btn" onclick="switchTab('network')">Network</button>
+      <button class="tab-btn" onclick="switchTab('tools')">Tools</button>
+      <button class="tab-btn" onclick="switchTab('node-verify')">Node Verification</button>
+      <button class="tab-btn" onclick="switchTab('attacks')">Attacks</button>
+      <button class="tab-btn" onclick="switchTab('chains')">Alert → Case Chain</button>
+      <button class="tab-btn" onclick="switchTab('forensics')">Forensics</button>
+      <button class="tab-btn" onclick="switchTab('campaigns')">Campaigns</button>
+      <button class="tab-btn" onclick="switchTab('foc')">FOC</button>
+      <button class="tab-btn" onclick="switchTab('procedures')">Procedures</button>
+      <button class="tab-btn" onclick="switchTab('audit')">Audit</button>
+      <button class="tab-btn" onclick="switchTab('provenance')">Provenance</button>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div id="tab-overview" class="tab-panel active ss-card" style="border-radius: 0 16px 16px 16px;">
+      <div class="ss-card-title"><span class="dot"></span>Snapshot Overview</div>
+      <div id="overviewContent" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+    </div>
+
+    <!-- READINESS -->
+    <div id="tab-readiness" class="tab-panel space-y-4 mt-4">
+      <div class="ss-card">
+        <div class="ss-card-title"><span class="dot"></span>Reproduction Readiness</div>
+        <div id="readinessFlags" class="readiness-grid mb-6"></div>
+        <div id="validationChecks"></div>
+      </div>
+    </div>
+
+    <!-- SCENARIO -->
+    <div id="tab-scenario" class="tab-panel space-y-4 mt-4">
+      <div class="ss-card">
+        <div class="ss-card-title"><span class="dot"></span>IT/OT Scenario Definition</div>
+        <div id="scenarioMeta" class="mb-4"></div>
+        <details open>
+          <summary>Declared Nodes (<span id="nodeCount">0</span>)</summary>
+          <div id="nodeTable" class="mt-3"></div>
+        </details>
+        <details class="mt-3">
+          <summary>OT Components (<span id="otNodeCount">0</span>)</summary>
+          <div id="otNodeTable" class="mt-3"></div>
+        </details>
+      </div>
+    </div>
+
+    <!-- NETWORK -->
+    <div id="tab-network" class="tab-panel space-y-4 mt-4">
+      <div class="ss-card">
+        <div class="ss-card-title"><span class="dot"></span>OpenStack Network Configuration</div>
+        <div id="networkContent"></div>
+      </div>
+    </div>
+
+    <!-- INFRASTRUCTURE -->
+    <div id="tab-infrastructure" class="tab-panel space-y-4 mt-4">
+      <div class="ss-card">
+        <div class="ss-card-title"><span class="dot"></span>Runtime Inventory</div>
+        <div id="infraStatus" class="mb-4"></div>
+        <details open>
+          <summary>Runtime Instances (<span id="instanceCount">0</span>)</summary>
+          <div id="instanceTable" class="mt-3"></div>
+        </details>
+        <details class="mt-3">
+          <summary>Node Mapping (Logical → Runtime)</summary>
+          <div id="mappingTable" class="mt-3"></div>
+        </details>
+      </div>
+    </div>
+
+    <!-- TOOLS -->
+    <div id="tab-tools" class="tab-panel space-y-4 mt-4">
+      <div class="ss-card">
+        <div class="ss-card-title"><span class="dot"></span>Tools & Services per Node (Declared)</div>
+        <div id="toolsContent"></div>
+      </div>
+    </div>
+
+    <!-- NODE VERIFICATION -->
+    <div id="tab-node-verify" class="tab-panel space-y-4 mt-4">
+      <div class="ss-card">
+        <div class="ss-card-title"><span class="dot"></span>Node Live Verification — Tools, Rules & Services</div>
+        <p class="text-xs text-slate-400 mb-4">
+          Cached health probe data captured at snapshot time. Click <strong>Verify Nodes</strong> (top bar) to trigger
+          a fresh SSH probe that also captures Suricata rules and Wazuh configuration.
+        </p>
+        <div id="nodeVerifyContent"></div>
+      </div>
+    </div>
+
+    <!-- ATTACKS -->
+    <div id="tab-attacks" class="tab-panel space-y-4 mt-4">
+      <div class="ss-card">
+        <div class="ss-card-title"><span class="dot"></span>Attacks & Incidents</div>
+        <details open>
+          <summary>Attack Catalog (<span id="catalogCount">0</span> profiles)</summary>
+          <div id="catalogTable" class="mt-3"></div>
+        </details>
+        <details class="mt-4">
+          <summary>Executed Attacks (<span id="execCount">0</span>)</summary>
+          <div id="execTable" class="mt-3"></div>
+        </details>
+      </div>
+    </div>
+
+    <!-- CHAINS -->
+    <div id="tab-chains" class="tab-panel space-y-4 mt-4">
+      <div class="ss-card">
+        <div class="ss-card-title"><span class="dot"></span>Alert → Trigger → Case Chain</div>
+        <div id="chainSummary" class="mb-4"></div>
+        <div id="chainList"></div>
+      </div>
+    </div>
+
+    <!-- FORENSICS -->
+    <div id="tab-forensics" class="tab-panel space-y-4 mt-4">
+      <div class="ss-card">
+        <div class="ss-card-title"><span class="dot"></span>Forensic Cases</div>
+        <div id="forensicsContent"></div>
+      </div>
+    </div>
+
+    <!-- CAMPAIGNS -->
+    <div id="tab-campaigns" class="tab-panel space-y-4 mt-4">
+      <div class="ss-card">
+        <div class="ss-card-title"><span class="dot"></span>Campaigns & Repetitions</div>
+        <div id="campaignsContent"></div>
+      </div>
+    </div>
+
+    <!-- FOC -->
+    <div id="tab-foc" class="tab-panel space-y-4 mt-4">
+      <div class="ss-card">
+        <div class="ss-card-title"><span class="dot"></span>FOC Reconstruction</div>
+        <div id="focContent"></div>
+      </div>
+    </div>
+
+    <!-- PROCEDURES -->
+    <div id="tab-procedures" class="tab-panel space-y-4 mt-4">
+      <div class="ss-card">
+        <div class="ss-card-title"><span class="dot"></span>Reconstruction Procedures</div>
+        <p class="text-xs text-slate-400 mb-4">
+          Exact procedures to fully rebuild the scenario from scratch: IT infrastructure, OT nodes,
+          detection system configuration, tool installation, and scenario destruction.
+        </p>
+        <div id="proceduresContent"></div>
+      </div>
+    </div>
+
+    <!-- AUDIT -->
+    <div id="tab-audit" class="tab-panel space-y-4 mt-4">
+      <div class="ss-card">
+        <div class="ss-card-title"><span class="dot"></span>Snapshot Audit &amp; Comparison</div>
+        <p class="text-xs text-slate-400 mb-4">
+          Full audit: snapshot integrity, chain of custody for all cases, Level A/B/C comparison matrix,
+          and scientific reproducibility metrics (CPR / WCPR).
+        </p>
+        <div id="auditContent"></div>
+      </div>
+    </div>
+
+    <!-- PROVENANCE -->
+    <div id="tab-provenance" class="tab-panel space-y-4 mt-4">
+      <div class="ss-card">
+        <div class="ss-card-title"><span class="dot"></span>Data Provenance &amp; Hashes</div>
+        <div id="provenanceContent"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EMPTY STATE -->
+  <div id="emptyState" class="ss-card text-center py-12">
+    <div class="text-4xl mb-4">📸</div>
+    <div class="text-slate-300 font-semibold mb-2">No snapshot available</div>
+    <p class="text-slate-500 text-sm mb-6">Click "Generate Scenario Snapshot" to capture the current state of the experimental scenario.</p>
+    <button onclick="startCapture()" class="action-btn primary text-sm px-6 py-2">Generate Scenario Snapshot</button>
+  </div>
+
+</div>
+<script src="js/scenario_snapshot.js"></script>
+</body>
+</html>

@@ -119,7 +119,15 @@ def latest_alerts():
         dst = item.get("dst") or {}
         agent = item.get("agent") or {}
         item["severity"] = t.get("severity")
-        item["score_0_100"] = t.get("score_0_100")
+        _s0100 = t.get("score_0_100")
+        if _s0100 is None:
+            _native = t.get("native_score")
+            _scale  = t.get("native_scale", "")
+            if _native is not None and "0_16" in _scale:
+                _s0100 = round(_native / 16 * 100)
+        item["score_0_100"] = _s0100
+        item["native_score"] = t.get("native_score")
+        item["native_scale"] = t.get("native_scale")
         item["recommend_forensics"] = t.get("recommend_forensics")
         item["alert_kind"] = alert_kind
         item["alert_summary"] = alert_summary
@@ -133,5 +141,16 @@ def latest_alerts():
 
     # más reciente primero
     enriched = list(reversed(enriched))
+
+    # Deduplicar: mismo (ts_segundo, src_ip, dst_ip, protocol, signature) → conservar el primero
+    seen: set[str] = set()
+    deduped: list[dict] = []
+    for item in enriched:
+        ts_s = (item.get("ts_utc") or "")[:19]
+        fp = f"{ts_s}|{item.get('src_ip')}|{item.get('dst_ip')}|{item.get('protocol')}|{item.get('signature')}"
+        if fp not in seen:
+            seen.add(fp)
+            deduped.append(item)
+    enriched = deduped
 
     return jsonify({"alerts": enriched, "session_id": session_id})

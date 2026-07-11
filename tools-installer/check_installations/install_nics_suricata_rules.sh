@@ -55,7 +55,7 @@ if ssh_victim "grep -q 'sid:9200001' '$RULE_FILE' 2>/dev/null"; then
 else
   info "Creando regla ICMP (ping)"
   ssh_victim "echo '$RULE_CONTENT' | sudo tee '$RULE_FILE' >/dev/null"
-  ssh_victim "sudo chown root:root '$RULE_FILE' && sudo chmod 640 '$RULE_FILE'"
+  ssh_victim "sudo chown root:root '$RULE_FILE' && sudo chmod 644 '$RULE_FILE'"
   ok "Regla ICMP creada correctamente"
 fi
 

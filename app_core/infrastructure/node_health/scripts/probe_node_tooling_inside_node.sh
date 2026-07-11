@@ -172,11 +172,21 @@ suricata_rule_inventory() {
 }
 
 emit_file_contents() {
-  local file
+  local file use_sudo
   for file in "$@"; do
-    [[ -r "$file" ]] || continue
+    if [[ -r "$file" ]]; then
+      use_sudo=0
+    elif sudo test -r "$file" 2>/dev/null; then
+      use_sudo=1
+    else
+      continue
+    fi
     printf 'FILE\t%s\n' "$file"
-    sed -n '1,240p' "$file" 2>/dev/null || true
+    if [[ $use_sudo -eq 1 ]]; then
+      sudo sed -n '1,240p' "$file" 2>/dev/null || true
+    else
+      sed -n '1,240p' "$file" 2>/dev/null || true
+    fi
     printf 'FILE_END\t%s\n' "$file"
   done
 }
@@ -259,7 +269,7 @@ suricata_rule_inventory
 section_end suricata_rule_inventory
 
 section_begin suricata_rule_contents
-emit_file_contents /var/lib/suricata/rules/nics*.rules
+emit_file_contents /var/lib/suricata/rules/suricata.rules /var/lib/suricata/rules/nics*.rules
 section_end suricata_rule_contents
 
 section_begin wazuh_fim_paths

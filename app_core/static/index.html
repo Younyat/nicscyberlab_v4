@@ -2266,7 +2266,7 @@
         <div class="side-item" data-view="nicscyberlab_dashboard" tabindex="0" role="button">
           <div class="side-item-main">
             <span class="side-glyph">13</span>
-            <div class="side-text"><span>Comparisons</span><span class="side-sub">Scenario comparison</span></div>
+            <div class="side-text"><span>Live Monitoring</span><span class="side-sub">Alerts &amp; detection</span></div>
           </div>
           <span id="wf-comparisons" class="side-state status-unknown">Unknown</span>
         </div>
@@ -2276,6 +2276,13 @@
             <div class="side-text"><span>Node Health</span><span class="side-sub">Resource and cleanup</span></div>
           </div>
           <span id="wf-node-health" class="side-state status-unknown">Unknown</span>
+        </div>
+        <div class="side-item" data-view="scenario_snapshot" tabindex="0" role="button">
+          <div class="side-item-main">
+            <span class="side-glyph">SS</span>
+            <div class="side-text"><span>Scenario Snapshot</span><span class="side-sub">Capture &amp; seal state</span></div>
+          </div>
+          <span id="wf-scenario-snapshot" class="side-state status-unknown">Unknown</span>
         </div>
       </nav>
 
@@ -2493,10 +2500,10 @@
 
             <div onclick="openView('nicscyberlab_dashboard')" class="card-option flex flex-col items-center justify-center p-5">
               <div class="stage-number">13</div>
-              <div class="stage-icon">CP</div>
-              <div class="stage-kicker text-content" data-es="COMPARACIÓN" data-en="COMPARISON">COMPARACIÓN</div>
-              <div class="stage-title text-content" data-es="Comparaciones" data-en="Comparisons">Comparaciones</div>
-              <div class="stage-desc text-content" data-es="Comparación entre escenarios, ejecuciones y resultados." data-en="Comparison across scenarios, executions, and results.">Comparación entre escenarios, ejecuciones y resultados.</div>
+              <div class="stage-icon">LM</div>
+              <div class="stage-kicker text-content" data-es="MONITORIZACIÓN" data-en="MONITORING">MONITORIZACIÓN</div>
+              <div class="stage-title text-content" data-es="Live Monitoring" data-en="Live Monitoring">Live Monitoring</div>
+              <div class="stage-desc text-content" data-es="Inventario, alertas en vivo y detección de ataques IT/OT." data-en="Inventory, live alerts, and IT/OT attack detection.">Inventario, alertas en vivo y detección de ataques IT/OT.</div>
               <div class="stage-dot"></div>
             </div>
 
@@ -2519,7 +2526,7 @@
             </div>
 
             <div onclick="openView('honeyv')" class="card-option flex flex-col items-center justify-center p-5">
-              <div class="stage-number">14</div>
+              <div class="stage-number">16</div>
               <div class="stage-icon">HX</div>
               <div class="stage-kicker text-content" data-es="EXCHANGE" data-en="EXCHANGE">EXCHANGE</div>
               <div class="stage-title text-content" data-es="Lab Exchange" data-en="Lab Exchange">Lab Exchange</div>
@@ -2528,7 +2535,7 @@
             </div>
 
             <div onclick="openView('etc_lab')" class="card-option flex flex-col items-center justify-center p-5">
-              <div class="stage-number">14</div>
+              <div class="stage-number">17</div>
               <div class="stage-icon">ETC</div>
               <div class="stage-kicker text-content" data-es="IA" data-en="AI">IA</div>
               <div class="stage-title text-content" data-es="ETC Lab" data-en="ETC Lab">ETC Lab</div>
@@ -2537,7 +2544,7 @@
             </div>
 
             <div onclick="openView('ciberia_lab')" class="card-option flex flex-col items-center justify-center p-5">
-              <div class="stage-number">15</div>
+              <div class="stage-number">18</div>
               <div class="stage-icon">AI</div>
               <div class="stage-kicker text-content" data-es="FLUJOS" data-en="FLOWS">FLUJOS</div>
               <div class="stage-title text-content" data-es="CiberIA Lab" data-en="CiberIA Lab">CiberIA Lab</div>
@@ -2546,7 +2553,7 @@
             </div>
 
             <div onclick="openView('adv_detection')" class="card-option flex flex-col items-center justify-center p-5">
-              <div class="stage-number">15</div>
+              <div class="stage-number">19</div>
               <div class="stage-icon">AD</div>
               <div class="stage-kicker text-content" data-es="ADVERSARIA" data-en="ADVERSARIAL">ADVERSARIA</div>
               <div class="stage-title text-content" data-es="advDetection" data-en="advDetection">advDetection</div>
@@ -2554,13 +2561,22 @@
               <div class="stage-dot"></div>
             </div>
 
-            <div onclick="openView('forge_vi_scientific_dashboard')" class="card-option flex flex-col items-center justify-center p-5" style="border:1px solid rgba(124,58,237,0.35);background:rgba(124,58,237,0.06);">
+            <div onclick="openView('forge_vi_scientific_dashboard')" class="card-option flex flex-col items-center justify-center p5" style="border:1px solid rgba(124,58,237,0.35);background:rgba(124,58,237,0.06);">
               <div class="stage-number" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;">FVI</div>
               <div class="stage-icon" style="color:#a78bfa;">📊</div>
               <div class="stage-kicker" style="color:#a78bfa;">SCIENTIFIC</div>
               <div class="stage-title">FORGE-VI Dashboard</div>
               <div class="stage-desc">CPR, causal graph, evidence matrix, C1–C5, E1–E4 and publication-ready exports.</div>
               <div class="stage-dot" style="background:#7c3aed;"></div>
+            </div>
+
+            <div onclick="openView('scenario_snapshot')" class="card-option flex flex-col items-center justify-center p-5" style="border:1px solid rgba(20,184,166,0.35);background:rgba(20,184,166,0.06);">
+              <div class="stage-number" style="background:linear-gradient(135deg,#0d9488,#0891b2);color:#fff;">SS</div>
+              <div class="stage-icon" style="color:#5eead4;">📸</div>
+              <div class="stage-kicker" style="color:#5eead4;">SNAPSHOT</div>
+              <div class="stage-title">Scenario Snapshot</div>
+              <div class="stage-desc">Capture, validate and seal the complete scenario state for reproducibility.</div>
+              <div class="stage-dot" style="background:#0d9488;"></div>
             </div>
 
           </div>
@@ -2795,7 +2811,7 @@
           ts: rtNow(),
           severity,
           score: level,
-          forensics: level >= 7 ? "YES" : "NO",
+          forensics: level >= 10 ? "YES" : "NO",
           signature: obj?.signature || obj?.rule?.description || obj?.description || "WAZUH ALERT",
           src: obj?.src || obj?.srcip || obj?.data?.srcip || "--",
           dst: obj?.dst || obj?.dstip || obj?.data?.dstip || "--",
@@ -2816,7 +2832,7 @@
           ts: rtNow(),
           severity,
           score: level,
-          forensics: level >= 7 ? "YES" : "NO",
+          forensics: level >= 10 ? "YES" : "NO",
           signature: "WAZUH LIVE ALERT",
           src: "--",
           dst: "--",
@@ -2847,7 +2863,7 @@
           ts: rtNow(),
           severity,
           score: level,
-          forensics: (get("forensics") || (level >= 7 ? "YES" : "NO")).toUpperCase(),
+          forensics: (get("forensics") || (level >= 10 ? "YES" : "NO")).toUpperCase(),
           kind: (get("kind") || "Detection_alert").replaceAll("_", " "),
           signature: (get("sig") || get("signature") || "WAZUH ALERT").replaceAll("_", " "),
           src: get("src") || "--",
@@ -2936,9 +2952,6 @@
     function rtPushToast(ev) {
       const host = document.getElementById("rt-toasts");
       if (!host) return;
-
-      const sc = (typeof ev.score === "number") ? ev.score : Number(ev.score);
-      if (!Number.isNaN(sc) && sc >= 7) ev.forensics = "YES";
 
       const meta = rtSevMeta(ev.severity, ev.score);
       const el = document.createElement("div");
@@ -3172,7 +3185,7 @@
       const closeBtn = document.getElementById("dfir-auto-close");
       if (closeBtn) closeBtn.addEventListener("click", dfirOverlayClose);
       const decisionCloseBtn = document.getElementById("dfir-auto-decision-close");
-      if (decisionCloseBtn) decisionCloseBtn.addEventListener("click", dfirDecisionOverlayClose);
+      if (decisionCloseBtn) decisionCloseBtn.addEventListener("click", dfirDismissPendingDecision);
       const coexistBtn = document.getElementById("dfir-auto-coexist-btn");
       if (coexistBtn) coexistBtn.addEventListener("click", () => dfirSubmitDecision("coexist_with_previous_case"));
       const replaceBtn = document.getElementById("dfir-auto-replace-btn");
@@ -3503,6 +3516,27 @@
       const ov = document.getElementById("dfir-auto-decision-overlay");
       if (ov) ov.style.display = "none";
       if (!DFIR.running) document.body.classList.remove("dfir-locked");
+    }
+
+    async function dfirDismissPendingDecision() {
+      const decision = DFIR.pendingDecision;
+      if (decision?.decision_id) {
+        try {
+          await fetch("/api/dfir/orchestrator/auto/decision", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              decision_id: decision.decision_id,
+              action: "keep_previous_case_only",
+              operator_hint: "index_dfir_auto_dismiss"
+            })
+          });
+        } catch {}
+        DFIR.pendingDecision = null;
+        DFIR.decisionPending = false;
+        dfirRenderBtn();
+      }
+      dfirDecisionOverlayClose();
     }
 
     function dfirRenderDecisionModal(payload, mode = "decision_required") {

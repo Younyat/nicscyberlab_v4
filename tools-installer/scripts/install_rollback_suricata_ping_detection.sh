@@ -63,7 +63,7 @@ cat > "$BASE_DIR/suricata-ping-detection.yml" <<'EOF'
         content: "{{ rule_content }}\n"
         owner: root
         group: root
-        mode: '0640'
+        mode: '0644'
 
     - name: Verificar si la regla ya esta registrada en suricata.yaml
       shell: grep -q 'nics-ping.rules' "{{ suricata_yaml }}"

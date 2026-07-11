@@ -946,9 +946,65 @@ function renderTooling(node, payload) {
     ? `<div class="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">Runtime probe warning: ${esc(runtimeError.message)}</div>`
     : "";
 
-  NH.securityRules.innerHTML = runtimeWarning
-    ? runtimeWarning
-    : `<div class="rounded-xl border border-slate-800 bg-slate-950/70 p-4 text-slate-400">Select a tool to inspect its real rule files, full rule content and interpretation.</div>`;
+  // Auto-render Suricata rules panel on node selection (no second click required)
+  const suricataPresent = (runtime?.tool_presence?.suricata || "").toLowerCase();
+  const suricataStatus = (runtime?.tool_status?.suricata || "").toLowerCase();
+  const parsedRules = runtime?.suricata?.parsed_rules || [];
+  const activeRuleFiles = runtime?.suricata?.active_rule_files || [];
+
+  let suricataPanel = "";
+  if (runtime) {
+    const isInstalled = suricataPresent === "installed";
+    const statusBadge = isInstalled
+      ? `<span class="px-2 py-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 text-[10px] font-black uppercase tracking-widest">INSTALLED · ${suricataStatus || "unknown"}</span>`
+      : `<span class="px-2 py-1 rounded-md border border-slate-600/40 bg-slate-800/40 text-slate-400 text-[10px] font-black uppercase tracking-widest">NOT INSTALLED</span>`;
+
+    const ruleFilesHtml = activeRuleFiles.length
+      ? activeRuleFiles.map(f => `<div class="font-mono text-xs text-slate-300 truncate">${esc(f)}</div>`).join("")
+      : `<div class="text-xs text-slate-500">No active rule files detected</div>`;
+
+    const rulesHtml = parsedRules.length
+      ? parsedRules.map((rule, idx) => `
+          <details class="rounded-lg border border-slate-800 bg-slate-950/80" ${idx === 0 ? "open" : ""}>
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2">
+              <div class="min-w-0">
+                <div class="truncate font-bold text-white text-xs">${esc(rule.path)}</div>
+                <div class="mt-1 text-[10px] text-slate-400">${esc(rule.interpretation)}</div>
+              </div>
+              <span class="shrink-0 text-[10px] uppercase tracking-[0.2em] text-slate-500">rule</span>
+            </summary>
+            <div class="border-t border-slate-800 px-3 py-2">
+              <pre class="whitespace-pre-wrap text-xs text-emerald-300">${esc(rule.raw)}</pre>
+              <div class="mt-2 text-xs text-slate-300">${esc(rule.interpretation)}</div>
+            </div>
+          </details>`)
+          .join("")
+      : `<div class="text-xs text-slate-500">No Suricata rules parsed from node${isInstalled ? " — rule files may be empty or unreadable" : ""}.</div>`;
+
+    suricataPanel = `
+      <div class="rounded-xl border border-slate-700/60 bg-slate-950/70 p-4 space-y-3">
+        <div class="flex items-center justify-between gap-3">
+          <div class="text-xs font-black uppercase tracking-[0.25em] text-slate-400">Suricata IDS — Active Rules</div>
+          ${statusBadge}
+        </div>
+        <div class="space-y-1">
+          <div class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Rule Files</div>
+          ${ruleFilesHtml}
+        </div>
+        <div class="space-y-2">
+          <div class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Loaded Rules (${parsedRules.length})</div>
+          ${rulesHtml}
+        </div>
+      </div>`;
+  }
+
+  NH.securityRules.innerHTML = [
+    runtimeWarning,
+    suricataPanel,
+    suricataPanel
+      ? ""
+      : `<div class="rounded-xl border border-slate-800 bg-slate-950/70 p-4 text-slate-400">Select a tool to inspect its real rule files, full rule content and interpretation.</div>`,
+  ].filter(Boolean).join("\n");
 
   const selectedTool = tools.find(tool => tool.id === STATE.selectedToolId);
   if (selectedTool) {

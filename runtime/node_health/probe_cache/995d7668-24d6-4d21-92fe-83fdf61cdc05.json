@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-07T21:44:50.102825Z",
+  "generated_at": "2026-07-10T08:58:37.096359Z",
   "node": {
     "id": "995d7668-24d6-4d21-92fe-83fdf61cdc05",
     "name": "monitor 1",
@@ -13,27 +13,27 @@
       "os_pretty": "Ubuntu 22.04.5 LTS",
       "kernel": "5.15.0-171-generic",
       "machine": "x86_64",
-      "date_utc": "2026-07-07T21:55:24Z",
-      "uptime_pretty": "up 6 weeks, 6 days, 10 hours, 52 minutes",
-      "loadavg": "0.23 0.15 0.10",
+      "date_utc": "2026-07-10T09:09:14Z",
+      "uptime_pretty": "up 7 weeks, 1 day, 22 hours, 6 minutes",
+      "loadavg": "0.31 0.25 0.23",
       "cpu_cores": "4",
-      "cpu_usage_pct": "15.80",
+      "cpu_usage_pct": "4.20",
       "mem_total_mb": "7937",
-      "mem_used_mb": "1179",
-      "mem_avail_mb": "6445",
+      "mem_used_mb": "1198",
+      "mem_avail_mb": "6426",
       "swap_total_mb": "0",
       "swap_used_mb": "0",
       "swap_free_mb": "0",
       "root_total_bytes": "83053432832",
-      "root_used_bytes": "13242478592",
-      "root_avail_bytes": "69794177024",
-      "root_use_pct": "16%",
+      "root_used_bytes": "13452165120",
+      "root_avail_bytes": "69584490496",
+      "root_use_pct": "17%",
       "root_inodes_use_pct": "3%",
-      "var_log_size_bytes": "1788920510",
+      "var_log_size_bytes": "1909509889",
       "suricata_log_size_bytes": "not_available",
       "tmp_size_bytes": "40960",
       "var_tmp_size_bytes": "20480",
-      "apt_cache_size_bytes": "145381392"
+      "apt_cache_size_bytes": "137893029"
     },
     "sections": {
       "services": [
@@ -53,44 +53,44 @@
       ],
       "filesystems": [
         "Filesystem      Size  Used Avail Use% Mounted on",
-        "/dev/vda1        78G   13G   66G  16% /",
-        "/dev/vda1        78G   13G   66G  16% /",
-        "/dev/vda1        78G   13G   66G  16% /",
-        "/dev/vda1        78G   13G   66G  16% /"
+        "/dev/vda1        78G   13G   65G  17% /",
+        "/dev/vda1        78G   13G   65G  17% /",
+        "/dev/vda1        78G   13G   65G  17% /",
+        "/dev/vda1        78G   13G   65G  17% /"
       ],
       "top_cpu": [
         "    PID COMMAND         %CPU %MEM",
-        " 285097 wazuh-modulesd  18.5  3.5",
-        " 285038 wazuh-remoted    4.8  0.0",
-        " 284961 wazuh-analysisd  4.2  1.1",
-        " 620517 sshd             4.0  0.1",
-        " 620565 bash             3.0  0.0",
-        " 620564 sshd             1.0  0.0",
-        " 620515 jq               0.5  0.0"
+        " 285097 wazuh-modulesd  18.3  3.6",
+        " 285038 wazuh-remoted    4.9  0.0",
+        " 284961 wazuh-analysisd  4.3  1.0",
+        " 647325 bash             3.0  0.0",
+        " 647267 sshd             1.5  0.1",
+        " 647324 sshd             1.0  0.0",
+        "    656 node             0.4  2.1"
       ],
       "top_mem": [
         "    PID COMMAND         %CPU %MEM",
-        " 285097 wazuh-modulesd  18.5  3.5",
+        " 285097 wazuh-modulesd  18.3  3.6",
         "    656 node             0.4  2.1",
+        " 608868 systemd-journal  0.0  2.1",
         " 284857 python3          0.0  1.2",
-        " 284961 wazuh-analysisd  4.2  1.1",
+        " 284961 wazuh-analysisd  4.3  1.0",
         " 284861 python3          0.1  0.8",
-        " 284858 python3          0.0  0.7",
-        " 284864 python3          0.0  0.7"
+        " 284858 python3          0.0  0.7"
       ],
       "largest_var": [
-        "149M\t/var/cache",
+        "142M\t/var/cache",
         "207M\t/var/lib/snapd/seed",
         "207M\t/var/lib/snapd/seed/snaps",
         "303M\t/var/lib/apt",
         "303M\t/var/lib/apt/lists",
-        "411M\t/var/lib/snapd/snaps",
-        "618M\t/var/lib/snapd",
-        "988M\t/var/lib",
-        "1.6G\t/var/log/journal",
-        "1.6G\t/var/log/journal/995d766824d64d2192fe83fdf61cdc05",
-        "1.7G\t/var/log",
-        "2.8G\t/var"
+        "508M\t/var/lib/snapd/snaps",
+        "716M\t/var/lib/snapd",
+        "1.1G\t/var/lib",
+        "1.7G\t/var/log/journal",
+        "1.7G\t/var/log/journal/995d766824d64d2192fe83fdf61cdc05",
+        "1.8G\t/var/log",
+        "3.0G\t/var"
       ]
     },
     "identity": {
@@ -98,20 +98,20 @@
       "os": "Ubuntu 22.04.5 LTS",
       "kernel": "5.15.0-171-generic",
       "machine": "x86_64",
-      "date_utc": "2026-07-07T21:55:24Z",
-      "uptime": "up 6 weeks, 6 days, 10 hours, 52 minutes",
-      "loadavg": "0.23 0.15 0.10"
+      "date_utc": "2026-07-10T09:09:14Z",
+      "uptime": "up 7 weeks, 1 day, 22 hours, 6 minutes",
+      "loadavg": "0.31 0.25 0.23"
     },
     "cpu": {
       "cores": 4,
-      "usage_pct": 15.8,
+      "usage_pct": 4.2,
       "severity": "ok"
     },
     "memory": {
       "total_mb": 7937,
-      "used_mb": 1179,
-      "available_mb": 6445,
-      "usage_pct": 14.85,
+      "used_mb": 1198,
+      "available_mb": 6426,
+      "usage_pct": 15.09,
       "swap_total_mb": 0,
       "swap_used_mb": 0,
       "swap_free_mb": 0,
@@ -120,15 +120,15 @@
     },
     "disk": {
       "root_total_bytes": 83053432832,
-      "root_used_bytes": 13242478592,
-      "root_avail_bytes": 69794177024,
-      "root_use_pct": 16,
+      "root_used_bytes": 13452165120,
+      "root_avail_bytes": 69584490496,
+      "root_use_pct": 17,
       "root_inodes_use_pct": 3,
-      "var_log_size_bytes": 1788920510,
+      "var_log_size_bytes": 1909509889,
       "suricata_log_size_bytes": null,
       "tmp_size_bytes": 40960,
       "var_tmp_size_bytes": 20480,
-      "apt_cache_size_bytes": 145381392,
+      "apt_cache_size_bytes": 137893029,
       "severity": "ok"
     },
     "services": {
@@ -144,46 +144,46 @@
     "tables": {
       "filesystems": [
         "Filesystem      Size  Used Avail Use% Mounted on",
-        "/dev/vda1        78G   13G   66G  16% /",
-        "/dev/vda1        78G   13G   66G  16% /",
-        "/dev/vda1        78G   13G   66G  16% /",
-        "/dev/vda1        78G   13G   66G  16% /"
+        "/dev/vda1        78G   13G   65G  17% /",
+        "/dev/vda1        78G   13G   65G  17% /",
+        "/dev/vda1        78G   13G   65G  17% /",
+        "/dev/vda1        78G   13G   65G  17% /"
       ],
       "top_cpu": [
         "    PID COMMAND         %CPU %MEM",
-        " 285097 wazuh-modulesd  18.5  3.5",
-        " 285038 wazuh-remoted    4.8  0.0",
-        " 284961 wazuh-analysisd  4.2  1.1",
-        " 620517 sshd             4.0  0.1",
-        " 620565 bash             3.0  0.0",
-        " 620564 sshd             1.0  0.0",
-        " 620515 jq               0.5  0.0"
+        " 285097 wazuh-modulesd  18.3  3.6",
+        " 285038 wazuh-remoted    4.9  0.0",
+        " 284961 wazuh-analysisd  4.3  1.0",
+        " 647325 bash             3.0  0.0",
+        " 647267 sshd             1.5  0.1",
+        " 647324 sshd             1.0  0.0",
+        "    656 node             0.4  2.1"
       ],
       "top_mem": [
         "    PID COMMAND         %CPU %MEM",
-        " 285097 wazuh-modulesd  18.5  3.5",
+        " 285097 wazuh-modulesd  18.3  3.6",
         "    656 node             0.4  2.1",
+        " 608868 systemd-journal  0.0  2.1",
         " 284857 python3          0.0  1.2",
-        " 284961 wazuh-analysisd  4.2  1.1",
+        " 284961 wazuh-analysisd  4.3  1.0",
         " 284861 python3          0.1  0.8",
-        " 284858 python3          0.0  0.7",
-        " 284864 python3          0.0  0.7"
+        " 284858 python3          0.0  0.7"
       ],
       "largest_var": [
-        "149M\t/var/cache",
+        "142M\t/var/cache",
         "207M\t/var/lib/snapd/seed",
         "207M\t/var/lib/snapd/seed/snaps",
         "303M\t/var/lib/apt",
         "303M\t/var/lib/apt/lists",
-        "411M\t/var/lib/snapd/snaps",
-        "618M\t/var/lib/snapd",
-        "988M\t/var/lib",
-        "1.6G\t/var/log/journal",
-        "1.6G\t/var/log/journal/995d766824d64d2192fe83fdf61cdc05",
-        "1.7G\t/var/log",
-        "2.8G\t/var"
+        "508M\t/var/lib/snapd/snaps",
+        "716M\t/var/lib/snapd",
+        "1.1G\t/var/lib",
+        "1.7G\t/var/log/journal",
+        "1.7G\t/var/log/journal/995d766824d64d2192fe83fdf61cdc05",
+        "1.8G\t/var/log",
+        "3.0G\t/var"
       ]
     }
   },
-  "stdout": "KV\thostname\tmonitor-1\nKV\tos_pretty\tUbuntu 22.04.5 LTS\nKV\tkernel\t5.15.0-171-generic\nKV\tmachine\tx86_64\nKV\tdate_utc\t2026-07-07T21:55:24Z\nKV\tuptime_pretty\tup 6 weeks, 6 days, 10 hours, 52 minutes\nKV\tloadavg\t0.23 0.15 0.10\nKV\tcpu_cores\t4\nKV\tcpu_usage_pct\t15.80\nKV\tmem_total_mb\t7937\nKV\tmem_used_mb\t1179\nKV\tmem_avail_mb\t6445\nKV\tswap_total_mb\t0\nKV\tswap_used_mb\t0\nKV\tswap_free_mb\t0\nKV\troot_total_bytes\t83053432832\nKV\troot_used_bytes\t13242478592\nKV\troot_avail_bytes\t69794177024\nKV\troot_use_pct\t16%\nKV\troot_inodes_use_pct\t3%\nKV\tvar_log_size_bytes\t1788920510\nKV\tsuricata_log_size_bytes\tnot_available\nKV\ttmp_size_bytes\t40960\nKV\tvar_tmp_size_bytes\t20480\nKV\tapt_cache_size_bytes\t145381392\nSECTION\tservices\tBEGIN\nsuricata=inactive\nnot_installed\nwazuh-agent=inactive\nnot_installed\nwazuh-manager=active\nzeek=inactive\nnot_installed\nsnort=inactive\nnot_installed\nopenplc=inactive\nnot_installed\ndocker=inactive\nnot_installed\nSECTION\tservices\tEND\nSECTION\tfilesystems\tBEGIN\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/vda1        78G   13G   66G  16% /\n/dev/vda1        78G   13G   66G  16% /\n/dev/vda1        78G   13G   66G  16% /\n/dev/vda1        78G   13G   66G  16% /\nSECTION\tfilesystems\tEND\nSECTION\ttop_cpu\tBEGIN\n    PID COMMAND         %CPU %MEM\n 285097 wazuh-modulesd  18.5  3.5\n 285038 wazuh-remoted    4.8  0.0\n 284961 wazuh-analysisd  4.2  1.1\n 620517 sshd             4.0  0.1\n 620565 bash             3.0  0.0\n 620564 sshd             1.0  0.0\n 620515 jq               0.5  0.0\nSECTION\ttop_cpu\tEND\nSECTION\ttop_mem\tBEGIN\n    PID COMMAND         %CPU %MEM\n 285097 wazuh-modulesd  18.5  3.5\n    656 node             0.4  2.1\n 284857 python3          0.0  1.2\n 284961 wazuh-analysisd  4.2  1.1\n 284861 python3          0.1  0.8\n 284858 python3          0.0  0.7\n 284864 python3          0.0  0.7\nSECTION\ttop_mem\tEND\nSECTION\tlargest_var\tBEGIN\n149M\t/var/cache\n207M\t/var/lib/snapd/seed\n207M\t/var/lib/snapd/seed/snaps\n303M\t/var/lib/apt\n303M\t/var/lib/apt/lists\n411M\t/var/lib/snapd/snaps\n618M\t/var/lib/snapd\n988M\t/var/lib\n1.6G\t/var/log/journal\n1.6G\t/var/log/journal/995d766824d64d2192fe83fdf61cdc05\n1.7G\t/var/log\n2.8G\t/var\nSECTION\tlargest_var\tEND\n"
+  "stdout": "KV\thostname\tmonitor-1\nKV\tos_pretty\tUbuntu 22.04.5 LTS\nKV\tkernel\t5.15.0-171-generic\nKV\tmachine\tx86_64\nKV\tdate_utc\t2026-07-10T09:09:14Z\nKV\tuptime_pretty\tup 7 weeks, 1 day, 22 hours, 6 minutes\nKV\tloadavg\t0.31 0.25 0.23\nKV\tcpu_cores\t4\nKV\tcpu_usage_pct\t4.20\nKV\tmem_total_mb\t7937\nKV\tmem_used_mb\t1198\nKV\tmem_avail_mb\t6426\nKV\tswap_total_mb\t0\nKV\tswap_used_mb\t0\nKV\tswap_free_mb\t0\nKV\troot_total_bytes\t83053432832\nKV\troot_used_bytes\t13452165120\nKV\troot_avail_bytes\t69584490496\nKV\troot_use_pct\t17%\nKV\troot_inodes_use_pct\t3%\nKV\tvar_log_size_bytes\t1909509889\nKV\tsuricata_log_size_bytes\tnot_available\nKV\ttmp_size_bytes\t40960\nKV\tvar_tmp_size_bytes\t20480\nKV\tapt_cache_size_bytes\t137893029\nSECTION\tservices\tBEGIN\nsuricata=inactive\nnot_installed\nwazuh-agent=inactive\nnot_installed\nwazuh-manager=active\nzeek=inactive\nnot_installed\nsnort=inactive\nnot_installed\nopenplc=inactive\nnot_installed\ndocker=inactive\nnot_installed\nSECTION\tservices\tEND\nSECTION\tfilesystems\tBEGIN\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/vda1        78G   13G   65G  17% /\n/dev/vda1        78G   13G   65G  17% /\n/dev/vda1        78G   13G   65G  17% /\n/dev/vda1        78G   13G   65G  17% /\nSECTION\tfilesystems\tEND\nSECTION\ttop_cpu\tBEGIN\n    PID COMMAND         %CPU %MEM\n 285097 wazuh-modulesd  18.3  3.6\n 285038 wazuh-remoted    4.9  0.0\n 284961 wazuh-analysisd  4.3  1.0\n 647325 bash             3.0  0.0\n 647267 sshd             1.5  0.1\n 647324 sshd             1.0  0.0\n    656 node             0.4  2.1\nSECTION\ttop_cpu\tEND\nSECTION\ttop_mem\tBEGIN\n    PID COMMAND         %CPU %MEM\n 285097 wazuh-modulesd  18.3  3.6\n    656 node             0.4  2.1\n 608868 systemd-journal  0.0  2.1\n 284857 python3          0.0  1.2\n 284961 wazuh-analysisd  4.3  1.0\n 284861 python3          0.1  0.8\n 284858 python3          0.0  0.7\nSECTION\ttop_mem\tEND\nSECTION\tlargest_var\tBEGIN\n142M\t/var/cache\n207M\t/var/lib/snapd/seed\n207M\t/var/lib/snapd/seed/snaps\n303M\t/var/lib/apt\n303M\t/var/lib/apt/lists\n508M\t/var/lib/snapd/snaps\n716M\t/var/lib/snapd\n1.1G\t/var/lib\n1.7G\t/var/log/journal\n1.7G\t/var/log/journal/995d766824d64d2192fe83fdf61cdc05\n1.8G\t/var/log\n3.0G\t/var\nSECTION\tlargest_var\tEND\n"
 }

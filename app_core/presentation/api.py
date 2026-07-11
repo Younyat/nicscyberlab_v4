@@ -2776,6 +2776,13 @@ try:
 except Exception:
     pass
 
+try:
+    from app_core.infrastructure.scenario_snapshot.api import scenario_snapshot_bp
+    api_bp.register_blueprint(scenario_snapshot_bp)
+    print("[OK] Scenario Snapshot Blueprint cargado correctamente")
+except Exception:
+    pass
+
 
 #-------------------------------------------Forensics new one  end----------------------------------------------------
 
