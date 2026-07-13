@@ -230,9 +230,9 @@ def hud_instances():
         # ============================================================
         # IDs lógicos estables para Cytoscape + escenarios
         CANON = [
-            {"id": "node1", "name": "monitor 1",    "role": "monitor"},
-            {"id": "node2", "name": "attack 2",     "role": "attacker"},
-            {"id": "node3", "name": "victim 3",     "role": "victim"},
+            {"id": "node1", "name": "monitor 11",   "role": "monitor"},
+            {"id": "node2", "name": "attack 22",    "role": "attacker"},
+            {"id": "node3", "name": "victim 33",    "role": "victim"},
             {"id": "plc1",  "name": "PLC_Instance", "role": "plc"},
             {"id": "scada1","name": "FUXA_Instance","role": "scada"},
         ]

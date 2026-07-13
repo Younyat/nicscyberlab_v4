@@ -1,0 +1,592 @@
+{
+  "job_id": "exp-d9db448ba40b",
+  "job_type": "level_b_repetitions",
+  "title": "Run Level B repetitions for CMP-20260707-000220-CBFB",
+  "status": "running",
+  "requested_at": "2026-07-13T13:47:58.829185+00:00",
+  "started_at": "2026-07-13T13:47:58.829802+00:00",
+  "finished_at": null,
+  "current_phase": "generate_report",
+  "progress_percent": 90.0,
+  "warnings": [
+    "Attack execution failed."
+  ],
+  "errors": [
+    {
+      "message": "Attack execution failed.",
+      "repetition": 1
+    },
+    {
+      "message": "Repetition 1/10 failed. The Level B campaign is being closed immediately; no further attacks or acquisitions will be launched. Final reporting will be generated only from the repetitions already executed.",
+      "repetition": 1
+    }
+  ],
+  "generated_artifacts": [],
+  "meta": {
+    "campaign_id": "CMP-20260707-000220-CBFB",
+    "level": "B",
+    "attack_id": "T0831_MANIPULATION_OF_CONTROL_MODBUS",
+    "requested_repetitions": 10,
+    "nested_level_a_repetitions": 10
+  },
+  "job_path": "/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260707-000220-CBFB/jobs/level-b-repetitions-2026-07-13T134758.829137_0000.json",
+  "current_phase_label": "Generate Level B report",
+  "current_phase_detail": "Aggregating per-repetition timing, acquisition, reconstruction, warnings, blockers, and case outputs into the final Level B validation report bundle.",
+  "phase_statuses": [
+    {
+      "phase_key": "starting",
+      "phase_label": "Starting",
+      "status": "running",
+      "detail": "Preparing experimentation job runner.",
+      "updated_at": "2026-07-13T13:47:58.829817+00:00",
+      "progress_percent": 1.0
+    },
+    {
+      "phase_key": "prepare_level_b_job",
+      "phase_label": "Prepare Level B job",
+      "status": "running",
+      "detail": "Preparing Level B batch execution, runtime workspace, and deterministic scientific progress plan.",
+      "updated_at": "2026-07-13T13:47:58.837508+00:00",
+      "progress_percent": 0.0
+    },
+    {
+      "phase_key": "prepare_level_b_job",
+      "phase_label": "Prepare Level B job",
+      "status": "completed",
+      "detail": "Prepared Level B batch job for campaign CMP-20260707-000220-CBFB.",
+      "updated_at": "2026-07-13T13:47:58.838258+00:00",
+      "progress_percent": 3.33
+    },
+    {
+      "phase_key": "optional_cleanup",
+      "phase_label": "Clean previous heavy cases",
+      "status": "running",
+      "detail": "Inspecting and deleting previous heavy forensic cases before launching the independent Level B repetitions. This is mandatory so two heavy cases never coexist.",
+      "updated_at": "2026-07-13T13:47:58.838967+00:00",
+      "progress_percent": 3.33
+    },
+    {
+      "phase_key": "optional_cleanup",
+      "phase_label": "Clean previous heavy cases",
+      "status": "completed",
+      "detail": "Mandatory cleanup completed. Estimated freed space: 0.00 B. Actual freed space: 0.00 B. Deleted cases: 0.",
+      "updated_at": "2026-07-13T13:48:00.475333+00:00",
+      "progress_percent": 6.67
+    },
+    {
+      "phase_key": "resolve_active_scenario",
+      "phase_label": "Resolve active scenario",
+      "status": "running",
+      "detail": "Resolving the already deployed scenario that will host all 10 independent Level B repetitions.",
+      "updated_at": "2026-07-13T13:48:00.480032+00:00",
+      "progress_percent": 6.67
+    },
+    {
+      "phase_key": "resolve_active_scenario",
+      "phase_label": "Resolve active scenario",
+      "status": "completed",
+      "detail": "Resolved target PLC_Instance (10.0.2.78) and monitor monitor 11 (10.0.2.112).",
+      "updated_at": "2026-07-13T13:48:01.163563+00:00",
+      "progress_percent": 10.0
+    },
+    {
+      "phase_key": "verify_plc_target",
+      "phase_label": "Verify PLC target",
+      "status": "running",
+      "detail": "Checking that the selected target is really the PLC node used by the controlled OT register-modification profile.",
+      "updated_at": "2026-07-13T13:48:01.168348+00:00",
+      "progress_percent": 10.0
+    },
+    {
+      "phase_key": "verify_plc_target",
+      "phase_label": "Verify PLC target",
+      "status": "completed",
+      "detail": "PLC target verified: PLC_Instance (10.0.2.78). Multi-host preservation scope resolved: fuxa=10.0.2.166, plc=10.0.2.78, victim=10.0.2.192.",
+      "updated_at": "2026-07-13T13:48:01.874490+00:00",
+      "progress_percent": 13.33
+    },
+    {
+      "phase_key": "enable_dfir_mode",
+      "phase_label": "Enable DFIR mode",
+      "status": "running",
+      "detail": "Verifying that DFIR mode is ON before the first OT attack is launched.",
+      "updated_at": "2026-07-13T13:48:01.875727+00:00",
+      "progress_percent": 13.33
+    },
+    {
+      "phase_key": "enable_dfir_mode",
+      "phase_label": "Enable DFIR mode",
+      "status": "completed_with_degradation",
+      "detail": "DFIR mode could not be verified as ON. The workflow will still run controlled trigger-arming attempts, but automatic preservation cannot start until DFIR mode is ON.",
+      "updated_at": "2026-07-13T13:48:01.876676+00:00",
+      "progress_percent": 16.67
+    },
+    {
+      "phase_key": "verify_disk_acquisition",
+      "phase_label": "Verify disk acquisition prerequisites",
+      "status": "running",
+      "detail": "Checking whether disk preservation can run in stable non-interactive mode for a long Level B batch.",
+      "updated_at": "2026-07-13T13:48:01.877568+00:00",
+      "progress_percent": 16.67
+    },
+    {
+      "phase_key": "verify_disk_acquisition",
+      "phase_label": "Verify disk acquisition prerequisites",
+      "status": "completed",
+      "detail": "Stable non-interactive disk acquisition prerequisites verified for Level B batch execution.",
+      "updated_at": "2026-07-13T13:48:01.898334+00:00",
+      "progress_percent": 20.0
+    },
+    {
+      "phase_key": "repetition_1_start",
+      "phase_label": "Start repetition 1/10",
+      "status": "running",
+      "detail": "Execution workspace EXEC-0013 created. Starting independent Level B repetition 1 of 10.",
+      "updated_at": "2026-07-13T13:48:01.906347+00:00",
+      "progress_percent": 20.0
+    },
+    {
+      "phase_key": "repetition_1_start",
+      "phase_label": "Start repetition 1/10",
+      "status": "completed",
+      "detail": "Independent Level B repetition 1 has started with execution EXEC-0013.",
+      "updated_at": "2026-07-13T13:48:01.907566+00:00",
+      "progress_percent": 20.7
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.78 (attempt 1/10).",
+      "updated_at": "2026-07-13T13:48:01.908732+00:00",
+      "progress_percent": 20.7
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed_with_degradation",
+      "detail": "Attack execution failed. (attempt 1/10).",
+      "updated_at": "2026-07-13T13:48:11.948214+00:00",
+      "progress_percent": 21.4
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.78 (attempt 2/10).",
+      "updated_at": "2026-07-13T13:48:21.950436+00:00",
+      "progress_percent": 20.7
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed_with_degradation",
+      "detail": "Attack execution failed. (attempt 2/10).",
+      "updated_at": "2026-07-13T13:48:31.624522+00:00",
+      "progress_percent": 21.4
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.78 (attempt 3/10).",
+      "updated_at": "2026-07-13T13:48:41.625902+00:00",
+      "progress_percent": 20.7
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed_with_degradation",
+      "detail": "Attack execution failed. (attempt 3/10).",
+      "updated_at": "2026-07-13T13:48:51.692920+00:00",
+      "progress_percent": 21.4
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.78 (attempt 4/10).",
+      "updated_at": "2026-07-13T13:49:01.694642+00:00",
+      "progress_percent": 20.7
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed_with_degradation",
+      "detail": "Attack execution failed. (attempt 4/10).",
+      "updated_at": "2026-07-13T13:49:12.274985+00:00",
+      "progress_percent": 21.4
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.78 (attempt 5/10).",
+      "updated_at": "2026-07-13T13:49:22.277256+00:00",
+      "progress_percent": 20.7
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed_with_degradation",
+      "detail": "Attack execution failed. (attempt 5/10).",
+      "updated_at": "2026-07-13T13:49:32.805331+00:00",
+      "progress_percent": 21.4
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.78 (attempt 6/10).",
+      "updated_at": "2026-07-13T13:49:42.808177+00:00",
+      "progress_percent": 20.7
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed_with_degradation",
+      "detail": "Attack execution failed. (attempt 6/10).",
+      "updated_at": "2026-07-13T13:49:52.136848+00:00",
+      "progress_percent": 21.4
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.78 (attempt 7/10).",
+      "updated_at": "2026-07-13T13:50:02.138357+00:00",
+      "progress_percent": 20.7
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed_with_degradation",
+      "detail": "Attack execution failed. (attempt 7/10).",
+      "updated_at": "2026-07-13T13:50:11.243062+00:00",
+      "progress_percent": 21.4
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.78 (attempt 8/10).",
+      "updated_at": "2026-07-13T13:50:21.245693+00:00",
+      "progress_percent": 20.7
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed_with_degradation",
+      "detail": "Attack execution failed. (attempt 8/10).",
+      "updated_at": "2026-07-13T13:50:30.014168+00:00",
+      "progress_percent": 21.4
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.78 (attempt 9/10).",
+      "updated_at": "2026-07-13T13:50:40.016562+00:00",
+      "progress_percent": 20.7
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed_with_degradation",
+      "detail": "Attack execution failed. (attempt 9/10).",
+      "updated_at": "2026-07-13T13:50:49.447220+00:00",
+      "progress_percent": 21.4
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.78 (attempt 10/10).",
+      "updated_at": "2026-07-13T13:50:59.449578+00:00",
+      "progress_percent": 20.7
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "failed",
+      "detail": "Attack execution failed. (attempt 10/10).",
+      "updated_at": "2026-07-13T13:51:08.646949+00:00",
+      "progress_percent": 21.4
+    },
+    {
+      "phase_key": "repetition_1_close_campaign_after_error",
+      "phase_label": "Close campaign after failed repetition",
+      "status": "completed_with_degradation",
+      "detail": "Repetition 1/10 failed. The Level B campaign is being closed immediately; no further attacks or acquisitions will be launched. Final reporting will be generated only from the repetitions already executed.",
+      "updated_at": "2026-07-13T13:51:08.654259+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "generate_report",
+      "phase_label": "Generate Level B report",
+      "status": "running",
+      "detail": "Aggregating per-repetition timing, acquisition, reconstruction, warnings, blockers, and case outputs into the final Level B validation report bundle.",
+      "updated_at": "2026-07-13T13:51:08.657286+00:00",
+      "progress_percent": 90.0
+    }
+  ],
+  "report_output_path": "app_core/infrastructure/forensics/evidence_store/validation_reports/level_b_repetition_report_2026-07-13T134758.836403_0000",
+  "requested_repetitions": 10,
+  "level_b_cleanup_manifest_path": "runtime/level_b_repetitions/exp-d9db448ba40b/cleanup_manifest.json",
+  "dfir_mode_before": "full",
+  "dfir_mode_after": "full",
+  "disk_preflight": {
+    "ok": true,
+    "blockers": [],
+    "warnings": [],
+    "privilege_mode": "user",
+    "sudo_noninteractive_ok": true,
+    "sudo_nopasswd_granted": true,
+    "docker_available": true,
+    "docker_access_ok": true,
+    "qemu_img_available": true,
+    "script_path": "/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/scripts/acquire_disk_kolla_libvirt.sh",
+    "container_name": "nova_libvirt",
+    "sudo_list_excerpt": "",
+    "helper_sudo_probe_ok": true
+  },
+  "current_execution_id": "EXEC-0013",
+  "current_case_id": null,
+  "current_attack_status": "failed",
+  "current_alert_status": "queued",
+  "current_acquisition_status": "queued",
+  "current_preservation_status": "queued",
+  "current_analysis_status": "queued",
+  "current_reconstruction_status": "queued",
+  "current_repetition": 1,
+  "trigger_attempt": 10,
+  "per_repetition_results": [
+    {
+      "repetition_number": 1,
+      "campaign_id": "CMP-20260707-000220-CBFB",
+      "execution_id": "EXEC-0013",
+      "execution_status": "failed",
+      "dfir_mode_before": "full",
+      "dfir_mode_after": "full",
+      "dfir_mode_enabled_successfully": false,
+      "dfir_mode_blocker": "DFIR mode is not ON.",
+      "attack_profile_id": "T0831_MANIPULATION_OF_CONTROL_MODBUS",
+      "attack_name": "Modbus Register Manipulation",
+      "target_role": "PLC",
+      "target_node": "PLC_Instance",
+      "target_ip": null,
+      "protocol": "modbus_tcp",
+      "destination_port": 502,
+      "function_code": "unknown",
+      "register": "unknown",
+      "value": "unknown",
+      "attack_started_at": "2026-07-13T13:50:59.454733+00:00",
+      "attack_completed_at": "2026-07-13T13:51:08.646912+00:00",
+      "attack_output_path": "app_core/infrastructure/attack/outputs/20260713T135059Z_T0831_MANIPULATION_OF_CONTROL_MODBUS",
+      "trigger_alert_detected": false,
+      "trigger_alert_id": null,
+      "trigger_alert_rule": null,
+      "trigger_alert_severity": "unknown",
+      "trigger_alert_timestamp": null,
+      "trigger_alert_mitre": null,
+      "forensic_intervention_required": false,
+      "automatic_acquisition_started": false,
+      "case_id": null,
+      "case_path": null,
+      "memory_acquisition_status": "skipped",
+      "network_context_status": "skipped",
+      "pcap_segments_imported": 0,
+      "disk_acquisition_status": "skipped",
+      "ot_export_status": "skipped",
+      "alerts_preserved": 0,
+      "custody_status": "skipped",
+      "case_sealed_status": "skipped",
+      "analysis_status": "failed",
+      "layers_total": 0,
+      "layers_completed": 0,
+      "layers_partial": 0,
+      "layers_failed": 0,
+      "memory_analysis_status": "not_started",
+      "network_analysis_status": "not_started",
+      "disk_analysis_status": "not_started",
+      "ot_analysis_status": "not_started",
+      "alert_analysis_status": "not_started",
+      "timeline_status": "not_started",
+      "reconstruction_status": "failed",
+      "timing_metrics": {
+        "deploy_time_seconds": 0.0,
+        "teardown_redeploy_time_seconds": 0.0,
+        "network_mode": "continuous_rolling_pcap_with_case_bound_incident_window_import",
+        "alert_to_acquisition_start_seconds": null,
+        "alert_to_memory_start_seconds": null,
+        "alert_to_memory_preserved_seconds": null,
+        "alert_to_ot_export_preserved_seconds": null,
+        "alert_to_disk_snapshot_start_seconds": null,
+        "alert_to_disk_snapshot_preserved_seconds": null,
+        "alert_to_case_sealed_seconds": null,
+        "t_first_sealed_seconds": null,
+        "t_case_sealed_seconds": null,
+        "memory_acquisition_duration_seconds": null,
+        "pcap_import_duration_seconds": null,
+        "disk_acquisition_duration_seconds": null,
+        "case_sealed_to_analysis_completed_seconds": null,
+        "total_repetition_duration_seconds": 9.192,
+        "pcap_periodic_context_size_gib": null,
+        "pcap_reactive_capture_size_bytes": 0,
+        "memory_dump_size_bytes": null,
+        "disk_snapshot_size_bytes": null,
+        "retries_or_failures_count": 0,
+        "ot_export_present_in_manifest": false,
+        "ot_export_paths": [],
+        "evidence_completeness_gate": "not_available"
+      },
+      "reconstruction_metrics": {
+        "expected_relations": 0,
+        "recovered_relations": 0,
+        "degraded_relations": 0,
+        "ambiguous_relations": 0,
+        "missing_relations": 0,
+        "recoverability_score": null,
+        "weighted_recoverability_score": null,
+        "reconstruction_confidence": null,
+        "recoverability_label": null,
+        "scientific_confidence_label": null,
+        "warnings": [
+          "Attack execution failed."
+        ],
+        "blockers": [
+          "Attack execution failed."
+        ]
+      },
+      "comparison_family_id": null,
+      "scenario_fingerprint": null,
+      "final_case_status": "failed",
+      "scientific_case_status": "diagnostic_failed",
+      "critical_evidence_gate": {},
+      "nested_level_a": {},
+      "trigger_attempt_trace": [
+        {
+          "attempt_number": 1,
+          "attack_started_at": "2026-07-13T13:48:01.909734+00:00",
+          "attack_completed_at": "2026-07-13T13:48:11.948174+00:00",
+          "attack_status": "failed",
+          "reason": "Attack execution failed.",
+          "dfir_mode_after": "full",
+          "trigger_alert_detected": false,
+          "forensic_intervention_eligible": false,
+          "automatic_preservation_armed": false
+        },
+        {
+          "attempt_number": 2,
+          "attack_started_at": "2026-07-13T13:48:21.952232+00:00",
+          "attack_completed_at": "2026-07-13T13:48:31.624438+00:00",
+          "attack_status": "failed",
+          "reason": "Attack execution failed.",
+          "dfir_mode_after": "full",
+          "trigger_alert_detected": false,
+          "forensic_intervention_eligible": false,
+          "automatic_preservation_armed": false
+        },
+        {
+          "attempt_number": 3,
+          "attack_started_at": "2026-07-13T13:48:41.629019+00:00",
+          "attack_completed_at": "2026-07-13T13:48:51.692876+00:00",
+          "attack_status": "failed",
+          "reason": "Attack execution failed.",
+          "dfir_mode_after": "full",
+          "trigger_alert_detected": false,
+          "forensic_intervention_eligible": false,
+          "automatic_preservation_armed": false
+        },
+        {
+          "attempt_number": 4,
+          "attack_started_at": "2026-07-13T13:49:01.696636+00:00",
+          "attack_completed_at": "2026-07-13T13:49:12.274941+00:00",
+          "attack_status": "failed",
+          "reason": "Attack execution failed.",
+          "dfir_mode_after": "full",
+          "trigger_alert_detected": false,
+          "forensic_intervention_eligible": false,
+          "automatic_preservation_armed": false
+        },
+        {
+          "attempt_number": 5,
+          "attack_started_at": "2026-07-13T13:49:22.279825+00:00",
+          "attack_completed_at": "2026-07-13T13:49:32.805288+00:00",
+          "attack_status": "failed",
+          "reason": "Attack execution failed.",
+          "dfir_mode_after": "full",
+          "trigger_alert_detected": false,
+          "forensic_intervention_eligible": false,
+          "automatic_preservation_armed": false
+        },
+        {
+          "attempt_number": 6,
+          "attack_started_at": "2026-07-13T13:49:42.811142+00:00",
+          "attack_completed_at": "2026-07-13T13:49:52.136810+00:00",
+          "attack_status": "failed",
+          "reason": "Attack execution failed.",
+          "dfir_mode_after": "full",
+          "trigger_alert_detected": false,
+          "forensic_intervention_eligible": false,
+          "automatic_preservation_armed": false
+        },
+        {
+          "attempt_number": 7,
+          "attack_started_at": "2026-07-13T13:50:02.140169+00:00",
+          "attack_completed_at": "2026-07-13T13:50:11.243023+00:00",
+          "attack_status": "failed",
+          "reason": "Attack execution failed.",
+          "dfir_mode_after": "full",
+          "trigger_alert_detected": false,
+          "forensic_intervention_eligible": false,
+          "automatic_preservation_armed": false
+        },
+        {
+          "attempt_number": 8,
+          "attack_started_at": "2026-07-13T13:50:21.247370+00:00",
+          "attack_completed_at": "2026-07-13T13:50:30.014125+00:00",
+          "attack_status": "failed",
+          "reason": "Attack execution failed.",
+          "dfir_mode_after": "full",
+          "trigger_alert_detected": false,
+          "forensic_intervention_eligible": false,
+          "automatic_preservation_armed": false
+        },
+        {
+          "attempt_number": 9,
+          "attack_started_at": "2026-07-13T13:50:40.022175+00:00",
+          "attack_completed_at": "2026-07-13T13:50:49.447181+00:00",
+          "attack_status": "failed",
+          "reason": "Attack execution failed.",
+          "dfir_mode_after": "full",
+          "trigger_alert_detected": false,
+          "forensic_intervention_eligible": false,
+          "automatic_preservation_armed": false
+        },
+        {
+          "attempt_number": 10,
+          "attack_started_at": "2026-07-13T13:50:59.454733+00:00",
+          "attack_completed_at": "2026-07-13T13:51:08.646912+00:00",
+          "attack_status": "failed",
+          "reason": "Attack execution failed.",
+          "dfir_mode_after": "full",
+          "trigger_alert_detected": false,
+          "forensic_intervention_eligible": false,
+          "automatic_preservation_armed": false
+        }
+      ],
+      "trigger_attempts_total": 10,
+      "artifacts": {},
+      "warnings": [
+        "Attack execution failed."
+      ],
+      "blockers": [
+        "Attack execution failed."
+      ]
+    }
+  ],
+  "execution_id": "EXEC-0013",
+  "case_id": null,
+  "execution_status": "failed"
+}

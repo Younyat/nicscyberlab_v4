@@ -1264,3 +1264,518 @@
 
   document.addEventListener("DOMContentLoaded", init);
 })();
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LevelCMonitor — transparent floating progress monitor for Level C campaigns
+   ═══════════════════════════════════════════════════════════════════════════ */
+const LevelCMonitor = (() => {
+  "use strict";
+
+  // ── phase definitions (must match orchestrator state machine) ────────────
+  const PHASES = [
+    { key: "VALIDATING",      label: "Validating",       weight: 1  },
+    { key: "DESTROYING",      label: "Destroying",        weight: 4  },
+    { key: "CLEANING",        label: "Cleaning",          weight: 2  },
+    { key: "DEPLOYING_IT",    label: "Deploying IT",      weight: 6  },
+    { key: "DEPLOYING_OT",    label: "Deploying OT",      weight: 4  },
+    { key: "WAITING_NODES",   label: "Waiting Nodes",     weight: 2  },
+    { key: "INSTALLING_TOOLS","label": "Installing Tools", weight: 6  },
+    { key: "RUNNING_LEVEL_B", label: "Running Level B",   weight: 12 },
+    { key: "WAITING_LEVEL_B", label: "Awaiting Level B",  weight: 2  },
+    { key: "CAPTURING_SNAPSHOT","label": "Capturing Snapshot", weight: 2 },
+    { key: "COMPARING",       label: "Comparing",         weight: 2  },
+    { key: "COMPLETED",       label: "Completed",         weight: 1  },
+  ];
+
+  const PER_REP_WEIGHT = PHASES.reduce((acc, p) => acc + p.weight, 0) - PHASES[0].weight - PHASES[PHASES.length - 1].weight;
+
+  // ── state ─────────────────────────────────────────────────────────────────
+  let jobId        = localStorage.getItem("lc_active_job_id") || null;
+  let totalReps    = parseInt(localStorage.getItem("lc_total_reps") || "1", 10);
+  let pollTimer    = null;
+  let stageEntries = {};   // phase_key → { el, logsEl, startTs }
+  let minimized    = false;
+  let dragOffset   = null;
+
+  // ── helpers ───────────────────────────────────────────────────────────────
+  const $  = (id) => document.getElementById(id);
+  const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  function fmtDuration(ms) {
+    if (!ms || ms < 0) return "";
+    const s = Math.floor(ms / 1000);
+    const m = Math.floor(s / 60);
+    return m > 0 ? `${m}m ${s % 60}s` : `${s}s`;
+  }
+  function phaseIndex(key) { return PHASES.findIndex(p => p.key === key); }
+  function phaseLabel(key) { return PHASES.find(p => p.key === key)?.label || key; }
+
+  function computeProgress(status, repNum) {
+    const idx   = phaseIndex(status);
+    const phase = PHASES[idx];
+    const repsComplete = Math.max(0, (repNum || 1) - 1);
+
+    if (status === "VALIDATING") return 2;
+    if (status === "COMPLETED" || status === "COMPARING") return 98;
+
+    // per-rep offset: validating weight + completed reps × per-rep-weight
+    const beforeRep = PHASES[0].weight + repsComplete * PER_REP_WEIGHT;
+    // phases within this rep (skip validating and completed)
+    const repPhaseKeys = PHASES.slice(1, PHASES.length - 1).map(p => p.key);
+    const idxInRep = repPhaseKeys.indexOf(status);
+    const withinRep = idxInRep < 0 ? 0 : repPhaseKeys.slice(0, idxInRep).reduce((acc, k) => {
+      return acc + (PHASES.find(p => p.key === k)?.weight || 0);
+    }, 0);
+
+    const totalWeight = PHASES[0].weight + totalReps * PER_REP_WEIGHT + PHASES[PHASES.length - 1].weight;
+    const raw = ((beforeRep + withinRep) / totalWeight) * 100;
+    return Math.min(97, Math.max(2, Math.round(raw)));
+  }
+
+  // ── DOM rendering ─────────────────────────────────────────────────────────
+  function show() {
+    const el = $("lc-monitor");
+    if (el) { el.style.display = "flex"; minimized = false; el.classList.remove("lc-minimized"); }
+  }
+
+  function hide() {
+    const el = $("lc-monitor");
+    if (el) el.style.display = "none";
+  }
+
+  function toggleMin() {
+    minimized = !minimized;
+    $("lc-monitor")?.classList.toggle("lc-minimized", minimized);
+  }
+
+  function close() { hide(); }
+
+  async function stopJob() {
+    if (!jobId) return;
+    const btn = $("lc-stop-btn");
+    if (btn) { btn.disabled = true; btn.textContent = "Stopping…"; }
+    try {
+      const res = await fetch(`/api/level-c/stop/${jobId}`, { method: "POST" });
+      const data = await res.json();
+      const msg = data.message || "Stop requested.";
+      appendLog("VALIDATING", `[STOP] ${msg}`, "lc-log-warn");
+      // Try to append to current active stage
+      Object.keys(stageEntries).forEach(id => {
+        if (stageEntries[id].el.classList.contains("lc-active")) {
+          appendLog(id, `[STOP] ${msg}`, "lc-log-warn");
+        }
+      });
+    } catch (err) {
+      if (btn) { btn.disabled = false; btn.textContent = "⏹ Stop"; }
+    }
+  }
+
+  function clearJob() {
+    jobId = null;
+    totalReps = 1;
+    stageEntries = {};
+    localStorage.removeItem("lc_active_job_id");
+    localStorage.removeItem("lc_total_reps");
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    hide();
+    IndexWidget.clear();
+  }
+
+  function buildStageList(repNum, status) {
+    const container = $("lc-monitor-stages");
+    if (!container) return;
+
+    // Generate the stage rows expected for this run (one per rep × per-rep phases + global ones)
+    const rows = [];
+    rows.push({ id: "VALIDATING", label: "Validating" });
+    for (let r = 1; r <= totalReps; r++) {
+      PHASES.slice(1, PHASES.length - 1).forEach(p => {
+        rows.push({ id: `REP${r}_${p.key}`, label: `[Rep ${r}] ${p.label}`, rep: r, key: p.key });
+      });
+    }
+    rows.push({ id: "COMPARING", label: "Comparing" });
+    rows.push({ id: "COMPLETED", label: "Completed" });
+
+    // Only build DOM elements if they don't exist yet
+    rows.forEach(row => {
+      if (stageEntries[row.id]) return;
+      const div = document.createElement("div");
+      div.className = "lc-stage";
+      div.innerHTML = `
+        <div class="lc-stage-head" onclick="this.closest('.lc-stage').classList.toggle('lc-expanded')">
+          <span class="lc-stage-icon">○</span>
+          <span class="lc-stage-name">${esc(row.label)}</span>
+          <span class="lc-stage-dur" id="dur-${esc(row.id)}"></span>
+        </div>
+        <div class="lc-stage-logs" id="logs-${esc(row.id)}"></div>
+      `;
+      container.appendChild(div);
+      stageEntries[row.id] = { el: div, logsEl: div.querySelector(`#logs-${row.id}`), startTs: null };
+    });
+  }
+
+  function markStage(stageId, state_, durMs) {
+    const entry = stageEntries[stageId];
+    if (!entry) return;
+    const { el } = entry;
+    el.classList.remove("lc-active", "lc-ok", "lc-fail", "lc-done");
+    const icon = el.querySelector(".lc-stage-icon");
+    const dur  = el.querySelector(`[id^="dur-"]`);
+    if (state_ === "active")   { el.classList.add("lc-active");  if (icon) icon.textContent = "▶"; }
+    else if (state_ === "ok")  { el.classList.add("lc-ok");      if (icon) icon.textContent = "✓"; el.classList.remove("lc-expanded"); }
+    else if (state_ === "fail"){ el.classList.add("lc-fail");    if (icon) icon.textContent = "✗"; }
+    else                       { el.classList.add("lc-done");    if (icon) icon.textContent = "○"; }
+    if (dur && durMs != null)  dur.textContent = fmtDuration(durMs);
+  }
+
+  function appendLog(stageId, text, cls) {
+    const entry = stageEntries[stageId];
+    if (!entry) return;
+    const line = document.createElement("div");
+    line.className = `lc-log-line ${cls || "lc-log-info"}`;
+    line.textContent = text;
+    entry.logsEl.appendChild(line);
+    entry.logsEl.scrollTop = entry.logsEl.scrollHeight;
+  }
+
+  // ── status polling ────────────────────────────────────────────────────────
+  let _lastRep    = 0;
+  let _lastPhase  = "";
+  let _lastLogLen = 0;
+
+  function stageIdFor(status, repNum) {
+    if (status === "VALIDATING" || status === "COMPARING" || status === "COMPLETED") return status;
+    return `REP${repNum}_${status}`;
+  }
+
+  async function poll() {
+    if (!jobId) return;
+    let data;
+    try {
+      const res = await fetch(`/api/level-c/status/${jobId}`);
+      data = await res.json();
+    } catch (_) { return; }
+
+    const status  = (data.phase || "VALIDATING").toUpperCase();
+    const repNum  = data.current_repetition || 1;
+    const log     = data.log || [];
+    const isTerminal = ["COMPLETED", "FAILED", "CANCELLED", "STOPPED"].includes(status) || (data.status && data.status !== "running" && data.status !== "stopped");
+    const stopRequested = !!data.stop_requested;
+    // Show/hide stop button; reflect "Stopping…" while the flag is set but job hasn't halted yet
+    const stopBtn = $("lc-stop-btn");
+    if (stopBtn) {
+      if (isTerminal) {
+        stopBtn.style.display = "none";
+        stopBtn.disabled = false;
+        stopBtn.textContent = "⏹ Stop";
+      } else if (stopRequested) {
+        stopBtn.style.display = "";
+        stopBtn.disabled = true;
+        stopBtn.textContent = "Stopping…";
+      } else {
+        stopBtn.style.display = "";
+        stopBtn.disabled = false;
+        stopBtn.textContent = "⏹ Stop";
+      }
+    }
+    // Prefer live total from job config over localStorage (handles resume after page reload)
+    const liveTotalReps = (data.config || {}).level_c_repetitions || totalReps;
+    if (liveTotalReps > totalReps) { totalReps = liveTotalReps; localStorage.setItem("lc_total_reps", totalReps); }
+    const pct     = isTerminal && status === "COMPLETED" ? 100 : computeProgress(status, repNum);
+
+    // update header
+    const headRep = $("lc-head-rep");
+    if (headRep) headRep.textContent = `Rep ${repNum}/${totalReps}`;
+    const phaseEl = $("lc-current-phase");
+    if (phaseEl) phaseEl.textContent = phaseLabel(status);
+    const bar = $("lc-bar");
+    if (bar) bar.style.width = pct + "%";
+    const pctEl = $("lc-pct");
+    if (pctEl) pctEl.textContent = pct + "%";
+
+    // rebuild stage list if rep count changed
+    buildStageList(repNum, status);
+
+    const curStageId = stageIdFor(status, repNum);
+
+    // mark previous rep's last stage as ok if we moved to a new rep
+    if (repNum > _lastRep && _lastRep > 0) {
+      const lastRepCapture = stageIdFor("CAPTURING_SNAPSHOT", _lastRep);
+      markStage(lastRepCapture, "ok");
+    }
+
+    // mark active stage; seal previous if phase changed
+    if (status !== _lastPhase || repNum !== _lastRep) {
+      if (_lastPhase && _lastRep) {
+        const prevId = stageIdFor(_lastPhase, _lastRep);
+        if (prevId !== curStageId) markStage(prevId, "ok");
+      }
+      markStage(curStageId, "active");
+      _lastPhase = status;
+      _lastRep   = repNum;
+    }
+
+    // append new log lines
+    const newLines = log.slice(_lastLogLen);
+    newLines.forEach(line => {
+      const txt = typeof line === "string" ? line : (line.message || line.msg || JSON.stringify(line));
+      let cls = "lc-log-info";
+      if (/\[ERROR\]|FAIL|FATAL/i.test(txt))    cls = "lc-log-error";
+      else if (/\[WARN\]|WARNING/i.test(txt))    cls = "lc-log-warn";
+      else if (/\[OK\]|SUCCESS|COMPLETED/i.test(txt)) cls = "lc-log-ok";
+      else if (/^(PHASE|→|\[PHASE\])/i.test(txt))  cls = "lc-log-phase";
+      else if (/^\s*(ok|changed|skipping)/i.test(txt)) cls = "lc-log-stdout";
+      appendLog(curStageId, txt, cls);
+    });
+    _lastLogLen = log.length;
+
+    // update index widget
+    IndexWidget.update(status, pct, repNum, totalReps);
+
+    if (isTerminal) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+      if (status === "COMPLETED") {
+        markStage(curStageId, "ok");
+        markStage("COMPLETED", "ok");
+      } else {
+        markStage(curStageId, "fail");
+      }
+      const resultEl = $("lc-monitor-result");
+      if (resultEl) {
+        resultEl.style.display = "block";
+        resultEl.innerHTML = status === "COMPLETED"
+          ? `<span style="color:#34d399;font-weight:900">✓ Level C campaign completed — ${totalReps} rep(s).</span>`
+          : `<span style="color:#f87171;font-weight:900">✗ Campaign ended with status: ${esc(status)}</span>`;
+      }
+      localStorage.removeItem("lc_active_job_id");
+      localStorage.removeItem("lc_total_reps");
+    }
+  }
+
+  function startPolling() {
+    if (pollTimer) clearInterval(pollTimer);
+    _lastLogLen = 0; _lastPhase = ""; _lastRep = 0;
+    stageEntries = {};
+    const stages = $("lc-monitor-stages");
+    if (stages) stages.innerHTML = "";
+    const resultEl = $("lc-monitor-result");
+    if (resultEl) resultEl.style.display = "none";
+    poll();
+    pollTimer = setInterval(poll, 3500);
+  }
+
+  // ── dragging ──────────────────────────────────────────────────────────────
+  function initDrag() {
+    const head = $("lc-monitor-head");
+    const panel = $("lc-monitor");
+    if (!head || !panel) return;
+    head.addEventListener("mousedown", (e) => {
+      const rect = panel.getBoundingClientRect();
+      dragOffset = { dx: e.clientX - rect.left, dy: e.clientY - rect.top };
+      panel.style.right = "auto";
+      panel.style.bottom = "auto";
+      document.addEventListener("mousemove", onDrag);
+      document.addEventListener("mouseup", () => { dragOffset = null; document.removeEventListener("mousemove", onDrag); }, { once: true });
+    });
+    function onDrag(e) {
+      if (!dragOffset) return;
+      panel.style.left = (e.clientX - dragOffset.dx) + "px";
+      panel.style.top  = (e.clientY - dragOffset.dy) + "px";
+    }
+  }
+
+  // ── launch ────────────────────────────────────────────────────────────────
+  async function launch() {
+    const confirmInput = document.getElementById("lc-confirm-input");
+    if (confirmInput?.value.trim().toUpperCase() !== "LAUNCH") {
+      alert("Type LAUNCH in the confirmation field first.");
+      return;
+    }
+    const campaignSelect = document.getElementById("lc-campaign-select");
+    const campaignId = campaignSelect?.value || "";
+    if (!campaignId) { alert("Select a Level B campaign first."); return; }
+
+    const repsC = Math.max(1, parseInt(document.getElementById("lc-reps-c")?.value || "2", 10));
+    const repsB = Math.max(1, parseInt(document.getElementById("lc-reps-b")?.value || "6", 10));
+    const repsA = Math.max(1, parseInt(document.getElementById("lc-reps-a")?.value || "6", 10));
+
+    totalReps = repsC;
+    localStorage.setItem("lc_total_reps", totalReps);
+
+    const btn = document.getElementById("lc-launch-btn");
+    if (btn) { btn.disabled = true; btn.textContent = "Launching…"; }
+
+    try {
+      const res = await fetch("/api/level-c/launch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          campaign_id: campaignId,
+          level_c_repetitions: repsC,
+          level_b_repetitions: repsB,
+          level_a_repetitions: repsA,
+          confirmation: "LAUNCH_LEVEL_C",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.job_id) throw new Error(data.error || data.message || "Launch failed");
+      jobId = data.job_id;
+      localStorage.setItem("lc_active_job_id", jobId);
+      if (confirmInput) confirmInput.value = "";
+    } catch (err) {
+      alert("Level C launch failed: " + err.message);
+      if (btn) { btn.disabled = false; btn.textContent = "Launch Level C Campaign"; }
+      return;
+    }
+
+    if (btn) btn.textContent = "Running…";
+    show();
+    startPolling();
+  }
+
+  // ── Level C campaign picker (mirrors Level B select) ─────────────────────
+  function populateCampaignPicker(campaigns) {
+    const sel = document.getElementById("lc-campaign-select");
+    if (!sel) return;
+    const levelB = (campaigns || []).filter(c => String(c.level || "").toUpperCase() === "B");
+    if (!levelB.length) {
+      sel.innerHTML = '<option value="">No Level B campaigns found</option>';
+      return;
+    }
+    const prev = sel.value;
+    sel.innerHTML = levelB.map(c =>
+      `<option value="${esc(c.campaign_id)}"${c.campaign_id === prev ? " selected" : ""}>${esc(c.campaign_id)} — ${esc(c.name || c.attack_id || "")}</option>`
+    ).join("");
+    if (!sel.value && levelB.length) sel.value = levelB[0].campaign_id;
+  }
+
+  // ── preflight display ─────────────────────────────────────────────────────
+  async function loadPreflight() {
+    const el = document.getElementById("lc-preflight-status");
+    if (!el) return;
+    try {
+      const data = await fetch("/api/level-c/preflight").then(r => r.json()).catch(() => null);
+      if (!data) { el.innerHTML = '<span style="color:#fb923c">Preflight check unavailable</span>'; return; }
+      const ready = data.ready !== false;
+      const snapshotOk = data.snapshot_ok !== false;
+
+      const snapshotLine = snapshotOk
+        ? `<div style="margin-top:4px;color:#94a3b8;font-size:11px">
+             📸 Baseline snapshot: <span style="font-family:monospace;color:#a5f3fc">${data.snapshot_id || "found"}</span>
+             ${data.snapshot_count > 1 ? `(+${data.snapshot_count - 1} more)` : ""}
+           </div>`
+        : `<div style="margin-top:4px;color:#f87171;font-size:11px;font-weight:700">
+             ⚠ No baseline snapshot — capture a scenario snapshot first
+           </div>`;
+
+      const blockers = (data.missing_blocking || []);
+      const blockerLine = blockers.length
+        ? `<div style="margin-top:2px;color:#94a3b8;font-size:11px">Blocking: ${blockers.join(", ")}</div>`
+        : "";
+
+      el.innerHTML = ready
+        ? `<span style="color:#34d399;font-weight:800">✓ Pre-flight OK</span>
+           <span style="color:#64748b;font-size:11px;margin-left:6px">${data.message || ""}</span>
+           ${snapshotLine}`
+        : `<span style="color:#f87171;font-weight:800">✗ Pre-flight failed</span>
+           <div style="margin-top:3px;color:#cbd5e1;font-size:12px">${data.message || ""}</div>
+           ${snapshotLine}${blockerLine}`;
+    } catch (_) {
+      el.innerHTML = '<span style="color:#64748b">Preflight check unavailable (endpoint not exposed)</span>';
+    }
+  }
+
+  // ── confirm field gate ────────────────────────────────────────────────────
+  function initConfirmGate() {
+    const input = document.getElementById("lc-confirm-input");
+    const btn   = document.getElementById("lc-launch-btn");
+    if (!input || !btn) return;
+    input.addEventListener("input", () => {
+      const ok = input.value.trim().toUpperCase() === "LAUNCH";
+      btn.disabled = !ok;
+      btn.classList.toggle("opacity-50", !ok);
+      btn.classList.toggle("cursor-not-allowed", !ok);
+    });
+    btn.addEventListener("click", launch);
+  }
+
+  // ── init ──────────────────────────────────────────────────────────────────
+  function init() {
+    initDrag();
+    initConfirmGate();
+    loadPreflight();
+
+    // hook into existing campaign loader
+    const origLoad = window._lcCampaignHook;
+    document.addEventListener("lc:campaigns-loaded", (e) => populateCampaignPicker(e.detail));
+
+    // resume in-progress job from localStorage
+    if (jobId) {
+      show();
+      startPolling();
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+
+  return { toggleMin, close, clearJob, stopJob };
+})();
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   IndexWidget — small bottom-left progress pill synced to Level C state
+   (also rendered in index.html via shared localStorage key lc_active_job_id)
+   ═══════════════════════════════════════════════════════════════════════════ */
+const IndexWidget = (() => {
+  const WIDGET_ID = "lc-index-pill";
+
+  function el() { return document.getElementById(WIDGET_ID); }
+
+  function update(phase, pct, rep, total) {
+    const pill = el();
+    if (!pill) return;
+    pill.style.display = "flex";
+    pill.querySelector(".lc-pill-phase").textContent = phase.replace(/_/g, " ");
+    pill.querySelector(".lc-pill-pct").textContent   = pct + "%";
+    pill.querySelector(".lc-pill-rep").textContent   = `Rep ${rep}/${total}`;
+    pill.querySelector(".lc-pill-bar").style.width   = pct + "%";
+  }
+
+  function clear() {
+    const pill = el();
+    if (pill) pill.style.display = "none";
+  }
+
+  return { update, clear };
+})();
+
+// After campaigns load, broadcast them so the LC picker can populate
+(function patchCampaignLoader() {
+  const origRender = window.renderCampaignPicker;
+  // We dispatch a custom event that LevelCMonitor listens for
+  const observer = new MutationObserver(() => {
+    const sel = document.getElementById("paper-level-b-campaign-select");
+    if (!sel) return;
+    // When the existing campaign select gets populated, also populate the LC picker
+    const opts = Array.from(sel.options).filter(o => o.value).map(o => ({
+      campaign_id: o.value,
+      name: o.textContent,
+      level: "B",
+    }));
+    if (opts.length) {
+      document.dispatchEvent(new CustomEvent("lc:campaigns-loaded", { detail: opts }));
+      // Also directly populate since we may miss the event timing
+      const lcSel = document.getElementById("lc-campaign-select");
+      if (lcSel) {
+        const prev = lcSel.value;
+        lcSel.innerHTML = opts.map(o =>
+          `<option value="${o.campaign_id}"${o.campaign_id === prev ? " selected" : ""}>${o.campaign_id} — ${o.name}</option>`
+        ).join("");
+        if (!lcSel.value && opts.length) lcSel.value = opts[0].campaign_id;
+      }
+    }
+  });
+  document.addEventListener("DOMContentLoaded", () => {
+    const sel = document.getElementById("paper-level-b-campaign-select");
+    if (sel) observer.observe(sel, { childList: true });
+  });
+})();

@@ -1,0 +1,286 @@
+{
+  "audit_type": "level_b_execution_audit",
+  "generated_at": "2026-07-13T15:15:23.335980+00:00",
+  "campaign_id": "CMP-20260707-000220-CBFB",
+  "requested_repetitions": 10,
+  "attempted_repetitions": 1,
+  "not_started_repetitions": 9,
+  "completed_repetitions": 0,
+  "partial_repetitions": 0,
+  "failed_repetitions": 1,
+  "current_job_status": "running",
+  "stop_context": {
+    "current_phase": "generate_report",
+    "current_phase_label": "Generate Level B report",
+    "current_phase_detail": "Aggregating per-repetition timing, acquisition, reconstruction, warnings, blockers, and case outputs into the final Level B validation report bundle.",
+    "errors": [
+      {
+        "message": "Attack execution failed.",
+        "repetition": 1
+      },
+      {
+        "message": "Repetition 1/10 failed. The Level B campaign is being closed immediately; no further attacks or acquisitions will be launched. Final reporting will be generated only from the repetitions already executed.",
+        "repetition": 1
+      }
+    ],
+    "warnings": [
+      "Attack execution failed."
+    ]
+  },
+  "expected_flow": {
+    "per_level_b_repetition": [
+      "execute controlled OT attack",
+      "observe eligible high-severity alert",
+      "create and preserve one fresh forensic case",
+      "run multilayer analysis and reconstruction",
+      "run nested Level A scientific repetitions over that same preserved case",
+      "clean heavy case artifacts while retaining lightweight comparison bundle"
+    ],
+    "batch_finalization": [
+      "repeat until requested repetition count is reached",
+      "compare Level B repetitions",
+      "emit final Level B JSON/CSV/Markdown report bundle"
+    ]
+  },
+  "generated_outputs": {
+    "campaign_created": true,
+    "level_b_execution_workspaces": [
+      "EXEC-0014"
+    ],
+    "forensic_cases_created": [],
+    "analysis_outputs_present_cases": [],
+    "nested_level_a_reports_completed": [],
+    "lightweight_cleanup_bundles_completed": [],
+    "level_b_report_bundle": true
+  },
+  "missing_or_pending_outputs": {
+    "remaining_level_b_repetitions_not_started": 9,
+    "nested_level_a_reports_missing": 0,
+    "heavy_case_cleanups_missing": 0,
+    "higher_level_comparison_ready": false
+  },
+  "last_failed_repetition": {
+    "repetition_number": 1,
+    "campaign_id": "CMP-20260707-000220-CBFB",
+    "execution_id": "EXEC-0014",
+    "execution_status": "failed",
+    "dfir_mode_before": "full",
+    "dfir_mode_after": "full",
+    "dfir_mode_enabled_successfully": false,
+    "dfir_mode_blocker": "DFIR mode is not ON.",
+    "attack_profile_id": "T0831_MANIPULATION_OF_CONTROL_MODBUS",
+    "attack_name": "Modbus Register Manipulation",
+    "target_role": "PLC",
+    "target_node": "PLC_Instance",
+    "target_ip": null,
+    "protocol": "modbus_tcp",
+    "destination_port": 502,
+    "function_code": "unknown",
+    "register": "unknown",
+    "value": "unknown",
+    "attack_started_at": "2026-07-13T15:15:13.760219+00:00",
+    "attack_completed_at": "2026-07-13T15:15:23.316014+00:00",
+    "attack_output_path": "app_core/infrastructure/attack/outputs/20260713T151514Z_T0831_MANIPULATION_OF_CONTROL_MODBUS",
+    "trigger_alert_detected": false,
+    "trigger_alert_id": null,
+    "trigger_alert_rule": null,
+    "trigger_alert_severity": "unknown",
+    "trigger_alert_timestamp": null,
+    "trigger_alert_mitre": null,
+    "forensic_intervention_required": false,
+    "automatic_acquisition_started": false,
+    "case_id": null,
+    "case_path": null,
+    "memory_acquisition_status": "skipped",
+    "network_context_status": "skipped",
+    "pcap_segments_imported": 0,
+    "disk_acquisition_status": "skipped",
+    "ot_export_status": "skipped",
+    "alerts_preserved": 0,
+    "custody_status": "skipped",
+    "case_sealed_status": "skipped",
+    "analysis_status": "failed",
+    "layers_total": 0,
+    "layers_completed": 0,
+    "layers_partial": 0,
+    "layers_failed": 0,
+    "memory_analysis_status": "not_started",
+    "network_analysis_status": "not_started",
+    "disk_analysis_status": "not_started",
+    "ot_analysis_status": "not_started",
+    "alert_analysis_status": "not_started",
+    "timeline_status": "not_started",
+    "reconstruction_status": "failed",
+    "timing_metrics": {
+      "deploy_time_seconds": 0.0,
+      "teardown_redeploy_time_seconds": 0.0,
+      "network_mode": "continuous_rolling_pcap_with_case_bound_incident_window_import",
+      "alert_to_acquisition_start_seconds": null,
+      "alert_to_memory_start_seconds": null,
+      "alert_to_memory_preserved_seconds": null,
+      "alert_to_ot_export_preserved_seconds": null,
+      "alert_to_disk_snapshot_start_seconds": null,
+      "alert_to_disk_snapshot_preserved_seconds": null,
+      "alert_to_case_sealed_seconds": null,
+      "t_first_sealed_seconds": null,
+      "t_case_sealed_seconds": null,
+      "memory_acquisition_duration_seconds": null,
+      "pcap_import_duration_seconds": null,
+      "disk_acquisition_duration_seconds": null,
+      "case_sealed_to_analysis_completed_seconds": null,
+      "total_repetition_duration_seconds": 9.556,
+      "pcap_periodic_context_size_gib": null,
+      "pcap_reactive_capture_size_bytes": 0,
+      "memory_dump_size_bytes": null,
+      "disk_snapshot_size_bytes": null,
+      "retries_or_failures_count": 0,
+      "ot_export_present_in_manifest": false,
+      "ot_export_paths": [],
+      "evidence_completeness_gate": "not_available"
+    },
+    "reconstruction_metrics": {
+      "expected_relations": 0,
+      "recovered_relations": 0,
+      "degraded_relations": 0,
+      "ambiguous_relations": 0,
+      "missing_relations": 0,
+      "recoverability_score": null,
+      "weighted_recoverability_score": null,
+      "reconstruction_confidence": null,
+      "recoverability_label": null,
+      "scientific_confidence_label": null,
+      "warnings": [
+        "Attack execution failed."
+      ],
+      "blockers": [
+        "Attack execution failed."
+      ]
+    },
+    "comparison_family_id": null,
+    "scenario_fingerprint": null,
+    "final_case_status": "failed",
+    "scientific_case_status": "diagnostic_failed",
+    "critical_evidence_gate": {},
+    "nested_level_a": {},
+    "trigger_attempt_trace": [
+      {
+        "attempt_number": 1,
+        "attack_started_at": "2026-07-13T15:12:15.088235+00:00",
+        "attack_completed_at": "2026-07-13T15:12:25.133209+00:00",
+        "attack_status": "failed",
+        "reason": "Attack execution failed.",
+        "dfir_mode_after": "full",
+        "trigger_alert_detected": false,
+        "forensic_intervention_eligible": false,
+        "automatic_preservation_armed": false
+      },
+      {
+        "attempt_number": 2,
+        "attack_started_at": "2026-07-13T15:12:35.140276+00:00",
+        "attack_completed_at": "2026-07-13T15:12:44.496181+00:00",
+        "attack_status": "failed",
+        "reason": "Attack execution failed.",
+        "dfir_mode_after": "full",
+        "trigger_alert_detected": false,
+        "forensic_intervention_eligible": false,
+        "automatic_preservation_armed": false
+      },
+      {
+        "attempt_number": 3,
+        "attack_started_at": "2026-07-13T15:12:54.499634+00:00",
+        "attack_completed_at": "2026-07-13T15:13:03.785776+00:00",
+        "attack_status": "failed",
+        "reason": "Attack execution failed.",
+        "dfir_mode_after": "full",
+        "trigger_alert_detected": false,
+        "forensic_intervention_eligible": false,
+        "automatic_preservation_armed": false
+      },
+      {
+        "attempt_number": 4,
+        "attack_started_at": "2026-07-13T15:13:13.794576+00:00",
+        "attack_completed_at": "2026-07-13T15:13:23.041209+00:00",
+        "attack_status": "failed",
+        "reason": "Attack execution failed.",
+        "dfir_mode_after": "full",
+        "trigger_alert_detected": false,
+        "forensic_intervention_eligible": false,
+        "automatic_preservation_armed": false
+      },
+      {
+        "attempt_number": 5,
+        "attack_started_at": "2026-07-13T15:13:33.044930+00:00",
+        "attack_completed_at": "2026-07-13T15:13:42.858654+00:00",
+        "attack_status": "failed",
+        "reason": "Attack execution failed.",
+        "dfir_mode_after": "full",
+        "trigger_alert_detected": false,
+        "forensic_intervention_eligible": false,
+        "automatic_preservation_armed": false
+      },
+      {
+        "attempt_number": 6,
+        "attack_started_at": "2026-07-13T15:13:52.862302+00:00",
+        "attack_completed_at": "2026-07-13T15:14:02.285302+00:00",
+        "attack_status": "failed",
+        "reason": "Attack execution failed.",
+        "dfir_mode_after": "full",
+        "trigger_alert_detected": false,
+        "forensic_intervention_eligible": false,
+        "automatic_preservation_armed": false
+      },
+      {
+        "attempt_number": 7,
+        "attack_started_at": "2026-07-13T15:14:12.292578+00:00",
+        "attack_completed_at": "2026-07-13T15:14:22.046799+00:00",
+        "attack_status": "failed",
+        "reason": "Attack execution failed.",
+        "dfir_mode_after": "full",
+        "trigger_alert_detected": false,
+        "forensic_intervention_eligible": false,
+        "automatic_preservation_armed": false
+      },
+      {
+        "attempt_number": 8,
+        "attack_started_at": "2026-07-13T15:14:32.760878+00:00",
+        "attack_completed_at": "2026-07-13T15:14:44.716057+00:00",
+        "attack_status": "failed",
+        "reason": "Attack execution failed.",
+        "dfir_mode_after": "full",
+        "trigger_alert_detected": false,
+        "forensic_intervention_eligible": false,
+        "automatic_preservation_armed": false
+      },
+      {
+        "attempt_number": 9,
+        "attack_started_at": "2026-07-13T15:14:54.723320+00:00",
+        "attack_completed_at": "2026-07-13T15:15:03.754529+00:00",
+        "attack_status": "failed",
+        "reason": "Attack execution failed.",
+        "dfir_mode_after": "full",
+        "trigger_alert_detected": false,
+        "forensic_intervention_eligible": false,
+        "automatic_preservation_armed": false
+      },
+      {
+        "attempt_number": 10,
+        "attack_started_at": "2026-07-13T15:15:13.760219+00:00",
+        "attack_completed_at": "2026-07-13T15:15:23.316014+00:00",
+        "attack_status": "failed",
+        "reason": "Attack execution failed.",
+        "dfir_mode_after": "full",
+        "trigger_alert_detected": false,
+        "forensic_intervention_eligible": false,
+        "automatic_preservation_armed": false
+      }
+    ],
+    "trigger_attempts_total": 10,
+    "artifacts": {},
+    "warnings": [
+      "Attack execution failed."
+    ],
+    "blockers": [
+      "Attack execution failed."
+    ]
+  }
+}

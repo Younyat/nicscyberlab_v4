@@ -68,9 +68,25 @@ cat > "$BASE_DIR/wazuh-suricata-integration.yml" <<'EOF'
         path: "{{ remote_local_rules }}"
       register: local_rules_stat
 
-    - name: Fallar si no existe local_rules.xml
-      fail:
-        msg: "No existe {{ remote_local_rules }}"
+    - name: Crear directorio de reglas si no existe
+      file:
+        path: /var/ossec/etc/rules
+        state: directory
+        owner: root
+        group: wazuh
+        mode: '0770'
+      when: not local_rules_stat.stat.exists
+
+    - name: Crear local_rules.xml con estructura minima si no existe
+      copy:
+        dest: "{{ remote_local_rules }}"
+        owner: root
+        group: wazuh
+        mode: '0660'
+        content: |
+          <!-- Local rules -->
+          <group name="local,">
+          </group>
       when: not local_rules_stat.stat.exists
 
     - name: Verificar si eve.json ya esta registrado en ossec.conf

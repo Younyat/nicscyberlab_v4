@@ -229,6 +229,38 @@ wazuh_rule_inventory() {
   done
 }
 
+suricata_config_summary() {
+  local yaml="/etc/suricata/suricata.yaml"
+  [[ -r "$yaml" ]] || { echo "config_file=not_found"; return 0; }
+  echo "config_file=/etc/suricata/suricata.yaml"
+  # Interface
+  grep -E '^\s*interface:' "$yaml" 2>/dev/null | head -3 | sed 's/^[[:space:]]*//' || true
+  # Community ID
+  grep -E 'community-id' "$yaml" 2>/dev/null | head -2 | sed 's/^[[:space:]]*//' || true
+  # Default rule path
+  grep -E 'default-rule-path' "$yaml" 2>/dev/null | head -1 | sed 's/^[[:space:]]*//' || true
+  # Enabled outputs
+  grep -E '^\s*- (fast|eve-log|http-log|dns-log|stats|alert-json|pcap-log):' "$yaml" 2>/dev/null | sed 's/^[[:space:]]*//' | head -10 || true
+  # Eve-log types
+  grep -E "types:" "$yaml" 2>/dev/null | head -3 | sed 's/^[[:space:]]*//' || true
+}
+
+wazuh_config_summary() {
+  local conf="/var/ossec/etc/ossec.conf"
+  [[ -r "$conf" ]] || { echo "config_file=not_found"; return 0; }
+  echo "config_file=/var/ossec/etc/ossec.conf"
+  # Manager address
+  grep -E '<address>|<protocol>|<port>' "$conf" 2>/dev/null | head -6 | sed 's/^[[:space:]]*//' || true
+  # Syscheck config
+  grep -E '<frequency>|<scan_on_start>|<alert_new_files>' "$conf" 2>/dev/null | head -4 | sed 's/^[[:space:]]*//' || true
+  # FIM directories (realtime vs inotify)
+  grep -E '<directories' "$conf" 2>/dev/null | head -10 | sed 's/^[[:space:]]*//' || true
+  # Log collection
+  grep -E '<location>|<log_format>' "$conf" 2>/dev/null | head -8 | sed 's/^[[:space:]]*//' || true
+  # Active response
+  grep -E '<active-response>|<disabled>' "$conf" 2>/dev/null | head -3 | sed 's/^[[:space:]]*//' || true
+}
+
 kv date_utc "$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo not_available)"
 
 section_begin tool_presence
@@ -291,3 +323,11 @@ section_end wazuh_rule_inventory
 section_begin wazuh_rule_contents
 emit_file_contents /var/ossec/etc/rules/*.xml /var/ossec/etc/rules/*.conf /var/ossec/etc/decoders/*.xml /var/ossec/etc/decoders/*.conf
 section_end wazuh_rule_contents
+
+section_begin suricata_config_summary
+suricata_config_summary
+section_end suricata_config_summary
+
+section_begin wazuh_config_summary
+wazuh_config_summary
+section_end wazuh_config_summary

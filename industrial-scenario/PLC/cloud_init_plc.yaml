@@ -61,7 +61,14 @@ write_files:
 
       echo "[PLC] Compiling program..."
       cd "$OPENPLC_DIR/scripts"
-      ./compile_st.sh active_program.st
+      if [ -f "./compile_program.sh" ]; then
+        ./compile_program.sh active_program.st
+      elif [ -f "./compile_st.sh" ]; then
+        ./compile_st.sh active_program.st
+      else
+        echo "[PLC] ERROR: no compile script found in $OPENPLC_DIR/scripts"
+        ls "$OPENPLC_DIR/scripts/" || true
+      fi
 
       echo "[PLC] Restarting OpenPLC service..."
       systemctl restart openplc

@@ -4784,5 +4784,104 @@
       });
     });
   </script>
+
+  <!-- ── Level C live progress pill ──────────────────────────────────────── -->
+  <style>
+    #lc-index-pill{
+      position:fixed;bottom:18px;left:50%;transform:translateX(-50%);
+      display:none;align-items:center;gap:10px;
+      background:rgba(4,9,20,.88);backdrop-filter:blur(16px);
+      border:1px solid rgba(220,38,38,.35);border-radius:999px;
+      padding:8px 18px;z-index:19000;cursor:pointer;
+      box-shadow:0 8px 32px rgba(0,0,0,.5);min-width:280px;
+    }
+    #lc-index-pill:hover{border-color:rgba(220,38,38,.6)}
+    .lc-pill-dot{width:8px;height:8px;border-radius:50%;background:#ef4444;flex-shrink:0;animation:lc-pulse 1.4s ease infinite}
+    @keyframes lc-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+    .lc-pill-phase{font-size:10px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:#fca5a5;flex:1}
+    .lc-pill-rep{font-size:10px;color:#94a3b8;letter-spacing:.1em}
+    .lc-pill-pct{font-size:11px;font-weight:900;color:#fb923c;min-width:32px;text-align:right}
+    .lc-pill-bar-track{width:60px;height:3px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;flex-shrink:0}
+    .lc-pill-bar{height:100%;background:linear-gradient(90deg,#dc2626,#fb923c);border-radius:99px;transition:width .5s ease}
+  </style>
+  <div id="lc-index-pill" onclick="window.location.href='/foc-paper-evidence'">
+    <div class="lc-pill-dot"></div>
+    <span class="lc-pill-phase">Level C</span>
+    <span class="lc-pill-rep">—</span>
+    <div class="lc-pill-bar-track"><div class="lc-pill-bar" style="width:0%"></div></div>
+    <span class="lc-pill-pct">0%</span>
+  </div>
+  <script>
+  (function() {
+    var POLL_MS = 5000;
+    var timer   = null;
+
+    function pill()    { return document.getElementById("lc-index-pill"); }
+    function phase()   { return pill()?.querySelector(".lc-pill-phase"); }
+    function repEl()   { return pill()?.querySelector(".lc-pill-rep"); }
+    function pctEl()   { return pill()?.querySelector(".lc-pill-pct"); }
+    function barEl()   { return pill()?.querySelector(".lc-pill-bar"); }
+
+    function show(ph, rep, total, pct) {
+      var p = pill();
+      if (!p) return;
+      p.style.display = "flex";
+      phase().textContent = ph.replace(/_/g," ");
+      repEl().textContent = "Rep " + rep + "/" + total;
+      pctEl().textContent = pct + "%";
+      barEl().style.width = pct + "%";
+    }
+
+    function hide() {
+      var p = pill();
+      if (p) p.style.display = "none";
+    }
+
+    function checkJob() {
+      var jobId = localStorage.getItem("lc_active_job_id");
+      var totalReps = parseInt(localStorage.getItem("lc_total_reps") || "1", 10);
+      if (!jobId) { hide(); return; }
+      fetch("/api/level-c/status/" + jobId)
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(data) {
+          if (!data) { hide(); return; }
+          var status = (data.phase || "VALIDATING").toUpperCase();
+          var rep    = data.current_repetition || 1;
+          var terminal = ["COMPLETED","FAILED","CANCELLED","STOPPED"].indexOf(status) >= 0 || (data.status && data.status !== "running");
+          if (terminal) {
+            localStorage.removeItem("lc_active_job_id");
+            localStorage.removeItem("lc_total_reps");
+            hide(); return;
+          }
+          var pct = computePct(status, rep, totalReps);
+          show(status, rep, totalReps, pct);
+        })
+        .catch(function() {});
+    }
+
+    var PER_REP = 39; // sum of per-rep weights
+    function computePct(status, rep, total) {
+      if (status === "VALIDATING") return 2;
+      if (status === "COMPLETED" || status === "COMPARING") return 98;
+      var phaseWeights = {
+        DESTROYING:12,CLEANING:6,DEPLOYING_IT:18,DEPLOYING_OT:12,
+        WAITING_NODES:6,INSTALLING_TOOLS:18,RUNNING_LEVEL_B:36,
+        WAITING_LEVEL_B:6,CAPTURING_SNAPSHOT:6
+      };
+      var beforeRep = 1 + (rep - 1) * PER_REP;
+      var keys = ["DESTROYING","CLEANING","DEPLOYING_IT","DEPLOYING_OT","WAITING_NODES","INSTALLING_TOOLS","RUNNING_LEVEL_B","WAITING_LEVEL_B","CAPTURING_SNAPSHOT"];
+      var idx = keys.indexOf(status);
+      var withinRep = 0;
+      for (var i = 0; i < idx; i++) withinRep += (phaseWeights[keys[i]] || 0);
+      var totalW = 1 + total * PER_REP + 3;
+      return Math.min(97, Math.max(2, Math.round((beforeRep + withinRep) / totalW * 100)));
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+      checkJob();
+      timer = setInterval(checkJob, POLL_MS);
+    });
+  })();
+  </script>
 </body>
 </html>

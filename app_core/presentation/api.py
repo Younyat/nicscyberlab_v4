@@ -557,13 +557,29 @@ def add_tool_to_instance():
         safe = re.sub(r'[^a-zA-Z0-9_-]', '_', instance.lower())
         path = os.path.join(DIR, f"{safe}_tools.json")
 
-        # Mantenemos la estructura original pero aseguramos que 'tools' sea un objeto
-        # Si recibimos ['wazuh'], lo convertimos a {'wazuh': 'pending'}
+        # Normalise tools_data to a dict {tool_name: status}
         if isinstance(tools_data, list):
-            new_tools_obj = {}
-            for t in tools_data:
-                new_tools_obj[t] = "pending" # Estado por defecto para nuevos
-            data["tools"] = new_tools_obj
+            new_tools_obj = {t: "pending" for t in tools_data}
+        else:
+            new_tools_obj = dict(tools_data) if tools_data else {}
+
+        # Merge with existing file so we never accidentally remove tools that
+        # were already defined. New/updated tools overwrite existing entries.
+        existing = {}
+        if os.path.exists(path):
+            try:
+                with open(path, "r") as f:
+                    existing = json.load(f)
+            except Exception:
+                existing = {}
+        merged_tools = dict(existing.get("tools") or {})
+        merged_tools.update(new_tools_obj)
+        data["tools"] = merged_tools
+
+        # Preserve existing metadata fields (ip, id) if not supplied in request
+        for field in ("ip_private", "ip_floating", "instance_id", "id"):
+            if field not in data and field in existing:
+                data[field] = existing[field]
 
         with open(path, "w") as f:
             json.dump(data, f, indent=4)
@@ -2780,6 +2796,13 @@ try:
     from app_core.infrastructure.scenario_snapshot.api import scenario_snapshot_bp
     api_bp.register_blueprint(scenario_snapshot_bp)
     print("[OK] Scenario Snapshot Blueprint cargado correctamente")
+except Exception:
+    pass
+
+try:
+    from app_core.infrastructure.level_c_orchestrator.api import level_c_bp
+    api_bp.register_blueprint(level_c_bp)
+    print("[OK] Level C Orchestrator Blueprint cargado correctamente")
 except Exception:
     pass
 

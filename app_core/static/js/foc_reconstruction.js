@@ -4631,3 +4631,268 @@ async function runAllCprReconstruction() {
     if (btn) { btn.disabled = false; btn.textContent = "Run CPR — All Cases"; }
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LEVEL C CAMPAIGN ORCHESTRATOR
+// ═══════════════════════════════════════════════════════════════════════════
+
+const LevelC = {
+  modal: null,
+  currentJobId: null,
+  pollTimer: null,
+  knownPhase: null,
+
+  PHASE_COLORS: {
+    QUEUED:             "#94a3b8",
+    VALIDATING:         "#38bdf8",
+    DESTROYING:         "#ef4444",
+    CLEANING:           "#f59e0b",
+    DEPLOYING_IT:       "#3b82f6",
+    DEPLOYING_OT:       "#6366f1",
+    WAITING_NODES:      "#8b5cf6",
+    INSTALLING_TOOLS:   "#10b981",
+    RUNNING_LEVEL_B:    "#f97316",
+    WAITING_LEVEL_B:    "#fb923c",
+    CAPTURING_SNAPSHOT: "#22c55e",
+    COMPARING:          "#a78bfa",
+    COMPLETED:          "#22c55e",
+    FAILED:             "#ef4444",
+    ABORTED:            "#64748b",
+  },
+
+  PIPELINE_PHASES: [
+    "VALIDATING", "DESTROYING", "CLEANING",
+    "DEPLOYING_IT", "DEPLOYING_OT", "WAITING_NODES",
+    "INSTALLING_TOOLS", "RUNNING_LEVEL_B", "WAITING_LEVEL_B",
+    "CAPTURING_SNAPSHOT", "COMPARING", "COMPLETED",
+  ],
+
+  open() {
+    this.modal = byId("level-c-modal");
+    if (this.modal) {
+      this.modal.classList.add("modal-visible");
+      this.modal.setAttribute("aria-hidden", "false");
+    }
+    // Pre-fill campaign ID from FOC data if available
+    const campInput = byId("lc-campaign-id");
+    if (campInput && !campInput.value && FOC.manifest) {
+      const camps = (FOC.manifest.campaigns || {});
+      const firstB = Object.keys(camps).find(k => (camps[k].level || "").toUpperCase() === "B");
+      if (firstB) campInput.value = firstB;
+    }
+    // Try to auto-detect Level B campaign from snapshot
+    fetch("/api/scenario-snapshot/current")
+      .then(r => r.json())
+      .then(d => {
+        const snap = d.snapshot || {};
+        const camps = snap.campaigns || {};
+        const bIds = Object.keys(camps);
+        if (bIds.length && campInput && !campInput.value) campInput.value = bIds[0];
+      })
+      .catch(() => {});
+
+    // Load existing jobs
+    this.loadJobs();
+  },
+
+  close() {
+    const m = byId("level-c-modal");
+    if (m) { m.classList.remove("modal-visible"); m.setAttribute("aria-hidden", "true"); }
+    this.stopPolling();
+  },
+
+  async loadJobs() {
+    try {
+      const d = await fetchJson("/api/level-c/jobs");
+      const jobs = d.jobs || [];
+      if (jobs.length > 0) {
+        const latest = jobs[0];
+        if (latest.status === "running" || latest.phase === "QUEUED") {
+          this.currentJobId = latest.job_id;
+          byId("level-c-status-panel").style.display = "";
+          this.startPolling();
+        }
+      }
+    } catch (_) {}
+  },
+
+  async launch() {
+    const campaignId = (byId("lc-campaign-id")?.value || "").trim();
+    const lcReps = parseInt(byId("lc-reps")?.value || "1", 10);
+    const lbReps = parseInt(byId("lb-reps")?.value || "10", 10);
+    const confirm = (byId("lc-confirm")?.value || "").trim();
+    const btn = byId("level-c-launch-btn");
+
+    if (!campaignId) { alert("Please enter a Campaign ID."); return; }
+    if (confirm !== "LAUNCH_LEVEL_C") { alert("Type exactly LAUNCH_LEVEL_C in the confirmation field."); return; }
+
+    btn.disabled = true;
+    btn.textContent = "Launching...";
+
+    try {
+      const res = await fetch("/api/level-c/launch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          campaign_id: campaignId,
+          level_c_repetitions: lcReps,
+          level_b_repetitions: lbReps,
+          confirmation: confirm,
+        }),
+      });
+      const d = await res.json();
+      if (d.error) {
+        alert(`Error: ${d.message || d.error}`);
+        return;
+      }
+      this.currentJobId = d.job_id;
+      byId("level-c-status-panel").style.display = "";
+      byId("lc-log-lines").textContent = "";
+      byId("lc-compare-panel").style.display = "none";
+      this.startPolling();
+    } catch (err) {
+      alert(`Launch failed: ${err}`);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Launch Level C Campaign";
+    }
+  },
+
+  startPolling() {
+    this.stopPolling();
+    this.pollTimer = setInterval(() => this.pollStatus(), 3000);
+    this.pollStatus();
+  },
+
+  stopPolling() {
+    if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; }
+  },
+
+  async pollStatus() {
+    if (!this.currentJobId) return;
+    try {
+      const state = await fetchJson(`/api/level-c/status/${this.currentJobId}`);
+      this.renderStatus(state);
+
+      const phase = (state.phase || "").toUpperCase();
+      if (phase === "COMPLETED" || phase === "FAILED" || phase === "ABORTED") {
+        this.stopPolling();
+        if (phase === "COMPLETED") this.renderComparison(state);
+      }
+    } catch (_) {}
+  },
+
+  renderStatus(state) {
+    const phase = state.phase || "—";
+    const phaseEl = byId("lc-job-phase");
+    if (phaseEl) {
+      phaseEl.textContent = phase;
+      const key = phase.split(" ")[0].toUpperCase();
+      phaseEl.style.color = this.PHASE_COLORS[key] || "#94a3b8";
+    }
+
+    const repEl = byId("lc-rep-counter");
+    if (repEl) {
+      const cur = state.current_repetition || 0;
+      const total = (state.config || {}).level_c_repetitions || 1;
+      repEl.textContent = cur ? `Repetition ${cur}/${total}` : "";
+    }
+
+    // Pipeline indicator
+    const pipeEl = byId("lc-pipeline");
+    if (pipeEl) {
+      const cur = (phase.split(" ")[0] || "").toUpperCase();
+      pipeEl.innerHTML = this.PIPELINE_PHASES.map(p => {
+        let bg = "rgba(15,23,42,0.6)";
+        let col = "#64748b";
+        if (p === cur) { bg = "rgba(56,189,248,0.15)"; col = "#38bdf8"; }
+        else if (this._phaseOrder(p) < this._phaseOrder(cur)) { bg = "rgba(34,197,94,0.1)"; col = "#22c55e"; }
+        return `<span style="padding:3px 8px;border-radius:999px;background:${bg};color:${col};border:1px solid ${col}40;font-weight:800;">${p.replace("_", " ")}</span>`;
+      }).join("");
+    }
+
+    // Log lines
+    const logEl = byId("lc-log-lines");
+    if (logEl) {
+      const entries = (state.log || []).slice(-80);
+      logEl.textContent = entries.map(e => {
+        const ts = (e.ts || "").slice(11, 19);
+        return `[${ts}] [${e.level || "?"}] ${e.msg || ""}`;
+      }).join("\n");
+      logEl.parentElement.scrollTop = logEl.parentElement.scrollHeight;
+    }
+  },
+
+  renderComparison(state) {
+    const report = state.comparison_report;
+    if (!report) return;
+    const panel = byId("lc-compare-panel");
+    const verdict = byId("lc-compare-verdict");
+    const table = byId("lc-compare-table");
+    if (!panel) return;
+    panel.style.display = "";
+
+    const ok = report.all_delta_wcpr_acceptable;
+    if (verdict) {
+      verdict.style.background = ok ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)";
+      verdict.style.border = `1px solid ${ok ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`;
+      verdict.style.color = ok ? "#86efac" : "#fca5a5";
+      verdict.textContent = report.verdict || (ok ? "REPRODUCIBLE" : "NON-REPRODUCIBLE");
+    }
+
+    if (table && report.comparisons) {
+      const rows = report.comparisons.map(c => {
+        const ok2 = c.delta_wcpr_acceptable;
+        return `<tr class="border-t border-slate-800/40 text-xs">
+          <td class="py-2 pr-4 font-mono text-slate-400">Rep ${c.rep_a} vs ${c.rep_b}</td>
+          <td class="py-2 pr-4 font-mono text-slate-300">${c.snapshot_a?.slice(-8)} / ${c.snapshot_b?.slice(-8)}</td>
+          <td class="py-2 pr-4 text-center font-black" style="color:${ok2?'#22c55e':'#ef4444'};">${(c.delta_wcpr * 100).toFixed(2)}%</td>
+          <td class="py-2 text-center text-xs" style="color:${ok2?'#22c55e':'#ef4444'};">${ok2 ? "✓ OK" : "⚠ HIGH"}</td>
+        </tr>`;
+      });
+      table.innerHTML = `<table class="w-full text-sm" style="border-collapse:separate;border-spacing:0;">
+        <thead><tr class="text-slate-400 uppercase text-[10px] tracking-[0.14em]">
+          <th class="pb-2 pr-4 text-left">Repetitions</th>
+          <th class="pb-2 pr-4 text-left">Snapshots</th>
+          <th class="pb-2 pr-4 text-center">ΔWCPR</th>
+          <th class="pb-2 text-center">Status</th>
+        </tr></thead>
+        <tbody>${rows.join("")}</tbody>
+      </table>
+      <div class="mt-3 text-xs text-slate-400">
+        Reproducibility Index: <span class="font-black text-white">${(report.reproducibility_index || 0).toFixed(4)}</span>
+        &nbsp;|&nbsp; Max ΔWCPR: <span class="font-black" style="color:${ok?'#22c55e':'#ef4444'}">${((report.max_delta_wcpr || 0) * 100).toFixed(2)}%</span>
+        &nbsp;|&nbsp; Threshold: 5%
+      </div>`;
+    }
+  },
+
+  _phaseOrder(p) {
+    return this.PIPELINE_PHASES.indexOf(p);
+  },
+};
+
+// ── Level C wiring ──────────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", () => {
+  // Open modal
+  const btnLevelC = byId("btn-level-c");
+  if (btnLevelC) btnLevelC.addEventListener("click", () => LevelC.open());
+
+  // Close buttons
+  ["level-c-modal-close", "level-c-modal-close2"].forEach(id => {
+    const el = byId(id);
+    if (el) el.addEventListener("click", () => LevelC.close());
+  });
+
+  // Close on backdrop click
+  const modal = byId("level-c-modal");
+  if (modal) {
+    modal.addEventListener("click", e => {
+      if (e.target === modal) LevelC.close();
+    });
+  }
+
+  // Launch button
+  const launchBtn = byId("level-c-launch-btn");
+  if (launchBtn) launchBtn.addEventListener("click", () => LevelC.launch());
+});

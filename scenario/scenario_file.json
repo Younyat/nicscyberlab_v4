@@ -3,7 +3,7 @@
     "nodes": [
         {
             "id": "node1",
-            "name": "monitor 1",
+            "name": "monitor 11",
             "type": "monitor",
             "position": {
                 "x": 719,
@@ -14,7 +14,7 @@
                 "ip": "192.168.1.101",
                 "network": "net_private_01",
                 "subnet": "subnet_net_private_01",
-                "flavor": "S_2CPU_4GB",
+                "flavor": "M_4CPU_8GB",
                 "image": "ubuntu-22.04",
                 "security_group": "sg_basic",
                 "keypair": "my_key"
@@ -22,7 +22,7 @@
         },
         {
             "id": "node2",
-            "name": "attack 2",
+            "name": "attack 22",
             "type": "attack",
             "position": {
                 "x": 1025,
@@ -41,7 +41,7 @@
         },
         {
             "id": "node3",
-            "name": "victim 3",
+            "name": "victim 33",
             "type": "victim",
             "position": {
                 "x": 960,
@@ -52,7 +52,7 @@
                 "ip": "192.168.1.103",
                 "network": "net_private_01",
                 "subnet": "subnet_net_private_01",
-                "flavor": "T_1CPU_2GB",
+                "flavor": "S_2CPU_4GB",
                 "image": "debian-12",
                 "security_group": "sg_basic",
                 "keypair": "my_key"

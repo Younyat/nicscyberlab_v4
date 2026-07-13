@@ -1024,6 +1024,7 @@ def _parse_tooling_output(stdout: str) -> dict:
             "rule_inventory": sections.get("suricata_rule_inventory", []),
             "rule_contents": suricata_rule_contents,
             "parsed_rules": _extract_suricata_rules(suricata_rule_contents),
+            "config_summary": sections.get("suricata_config_summary", []),
         },
         "wazuh": {
             "fim_paths": sections.get("wazuh_fim_paths", []),
@@ -1031,6 +1032,7 @@ def _parse_tooling_output(stdout: str) -> dict:
             "local_decoders": sections.get("wazuh_local_decoders", []),
             "rule_inventory": sections.get("wazuh_rule_inventory", []),
             "rule_contents": wazuh_rule_contents,
+            "config_summary": sections.get("wazuh_config_summary", []),
         },
         "raw_values": values,
     }

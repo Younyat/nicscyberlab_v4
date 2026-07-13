@@ -148,6 +148,7 @@
           <button id="btn-bootstrap" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Bootstrap FOC</button>
           <button id="btn-regenerate" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Regenerate Reconstruction</button>
           <button id="btn-run-all-cpr" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">Run CPR — All Cases</button>
+          <button id="btn-level-c" class="btn-primary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase" style="background:linear-gradient(135deg,#dc2626,#b45309);">Level C — Redeploy</button>
           <button id="btn-refresh" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Refresh</button>
         </div>
       </div>
@@ -660,6 +661,124 @@
       <div id="cpr-all-status" class="mt-5 text-sm text-slate-400"></div>
     </div>
   </div>
+
+  <!-- ═══════════════ LEVEL C CAMPAIGN MODAL ═══════════════ -->
+  <div id="level-c-modal" class="modal-shell" aria-hidden="true">
+    <div class="modal-card-wide" style="max-width:760px;">
+
+      <!-- Header -->
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <div class="text-[11px] tracking-[0.28em] uppercase font-black" style="color:#ef4444;">Level C — Full Scenario Redeployment</div>
+          <h2 class="text-2xl font-black mt-2">Launch Reproducibility Campaign</h2>
+          <p class="text-sm text-slate-300 mt-2 max-w-xl">
+            Destroys the active scenario, redeploys IT + OT nodes from scratch, reinstalls tools
+            in scientific dependency order, runs Level B + A repetitions, and captures a snapshot.
+            Repeat N times to compute cross-deployment ΔWCPR reproducibility index.
+          </p>
+        </div>
+        <button id="level-c-modal-close" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Close</button>
+      </div>
+
+      <!-- Warning -->
+      <div class="mt-5 rounded-2xl p-4 text-sm font-semibold" style="background:rgba(220,38,38,0.12);border:1px solid rgba(220,38,38,0.35);color:#fca5a5;">
+        ⚠ DESTRUCTIVE OPERATION — This will permanently destroy all active OpenStack instances and redeploy from the scenario snapshot blueprint.
+        Active forensic cases will be archived. Snapshots are preserved.
+      </div>
+
+      <!-- Configuration grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+        <div class="glass-soft rounded-2xl p-4">
+          <label class="text-[10px] uppercase tracking-[0.25em] text-slate-400 font-black block mb-2">Level C Repetitions</label>
+          <input id="lc-reps" type="number" min="1" max="5" value="1"
+            class="w-full rounded-xl px-3 py-2 text-sm font-bold text-white"
+            style="background:rgba(15,23,42,0.9);border:1px solid rgba(148,163,184,0.2);">
+          <p class="text-[10px] text-slate-400 mt-1">Full redeploy cycles (1–5)</p>
+        </div>
+        <div class="glass-soft rounded-2xl p-4">
+          <label class="text-[10px] uppercase tracking-[0.25em] text-slate-400 font-black block mb-2">Level B Reps / Cycle</label>
+          <input id="lb-reps" type="number" min="1" max="50" value="10"
+            class="w-full rounded-xl px-3 py-2 text-sm font-bold text-white"
+            style="background:rgba(15,23,42,0.9);border:1px solid rgba(148,163,184,0.2);">
+          <p class="text-[10px] text-slate-400 mt-1">Attack repetitions per deployment</p>
+        </div>
+        <div class="glass-soft rounded-2xl p-4">
+          <label class="text-[10px] uppercase tracking-[0.25em] text-slate-400 font-black block mb-2">Campaign ID</label>
+          <input id="lc-campaign-id" type="text" placeholder="CMP-..."
+            class="w-full rounded-xl px-3 py-2 text-sm font-mono text-white"
+            style="background:rgba(15,23,42,0.9);border:1px solid rgba(148,163,184,0.2);">
+          <p class="text-[10px] text-slate-400 mt-1">Level B campaign to use</p>
+        </div>
+      </div>
+
+      <!-- Scientific order summary -->
+      <div class="mt-4 glass-soft rounded-2xl p-4 text-xs text-slate-400">
+        <div class="font-black uppercase tracking-[0.2em] text-slate-300 mb-2">Scientific Tool Installation Order</div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div>
+            <div class="font-bold text-sky-400 mb-1">Phase 1 — Servers</div>
+            <div>monitor: wazuh</div><div>attack: caldera, caldera_ot_plugins, mbpoll, nmap</div>
+          </div>
+          <div>
+            <div class="font-bold text-amber-400 mb-1">Phase 2 — IDS</div>
+            <div>victim: suricata, nmap</div><div>PLC/FUXA: suricata</div>
+          </div>
+          <div>
+            <div class="font-bold text-green-400 mb-1">Phase 3 — Agents</div>
+            <div>victim: wazuh_agent, caldera_agent</div><div>PLC/FUXA: wazuh_agent</div>
+          </div>
+          <div>
+            <div class="font-bold text-purple-400 mb-1">Phase 4 — Rules</div>
+            <div>PLC: rollback_suricata_*, rollback_wazuh_*, wazuh_fim_realtime</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Confirmation token -->
+      <div class="mt-4">
+        <label class="text-[10px] uppercase tracking-[0.25em] text-slate-400 font-black block mb-2">Confirmation — type <span class="font-mono text-red-400">LAUNCH_LEVEL_C</span></label>
+        <input id="lc-confirm" type="text" placeholder="LAUNCH_LEVEL_C"
+          class="w-full rounded-xl px-3 py-2 text-sm font-mono text-white"
+          style="background:rgba(15,23,42,0.9);border:1px solid rgba(148,163,184,0.2);">
+      </div>
+
+      <!-- Action buttons -->
+      <div class="flex gap-3 mt-6">
+        <button id="level-c-launch-btn" class="btn-primary rounded-2xl px-6 py-3 text-sm font-extrabold tracking-[0.16em] uppercase flex-1"
+          style="background:linear-gradient(135deg,#dc2626,#b45309);">
+          Launch Level C Campaign
+        </button>
+        <button id="level-c-modal-close2" class="btn-secondary rounded-2xl px-4 py-3 text-sm font-extrabold tracking-[0.16em] uppercase">Cancel</button>
+      </div>
+
+      <!-- Status / progress panel (shown after launch) -->
+      <div id="level-c-status-panel" class="mt-6" style="display:none;">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="text-[10px] uppercase tracking-[0.25em] text-slate-400 font-black">Job Status</div>
+          <div id="lc-job-phase" class="tag rounded-full px-3 py-1 text-[10px] font-black tracking-[0.2em] uppercase text-sky-300">—</div>
+          <div id="lc-rep-counter" class="text-xs text-slate-400"></div>
+        </div>
+
+        <!-- Phase pipeline -->
+        <div id="lc-pipeline" class="flex flex-wrap gap-2 mb-4 text-[10px]"></div>
+
+        <!-- Log stream -->
+        <div class="glass-soft rounded-2xl p-4" style="max-height:280px;overflow-y:auto;" id="lc-log-panel">
+          <div class="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-black mb-2">Live Log</div>
+          <div id="lc-log-lines" class="font-mono text-xs text-slate-300 whitespace-pre-wrap"></div>
+        </div>
+
+        <!-- Comparison report (shown after COMPARING phase) -->
+        <div id="lc-compare-panel" class="mt-4" style="display:none;">
+          <div class="text-[10px] uppercase tracking-[0.25em] text-slate-300 font-black mb-3">Cross-Deployment Comparison (ΔWCPR)</div>
+          <div id="lc-compare-verdict" class="rounded-2xl p-4 text-sm font-semibold mb-3"></div>
+          <div id="lc-compare-table"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <!-- ═══════════════ END LEVEL C MODAL ═══════════════ -->
 
   <script src="/js/theme-switcher.js"></script>
   <script>window.NicsThemeSwitcher.mount('#theme-switcher-mount');</script>

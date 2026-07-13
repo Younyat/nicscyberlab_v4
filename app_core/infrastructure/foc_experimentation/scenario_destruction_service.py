@@ -43,19 +43,34 @@ def _active_paths() -> dict:
 def _find_scenario_card(scenario_id: str | None = None) -> dict | None:
     registry = load_registry(SCENARIO_REGISTRY_PATH)
     entries = registry.get("entries", [])
+    if not entries:
+        return None
+
+    _sort_key = lambda item: str(item.get("generated_at") or item.get("created_at") or "")
+
     if scenario_id:
         matches = [item for item in entries if item.get("scenario_id") == scenario_id]
         if matches:
-            return sorted(matches, key=lambda item: str(item.get("generated_at") or item.get("created_at") or ""), reverse=True)[0]
+            return sorted(matches, key=_sort_key, reverse=True)[0]
+
     active_hint = get_active_scenario_memory_hint()
     active_id = active_hint.get("scenario_id")
+
+    # If the hint returned a sentinel (scenario files deleted after destruction),
+    # fall back to the most recent registry entry — the scenario card is still
+    # valid and contains the blueprint path needed for Level C redeployment.
+    if not active_id or active_id in ("not_available", "unknown", ""):
+        return sorted(entries, key=_sort_key, reverse=True)[0]
+
     matches = [item for item in entries if item.get("scenario_id") == active_id]
     if matches:
         active_matches = [item for item in matches if item.get("active_scenario_exists")]
         if active_matches:
-            return sorted(active_matches, key=lambda item: str(item.get("generated_at") or item.get("created_at") or ""), reverse=True)[0]
-        return sorted(matches, key=lambda item: str(item.get("generated_at") or item.get("created_at") or ""), reverse=True)[0]
-    return None
+            return sorted(active_matches, key=_sort_key, reverse=True)[0]
+        return sorted(matches, key=_sort_key, reverse=True)[0]
+
+    # No match for the active_id either — return most recent entry as last resort
+    return sorted(entries, key=_sort_key, reverse=True)[0]
 
 
 def _scenario_validation_checks(card: dict, blueprint_path: Path, active_hint: dict) -> list[dict]:
@@ -148,10 +163,25 @@ def validate_scenario_destruction(*, scenario_id: str | None = None, campaign_id
     blueprint_rel = card.get("reconstruction_blueprint_path")
     blueprint_path = (Path.cwd() / blueprint_rel).resolve() if blueprint_rel else BLUEPRINTS_DIR / f"{card.get('scenario_fingerprint')}_scenario_reconstruction_blueprint.json"
     checks = _scenario_validation_checks(card, blueprint_path, active_hint)
-    missing_required = [item for item in checks if item["status"] != "ok"]
+
+    # Keys that are purely traceability metadata — missing ones are warnings, NOT hard blockers.
+    # Blocking the destruction because a campaign isn't linked yet would prevent Level C from
+    # ever starting on a fresh scenario that hasn't run any Level B campaigns yet.
+    _TRACEABILITY_ONLY_KEYS = {"associated_campaigns", "associated_cases", "associated_result_cards"}
+
+    missing_blocking = [
+        item for item in checks
+        if item["status"] != "ok" and item["key"] not in _TRACEABILITY_ONLY_KEYS
+    ]
+    missing_warnings = [
+        item for item in checks
+        if item["status"] != "ok" and item["key"] in _TRACEABILITY_ONLY_KEYS
+    ]
+
+    ready = not missing_blocking and blueprint_path.is_file()
     return {
         "status": "ok",
-        "ready": not missing_required and blueprint_path.is_file(),
+        "ready": ready,
         "scenario_id": card.get("scenario_id"),
         "campaign_id": campaign_id,
         "scenario_card_id": card.get("scenario_card_id"),
@@ -159,10 +189,12 @@ def validate_scenario_destruction(*, scenario_id: str | None = None, campaign_id
         "topology_fingerprint": card.get("topology_fingerprint"),
         "action_type": action_type,
         "checks": checks,
+        "missing_blocking": [c["key"] for c in missing_blocking],
+        "missing_warnings": [c["key"] for c in missing_warnings],
         "message": (
             "The active scenario can be destroyed for Level C redeployment."
-            if not missing_required and blueprint_path.is_file()
-            else "The scenario cannot be destroyed because no valid scenario reconstruction blueprint exists. Preserve the lightweight scenario memory before destroying the active environment."
+            if ready
+            else "The scenario cannot be destroyed because core redeployment prerequisites are missing. Ensure the blueprint and active scenario exist."
         ),
         "blueprint_path": relative_path(blueprint_path) if blueprint_path else None,
     }

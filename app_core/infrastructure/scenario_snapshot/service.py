@@ -1147,6 +1147,31 @@ def _validate_readiness(scenario: dict, infra: dict, tools: dict, attacks: dict,
 PROBE_CACHE_DIR = PROJECT_ROOT / "runtime" / "node_health" / "probe_cache"
 
 
+def _detect_fuxa_from_probe(probe: dict) -> str:
+    """
+    FUXA runs as a Node.js process, not as a named systemd service.
+    Check: 1) systemd service 'fuxa', 2) process list, 3) docker container.
+    Returns the service status string.
+    """
+    services = probe.get("services") or {}
+    # Direct systemd entry
+    if "fuxa" in services:
+        return services["fuxa"]
+    # Check process tables: top_cpu and top_mem contain process names
+    sections = probe.get("sections") or {}
+    for table_key in ("top_cpu", "top_mem"):
+        for line in (sections.get(table_key) or []):
+            if "FUXA" in line or "fuxa" in str(line).lower():
+                return "active (process)"
+    # Check docker containers if docker is active
+    if services.get("docker") == "active":
+        for table_key in ("top_cpu", "top_mem"):
+            for line in (sections.get(table_key) or []):
+                if "npm" in str(line).lower() and "start" in str(line).lower():
+                    return "active (npm/docker)"
+    return S_NOT_AVAILABLE
+
+
 def _collect_node_health_cache(instances: list, warnings: list) -> dict:
     """Read node health probe cache (no live SSH). Captures OS, services, resource state."""
     by_node: dict = {}
@@ -1187,7 +1212,7 @@ def _collect_node_health_cache(instances: list, warnings: list) -> dict:
                 "wazuh_manager": services.get("wazuh-manager", S_NOT_AVAILABLE),
                 "docker": services.get("docker", S_NOT_AVAILABLE),
                 "openplc": services.get("openplc", S_NOT_AVAILABLE),
-                "fuxa": services.get("fuxa", S_NOT_AVAILABLE),
+                "fuxa": _detect_fuxa_from_probe(probe),
             },
             "resources": {
                 "cpu_cores": cpu.get("cores"),
@@ -1282,6 +1307,8 @@ def verify_nodes_live(snapshot_id: str) -> dict:
             wazuh_fim = (runtime.get("wazuh") or {}).get("fim_paths") or []
             wazuh_local_rules = (runtime.get("wazuh") or {}).get("local_rules") or []
 
+            sur = runtime.get("suricata") or {}
+            waz = runtime.get("wazuh") or {}
             verification = {
                 "status": "VERIFIED" if not runtime_error else "PARTIAL",
                 "verified_at": verified_at,
@@ -1290,16 +1317,20 @@ def verify_nodes_live(snapshot_id: str) -> dict:
                 "suricata": {
                     "rules_count": len(suricata_rules),
                     "rules": suricata_rules,
-                    "active_rule_files": (runtime.get("suricata") or {}).get("active_rule_files") or [],
-                    "custom_signatures": (runtime.get("suricata") or {}).get("custom_signatures") or [],
-                    "rule_inventory": (runtime.get("suricata") or {}).get("rule_inventory") or [],
+                    "active_rule_files": sur.get("active_rule_files") or [],
+                    "custom_signatures": sur.get("custom_signatures") or [],
+                    "rule_inventory": sur.get("rule_inventory") or [],
+                    "rule_contents": sur.get("rule_contents") or [],
+                    "config_summary": sur.get("config_summary") or [],
                 },
                 "wazuh": {
                     "fim_paths": wazuh_fim,
                     "local_rules_present": bool(wazuh_local_rules),
                     "local_rules": wazuh_local_rules,
-                    "local_decoders": (runtime.get("wazuh") or {}).get("local_decoders") or [],
-                    "rule_inventory": (runtime.get("wazuh") or {}).get("rule_inventory") or [],
+                    "local_decoders": waz.get("local_decoders") or [],
+                    "rule_inventory": waz.get("rule_inventory") or [],
+                    "rule_contents": waz.get("rule_contents") or [],
+                    "config_summary": waz.get("config_summary") or [],
                 },
             }
         except Exception as exc:

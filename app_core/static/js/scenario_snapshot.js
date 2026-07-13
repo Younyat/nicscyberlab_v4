@@ -608,8 +608,8 @@ function renderFoc(foc) {
       ${[
         ["Initialized",       foc.initialized ? "YES" : "NO",   foc.initialized ? "ri-pass" : "ri-fail"],
         ["Quality Status",    foc.quality_status || "—",         ""],
-        ["Completeness",      foc.completeness !== undefined ? Math.round((foc.completeness||0)*100)+"%" : "—", ""],
-        ["Reproducibility",   foc.reproducibility_score !== undefined ? Math.round((foc.reproducibility_score||0)*100)+"%" : "—", ""],
+        ["Completeness",      foc.completeness || "—", ""],
+        ["Reproducibility",   foc.reproducibility_score !== undefined ? Math.min(100, Math.round(foc.reproducibility_score||0))+"%" : "—", ""],
         ["Scenario BOM",      foc.scenario_bom?.present ? "PRESENT" : "MISSING", foc.scenario_bom?.present ? "ri-pass" : "ri-fail"],
         ["Tools BOM",         foc.tools_bom?.present ? "PRESENT" : "MISSING",    foc.tools_bom?.present ? "ri-pass" : "ri-fail"],
         ["Attack Attestation",foc.attack_attestation?.present ? "PRESENT" : "MISSING", foc.attack_attestation?.present ? "ri-pass" : "ri-fail"],
@@ -704,44 +704,112 @@ function renderNodeVerification(nv) {
   }
 
   const svcBadge = (v) => {
-    if (v === "active")  return '<span class="badge badge-pass">active</span>';
-    if (v === "inactive") return '<span class="badge badge-na">inactive</span>';
     if (!v || v === "NOT_AVAILABLE") return '<span class="badge badge-warn">?</span>';
+    if (String(v).startsWith("active")) return `<span class="badge badge-pass" title="${esc(v)}">${esc(v)}</span>`;
+    if (v === "inactive") return '<span class="badge badge-na">inactive</span>';
     return `<span class="badge badge-na">${esc(v)}</span>`;
+  };
+
+  // Render a "config" sub-block vs a "roles" sub-block
+  // config = main yaml/conf key settings
+  // roles  = detection rule files, FIM directories, decoders
+  const cfgBlock = (label, lines, color) => {
+    if (!lines || !lines.length) return "";
+    const filtered = lines.filter(l => l && !l.startsWith("#") && l.trim());
+    if (!filtered.length) return "";
+    return `<div class="mb-2">
+      <div class="text-[10px] uppercase tracking-[0.2em] font-black mb-1" style="color:${color}">${esc(label)}</div>
+      <pre class="text-[11px] text-slate-300 bg-black/30 rounded-xl p-3 overflow-auto" style="max-height:180px;font-family:ui-monospace,monospace;">${esc(filtered.join("\n"))}</pre>
+    </div>`;
+  };
+
+  const fileItem = (name, meta) =>
+    `<div class="flex items-center gap-2 py-1 border-b border-slate-800/40">
+      <span class="font-mono text-xs text-slate-200">${esc(name)}</span>
+      ${meta ? `<span class="text-[10px] text-slate-500">${esc(meta)}</span>` : ""}
+    </div>`;
+
+  const parseInventoryLines = (lines) => lines.map(l => {
+    const parts = l.split(" | ");
+    const path = (parts[0] || "").trim();
+    const name = path.split("/").pop() || path;
+    const meta = parts.slice(1).join(" | ").trim();
+    return { name, path, meta };
+  });
+
+  const ruleBadge = (r) => {
+    const msg = r.interpretation || "";
+    const isModbus = /modbus|register|coil/i.test(msg);
+    const isPing = /ping|icmp/i.test(msg);
+    const isWazuh = /wazuh|syscheck|fim/i.test(msg);
+    if (isModbus) return '<span class="badge" style="background:rgba(239,68,68,0.18);color:#fca5a5;border-color:rgba(239,68,68,0.3)">ICS/Modbus</span>';
+    if (isPing) return '<span class="badge" style="background:rgba(245,158,11,0.15);color:#fcd34d;border-color:rgba(245,158,11,0.3)">ICMP</span>';
+    return '<span class="badge badge-info">Detection</span>';
   };
 
   document.getElementById("nodeVerifyContent").innerHTML = `
     ${nv.live_verified
-      ? `<div class="mb-3 text-xs text-green-400">✓ Live SSH verification performed at ${esc(nv.live_verified_at||"")}</div>`
-      : `<div class="mb-3 text-xs text-yellow-400">⚠ Showing cached probe data only. Click <strong>Verify Nodes</strong> to run live SSH verification.</div>`}
+      ? `<div class="mb-4 text-xs text-green-400 font-semibold">✓ Live SSH verification performed at ${esc(nv.live_verified_at||"")}</div>`
+      : `<div class="mb-4 text-xs text-yellow-400">⚠ Showing cached probe data only. Click <strong>Verify Nodes</strong> to run live SSH verification that captures configuration files and rules.</div>`}
     ${nodes.map(n => {
       const sv = n.services || {};
       const lv = n.live_verification || {};
       const suricata = lv.suricata || {};
       const wazuh = lv.wazuh || {};
       const tools = lv.tools || [];
-      return `<details class="mb-3" open>
-        <summary>
-          <span class="font-semibold">${esc(n.instance_name||n.instance_id)}</span>
-          &nbsp;${n.status === "CACHE_AVAILABLE" ? '<span class="badge badge-info">Cached</span>' : '<span class="badge badge-warn">No Cache</span>'}
+      const hasLive = lv.status === "VERIFIED" || lv.status === "PARTIAL";
+
+      // ── Suricata config (from config_summary) vs roles (rule files)
+      const surConfig = suricata.config_summary || [];
+      const surRuleFiles = suricata.active_rule_files || [];
+      const surInventory = parseInventoryLines(suricata.rule_inventory || []);
+      const surCustomSigs = suricata.custom_signatures || [];
+      const surRules = suricata.rules || [];
+
+      // ── Wazuh config (from config_summary) vs roles (rule/decoder files + FIM)
+      const wazConfig = wazuh.config_summary || [];
+      const wazRuleFiles = wazuh.local_rules || [];
+      const wazDecoders = wazuh.local_decoders || [];
+      const wazInventory = parseInventoryLines(wazuh.rule_inventory || []);
+      const wazFim = wazuh.fim_paths || [];
+      const wazContents = wazuh.rule_contents || [];
+
+      const hasSuricata = String(sv.suricata || "").startsWith("active") || hasLive && surConfig.length;
+      const hasWazuh = String(sv.wazuh_agent || "").startsWith("active") ||
+                       String(sv.wazuh_manager || "").startsWith("active") ||
+                       (hasLive && wazConfig.length);
+
+      return `<details class="mb-4" open>
+        <summary class="cursor-pointer flex items-center gap-2 py-1">
+          <span class="font-bold text-sm">${esc(n.instance_name||n.instance_id)}</span>
+          ${n.status === "CACHE_AVAILABLE" ? '<span class="badge badge-info">Cached</span>' : '<span class="badge badge-warn">No Cache</span>'}
           ${lv.status === "VERIFIED" ? '<span class="badge badge-pass">SSH Verified</span>'
             : lv.status === "FAILED" ? '<span class="badge badge-fail">SSH Failed</span>'
             : lv.status === "PARTIAL" ? '<span class="badge badge-warn">Partial</span>' : ""}
-          <span class="text-slate-500 text-xs ml-2">${esc(n.cached_at ? "cached: " + n.cached_at.slice(0,16) : "")}</span>
+          <span class="text-slate-500 text-xs ml-1">${esc(n.cached_at ? "cached: " + n.cached_at.slice(0,16) : "")}</span>
         </summary>
-        <div class="pl-4 pt-2 space-y-3">
+
+        <div class="pl-3 pt-3 space-y-4">
           ${n.identity ? `<div class="text-xs text-slate-400">${esc(n.identity.os||"")} · ${esc(n.identity.kernel||"")} · ${esc(n.identity.hostname||"")}</div>` : ""}
+
+          <!-- SERVICES -->
           <div>
-            <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Services (cached)</div>
-            <div class="flex gap-2 flex-wrap">
-              ${Object.entries(sv).map(([k,v]) => `<div class="flex items-center gap-1"><span class="text-xs text-slate-400">${esc(k)}</span>${svcBadge(v)}</div>`).join("")}
+            <div class="text-[10px] uppercase tracking-[0.25em] font-black text-slate-500 mb-2">Services (cached)</div>
+            <div class="flex flex-wrap gap-3">
+              ${Object.entries(sv).map(([k,v]) => `
+                <div class="flex items-center gap-1">
+                  <span class="text-[11px] text-slate-400">${esc(k)}</span>
+                  ${svcBadge(v)}
+                </div>`).join("")}
             </div>
           </div>
+
+          <!-- TOOLS (only after live verification) -->
           ${tools.length ? `
           <details>
-            <summary class="text-xs font-bold text-slate-400 uppercase tracking-wider">Tools (Live Verified, ${tools.length})</summary>
+            <summary class="text-[10px] uppercase tracking-[0.25em] font-black text-slate-500 cursor-pointer">Tools — Live Verified (${tools.length})</summary>
             <table class="ss-table mt-2">
-              <thead><tr><th>Tool</th><th>Declared</th><th>Present on Node</th><th>Running</th><th>Version</th></tr></thead>
+              <thead><tr><th>Tool</th><th>Declared</th><th>Present</th><th>Running</th><th>Version</th></tr></thead>
               <tbody>${tools.map(t => `<tr>
                 <td class="font-semibold text-xs">${esc(t.name||t.id)}</td>
                 <td>${statusBadge(t.declared_status)}</td>
@@ -753,31 +821,133 @@ function renderNodeVerification(nv) {
               </tr>`).join("")}</tbody>
             </table>
           </details>` : ""}
-          ${suricata.rules_count !== undefined ? `
-          <details>
-            <summary class="text-xs font-bold text-slate-400 uppercase tracking-wider">Suricata Rules (${suricata.rules_count})</summary>
-            ${suricata.rules_count > 0
-              ? `<table class="ss-table mt-2">
-                  <thead><tr><th>SID/Msg</th><th>Interpretation</th></tr></thead>
-                  <tbody>${(suricata.rules||[]).map(r => `<tr>
-                    <td class="font-mono text-xs">${esc(r.raw?.split("(")[0]?.trim()||"—")}</td>
-                    <td class="text-xs text-slate-400">${esc(r.interpretation||"—")}</td>
-                  </tr>`).join("")}</tbody>
-                </table>`
-              : '<p class="empty-note pl-2">No active Suricata rules found.</p>'}
-          </details>` : ""}
-          ${wazuh.fim_paths !== undefined ? `
-          <details>
-            <summary class="text-xs font-bold text-slate-400 uppercase tracking-wider">Wazuh Configuration</summary>
-            <div class="pl-3 mt-2 space-y-1 text-xs text-slate-300">
-              <div><strong>FIM Paths monitored:</strong> ${(wazuh.fim_paths||[]).length > 0 ? (wazuh.fim_paths||[]).join(", ") : "none"}</div>
-              <div><strong>Local rules:</strong> ${wazuh.local_rules_present ? "YES" : "none"}</div>
-              ${(wazuh.local_rules||[]).length ? `<details><summary>Local Rules Content</summary>
-                <pre class="text-xs text-slate-400 bg-slate-900 rounded p-2 mt-1 max-h-40 overflow-auto">${esc((wazuh.local_rules||[]).join("\n"))}</pre>
-              </details>` : ""}
-            </div>
-          </details>` : ""}
-          ${lv.error ? `<div class="text-xs text-red-400">SSH Error: ${esc(typeof lv.error === "object" ? (lv.error.message||JSON.stringify(lv.error)) : lv.error)}</div>` : ""}
+
+          <!-- CONFIGURATION FILES SECTION -->
+          ${hasSuricata || hasWazuh ? `
+          <div>
+            <div class="text-[10px] uppercase tracking-[0.25em] font-black text-slate-400 mb-3">Configuration Files</div>
+
+            ${hasSuricata ? `
+            <!-- SURICATA -->
+            <details class="mb-3" open>
+              <summary class="text-xs font-bold cursor-pointer flex items-center gap-2">
+                <span style="color:#f97316">Suricata</span>
+                <span class="text-slate-500 font-normal">/etc/suricata/</span>
+                ${surRules.length ? `<span class="badge badge-info">${surRules.length} rules active</span>` : ""}
+                ${!hasLive ? '<span class="badge badge-warn text-[10px]">verify nodes for config details</span>' : ""}
+              </summary>
+              <div class="pl-3 mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                <!-- config -->
+                <div>
+                  <div class="text-[10px] uppercase tracking-[0.2em] font-black text-sky-400 mb-2">config — suricata.yaml</div>
+                  ${surConfig.length
+                    ? cfgBlock("", surConfig.filter(l => !l.startsWith("config_file=")), "#94a3b8")
+                    : `<p class="text-[11px] text-slate-500 italic">${hasLive ? "No config captured" : "Run Verify Nodes to capture"}</p>`}
+                  ${surConfig.filter(l => l.startsWith("config_file=")).map(l =>
+                    `<div class="text-[10px] text-slate-600 font-mono mt-1">${esc(l)}</div>`
+                  ).join("")}
+                </div>
+
+                <!-- roles -->
+                <div>
+                  <div class="text-[10px] uppercase tracking-[0.2em] font-black text-orange-400 mb-2">roles — rule files</div>
+                  ${surRuleFiles.length
+                    ? `<div class="space-y-1">${surRuleFiles.map(f => fileItem(f, "")).join("")}</div>`
+                    : `<p class="text-[11px] text-slate-500 italic">${hasLive ? "No rule files declared" : "Run Verify Nodes"}</p>`}
+                  ${surInventory.length ? `
+                  <div class="text-[10px] uppercase tracking-[0.2em] font-black text-slate-500 mt-3 mb-1">Rule file inventory</div>
+                  <div class="space-y-1">${surInventory.map(f => fileItem(f.name, f.meta)).join("")}</div>` : ""}
+                  ${surCustomSigs.length ? `
+                  <div class="text-[10px] uppercase tracking-[0.2em] font-black text-red-400 mt-3 mb-1">Custom NICS signatures (${surCustomSigs.length})</div>
+                  <div class="space-y-1">${surCustomSigs.map(s => {
+                    const parts = s.split(" | ");
+                    return `<div class="text-[11px] font-mono text-slate-300 py-0.5">${esc(parts[1]||"")} <span class="text-slate-500">${esc(parts[2]||"")}</span></div>`;
+                  }).join("")}</div>` : ""}
+                  ${surRules.length ? `
+                  <div class="text-[10px] uppercase tracking-[0.2em] font-black text-amber-400 mt-3 mb-1">Active parsed rules (${surRules.length})</div>
+                  <table class="ss-table">
+                    <thead><tr><th>Rule / SID</th><th>Type</th><th>Interpretation</th></tr></thead>
+                    <tbody>${surRules.slice(0, 30).map(r => `<tr>
+                      <td class="font-mono text-[10px]">${esc(r.raw?.match(/sid:\d+/)?.[0] || r.raw?.split("(")[0]?.trim().slice(0,50) || "—")}</td>
+                      <td>${ruleBadge(r)}</td>
+                      <td class="text-[11px] text-slate-400">${esc(r.interpretation||"—")}</td>
+                    </tr>`).join("")}
+                    ${surRules.length > 30 ? `<tr><td colspan="3" class="text-slate-500 text-[11px] italic">… and ${surRules.length - 30} more</td></tr>` : ""}
+                    </tbody>
+                  </table>` : ""}
+                </div>
+              </div>
+            </details>` : ""}
+
+            ${hasWazuh ? `
+            <!-- WAZUH -->
+            <details class="mb-3" open>
+              <summary class="text-xs font-bold cursor-pointer flex items-center gap-2">
+                <span style="color:#22c55e">Wazuh</span>
+                <span class="text-slate-500 font-normal">/var/ossec/etc/</span>
+                ${wazFim.length ? `<span class="badge badge-info">${wazFim.length} FIM path(s)</span>` : ""}
+                ${!hasLive ? '<span class="badge badge-warn text-[10px]">verify nodes for config details</span>' : ""}
+              </summary>
+              <div class="pl-3 mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                <!-- config -->
+                <div>
+                  <div class="text-[10px] uppercase tracking-[0.2em] font-black text-sky-400 mb-2">config — ossec.conf</div>
+                  ${wazConfig.length
+                    ? cfgBlock("", wazConfig.filter(l => !l.startsWith("config_file=")), "#94a3b8")
+                    : `<p class="text-[11px] text-slate-500 italic">${hasLive ? "No config captured" : "Run Verify Nodes to capture"}</p>`}
+                  ${wazConfig.filter(l => l.startsWith("config_file=")).map(l =>
+                    `<div class="text-[10px] text-slate-600 font-mono mt-1">${esc(l)}</div>`
+                  ).join("")}
+                </div>
+
+                <!-- roles -->
+                <div>
+                  <div class="text-[10px] uppercase tracking-[0.2em] font-black text-green-400 mb-2">roles — rules & decoders</div>
+
+                  ${wazFim.length ? `
+                  <div class="text-[10px] uppercase tracking-[0.18em] font-black text-purple-400 mb-1">FIM monitored paths</div>
+                  <div class="space-y-1 mb-3">${wazFim.map(p => {
+                    const realtime = /realtime.*yes|check_all/i.test(p);
+                    const whodata = /whodata.*yes/i.test(p);
+                    const pathMatch = p.match(/>([^<]+)</);
+                    const pathStr = pathMatch ? pathMatch[1] : p.replace(/<[^>]+>/g, "").trim();
+                    return `<div class="flex items-start gap-2 text-[11px]">
+                      <span class="font-mono text-slate-300 break-all">${esc(pathStr)}</span>
+                      ${realtime ? '<span class="badge" style="background:rgba(168,85,247,0.15);color:#d8b4fe;border-color:rgba(168,85,247,0.3);font-size:9px">realtime</span>' : ""}
+                      ${whodata ? '<span class="badge" style="background:rgba(59,130,246,0.15);color:#93c5fd;border-color:rgba(59,130,246,0.3);font-size:9px">whodata</span>' : ""}
+                    </div>`;
+                  }).join("")}</div>` : ""}
+
+                  ${wazRuleFiles.length ? `
+                  <div class="text-[10px] uppercase tracking-[0.18em] font-black text-green-500 mb-1">Rule files</div>
+                  <div class="space-y-1 mb-3">${wazRuleFiles.map(f => fileItem(f, "rules")).join("")}</div>` : ""}
+
+                  ${wazDecoders.length ? `
+                  <div class="text-[10px] uppercase tracking-[0.18em] font-black text-blue-400 mb-1">Decoder files</div>
+                  <div class="space-y-1 mb-3">${wazDecoders.map(f => fileItem(f, "decoder")).join("")}</div>` : ""}
+
+                  ${wazInventory.length ? `
+                  <div class="text-[10px] uppercase tracking-[0.18em] font-black text-slate-500 mb-1">File inventory</div>
+                  <div class="space-y-1">${wazInventory.map(f => fileItem(f.name, f.meta)).join("")}</div>` : ""}
+
+                  ${wazContents.length ? `
+                  <details class="mt-3">
+                    <summary class="text-[10px] uppercase tracking-[0.2em] font-black text-slate-400 cursor-pointer">Rule file contents (${wazContents.length} files)</summary>
+                    ${wazContents.map(fc => `
+                    <div class="mt-2">
+                      <div class="text-[10px] font-mono text-slate-400 mb-1">${esc(fc.file || fc.path || "")}</div>
+                      <pre class="text-[10px] text-slate-300 bg-black/40 rounded-xl p-2 overflow-auto" style="max-height:200px;font-family:ui-monospace,monospace;">${esc((fc.lines||[]).join("\n"))}</pre>
+                    </div>`).join("")}
+                  </details>` : ""}
+                </div>
+              </div>
+            </details>` : ""}
+
+          </div>` : ""}
+
+          ${lv.error ? `<div class="text-xs text-red-400 mt-1">SSH Error: ${esc(typeof lv.error === "object" ? (lv.error.message||JSON.stringify(lv.error)) : lv.error)}</div>` : ""}
         </div>
       </details>`;
     }).join("")}`;

@@ -42,6 +42,11 @@ cat > "$BASE_DIR/playbooks/suricata-aio.yml" <<'EOF'
   hosts: suricata
   become: true
   tasks:
+    - name: 0. Actualizar libhtp2 desde backports (resuelve conflicto con stable)
+      command: apt-get install -y -t bookworm-backports libhtp2
+      become: true
+      ignore_errors: true
+
     - name: 1. Instalar Suricata y utilidades
       apt:
         name: [suricata, jq, curl, net-tools]

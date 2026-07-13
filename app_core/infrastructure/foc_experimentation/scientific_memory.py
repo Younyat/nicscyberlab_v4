@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import uuid
 from pathlib import Path
 
@@ -30,7 +31,8 @@ def _json_load(path: Path | None):
 
 def _write_json(path: Path, payload) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
+    # Use PID-unique tmp name to avoid cross-worker collisions in multi-process servers
+    tmp = path.with_name(f"{path.stem}.{os.getpid()}.tmp")
     tmp.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     tmp.replace(path)
 
