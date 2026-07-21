@@ -978,11 +978,7 @@ evidence_store/
 
 Case-level evidence store generated during forensic acquisition workflows.
 
-```text
-paper_exports/
-```
 
-Compact exports and scientific reporting artifacts generated from evaluated workflows.
 
 The next section defines the intended scope of the platform.
 
