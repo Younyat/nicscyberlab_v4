@@ -201,6 +201,130 @@ def _lc_execution_label(state: dict) -> str:
     )
 
 
+def _lc_snapshot_infrastructure(snapshot_id: str | None) -> dict | None:
+    """Real per-instance machines/IPs/tools for one Level C repetition, read from the
+    scenario snapshot captured at the end of that repetition. 2026-07-21: user asked for
+    this exact detail per Level C rep ("las maquinas tools instalados ips de sts maquina")
+    -- found it already exists in full inside every snapshot (infrastructure.instances,
+    tools.by_node, network_config.floating_ips), just never surfaced here; this only reads
+    it, nothing new is collected. Each Level C rep destroys/redeploys the scenario, so this
+    is the ONLY place this specific rep's instance IDs/IPs still exist once the next rep's
+    DESTROYING phase tears them down.
+    """
+    if not snapshot_id:
+        return None
+    try:
+        from ..scenario_snapshot.service import get_snapshot
+        snap = get_snapshot(snapshot_id)
+    except Exception:
+        return None
+    if not isinstance(snap, dict):
+        return None
+
+    infra = snap.get("infrastructure") or {}
+    instances_raw = infra.get("instances") or []
+    tools_by_node = (snap.get("tools") or {}).get("by_node") or {}
+
+    instances = []
+    for inst in instances_raw:
+        instance_id = inst.get("instance_id")
+        node_tools = (tools_by_node.get(instance_id) or {}).get("tools") or []
+        instances.append({
+            "instance_id": instance_id,
+            "name": inst.get("name"),
+            "status": inst.get("status"),
+            "ip_private": inst.get("ip_private"),
+            "ip_floating": inst.get("ip_floating"),
+            "flavor_id": inst.get("flavor_id"),
+            "created_at": inst.get("created_at"),
+            "tools": [
+                {"tool_name": t.get("tool_name"), "status": t.get("status"), "installed_at": t.get("installed_at")}
+                for t in node_tools
+            ],
+        })
+
+    network = snap.get("network_config") or {}
+    fip_summary = (network.get("summary") or {}).get("floating_ip_count")
+
+    return {
+        "snapshot_id": snapshot_id,
+        "captured_at": snap.get("captured_at_utc"),
+        "instances": instances,
+        "floating_ip_count_at_capture": fip_summary,
+    }
+
+
+def _lc_rep_infra_events(rep_start_iso: str | None, rep_end_iso: str | None) -> dict:
+    """Floating-IP cleanup runs and node time-sync measurements that happened during this
+    Level C repetition's own time window. 2026-07-21: these are both global, timestamp-only
+    logs with no existing concept of "which Level C repetition" -- correlated here purely by
+    time window overlap, nothing is invented or guessed beyond that overlap check. Returns
+    empty lists (never null) when nothing falls in the window, or when the window itself
+    isn't known yet (rep still running / not started) -- honest "no events", not "unknown".
+    """
+    result: dict[str, list] = {"floating_ip_cleanups": [], "time_sync_checks": []}
+    if not rep_start_iso:
+        return result
+    start_ts = _parse_ts(rep_start_iso)
+    end_ts = _parse_ts(rep_end_iso) if rep_end_iso else None
+    if start_ts is None:
+        return result
+
+    def _in_window(iso: str | None) -> bool:
+        ts = _parse_ts(iso)
+        if ts is None:
+            return False
+        if ts < start_ts:
+            return False
+        if end_ts is not None and ts > end_ts:
+            return False
+        return True
+
+    try:
+        from ..node_health.node_health_api import floating_ip_cleanup_status
+        history = floating_ip_cleanup_status().get("history") or []
+        for entry in history:
+            if _in_window(entry.get("started_at")):
+                result["floating_ip_cleanups"].append({
+                    "triggered_by": entry.get("triggered_by"),
+                    "status": entry.get("status"),
+                    "started_at": entry.get("started_at"),
+                    "finished_at": entry.get("finished_at"),
+                    "duration_seconds": entry.get("duration_seconds"),
+                    "released_count": entry.get("released_count"),
+                    "before_available_pct": (entry.get("before") or {}).get("available_pct"),
+                    "after_available_pct": (entry.get("after") or {}).get("available_pct"),
+                })
+    except Exception:
+        pass
+
+    try:
+        from ..node_health.node_health_api import NODE_HEALTH_TIME_SYNC_DIR
+        if NODE_HEALTH_TIME_SYNC_DIR.is_dir():
+            for node_dir in NODE_HEALTH_TIME_SYNC_DIR.iterdir():
+                status_path = node_dir / "job_status.json"
+                payload = _json_load(status_path)
+                if not isinstance(payload, dict):
+                    continue
+                if not _in_window(payload.get("finished_at") or payload.get("updated_at")):
+                    continue
+                node = payload.get("node") or {}
+                result_hint = payload.get("result_hint") or {}
+                result["time_sync_checks"].append({
+                    "instance_id": node_dir.name,
+                    "node_name": node.get("name"),
+                    "fix_time": payload.get("fix_time"),
+                    "temporal_sync_status": result_hint.get("temporal_sync_status"),
+                    "max_clock_offset_ms": result_hint.get("max_clock_offset_ms"),
+                    "correction_applied": result_hint.get("correction_applied"),
+                    "finished_at": payload.get("finished_at"),
+                })
+    except Exception:
+        pass
+
+    return result
+
+
 def _lc_pending_shell(job_id: str, rep_num: int, total_reps: int, state: dict) -> dict:
     stages = [_stage(f"lc.{p.lower()}", lbl, "pending") for p, lbl in LC_REPETITION_PHASES]
     _annotate_relative_offsets(stages)
@@ -214,8 +338,11 @@ def _lc_pending_shell(job_id: str, rep_num: int, total_reps: int, state: dict) -
         "stages": stages,
         "level_b_job_id": None,
         "snapshot_id": None,
+        "snapshot_infrastructure": None,
         "tool_installs": [],
         "monitoring_verification": [],
+        "floating_ip_cleanups": [],
+        "time_sync_checks": [],
     }
 
 
@@ -361,6 +488,10 @@ def get_level_c_repetition_detail(job_id: str, rep_num: int) -> dict | None:
         except Exception:
             pass
 
+    rep_start_iso = stages[0].get("started_at") if stages else None
+    rep_end_iso = stages[-1].get("finished_at") if stages else None
+    infra_events = _lc_rep_infra_events(rep_start_iso, rep_end_iso)
+
     return {
         "job_id": job_id,
         "execution_label": _lc_execution_label(state),
@@ -373,8 +504,11 @@ def get_level_c_repetition_detail(job_id: str, rep_num: int) -> dict | None:
         "level_b_job_id": level_b_job_id,
         "level_b_live": level_b_live,
         "snapshot_id": snapshot_id,
+        "snapshot_infrastructure": _lc_snapshot_infrastructure(snapshot_id),
         "tool_installs": tool_installs,
         "monitoring_verification": monitoring_verification,
+        "floating_ip_cleanups": infra_events["floating_ip_cleanups"],
+        "time_sync_checks": infra_events["time_sync_checks"],
     }
 
 

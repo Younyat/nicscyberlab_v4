@@ -809,6 +809,15 @@ missing
 
 These states help the platform express whether a relation is fully supported, partially supported, unresolved, or unsupported by the available evidence.
 
+**Causal Path Recoverability (CPR)** and its weighted variant summarize these states into two comparable metrics:
+
+```text
+CPR  = fully recovered expected causal edges / total expected causal edges
+WCPR = recovered edge weight / total expected edge weight
+```
+
+CPR treats every expected edge equally; WCPR uses the scenario-defined per-edge weights, so structurally more important relations count more. Only `recovered` edges contribute to either numerator — `degraded` and `ambiguous` edges contribute 0, same as `missing`. Temporal and degradation penalties affect reconstruction confidence separately; they do not alter CPR or WCPR themselves. WCPR is the metric compared across repeated Level C deployments (ΔWCPR) to assess reproducibility.
+
 ### 8.3 Reproducibility Levels
 
 FORGE-VI supports repetition-oriented organization through:

@@ -5361,6 +5361,45 @@
           const monHtml = d.monitoring_verification.map((m) => `<div style="font-size:11px;color:rgba(203,213,225,0.85);padding:3px 0;">${lcLiveEsc(m.detail)}</div>`).join("");
           extra += lcLiveCollapsible("Monitoring verification", monHtml, { badge: String(d.monitoring_verification.length), badgeColor: "#a78bfa" });
         }
+        // Real per-instance machines/IPs/tools for THIS repetition, read from its own
+        // scenario snapshot -- each Level C rep destroys/redeploys, so this is the only
+        // place these exact instance IDs/IPs still exist once the next rep tears them
+        // down. 2026-07-21: user explicitly asked to see this per repetition.
+        if (d.snapshot_infrastructure && d.snapshot_infrastructure.instances && d.snapshot_infrastructure.instances.length) {
+          const instHtml = d.snapshot_infrastructure.instances.map((inst) => {
+            const toolsLine = (inst.tools || []).length
+              ? (inst.tools || []).map((t) => `${lcLiveEsc(t.tool_name)} <span style="color:${t.status === "INSTALLED" ? "#34d399" : "#f87171"};">(${lcLiveEsc(t.status)})</span>`).join(", ")
+              : `<span style="color:rgba(148,163,184,0.6);">no tools recorded</span>`;
+            return `
+              <div style="padding:8px 0;border-bottom:1px solid rgba(148,163,184,0.08);font-size:11px;">
+                <div style="font-weight:800;color:rgba(241,245,249,0.92);">${lcLiveEsc(inst.name || inst.instance_id)}</div>
+                <div style="margin-top:2px;color:rgba(148,163,184,0.8);">private ${lcLiveEsc(inst.ip_private || "not_available")} · floating ${lcLiveEsc(inst.ip_floating || "not_available")} · flavor ${lcLiveEsc(inst.flavor_id || "not_available")}</div>
+                <div style="margin-top:3px;color:rgba(203,213,225,0.75);">${toolsLine}</div>
+              </div>
+            `;
+          }).join("");
+          extra += lcLiveCollapsible(
+            `Machines (snapshot @ ${lcLiveEsc(d.snapshot_infrastructure.captured_at || "not_available")})`,
+            instHtml,
+            { badge: String(d.snapshot_infrastructure.instances.length), badgeColor: "#38bdf8" }
+          );
+        }
+        if (d.floating_ip_cleanups && d.floating_ip_cleanups.length) {
+          const fipHtml = d.floating_ip_cleanups.map((e) => `
+            <div style="padding:5px 0;border-bottom:1px solid rgba(148,163,184,0.08);font-size:11px;color:rgba(203,213,225,0.85);">
+              ${lcLiveEsc(e.started_at)} · ${lcLiveEsc(e.triggered_by)} · released ${lcLiveEsc(e.released_count)} · ${lcLiveEsc(e.before_available_pct)}% → ${lcLiveEsc(e.after_available_pct)}% available
+            </div>
+          `).join("");
+          extra += lcLiveCollapsible("Floating IP cleanups during this repetition", fipHtml, { badge: String(d.floating_ip_cleanups.length), badgeColor: "#f59e0b" });
+        }
+        if (d.time_sync_checks && d.time_sync_checks.length) {
+          const tsHtml = d.time_sync_checks.map((e) => `
+            <div style="padding:5px 0;border-bottom:1px solid rgba(148,163,184,0.08);font-size:11px;color:rgba(203,213,225,0.85);">
+              ${lcLiveEsc(e.node_name || e.instance_id)} · offset ${lcLiveEsc(e.max_clock_offset_ms)}ms · ${lcLiveEsc(e.temporal_sync_status)}${e.correction_applied ? " · corrected" : ""}
+            </div>
+          `).join("");
+          extra += lcLiveCollapsible("Time sync checks during this repetition", tsHtml, { badge: String(d.time_sync_checks.length), badgeColor: "#f59e0b" });
+        }
         // The Level B repetition this Level C repetition is currently
         // waiting on -- same real per-host, per-artifact stage timeline
         // (with real byte sizes) shown on the Level B detail page itself,

@@ -1,9 +1,9 @@
 # FORGE-VI Level C — CPR Edge Matrix Interpretation
 
-**Campaign:** `CMP-20260705-214036-62E8`  
+**Campaign:** `CMP-20260720-230112-DFA1`  
 **Paper level:** Level C (provisional — using Level B standing-scenario repetitions)  
 **Executions accepted:** 6/6  
-**Generated:** 2026-07-06T23:38:11Z
+**Generated:** 2026-07-21T12:52:53Z
 
 ---
 
@@ -12,14 +12,14 @@
 | Metric | Value |
 |--------|-------|
 | Expected causal edges | 8 |
-| Recovered edges | 4 |
+| Recovered edges | 5 |
 | Degraded edges | 2 |
-| Missing edges | 2 |
-| Ambiguous edges | 0 |
-| CPR | 0.5 (= 4/8) |
-| Weighted CPR | 0.4863 |
+| Missing edges | 0 |
+| Ambiguous edges | 1 |
+| CPR | 0.625 (= 5/8) |
+| Weighted CPR | 0.6096 |
 | Recoverability | partially_recoverable |
-| Reconstruction confidence | 0.6567 |
+| Reconstruction confidence | 0.712 |
 | CPR stable across runs | True (identical in all 6 runs) |
 
 ---
@@ -30,12 +30,12 @@
 |------|-------|----------|---------|
 | `edge_attack_execution_to_ot_write` | ✅ recovered | supported | Attack Execution → OT Modbus Write |
 | `edge_ot_write_to_network_modbus_write` | ✅ recovered | not_required | OT Modbus Write → Observable Network Traffic |
-| `edge_network_modbus_write_to_detection_surface` | ⚠️ degraded | unknown | Network Modbus Write → Detection Surface |
+| `edge_network_modbus_write_to_detection_surface` | ✅ recovered | supported | Network Modbus Write → Detection Surface |
 | `edge_ot_write_to_plc_state_observation` | ✅ recovered | not_required | OT Modbus Write → PLC State Observation |
-| `edge_detection_surface_to_alert_observation` | ⚠️ degraded | unknown | Detection Surface → Alert Observation |
-| `edge_alert_observation_to_forensic_case` | ❌ missing | unknown | Alert Observation → Forensic Case |
-| `edge_forensic_case_to_preserved_case_evidence` | ❌ missing | supported | Forensic Case → Preserved Case Evidence |
-| `edge_preserved_case_evidence_to_multilayer_analysis` | ✅ recovered | supported | Preserved Case Evidence → Multilayer Analysis |
+| `edge_detection_surface_to_alert_observation` | 🔶 ambiguous | ambiguous | Detection Surface → Alert Observation |
+| `edge_alert_observation_to_forensic_case` | ✅ recovered | supported | Alert Observation → Forensic Case |
+| `edge_forensic_case_to_preserved_case_evidence` | ⚠️ degraded | supported | Forensic Case → Preserved Case Evidence |
+| `edge_preserved_case_evidence_to_multilayer_analysis` | ⚠️ degraded | supported | Preserved Case Evidence → Multilayer Analysis |
 
 ---
 

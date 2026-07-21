@@ -37,8 +37,37 @@ OUT_DIR = (
 MISSING = "not_computed"
 NOT_APPLICABLE = "not_applicable"
 
+
+# 2026-07-21: was a hardcoded "CMP-20260705-214036-62E8" -- a fixed campaign from July 5
+# that meant every run of this script, no matter when, always processed the same stale
+# campaign regardless of anything run since. Confirmed live: FORGE-VI_LevelC_CPR_Aggregate/
+# Diagnostics/Edge_Matrix/Interpretation outputs had been frozen since July 7. Now supports
+# an optional --campaign-id override (matching the existing --out-dir pattern) and defaults
+# to the most recently updated Level B campaign, same "most relevant = latest" default
+# already used in forge_vi_dashboard/endpoints.py and forge_vi_paper_metrics_exporter.py.
+def _default_campaign_id(campaigns_root: Path) -> str:
+    candidates = []
+    for d in sorted(campaigns_root.glob("CMP-*")):
+        mf = d / "campaign_manifest.json"
+        if mf.exists():
+            try:
+                m = json.loads(mf.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            if m.get("level") == "B":
+                candidates.append(m)
+    if not candidates:
+        return ""
+    best = max(candidates, key=lambda m: m.get("updated_at") or m.get("created_at") or "")
+    return str(best.get("campaign_id") or "")
+
+
 # Campaign used as provisional Level C source
-CAMPAIGN_ID = "CMP-20260705-214036-62E8"
+CAMPAIGN_ID = (
+    sys.argv[sys.argv.index("--campaign-id") + 1]
+    if "--campaign-id" in sys.argv
+    else _default_campaign_id(CAMPAIGNS_ROOT)
+)
 
 # Expected causal edges in the scenario (T0831 Modbus manipulation)
 EDGE_SEMANTICS: dict[str, dict] = {
@@ -662,7 +691,9 @@ def main():
     print(f"Campaign: {CAMPAIGN_ID}")
     print(f"Found {len(exec_dirs)} execution workspace(s).")
 
-    # Map EXEC → CASE directory via execution_manifest
+    # Map EXEC → CASE directory via execution_manifest. Still-live cases only here (used
+    # purely as an index-based fallback below); bundle recovery is handled per-EXEC-dir
+    # directly since each EXEC dir already knows exactly which bundle is its own.
     case_dirs = sorted(EVIDENCE_STORE.glob("CASE-*"))
     case_by_ts: dict[str, Path] = {}
     for cd in case_dirs:
@@ -678,6 +709,16 @@ def main():
             candidate = REPO_ROOT / case_path_rel
             if candidate.is_dir():
                 case_dir = candidate
+        if not case_dir:
+            # 2026-07-21: the live case directory is very often already gone by the time
+            # this runs (per-repetition cleanup deletes it shortly after that repetition's
+            # own analysis finishes) -- but this EXACT EXEC dir knows exactly which
+            # lightweight bundle is its own, so check that before falling back to a
+            # fragile positional guess.
+            bundle_dir = exec_dir / "retained_case_lightweight_bundle"
+            bundle_children = sorted(p for p in bundle_dir.glob("*") if p.is_dir()) if bundle_dir.is_dir() else []
+            if bundle_children:
+                case_dir = bundle_children[0]
         if not case_dir:
             # Fall back: pick Nth case by timestamp sort
             if i <= len(case_dirs):

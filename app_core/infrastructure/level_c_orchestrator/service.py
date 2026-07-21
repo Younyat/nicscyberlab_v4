@@ -2323,6 +2323,56 @@ def _run_level_c_job(job_id: str, job_dir: Path, config: dict) -> None:
     _log(state, "INFO", f"Level C campaign completed. {len(snapshot_ids)} snapshots captured.")
     _save()
 
+    # Auto-generate the FORGE-VI paper_exports reports now that this run is fully done --
+    # 2026-07-21: user asked for these to be created automatically at the end of every
+    # Level C run, no manual click required. Previously required manually clicking two
+    # separate buttons in the Paper Evidence dashboard, and had gone unclicked for 13 days
+    # (confirmed live: paper_exports/FORGE-VI/*.json timestamps frozen since 2026-07-07).
+    # Both exporter scripts were fixed the same day to recover cleaned-up cases via their
+    # preserved lightweight bundles and to default to the latest campaign dynamically
+    # instead of a hardcoded one (see tools/forge_vi_paper_metrics_exporter.py and
+    # tools/forge_vi_cpr_edge_matrix_exporter.py's own change notes) -- safe to call
+    # unconditionally here now. Runs synchronously (job already shows "completed" to the
+    # operator by this point, so the ~10-30s this takes doesn't block anything visible);
+    # best-effort, any failure is logged into this job's own log but never affects the
+    # job's own completed status, which was already saved above.
+    _generate_paper_exports(state, job_dir)
+
+
+def _generate_paper_exports(state: dict, job_dir: Path) -> None:
+    """Runs both FORGE-VI paper_exports scripts (workflow metrics + CPR edge matrix),
+    the same two scripts the "Generate Level C Workflow Metrics" / "Generate CPR Edge
+    Matrix" buttons in the Paper Evidence dashboard trigger manually. Logs into this
+    Level C job's own log for visibility; never raises, since this is a best-effort
+    enrichment step running after the job's own completed status is already saved.
+    """
+    import sys
+    out_dir = PROJECT_ROOT / "paper_exports" / "FORGE-VI"
+    scripts = [
+        ("FORGE-VI workflow metrics", PROJECT_ROOT / "tools" / "forge_vi_paper_metrics_exporter.py"),
+        ("FORGE-VI CPR edge matrix", PROJECT_ROOT / "tools" / "forge_vi_cpr_edge_matrix_exporter.py"),
+    ]
+    for label, script in scripts:
+        try:
+            if not script.is_file():
+                _log(state, "WARN", f"{label} export skipped: script not found ({script}).")
+                continue
+            result = subprocess.run(
+                [sys.executable, str(script), "--out-dir", str(out_dir)],
+                cwd=str(PROJECT_ROOT),
+                capture_output=True,
+                text=True,
+                timeout=180,
+            )
+            if result.returncode == 0:
+                _log(state, "INFO", f"{label} export completed automatically → {out_dir}")
+            else:
+                tail = (result.stderr or result.stdout or "").strip()[-500:]
+                _log(state, "WARN", f"{label} export failed (exit {result.returncode}): {tail or 'no output'}")
+        except Exception as exc:
+            _log(state, "WARN", f"{label} export raised an exception: {exc}")
+    _save_state(job_dir, state)
+
 
 # ---------------------------------------------------------------------------
 # Public API

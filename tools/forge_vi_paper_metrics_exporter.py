@@ -1051,24 +1051,98 @@ def write_workflow_phase_summary(record: dict, case_dir: Path):
 
 
 # ─────────────────────────────────────────────
+# Case discovery (live + cleanup-preserved bundles)
+# ─────────────────────────────────────────────
+# 2026-07-21: previously `sorted(EVIDENCE_STORE.glob("CASE-*"))` only ever saw whatever
+# case directories were still physically on disk. The per-repetition cleanup
+# (foc_experimentation/retention_service.py) deletes a case's heavy directory shortly
+# after that repetition's own analysis finishes, keeping only a lightweight bundle under
+# each campaign's level_B/EXEC-000N/retained_case_lightweight_bundle/<case_id>/ (mirrors
+# the case's own relative file layout closely enough that every reader below, which only
+# ever does relative-path reads under a case dir, works against a bundle root unchanged).
+# By the time a multi-repetition Level C run finishes, most/all of its cases are typically
+# already gone this way — confirmed live, this exporter found only 1 case on an
+# installation that had just run a 3-repetition campaign. Mirrors the identical fix already
+# applied to forge_vi_dashboard/endpoints.py._case_dirs() (see that module's README) —
+# duplicated here rather than imported since this script is deliberately self-contained
+# (no app_core imports at all, must run standalone).
+def _bundle_case_id(bundle_root: Path) -> str:
+    try:
+        manifest = json.loads((bundle_root / "lightweight_case_bundle_manifest.json").read_text(encoding="utf-8"))
+    except Exception:
+        return ""
+    return str(manifest.get("case_id") or "").strip()
+
+
+def _live_case_id(case_dir: Path) -> str:
+    for candidate in (
+        case_dir / "analysis" / "analysis_status.json",
+        case_dir / "analysis" / "forensic_analysis_report.json",
+        case_dir / "analysis" / "forensic_analysis_manifest.json",
+        case_dir / "derived" / "reconstruction" / "causal_status.json",
+    ):
+        try:
+            payload = json.loads(candidate.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if isinstance(payload, dict):
+            value = str(payload.get("case_id") or "").strip()
+            if value:
+                return value
+    return ""
+
+
+def _discover_case_dirs() -> list[Path]:
+    live = sorted(EVIDENCE_STORE.glob("CASE-*"))
+    live_case_ids = {cid for cid in (_live_case_id(p) for p in live) if cid}
+
+    bundle_roots = sorted(EVIDENCE_STORE.glob("repetition_campaigns/CMP-*/level_B/EXEC-*/retained_case_lightweight_bundle/*"))
+    seen: set[str] = set()
+    preserved: list[tuple[float, Path]] = []
+    for bundle_root in bundle_roots:
+        if not bundle_root.is_dir():
+            continue
+        case_id = _bundle_case_id(bundle_root)
+        if not case_id or case_id in live_case_ids or case_id in seen:
+            continue
+        seen.add(case_id)
+        try:
+            sort_key = bundle_root.stat().st_mtime
+        except Exception:
+            sort_key = 0.0
+        preserved.append((sort_key, bundle_root))
+
+    combined = list(live) + [p for _, p in sorted(preserved, key=lambda item: item[0])]
+    combined.sort(key=lambda p: (p.stat().st_mtime if p.exists() else 0.0))
+    return combined
+
+
+# ─────────────────────────────────────────────
 # Main
 # ─────────────────────────────────────────────
 
 def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Find the Level B campaign and its cases
+    # Find the Level B campaign and its cases. 2026-07-21: dropped the arbitrary
+    # "execution_count >= 6" threshold -- it silently matched nothing for any normal-sized
+    # campaign (most have 1-6 executions total) and was likely tuned to one specific past
+    # campaign. Now picks the most recently updated Level B campaign instead, matching the
+    # same "most relevant = latest" default already used in forge_vi_dashboard.
     level_b_cmp = None
+    candidates = []
     for d in sorted(CAMPAIGNS_ROOT.glob("CMP-*")):
         mf = d / "campaign_manifest.json"
         if mf.exists():
             m = json.loads(mf.read_text())
-            if m.get("level") == "B" and m.get("execution_count", 0) >= 6:
-                level_b_cmp = m
-                break
+            if m.get("level") == "B":
+                candidates.append(m)
+    if candidates:
+        level_b_cmp = max(candidates, key=lambda m: m.get("updated_at") or m.get("created_at") or "")
 
-    # Find all accepted cases (Level B cases in evidence_store)
-    case_dirs = sorted(EVIDENCE_STORE.glob("CASE-*"))
+    # Find all accepted cases -- live on disk, or recoverable from a preserved lightweight
+    # bundle if the heavy case directory was already cleaned up (see _discover_case_dirs above).
+    case_dirs = _discover_case_dirs()
     if len(case_dirs) == 0:
         print("ERROR: No CASE-* directories found in evidence_store.", file=sys.stderr)
         sys.exit(1)
