@@ -1014,23 +1014,14 @@ Physical process fidelity is intentionally bounded by the virtualized and instru
 
 The next section describes safe repository hygiene before sharing or publishing deployments.
 
-
-
-
 ---
-
-
-
-
 ## 13. Repository Content and Artifact Management
 
-Before publishing or sharing a FORGE-VI deployment, verify that the repository contains only source code, documentation, configuration templates, and lightweight reproducibility metadata intended for version control.
+The FORGE-VI repository retains the source code, scenario definitions, deployment configuration, attack and detection profiles, acquisition procedures, analysis components, documentation, and lightweight metadata required to understand and re-execute the latest documented experimental scenario.
 
-The following categories should remain outside the public repository.
+## Sensitive and Environment-Specific Files
 
-### Sensitive and environment-specific files
-
-Files containing credentials, private keys, passwords, access tokens, local addresses, or deployment-specific configuration must not be committed.
+Files containing credentials, private keys, passwords, access tokens, local addresses, or deployment-specific configuration are excluded from the public repository.
 
 Examples:
 
@@ -1041,16 +1032,16 @@ admin-openrc.sh
 *.env
 ```
 
-When configuration examples are required, provide sanitized templates without operational credentials or local values:
+Sanitized templates are provided when configuration examples are required:
 
 ```text
 admin-openrc.example.sh
 .env.example
 ```
 
-### Generated development files
+## Generated Development Files
 
-Runtime logs, Python caches, virtual environments, dependency directories, editor settings, temporary files, and build outputs should not be versioned.
+Runtime logs, Python caches, virtual environments, dependency directories, editor settings, temporary files, and build outputs are treated as locally generated content and are excluded from version control.
 
 Examples:
 
@@ -1069,61 +1060,67 @@ app.log.*
 wget-log
 ```
 
-### Large experimental and forensic artifacts
+## Large Experimental and Forensic Artifacts
 
-Raw RF captures, signal recordings, generated datasets, trained models, memory dumps, disk images, packet captures, and other large binary artifacts should remain outside the source repository.
+A FORGE-VI execution can generate large forensic artifacts, including memory images, disk images or snapshots, network captures, industrial evidence exports, case evidence collections, analysis outputs, and execution-event records.
 
-Common excluded formats include:
+These generated artifacts are retained outside normal Git version control when their size is not compatible with public repository distribution. GitHub blocks individual files larger than 100 MiB in regular Git repositories.
+
+Common excluded artifacts and locations include:
 
 ```text
-*.iq
-*.cfile
-*.cf32
-*.complex
-*.sigmf-data
-*.wav
-*.bin
-*.dat
 *.pcap
 *.pcapng
-*.h5
-*.hdf5
-*.npy
-*.npz
-*.pkl
-*.joblib
-*.pt
-*.pth
-*.onnx
+*.raw
+*.mem
+*.lime
+*.img
+*.dd
+*.qcow2
 *.jsonl
-```
-
-Generated storage directories should also remain outside version control unless they contain a small and explicitly selected test fixture.
-
-Examples:
-
-```text
-backend/app/infrastructure/persistence/storage/recordings/
-backend/app/infrastructure/persistence/storage/datasets/
-backend/app/infrastructure/persistence/storage/exports/
-backend/app/infrastructure/persistence/storage/temp/
-backend/app/infrastructure/persistence/storage/fingerprinting/captures/
-backend/app/infrastructure/persistence/storage/mlops/data/rf_dataset/
 evidence_store/
 ```
 
-Large experimental and forensic artifacts should be stored in dedicated local storage, an evidence repository, an object-storage service, or another controlled transfer mechanism.
+The exclusion of these files applies to the generated outputs of an execution, not to the experimental procedure used to produce them.
 
-When these artifacts are required for experiment reproduction, the repository should retain only the information needed to identify and verify them, such as:
+## Experiment Re-execution and Artifact Regeneration
 
-* acquisition parameters;
-* artifact manifests;
-* cryptographic hashes;
-* file sizes and formats;
-* generation procedures;
-* controlled retrieval instructions.
+The latest documented scenario definition remains registered in the repository together with its deployment configuration, automation scripts, incident profile, detection expectations, acquisition profile, analysis procedures, and lightweight execution metadata.
 
-Small reference artifacts may be committed only when their purpose is documented, they do not contain sensitive information, and their size is appropriate for normal repository distribution.
+These retained elements provide the basis for redeploying the scenario, repeating the experiment, and regenerating the corresponding forensic artifacts and derived reports.
+
+Lightweight reports from the latest documented executions are included when their size and content are compatible with normal repository distribution. Large evidence files and other execution outputs are not included directly in the public repository.
+
+The repository therefore preserves:
+
+```text
+scenario and topology definitions
+deployment and teardown procedures
+attack and detection profiles
+forensic acquisition profiles
+analysis and reconstruction procedures
+execution parameters
+lightweight manifests and metadata
+latest lightweight reports
+artifact generation procedures
+```
+
+The repository does not necessarily preserve:
+
+```text
+complete memory images
+complete disk images or snapshots
+large PCAP collections
+full evidence-store contents
+large execution-event logs
+other generated files exceeding repository limits
+```
+
+Regenerated artifacts are not assumed to be byte-identical to those produced in an earlier execution. Their content can depend on infrastructure state, timing, software versions, runtime conditions, and the evidence observed during each repetition.
+
+Small reference artifacts can be included when their purpose is documented, they contain no sensitive information, and their size is compatible with normal repository distribution.
+
+The next section acknowledges the funding and institutional support behind the project.
 
 ---
 
