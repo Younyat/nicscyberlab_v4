@@ -53,6 +53,20 @@ write_files:
       EOF
 
       docker compose up -d
+
+      echo "[FUXA] Waiting for FUXA HTTP server on port 1881..."
+      timeout=120
+      elapsed=0
+      until curl -s -o /dev/null -w '%{http_code}' http://localhost:1881/ 2>/dev/null | grep -qE '^[23]'; do
+        sleep 5
+        elapsed=$((elapsed + 5))
+        if [ $elapsed -ge $timeout ]; then
+          echo "[FUXA] WARNING: HTTP port 1881 not ready after ${timeout}s"
+          break
+        fi
+      done
+      echo "[FUXA] HTTP server ready (elapsed: ${elapsed}s)"
+
       touch /opt/FUXA_READY
 
 runcmd:

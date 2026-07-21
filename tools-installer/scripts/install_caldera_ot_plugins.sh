@@ -85,6 +85,7 @@ EOF
 # --- 5. EJECUCION DE ANSIBLE ---
 echo "Iniciando instalacion y despliegue en $TARGET_IP..."
 export ANSIBLE_HOST_KEY_CHECKING=False
+export ANSIBLE_BECOME_TIMEOUT=60
 
 ansible-playbook -i "$TEMP_WORK_DIR/hosts.ini" "$TEMP_WORK_DIR/ot-install-final.yml"
 

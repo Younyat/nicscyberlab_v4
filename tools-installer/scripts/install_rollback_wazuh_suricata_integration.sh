@@ -31,17 +31,37 @@ cat > "$BASE_DIR/wazuh-suricata-integration.yml" <<'EOF'
     suricata_eve: /var/log/suricata/eve.json
 
   tasks:
-    - name: Verificar que wazuh-agent esta activo
+    - name: Verificar que wazuh-agent esta activo (reintentos)
       command: systemctl is-active wazuh-agent
       register: wazuh_status
       changed_when: false
-      failed_when: wazuh_status.stdout.strip() != "active"
+      failed_when: false
+      retries: 6
+      delay: 10
+      until: wazuh_status.stdout.strip() == "active"
 
-    - name: Verificar que Suricata esta activa
+    - name: Abortar si wazuh-agent sigue inactivo tras reintentos
+      fail:
+        msg: >
+          wazuh-agent está inactivo en {{ inventory_hostname }}.
+          Instala/registra el agente Wazuh antes de configurar la integración Suricata.
+      when: wazuh_status.stdout.strip() != "active"
+
+    - name: Verificar que Suricata esta activa (reintentos)
       command: systemctl is-active suricata
       register: suricata_status
       changed_when: false
-      failed_when: suricata_status.stdout.strip() != "active"
+      failed_when: false
+      retries: 6
+      delay: 10
+      until: suricata_status.stdout.strip() == "active"
+
+    - name: Abortar si suricata sigue inactiva tras reintentos
+      fail:
+        msg: >
+          suricata está inactiva en {{ inventory_hostname }}.
+          Instala Suricata antes de configurar la integración.
+      when: suricata_status.stdout.strip() != "active"
 
     - name: Verificar que existe eve.json de Suricata
       stat:
@@ -162,6 +182,7 @@ echo "===================================================="
 echo " INTEGRANDO SURICATA CON WAZUH"
 echo "===================================================="
 export ANSIBLE_HOST_KEY_CHECKING=False
+export ANSIBLE_BECOME_TIMEOUT=60
 
 if ansible-playbook -i "$BASE_DIR/hosts.ini" "$BASE_DIR/wazuh-suricata-integration.yml"; then
     echo "----------------------------------------------------"

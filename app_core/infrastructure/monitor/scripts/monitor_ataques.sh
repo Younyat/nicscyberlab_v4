@@ -23,17 +23,33 @@ info() { echo -e "${CYAN}[INFO]${NC} $*"; }
 
 info "Validando entorno en el Manager ($MANAGER_IP)..."
 
-REMOTE_PATH=$(ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "${SSH_USER}@${MANAGER_IP}" "
-    if [ -f $ALERTS_JSON ]; then
-        echo $ALERTS_JSON
-    else
-        sudo find /var/ossec/logs/alerts -name 'alerts.json' | head -n 1
-    fi
-")
+# ── Asegurar que jq está disponible en el manager ───────────────────────────
+# jq es necesario para parsear alerts.json. Si no está instalado, el stream
+# falla silenciosamente con "jq: command not found".
+ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no \
+    -o ConnectTimeout=10 "${SSH_USER}@${MANAGER_IP}" \
+    "command -v jq >/dev/null 2>&1 || sudo apt-get install -y jq >/dev/null 2>&1" \
+    || info "Advertencia: no se pudo verificar/instalar jq en el manager."
 
-if [[ -z "$REMOTE_PATH" ]]; then
-    die "No se encontró el archivo de alertas en $MANAGER_IP. ¿Es la IP del Manager?"
-fi
+# ── Localizar alerts.json (puede tardar si Wazuh acaba de arrancar) ─────────
+REMOTE_PATH=""
+WAIT_ALERTS=0
+WAIT_ALERTS_MAX=120  # esperar hasta 2 min si alerts.json no existe aún
+while [[ -z "$REMOTE_PATH" ]]; do
+    REMOTE_PATH=$(ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no \
+        -o ConnectTimeout=10 "${SSH_USER}@${MANAGER_IP}" \
+        "if sudo test -f $ALERTS_JSON 2>/dev/null; then echo $ALERTS_JSON;
+         else sudo find /var/ossec/logs/alerts -name 'alerts.json' 2>/dev/null | head -n 1; fi" \
+        2>/dev/null || true)
+    if [[ -z "$REMOTE_PATH" ]]; then
+        if [[ $WAIT_ALERTS -ge $WAIT_ALERTS_MAX ]]; then
+            die "No se encontró alerts.json en $MANAGER_IP tras ${WAIT_ALERTS_MAX}s. ¿Está Wazuh Manager activo?"
+        fi
+        info "alerts.json no encontrado aún (${WAIT_ALERTS}s/${WAIT_ALERTS_MAX}s) — esperando..."
+        sleep 15
+        WAIT_ALERTS=$((WAIT_ALERTS + 15))
+    fi
+done
 
 echo -e "${YELLOW}==========================================================${NC}"
 echo -e "${YELLOW}    MONITOR REMOTO MULTI-VECTOR - NICS CYBERLAB${NC}"

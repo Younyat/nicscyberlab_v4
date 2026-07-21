@@ -1,0 +1,899 @@
+{
+  "job_id": "exp-e12affbdd44b",
+  "job_type": "level_b_repetitions",
+  "title": "Run Level B repetitions for CMP-20260707-000220-CBFB",
+  "status": "running",
+  "requested_at": "2026-07-14T23:37:23.784097+00:00",
+  "started_at": "2026-07-14T23:37:23.785287+00:00",
+  "finished_at": null,
+  "current_phase": "generate_report",
+  "progress_percent": 90.0,
+  "warnings": [
+    "Forensic preservation was never armed because DFIR mode remained OFF during the repeated attack attempts. Alerts may have been observed, but the platform was not in forensic intervention mode."
+  ],
+  "errors": [
+    {
+      "message": "dfir_mode_off_during_trigger_arming",
+      "repetition": 1
+    },
+    {
+      "message": "Repetition 1/2 failed. The Level B campaign is being closed immediately; no further attacks or acquisitions will be launched. Final reporting will be generated only from the repetitions already executed.",
+      "repetition": 1
+    }
+  ],
+  "generated_artifacts": [],
+  "meta": {
+    "campaign_id": "CMP-20260707-000220-CBFB",
+    "level": "B",
+    "attack_id": "T0831_MANIPULATION_OF_CONTROL_MODBUS",
+    "requested_repetitions": 2,
+    "nested_level_a_repetitions": 2
+  },
+  "job_path": "/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260707-000220-CBFB/jobs/level-b-repetitions-2026-07-14T233723.784001_0000.json",
+  "current_phase_label": "Generate Level B report",
+  "current_phase_detail": "Aggregating per-repetition timing, acquisition, reconstruction, warnings, blockers, and case outputs into the final Level B validation report bundle.",
+  "phase_statuses": [
+    {
+      "phase_key": "starting",
+      "phase_label": "Starting",
+      "status": "running",
+      "detail": "Preparing experimentation job runner.",
+      "updated_at": "2026-07-14T23:37:23.785305+00:00",
+      "progress_percent": 1.0
+    },
+    {
+      "phase_key": "prepare_level_b_job",
+      "phase_label": "Prepare Level B job",
+      "status": "running",
+      "detail": "Preparing Level B batch execution, runtime workspace, and deterministic scientific progress plan.",
+      "updated_at": "2026-07-14T23:37:23.790848+00:00",
+      "progress_percent": 0.0
+    },
+    {
+      "phase_key": "prepare_level_b_job",
+      "phase_label": "Prepare Level B job",
+      "status": "completed",
+      "detail": "Prepared Level B batch job for campaign CMP-20260707-000220-CBFB.",
+      "updated_at": "2026-07-14T23:37:23.791660+00:00",
+      "progress_percent": 3.33
+    },
+    {
+      "phase_key": "optional_cleanup",
+      "phase_label": "Clean previous heavy cases",
+      "status": "running",
+      "detail": "Inspecting and deleting previous heavy forensic cases before launching the independent Level B repetitions. This is mandatory so two heavy cases never coexist.",
+      "updated_at": "2026-07-14T23:37:23.792403+00:00",
+      "progress_percent": 3.33
+    },
+    {
+      "phase_key": "optional_cleanup",
+      "phase_label": "Clean previous heavy cases",
+      "status": "completed",
+      "detail": "Mandatory cleanup completed. Estimated freed space: 1023.59 MB. Actual freed space: 1023.59 MB. Deleted cases: 2.",
+      "updated_at": "2026-07-14T23:37:25.888971+00:00",
+      "progress_percent": 6.67
+    },
+    {
+      "phase_key": "resolve_active_scenario",
+      "phase_label": "Resolve active scenario",
+      "status": "running",
+      "detail": "Resolving the already deployed scenario that will host all 2 independent Level B repetitions.",
+      "updated_at": "2026-07-14T23:37:25.890026+00:00",
+      "progress_percent": 6.67
+    },
+    {
+      "phase_key": "resolve_active_scenario",
+      "phase_label": "Resolve active scenario",
+      "status": "completed",
+      "detail": "Resolved target PLC_Instance (10.0.2.45) and monitor monitor 11 (10.0.2.178).",
+      "updated_at": "2026-07-14T23:37:26.748516+00:00",
+      "progress_percent": 10.0
+    },
+    {
+      "phase_key": "verify_plc_target",
+      "phase_label": "Verify PLC target",
+      "status": "running",
+      "detail": "Checking that the selected target is really the PLC node used by the controlled OT register-modification profile.",
+      "updated_at": "2026-07-14T23:37:26.749748+00:00",
+      "progress_percent": 10.0
+    },
+    {
+      "phase_key": "verify_plc_target",
+      "phase_label": "Verify PLC target",
+      "status": "completed",
+      "detail": "PLC target verified: PLC_Instance (10.0.2.45). Multi-host preservation scope resolved: fuxa=10.0.2.96, plc=10.0.2.45, victim=10.0.2.154.",
+      "updated_at": "2026-07-14T23:37:27.621249+00:00",
+      "progress_percent": 13.33
+    },
+    {
+      "phase_key": "enable_dfir_mode",
+      "phase_label": "Enable DFIR mode",
+      "status": "running",
+      "detail": "Verifying that DFIR mode is ON before the first OT attack is launched.",
+      "updated_at": "2026-07-14T23:37:27.625602+00:00",
+      "progress_percent": 13.33
+    },
+    {
+      "phase_key": "enable_dfir_mode",
+      "phase_label": "Enable DFIR mode",
+      "status": "completed_with_degradation",
+      "detail": "DFIR mode could not be verified as ON. The workflow will still run controlled trigger-arming attempts, but automatic preservation cannot start until DFIR mode is ON.",
+      "updated_at": "2026-07-14T23:37:27.628450+00:00",
+      "progress_percent": 16.67
+    },
+    {
+      "phase_key": "verify_disk_acquisition",
+      "phase_label": "Verify disk acquisition prerequisites",
+      "status": "running",
+      "detail": "Checking whether disk preservation can run in stable non-interactive mode for a long Level B batch.",
+      "updated_at": "2026-07-14T23:37:27.631329+00:00",
+      "progress_percent": 16.67
+    },
+    {
+      "phase_key": "verify_disk_acquisition",
+      "phase_label": "Verify disk acquisition prerequisites",
+      "status": "completed",
+      "detail": "Stable non-interactive disk acquisition prerequisites verified for Level B batch execution.",
+      "updated_at": "2026-07-14T23:37:27.671086+00:00",
+      "progress_percent": 20.0
+    },
+    {
+      "phase_key": "repetition_1_start",
+      "phase_label": "Start repetition 1/2",
+      "status": "running",
+      "detail": "Execution workspace EXEC-0019 created. Starting independent Level B repetition 1 of 2.",
+      "updated_at": "2026-07-14T23:37:27.686225+00:00",
+      "progress_percent": 20.0
+    },
+    {
+      "phase_key": "repetition_1_start",
+      "phase_label": "Start repetition 1/2",
+      "status": "completed",
+      "detail": "Independent Level B repetition 1 has started with execution EXEC-0019.",
+      "updated_at": "2026-07-14T23:37:27.688031+00:00",
+      "progress_percent": 23.5
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.45 (attempt 1/10).",
+      "updated_at": "2026-07-14T23:37:27.690195+00:00",
+      "progress_percent": 23.5
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed",
+      "detail": "Attack completed successfully (attempt 1/10). Output directory: /home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260714T233729Z_T0831_MANIPULATION_OF_CONTROL_MODBUS.",
+      "updated_at": "2026-07-14T23:37:48.651213+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "running",
+      "detail": "Watching monitor 10.0.2.178 for a HIGH/CRITICAL alert matching the OT attack profile (attempt 1/10).",
+      "updated_at": "2026-07-14T23:37:48.652526+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "completed_with_degradation",
+      "detail": "No alert matching this attack's detection criteria was observed within the configured timeout (attempt 1/10). Wazuh emitted 6 event(s) but none matched severity=HIGH/CRITICAL with forensic recommendation and attack content.",
+      "updated_at": "2026-07-14T23:47:53.656576+00:00",
+      "progress_percent": 30.5
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.45 (attempt 2/10).",
+      "updated_at": "2026-07-14T23:48:03.658378+00:00",
+      "progress_percent": 23.5
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed",
+      "detail": "Attack completed successfully (attempt 2/10). Output directory: /home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260714T234804Z_T0831_MANIPULATION_OF_CONTROL_MODBUS.",
+      "updated_at": "2026-07-14T23:48:21.577790+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "running",
+      "detail": "Watching monitor 10.0.2.178 for a HIGH/CRITICAL alert matching the OT attack profile (attempt 2/10).",
+      "updated_at": "2026-07-14T23:48:21.581184+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "completed",
+      "detail": "Matched alert eba6e82402464a949d10c9749c48dda2 with severity HIGH (attempt 2/10).",
+      "updated_at": "2026-07-14T23:48:29.203427+00:00",
+      "progress_percent": 30.5
+    },
+    {
+      "phase_key": "repetition_1_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "running",
+      "detail": "Verifying that the matched alert is eligible for forensic intervention and that automatic acquisition may start from this trigger (attempt 2/10).",
+      "updated_at": "2026-07-14T23:48:29.205852+00:00",
+      "progress_percent": 30.5
+    },
+    {
+      "phase_key": "repetition_1_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "completed_with_degradation",
+      "detail": "The alert is eligible, but DFIR mode is full so automatic forensic preservation is not armed (attempt 2/10).",
+      "updated_at": "2026-07-14T23:48:29.208656+00:00",
+      "progress_percent": 34.0
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.45 (attempt 3/10).",
+      "updated_at": "2026-07-14T23:48:39.210320+00:00",
+      "progress_percent": 23.5
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed",
+      "detail": "Attack completed successfully (attempt 3/10). Output directory: /home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260714T234839Z_T0831_MANIPULATION_OF_CONTROL_MODBUS.",
+      "updated_at": "2026-07-14T23:48:56.643986+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "running",
+      "detail": "Watching monitor 10.0.2.178 for a HIGH/CRITICAL alert matching the OT attack profile (attempt 3/10).",
+      "updated_at": "2026-07-14T23:48:56.645633+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "completed",
+      "detail": "Matched alert f493b27b804446788e8caae91543c63e with severity HIGH (attempt 3/10).",
+      "updated_at": "2026-07-14T23:49:03.348336+00:00",
+      "progress_percent": 30.5
+    },
+    {
+      "phase_key": "repetition_1_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "running",
+      "detail": "Verifying that the matched alert is eligible for forensic intervention and that automatic acquisition may start from this trigger (attempt 3/10).",
+      "updated_at": "2026-07-14T23:49:03.352895+00:00",
+      "progress_percent": 30.5
+    },
+    {
+      "phase_key": "repetition_1_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "completed_with_degradation",
+      "detail": "The alert is eligible, but DFIR mode is full so automatic forensic preservation is not armed (attempt 3/10).",
+      "updated_at": "2026-07-14T23:49:03.356954+00:00",
+      "progress_percent": 34.0
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.45 (attempt 4/10).",
+      "updated_at": "2026-07-14T23:49:13.360963+00:00",
+      "progress_percent": 23.5
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed",
+      "detail": "Attack completed successfully (attempt 4/10). Output directory: /home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260714T234913Z_T0831_MANIPULATION_OF_CONTROL_MODBUS.",
+      "updated_at": "2026-07-14T23:49:32.165526+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "running",
+      "detail": "Watching monitor 10.0.2.178 for a HIGH/CRITICAL alert matching the OT attack profile (attempt 4/10).",
+      "updated_at": "2026-07-14T23:49:32.167434+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "completed_with_degradation",
+      "detail": "No alert matching this attack's detection criteria was observed within the configured timeout (attempt 4/10). Wazuh emitted 6 event(s) but none matched severity=HIGH/CRITICAL with forensic recommendation and attack content.",
+      "updated_at": "2026-07-14T23:59:37.171800+00:00",
+      "progress_percent": 30.5
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.45 (attempt 5/10).",
+      "updated_at": "2026-07-14T23:59:47.173880+00:00",
+      "progress_percent": 23.5
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed",
+      "detail": "Attack completed successfully (attempt 5/10). Output directory: /home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260714T235947Z_T0831_MANIPULATION_OF_CONTROL_MODBUS.",
+      "updated_at": "2026-07-15T00:00:03.549855+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "running",
+      "detail": "Watching monitor 10.0.2.178 for a HIGH/CRITICAL alert matching the OT attack profile (attempt 5/10).",
+      "updated_at": "2026-07-15T00:00:03.551892+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "completed",
+      "detail": "Matched alert 84f00bdc35fd40e28e11f3eea7acd089 with severity HIGH (attempt 5/10).",
+      "updated_at": "2026-07-15T00:00:10.519102+00:00",
+      "progress_percent": 30.5
+    },
+    {
+      "phase_key": "repetition_1_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "running",
+      "detail": "Verifying that the matched alert is eligible for forensic intervention and that automatic acquisition may start from this trigger (attempt 5/10).",
+      "updated_at": "2026-07-15T00:00:10.523956+00:00",
+      "progress_percent": 30.5
+    },
+    {
+      "phase_key": "repetition_1_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "completed_with_degradation",
+      "detail": "The alert is eligible, but DFIR mode is full so automatic forensic preservation is not armed (attempt 5/10).",
+      "updated_at": "2026-07-15T00:00:10.527603+00:00",
+      "progress_percent": 34.0
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.45 (attempt 6/10).",
+      "updated_at": "2026-07-15T00:00:20.532428+00:00",
+      "progress_percent": 23.5
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed",
+      "detail": "Attack completed successfully (attempt 6/10). Output directory: /home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260715T000021Z_T0831_MANIPULATION_OF_CONTROL_MODBUS.",
+      "updated_at": "2026-07-15T00:00:36.422465+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "running",
+      "detail": "Watching monitor 10.0.2.178 for a HIGH/CRITICAL alert matching the OT attack profile (attempt 6/10).",
+      "updated_at": "2026-07-15T00:00:36.425315+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "completed",
+      "detail": "Matched alert 307a6bd0c42446a7a6ad9b4093e2b140 with severity HIGH (attempt 6/10).",
+      "updated_at": "2026-07-15T00:00:42.888430+00:00",
+      "progress_percent": 30.5
+    },
+    {
+      "phase_key": "repetition_1_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "running",
+      "detail": "Verifying that the matched alert is eligible for forensic intervention and that automatic acquisition may start from this trigger (attempt 6/10).",
+      "updated_at": "2026-07-15T00:00:42.892811+00:00",
+      "progress_percent": 30.5
+    },
+    {
+      "phase_key": "repetition_1_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "completed_with_degradation",
+      "detail": "The alert is eligible, but DFIR mode is full so automatic forensic preservation is not armed (attempt 6/10).",
+      "updated_at": "2026-07-15T00:00:42.902734+00:00",
+      "progress_percent": 34.0
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.45 (attempt 7/10).",
+      "updated_at": "2026-07-15T00:00:52.908276+00:00",
+      "progress_percent": 23.5
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed",
+      "detail": "Attack completed successfully (attempt 7/10). Output directory: /home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260715T000053Z_T0831_MANIPULATION_OF_CONTROL_MODBUS.",
+      "updated_at": "2026-07-15T00:01:09.667988+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "running",
+      "detail": "Watching monitor 10.0.2.178 for a HIGH/CRITICAL alert matching the OT attack profile (attempt 7/10).",
+      "updated_at": "2026-07-15T00:01:09.669918+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "completed_with_degradation",
+      "detail": "No alert matching this attack's detection criteria was observed within the configured timeout (attempt 7/10). Wazuh emitted 36 event(s) but none matched severity=HIGH/CRITICAL with forensic recommendation and attack content.",
+      "updated_at": "2026-07-15T00:11:14.787316+00:00",
+      "progress_percent": 30.5
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.45 (attempt 8/10).",
+      "updated_at": "2026-07-15T00:11:24.790574+00:00",
+      "progress_percent": 23.5
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed",
+      "detail": "Attack completed successfully (attempt 8/10). Output directory: /home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260715T001125Z_T0831_MANIPULATION_OF_CONTROL_MODBUS.",
+      "updated_at": "2026-07-15T00:11:44.820420+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "running",
+      "detail": "Watching monitor 10.0.2.178 for a HIGH/CRITICAL alert matching the OT attack profile (attempt 8/10).",
+      "updated_at": "2026-07-15T00:11:44.822512+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "completed",
+      "detail": "Matched alert 7ecd03f1bb444c16beff52d02ce98c9d with severity HIGH (attempt 8/10).",
+      "updated_at": "2026-07-15T00:11:52.847665+00:00",
+      "progress_percent": 30.5
+    },
+    {
+      "phase_key": "repetition_1_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "running",
+      "detail": "Verifying that the matched alert is eligible for forensic intervention and that automatic acquisition may start from this trigger (attempt 8/10).",
+      "updated_at": "2026-07-15T00:11:52.849873+00:00",
+      "progress_percent": 30.5
+    },
+    {
+      "phase_key": "repetition_1_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "completed_with_degradation",
+      "detail": "The alert is eligible, but DFIR mode is full so automatic forensic preservation is not armed (attempt 8/10).",
+      "updated_at": "2026-07-15T00:11:52.851691+00:00",
+      "progress_percent": 34.0
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.45 (attempt 9/10).",
+      "updated_at": "2026-07-15T00:12:02.853934+00:00",
+      "progress_percent": 23.5
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed",
+      "detail": "Attack completed successfully (attempt 9/10). Output directory: /home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260715T001203Z_T0831_MANIPULATION_OF_CONTROL_MODBUS.",
+      "updated_at": "2026-07-15T00:12:20.621119+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "running",
+      "detail": "Watching monitor 10.0.2.178 for a HIGH/CRITICAL alert matching the OT attack profile (attempt 9/10).",
+      "updated_at": "2026-07-15T00:12:20.624275+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "completed_with_degradation",
+      "detail": "No alert matching this attack's detection criteria was observed within the configured timeout (attempt 9/10). Wazuh emitted 48 event(s) but none matched severity=HIGH/CRITICAL with forensic recommendation and attack content.",
+      "updated_at": "2026-07-15T00:22:25.631335+00:00",
+      "progress_percent": 30.5
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.45 (attempt 10/10).",
+      "updated_at": "2026-07-15T00:22:35.633702+00:00",
+      "progress_percent": 23.5
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed",
+      "detail": "Attack completed successfully (attempt 10/10). Output directory: /home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260715T002236Z_T0831_MANIPULATION_OF_CONTROL_MODBUS.",
+      "updated_at": "2026-07-15T00:22:53.265895+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "running",
+      "detail": "Watching monitor 10.0.2.178 for a HIGH/CRITICAL alert matching the OT attack profile (attempt 10/10).",
+      "updated_at": "2026-07-15T00:22:53.268397+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "completed",
+      "detail": "Matched alert 22443e4e184541dbac826de5b5d68c18 with severity HIGH (attempt 10/10).",
+      "updated_at": "2026-07-15T00:23:01.181708+00:00",
+      "progress_percent": 30.5
+    },
+    {
+      "phase_key": "repetition_1_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "running",
+      "detail": "Verifying that the matched alert is eligible for forensic intervention and that automatic acquisition may start from this trigger (attempt 10/10).",
+      "updated_at": "2026-07-15T00:23:01.185752+00:00",
+      "progress_percent": 30.5
+    },
+    {
+      "phase_key": "repetition_1_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "failed",
+      "detail": "The alert is eligible, but DFIR mode is full so automatic forensic preservation is not armed (attempt 10/10).",
+      "updated_at": "2026-07-15T00:23:01.188991+00:00",
+      "progress_percent": 34.0
+    },
+    {
+      "phase_key": "repetition_1_close_campaign_after_error",
+      "phase_label": "Close campaign after failed repetition",
+      "status": "completed_with_degradation",
+      "detail": "Repetition 1/2 failed. The Level B campaign is being closed immediately; no further attacks or acquisitions will be launched. Final reporting will be generated only from the repetitions already executed.",
+      "updated_at": "2026-07-15T00:23:01.202530+00:00",
+      "progress_percent": 55.0
+    },
+    {
+      "phase_key": "generate_report",
+      "phase_label": "Generate Level B report",
+      "status": "running",
+      "detail": "Aggregating per-repetition timing, acquisition, reconstruction, warnings, blockers, and case outputs into the final Level B validation report bundle.",
+      "updated_at": "2026-07-15T00:23:01.215881+00:00",
+      "progress_percent": 90.0
+    }
+  ],
+  "report_output_path": "app_core/infrastructure/forensics/evidence_store/validation_reports/level_b_repetition_report_2026-07-14T233723.788300_0000",
+  "requested_repetitions": 2,
+  "level_b_cleanup_manifest_path": "runtime/level_b_repetitions/exp-e12affbdd44b/cleanup_manifest.json",
+  "dfir_mode_before": "full",
+  "dfir_mode_after": "full",
+  "disk_preflight": {
+    "ok": true,
+    "blockers": [],
+    "warnings": [],
+    "privilege_mode": "user",
+    "sudo_noninteractive_ok": true,
+    "sudo_nopasswd_granted": true,
+    "docker_available": true,
+    "docker_access_ok": true,
+    "qemu_img_available": true,
+    "script_path": "/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/scripts/acquire_disk_kolla_libvirt.sh",
+    "container_name": "nova_libvirt",
+    "sudo_list_excerpt": "",
+    "helper_sudo_probe_ok": true
+  },
+  "current_execution_id": "EXEC-0019",
+  "current_case_id": null,
+  "current_attack_status": "completed",
+  "current_alert_status": "completed",
+  "current_acquisition_status": "queued",
+  "current_preservation_status": "queued",
+  "current_analysis_status": "queued",
+  "current_reconstruction_status": "queued",
+  "current_repetition": 1,
+  "trigger_attempt": 10,
+  "observed_alerts_count": 48,
+  "per_repetition_results": [
+    {
+      "repetition_number": 1,
+      "campaign_id": "CMP-20260707-000220-CBFB",
+      "execution_id": "EXEC-0019",
+      "execution_status": "failed",
+      "dfir_mode_before": "full",
+      "dfir_mode_after": "full",
+      "dfir_mode_enabled_successfully": false,
+      "dfir_mode_blocker": "DFIR mode is not ON.",
+      "attack_profile_id": "T0831_MANIPULATION_OF_CONTROL_MODBUS",
+      "attack_name": "Modbus Register Manipulation",
+      "target_role": "PLC",
+      "target_node": "PLC_Instance",
+      "target_ip": "192.168.100.179",
+      "protocol": "modbus_tcp",
+      "destination_port": 502,
+      "function_code": "confirmed",
+      "register": "confirmed",
+      "value": "confirmed",
+      "attack_started_at": "2026-07-15T00:22:35.636124+00:00",
+      "attack_completed_at": "2026-07-15T00:22:53.265805+00:00",
+      "attack_output_path": "app_core/infrastructure/attack/outputs/20260715T002236Z_T0831_MANIPULATION_OF_CONTROL_MODBUS",
+      "trigger_alert_detected": true,
+      "trigger_alert_id": "22443e4e184541dbac826de5b5d68c18",
+      "trigger_alert_rule": "86601",
+      "trigger_alert_severity": "high",
+      "trigger_alert_timestamp": "2026-07-15T00:22:16.096+0000",
+      "trigger_alert_mitre": null,
+      "forensic_intervention_required": true,
+      "automatic_acquisition_started": false,
+      "case_id": null,
+      "case_path": null,
+      "memory_acquisition_status": "skipped",
+      "network_context_status": "skipped",
+      "pcap_segments_imported": 0,
+      "disk_acquisition_status": "skipped",
+      "ot_export_status": "skipped",
+      "alerts_preserved": 0,
+      "custody_status": "skipped",
+      "case_sealed_status": "skipped",
+      "analysis_status": "failed",
+      "layers_total": 0,
+      "layers_completed": 0,
+      "layers_partial": 0,
+      "layers_failed": 0,
+      "memory_analysis_status": "not_started",
+      "network_analysis_status": "not_started",
+      "disk_analysis_status": "not_started",
+      "ot_analysis_status": "not_started",
+      "alert_analysis_status": "not_started",
+      "timeline_status": "not_started",
+      "reconstruction_status": "failed",
+      "timing_metrics": {
+        "deploy_time_seconds": 0.0,
+        "teardown_redeploy_time_seconds": 0.0,
+        "network_mode": "continuous_rolling_pcap_with_case_bound_incident_window_import",
+        "alert_to_acquisition_start_seconds": null,
+        "alert_to_memory_start_seconds": null,
+        "alert_to_memory_preserved_seconds": null,
+        "alert_to_ot_export_preserved_seconds": null,
+        "alert_to_disk_snapshot_start_seconds": null,
+        "alert_to_disk_snapshot_preserved_seconds": null,
+        "alert_to_case_sealed_seconds": null,
+        "t_first_sealed_seconds": null,
+        "t_case_sealed_seconds": null,
+        "memory_acquisition_duration_seconds": null,
+        "pcap_import_duration_seconds": null,
+        "disk_acquisition_duration_seconds": null,
+        "case_sealed_to_analysis_completed_seconds": null,
+        "total_repetition_duration_seconds": 17.63,
+        "pcap_periodic_context_size_gib": null,
+        "pcap_reactive_capture_size_bytes": 0,
+        "memory_dump_size_bytes": null,
+        "disk_snapshot_size_bytes": null,
+        "retries_or_failures_count": 0,
+        "ot_export_present_in_manifest": false,
+        "ot_export_paths": [],
+        "evidence_completeness_gate": "not_available"
+      },
+      "reconstruction_metrics": {
+        "expected_relations": 0,
+        "recovered_relations": 0,
+        "degraded_relations": 0,
+        "ambiguous_relations": 0,
+        "missing_relations": 0,
+        "recoverability_score": null,
+        "weighted_recoverability_score": null,
+        "reconstruction_confidence": null,
+        "recoverability_label": null,
+        "scientific_confidence_label": null,
+        "warnings": [
+          "Forensic preservation was never armed because DFIR mode remained OFF during the repeated attack attempts. Alerts may have been observed, but the platform was not in forensic intervention mode."
+        ],
+        "blockers": [
+          "dfir_mode_off_during_trigger_arming"
+        ]
+      },
+      "comparison_family_id": null,
+      "scenario_fingerprint": null,
+      "final_case_status": "failed",
+      "scientific_case_status": "diagnostic_failed",
+      "critical_evidence_gate": {},
+      "nested_level_a": {},
+      "trigger_attempt_trace": [
+        {
+          "attempt_number": 1,
+          "attack_started_at": "2026-07-14T23:37:27.691932+00:00",
+          "attack_completed_at": "2026-07-14T23:37:48.651176+00:00",
+          "attack_status": "completed",
+          "dfir_mode_after": "full",
+          "trigger_alert_detected": false,
+          "trigger_alert_id": null,
+          "trigger_alert_rule": null,
+          "trigger_alert_severity": "unknown",
+          "forensic_intervention_eligible": false,
+          "automatic_preservation_armed": false,
+          "eligibility_reason": "observed alert severity is unknown, not HIGH/CRITICAL",
+          "fallback_reasons": [],
+          "observed_alerts_count": 6
+        },
+        {
+          "attempt_number": 2,
+          "attack_started_at": "2026-07-14T23:48:03.659972+00:00",
+          "attack_completed_at": "2026-07-14T23:48:21.577720+00:00",
+          "attack_status": "completed",
+          "dfir_mode_after": "full",
+          "trigger_alert_detected": true,
+          "trigger_alert_id": "eba6e82402464a949d10c9749c48dda2",
+          "trigger_alert_rule": "86601",
+          "trigger_alert_severity": "high",
+          "forensic_intervention_eligible": true,
+          "automatic_preservation_armed": false,
+          "eligibility_reason": "observed alert is HIGH/CRITICAL and eligible for forensic intervention",
+          "fallback_reasons": [],
+          "observed_alerts_count": 1
+        },
+        {
+          "attempt_number": 3,
+          "attack_started_at": "2026-07-14T23:48:39.212115+00:00",
+          "attack_completed_at": "2026-07-14T23:48:56.643916+00:00",
+          "attack_status": "completed",
+          "dfir_mode_after": "full",
+          "trigger_alert_detected": true,
+          "trigger_alert_id": "f493b27b804446788e8caae91543c63e",
+          "trigger_alert_rule": "86601",
+          "trigger_alert_severity": "high",
+          "forensic_intervention_eligible": true,
+          "automatic_preservation_armed": false,
+          "eligibility_reason": "observed alert is HIGH/CRITICAL and eligible for forensic intervention",
+          "fallback_reasons": [],
+          "observed_alerts_count": 1
+        },
+        {
+          "attempt_number": 4,
+          "attack_started_at": "2026-07-14T23:49:13.367577+00:00",
+          "attack_completed_at": "2026-07-14T23:49:32.165454+00:00",
+          "attack_status": "completed",
+          "dfir_mode_after": "full",
+          "trigger_alert_detected": false,
+          "trigger_alert_id": null,
+          "trigger_alert_rule": null,
+          "trigger_alert_severity": "unknown",
+          "forensic_intervention_eligible": false,
+          "automatic_preservation_armed": false,
+          "eligibility_reason": "observed alert severity is unknown, not HIGH/CRITICAL",
+          "fallback_reasons": [],
+          "observed_alerts_count": 6
+        },
+        {
+          "attempt_number": 5,
+          "attack_started_at": "2026-07-14T23:59:47.175868+00:00",
+          "attack_completed_at": "2026-07-15T00:00:03.549789+00:00",
+          "attack_status": "completed",
+          "dfir_mode_after": "full",
+          "trigger_alert_detected": true,
+          "trigger_alert_id": "84f00bdc35fd40e28e11f3eea7acd089",
+          "trigger_alert_rule": "86601",
+          "trigger_alert_severity": "high",
+          "forensic_intervention_eligible": true,
+          "automatic_preservation_armed": false,
+          "eligibility_reason": "observed alert is HIGH/CRITICAL and eligible for forensic intervention",
+          "fallback_reasons": [],
+          "observed_alerts_count": 1
+        },
+        {
+          "attempt_number": 6,
+          "attack_started_at": "2026-07-15T00:00:20.535164+00:00",
+          "attack_completed_at": "2026-07-15T00:00:36.422382+00:00",
+          "attack_status": "completed",
+          "dfir_mode_after": "full",
+          "trigger_alert_detected": true,
+          "trigger_alert_id": "307a6bd0c42446a7a6ad9b4093e2b140",
+          "trigger_alert_rule": "86601",
+          "trigger_alert_severity": "high",
+          "forensic_intervention_eligible": true,
+          "automatic_preservation_armed": false,
+          "eligibility_reason": "observed alert is HIGH/CRITICAL and eligible for forensic intervention",
+          "fallback_reasons": [],
+          "observed_alerts_count": 1
+        },
+        {
+          "attempt_number": 7,
+          "attack_started_at": "2026-07-15T00:00:52.910616+00:00",
+          "attack_completed_at": "2026-07-15T00:01:09.667927+00:00",
+          "attack_status": "completed",
+          "dfir_mode_after": "full",
+          "trigger_alert_detected": false,
+          "trigger_alert_id": null,
+          "trigger_alert_rule": null,
+          "trigger_alert_severity": "unknown",
+          "forensic_intervention_eligible": false,
+          "automatic_preservation_armed": false,
+          "eligibility_reason": "observed alert severity is unknown, not HIGH/CRITICAL",
+          "fallback_reasons": [],
+          "observed_alerts_count": 36
+        },
+        {
+          "attempt_number": 8,
+          "attack_started_at": "2026-07-15T00:11:24.794510+00:00",
+          "attack_completed_at": "2026-07-15T00:11:44.820204+00:00",
+          "attack_status": "completed",
+          "dfir_mode_after": "full",
+          "trigger_alert_detected": true,
+          "trigger_alert_id": "7ecd03f1bb444c16beff52d02ce98c9d",
+          "trigger_alert_rule": "86601",
+          "trigger_alert_severity": "high",
+          "forensic_intervention_eligible": true,
+          "automatic_preservation_armed": false,
+          "eligibility_reason": "observed alert is HIGH/CRITICAL and eligible for forensic intervention",
+          "fallback_reasons": [],
+          "observed_alerts_count": 25
+        },
+        {
+          "attempt_number": 9,
+          "attack_started_at": "2026-07-15T00:12:02.861024+00:00",
+          "attack_completed_at": "2026-07-15T00:12:20.621036+00:00",
+          "attack_status": "completed",
+          "dfir_mode_after": "full",
+          "trigger_alert_detected": false,
+          "trigger_alert_id": null,
+          "trigger_alert_rule": null,
+          "trigger_alert_severity": "unknown",
+          "forensic_intervention_eligible": false,
+          "automatic_preservation_armed": false,
+          "eligibility_reason": "observed alert severity is unknown, not HIGH/CRITICAL",
+          "fallback_reasons": [],
+          "observed_alerts_count": 48
+        },
+        {
+          "attempt_number": 10,
+          "attack_started_at": "2026-07-15T00:22:35.636124+00:00",
+          "attack_completed_at": "2026-07-15T00:22:53.265805+00:00",
+          "attack_status": "completed",
+          "dfir_mode_after": "full",
+          "trigger_alert_detected": true,
+          "trigger_alert_id": "22443e4e184541dbac826de5b5d68c18",
+          "trigger_alert_rule": "86601",
+          "trigger_alert_severity": "high",
+          "forensic_intervention_eligible": true,
+          "automatic_preservation_armed": false,
+          "eligibility_reason": "observed alert is HIGH/CRITICAL and eligible for forensic intervention",
+          "fallback_reasons": [],
+          "observed_alerts_count": 37
+        }
+      ],
+      "trigger_attempts_total": 10,
+      "artifacts": {},
+      "warnings": [
+        "Forensic preservation was never armed because DFIR mode remained OFF during the repeated attack attempts. Alerts may have been observed, but the platform was not in forensic intervention mode."
+      ],
+      "blockers": [
+        "dfir_mode_off_during_trigger_arming"
+      ]
+    }
+  ],
+  "execution_id": "EXEC-0019",
+  "case_id": null,
+  "execution_status": "failed"
+}

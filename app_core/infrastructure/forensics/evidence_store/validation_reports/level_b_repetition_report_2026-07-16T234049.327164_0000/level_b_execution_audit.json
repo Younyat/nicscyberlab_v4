@@ -1,0 +1,188 @@
+{
+  "audit_type": "level_b_execution_audit",
+  "generated_at": "2026-07-17T05:36:30.228526+00:00",
+  "campaign_id": "CMP-20260707-000220-CBFB",
+  "requested_repetitions": 2,
+  "attempted_repetitions": 2,
+  "not_started_repetitions": 0,
+  "completed_repetitions": 0,
+  "partial_repetitions": 1,
+  "failed_repetitions": 1,
+  "current_job_status": "running",
+  "stop_context": {
+    "current_phase": "generate_report",
+    "current_phase_label": "Generate Level B report",
+    "current_phase_detail": "Aggregating per-repetition timing, acquisition, reconstruction, warnings, blockers, and case outputs into the final Level B validation report bundle.",
+    "errors": [
+      {
+        "message": "[Errno 2] No such file or directory: '/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260717-040617-551F/jobs/level-a-scientific-report-2026-07-17T040617.783163_0000.json.tmp' -> '/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260717-040617-551F/jobs/level-a-scientific-report-2026-07-17T040617.783163_0000.json'",
+        "repetition": 2
+      },
+      {
+        "message": "Repetition 2/2 failed. The Level B campaign is being closed immediately; no further attacks or acquisitions will be launched. Final reporting will be generated only from the repetitions already executed.",
+        "repetition": 2
+      }
+    ],
+    "warnings": [
+      "5 of 8 expected causal edges were recovered. The reconstruction is partially supported and should be presented with explicit caveats on the degraded or ambiguous edges.",
+      "Semantic reconstruction has not been generated.",
+      "At least one causal edge is temporally ambiguous under the preserved uncertainty window.",
+      "Temporal synchronization is not reliable. The preserved max clock offset is approximately 624.919s, which makes event ordering ambiguous for causal edges whose timestamps fall within the 626.919s uncertainty window.",
+      "Modbus traffic is observed, but register and value precision are not confirmed by packet-level parsing.",
+      "Modbus register and value precision (declared in ground truth as register=4, expected_value=30) is not confirmed by packet-level parsing; only the presence of Modbus traffic is verified here.",
+      "nested Level A scientific report did not complete successfully for this Level B case (status=failed) — reason: child_job_timeout: stuck at 'Refresh or load multilayer analysis' — Run Dry-Run Execution 2/2: Regenerate Reconstruction — Calling the same reconstruction regeneration used by the FOC Reconstruction view.",
+      "Heavy generated case artifacts were cleaned after nested Level A reporting so the next Level B repetition could create a fresh case without accumulating heavy storage.",
+      "Unexpected repetition failure: [Errno 2] No such file or directory: '/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260717-040617-551F/jobs/level-a-scientific-report-2026-07-17T040617.783163_0000.json.tmp' -> '/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260717-040617-551F/jobs/level-a-scientific-report-2026-07-17T040617.783163_0000.json'"
+    ]
+  },
+  "expected_flow": {
+    "per_level_b_repetition": [
+      "execute controlled OT attack",
+      "observe eligible high-severity alert",
+      "create and preserve one fresh forensic case",
+      "run multilayer analysis and reconstruction",
+      "run nested Level A scientific repetitions over that same preserved case",
+      "clean heavy case artifacts while retaining lightweight comparison bundle"
+    ],
+    "batch_finalization": [
+      "repeat until requested repetition count is reached",
+      "compare Level B repetitions",
+      "emit final Level B JSON/CSV/Markdown report bundle"
+    ]
+  },
+  "generated_outputs": {
+    "campaign_created": true,
+    "level_b_execution_workspaces": [
+      "EXEC-0033",
+      "EXEC-UNKNOWN-2"
+    ],
+    "forensic_cases_created": [
+      "case-6fbc1dca"
+    ],
+    "analysis_outputs_present_cases": [],
+    "nested_level_a_reports_completed": [],
+    "lightweight_cleanup_bundles_completed": [
+      "case-6fbc1dca"
+    ],
+    "level_b_report_bundle": true
+  },
+  "missing_or_pending_outputs": {
+    "remaining_level_b_repetitions_not_started": 0,
+    "nested_level_a_reports_missing": 1,
+    "heavy_case_cleanups_missing": 0,
+    "higher_level_comparison_ready": false
+  },
+  "last_failed_repetition": {
+    "repetition_number": 2,
+    "campaign_id": "CMP-20260707-000220-CBFB",
+    "execution_id": "EXEC-UNKNOWN-2",
+    "execution_status": "failed",
+    "dfir_mode_before": "on",
+    "dfir_mode_after": "on",
+    "dfir_mode_enabled_successfully": true,
+    "dfir_mode_blocker": null,
+    "attack_profile_id": "T0831_MANIPULATION_OF_CONTROL_MODBUS",
+    "attack_name": "Modbus Register Manipulation",
+    "target_role": "PLC",
+    "target_node": "PLC_Instance",
+    "target_ip": null,
+    "protocol": "modbus_tcp",
+    "destination_port": 502,
+    "function_code": "unknown",
+    "register": "unknown",
+    "value": "unknown",
+    "attack_started_at": null,
+    "attack_completed_at": null,
+    "attack_output_path": null,
+    "trigger_alert_detected": false,
+    "trigger_alert_id": null,
+    "trigger_alert_rule": null,
+    "trigger_alert_severity": "unknown",
+    "trigger_alert_timestamp": null,
+    "trigger_alert_mitre": null,
+    "forensic_intervention_required": false,
+    "automatic_acquisition_started": false,
+    "case_id": null,
+    "case_path": null,
+    "memory_acquisition_status": "skipped",
+    "network_context_status": "skipped",
+    "pcap_segments_imported": 0,
+    "disk_acquisition_status": "skipped",
+    "ot_export_status": "skipped",
+    "alerts_preserved": 0,
+    "custody_status": "skipped",
+    "case_sealed_status": "skipped",
+    "analysis_status": "failed",
+    "layers_total": 0,
+    "layers_completed": 0,
+    "layers_partial": 0,
+    "layers_failed": 0,
+    "memory_analysis_status": "not_started",
+    "network_analysis_status": "not_started",
+    "disk_analysis_status": "not_started",
+    "ot_analysis_status": "not_started",
+    "alert_analysis_status": "not_started",
+    "timeline_status": "not_started",
+    "reconstruction_status": "failed",
+    "timing_metrics": {
+      "deploy_time_seconds": 0.0,
+      "teardown_redeploy_time_seconds": 0.0,
+      "network_mode": "continuous_rolling_pcap_with_case_bound_incident_window_import",
+      "alert_to_acquisition_start_seconds": null,
+      "alert_to_memory_start_seconds": null,
+      "alert_to_memory_preserved_seconds": null,
+      "alert_to_ot_export_preserved_seconds": null,
+      "alert_to_disk_snapshot_start_seconds": null,
+      "alert_to_disk_snapshot_preserved_seconds": null,
+      "alert_to_case_sealed_seconds": null,
+      "t_first_sealed_seconds": null,
+      "t_case_sealed_seconds": null,
+      "memory_acquisition_duration_seconds": null,
+      "pcap_import_duration_seconds": null,
+      "disk_acquisition_duration_seconds": null,
+      "case_sealed_to_analysis_completed_seconds": null,
+      "total_repetition_duration_seconds": null,
+      "pcap_periodic_context_size_gib": null,
+      "pcap_reactive_capture_size_bytes": 0,
+      "memory_dump_size_bytes": null,
+      "disk_snapshot_size_bytes": null,
+      "retries_or_failures_count": 0,
+      "ot_export_present_in_manifest": false,
+      "ot_export_paths": [],
+      "evidence_completeness_gate": "not_available"
+    },
+    "reconstruction_metrics": {
+      "expected_relations": 0,
+      "recovered_relations": 0,
+      "degraded_relations": 0,
+      "ambiguous_relations": 0,
+      "missing_relations": 0,
+      "recoverability_score": null,
+      "weighted_recoverability_score": null,
+      "reconstruction_confidence": null,
+      "recoverability_label": null,
+      "scientific_confidence_label": null,
+      "warnings": [
+        "Unexpected repetition failure: [Errno 2] No such file or directory: '/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260717-040617-551F/jobs/level-a-scientific-report-2026-07-17T040617.783163_0000.json.tmp' -> '/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260717-040617-551F/jobs/level-a-scientific-report-2026-07-17T040617.783163_0000.json'"
+      ],
+      "blockers": [
+        "[Errno 2] No such file or directory: '/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260717-040617-551F/jobs/level-a-scientific-report-2026-07-17T040617.783163_0000.json.tmp' -> '/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260717-040617-551F/jobs/level-a-scientific-report-2026-07-17T040617.783163_0000.json'"
+      ]
+    },
+    "comparison_family_id": null,
+    "scenario_fingerprint": null,
+    "final_case_status": "failed",
+    "scientific_case_status": "diagnostic_failed",
+    "critical_evidence_gate": {},
+    "nested_level_a": {},
+    "trigger_attempt_trace": [],
+    "trigger_attempts_total": 0,
+    "artifacts": {},
+    "warnings": [
+      "Unexpected repetition failure: [Errno 2] No such file or directory: '/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260717-040617-551F/jobs/level-a-scientific-report-2026-07-17T040617.783163_0000.json.tmp' -> '/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260717-040617-551F/jobs/level-a-scientific-report-2026-07-17T040617.783163_0000.json'"
+    ],
+    "blockers": [
+      "[Errno 2] No such file or directory: '/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260717-040617-551F/jobs/level-a-scientific-report-2026-07-17T040617.783163_0000.json.tmp' -> '/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260717-040617-551F/jobs/level-a-scientific-report-2026-07-17T040617.783163_0000.json'"
+    ]
+  }
+}

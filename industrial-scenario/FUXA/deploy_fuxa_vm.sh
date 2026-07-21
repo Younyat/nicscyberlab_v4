@@ -137,8 +137,8 @@ ensure_flavor_exists() {
   set +e
   openstack flavor create "$FLAVOR" \
     --vcpus 1 \
-    --ram 1024 \
-    --disk 10 >/dev/null 2>&1
+    --ram 2048 \
+    --disk 15 >/dev/null 2>&1
   rc=$?
   set -e
 

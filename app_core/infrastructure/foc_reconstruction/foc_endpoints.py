@@ -878,7 +878,10 @@ def api_foc_bootstrap():
         result = bootstrap_existing_context(force=force)
         if result.get("status") == "already_initialized":
             return jsonify(result), 200
-        manifest = regenerate_foc(bootstrap_mode=True)
+        # force=True: a real bootstrap just happened -- this must reflect
+        # it, never silently skip via regenerate_foc()'s new short-TTL guard
+        # (see that function's docstring).
+        manifest = regenerate_foc(bootstrap_mode=True, force=True)
         with _FOC_DASHBOARD_CACHE_LOCK:
             _FOC_DASHBOARD_CACHE["ts"] = 0.0
             _FOC_DASHBOARD_CACHE["payload"] = None
@@ -892,7 +895,10 @@ def api_foc_bootstrap():
 def api_foc_regenerate():
     try:
         current_manifest = read_generated_json(GENERATED_FILES["manifest"]) or {}
-        manifest = regenerate_foc(bootstrap_mode=bool(current_manifest.get("bootstrap_mode")))
+        # force=True: this IS the user-facing "Regenerate" button -- it must
+        # always do real, fresh work, never the short-TTL skip meant only
+        # for the back-to-back pipeline calls (see regenerate_foc()'s docstring).
+        manifest = regenerate_foc(bootstrap_mode=bool(current_manifest.get("bootstrap_mode")), force=True)
         with _FOC_DASHBOARD_CACHE_LOCK:
             _FOC_DASHBOARD_CACHE["ts"] = 0.0
             _FOC_DASHBOARD_CACHE["payload"] = None
@@ -925,7 +931,11 @@ def api_foc_events_stream():
 
                 if pending_watch is not None and (time.time() - last_regen_ts) >= FOC_AUTO_REFRESH_MIN_INTERVAL_SECONDS:
                     try:
-                        manifest = regenerate_foc(bootstrap_mode=bool((read_generated_json(GENERATED_FILES['manifest']) or {}).get('bootstrap_mode')))
+                        # force=True: this path only runs when snapshot_watch_state()
+                        # detected a REAL change (plus its own
+                        # FOC_AUTO_REFRESH_MIN_INTERVAL_SECONDS rate limit) --
+                        # it must reflect that change, not skip it.
+                        manifest = regenerate_foc(bootstrap_mode=bool((read_generated_json(GENERATED_FILES['manifest']) or {}).get('bootstrap_mode')), force=True)
                         with _FOC_DASHBOARD_CACHE_LOCK:
                             _FOC_DASHBOARD_CACHE["ts"] = 0.0
                             _FOC_DASHBOARD_CACHE["payload"] = None

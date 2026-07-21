@@ -1,0 +1,69 @@
+{
+  "audit_type": "level_b_execution_audit",
+  "generated_at": "2026-07-20T12:25:48.720199+00:00",
+  "campaign_id": "CMP-20260719-233130-EDCE",
+  "requested_repetitions": 1,
+  "attempted_repetitions": 1,
+  "not_started_repetitions": 0,
+  "completed_repetitions": 0,
+  "partial_repetitions": 1,
+  "failed_repetitions": 0,
+  "current_job_status": "running",
+  "stop_context": {
+    "current_phase": "generate_report",
+    "current_phase_label": "Generate Level B report",
+    "current_phase_detail": "Aggregating per-repetition timing, acquisition, reconstruction, warnings, blockers, and case outputs into the final Level B validation report bundle.",
+    "errors": [],
+    "warnings": [
+      "5 of 8 expected causal edges were recovered. The reconstruction is partially supported and should be presented with explicit caveats on the degraded or ambiguous edges.",
+      "Integrity or custody validation remains partial.",
+      "At least one causal edge is temporally ambiguous under the preserved uncertainty window.",
+      "Temporal synchronization is not reliable. The preserved max clock offset is approximately 0s, which makes event ordering ambiguous for causal edges whose timestamps fall within the 2s uncertainty window.",
+      "Modbus traffic is observed, but register and value precision are not confirmed by packet-level parsing.",
+      "Case-wide integrity or custody validation remains partial.",
+      "Integrity and custody validation remains partial for this case.",
+      "Heavy generated case artifacts were cleaned after nested Level A reporting so the next Level B repetition could create a fresh case without accumulating heavy storage."
+    ]
+  },
+  "expected_flow": {
+    "per_level_b_repetition": [
+      "execute controlled OT attack",
+      "observe eligible high-severity alert",
+      "create and preserve one fresh forensic case",
+      "run multilayer analysis and reconstruction",
+      "run nested Level A scientific repetitions over that same preserved case",
+      "clean heavy case artifacts while retaining lightweight comparison bundle"
+    ],
+    "batch_finalization": [
+      "repeat until requested repetition count is reached",
+      "compare Level B repetitions",
+      "emit final Level B JSON/CSV/Markdown report bundle"
+    ]
+  },
+  "generated_outputs": {
+    "campaign_created": true,
+    "level_b_execution_workspaces": [
+      "EXEC-0005"
+    ],
+    "forensic_cases_created": [
+      "case-c3b21a31"
+    ],
+    "analysis_outputs_present_cases": [
+      "case-c3b21a31"
+    ],
+    "nested_level_a_reports_completed": [
+      "CMP-20260720-120501-524A"
+    ],
+    "lightweight_cleanup_bundles_completed": [
+      "case-c3b21a31"
+    ],
+    "level_b_report_bundle": true
+  },
+  "missing_or_pending_outputs": {
+    "remaining_level_b_repetitions_not_started": 0,
+    "nested_level_a_reports_missing": 0,
+    "heavy_case_cleanups_missing": 0,
+    "higher_level_comparison_ready": false
+  },
+  "last_failed_repetition": {}
+}

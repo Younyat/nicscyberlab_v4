@@ -20,8 +20,106 @@ def _load(path: Path) -> dict | list | None:
     return None
 
 
+def _bundle_case_id(bundle_root: Path) -> str:
+    manifest = _load(bundle_root / "lightweight_case_bundle_manifest.json") or {}
+    return str(manifest.get("case_id") or "").strip()
+
+
+def _live_case_id(case_dir: Path) -> str:
+    # Lazy import: level_b_orchestrator already imports from this module's sibling tree,
+    # so importing it eagerly at module load time would risk a circular import.
+    try:
+        from ..foc_experimentation.level_b_orchestrator import _case_id_for_case_dir
+        return str(_case_id_for_case_dir(str(case_dir)) or "").strip()
+    except Exception:
+        return ""
+
+
 def _case_dirs() -> list[Path]:
-    return sorted(_EVIDENCE_STORE.glob("CASE-*"))
+    """Every case directory FORGE-VI should aggregate over.
+
+    2026-07-20: previously only globbed live CASE-* directories under evidence_store/ --
+    but the per-repetition cleanup deletes a case's heavy directory (raw memory/disk/pcap)
+    shortly after its own analysis finishes, preserving only a lightweight bundle under
+    each campaign's level_B/EXEC-000N/retained_case_lightweight_bundle/<case_id>/ (see
+    retention_service._copy_lightweight_case_bundle). That bundle mirrors the case's own
+    relative file layout (manifest.json, chain_of_custody.log, metadata/, analysis/,
+    derived/...) closely enough that _per_case_data()'s existing per-case extraction code
+    works against a bundle root completely unchanged -- no per-case logic below this
+    function needed to change.
+
+    A case is only ever counted once: if its live directory still exists, that one is used
+    (strictly more complete than the bundle); the bundle copy is only pulled in once the
+    live directory is already gone. Live-case discovery/ordering is otherwise byte-for-byte
+    identical to before this change.
+    """
+    live = sorted(_EVIDENCE_STORE.glob("CASE-*"))
+    live_case_ids = {cid for cid in (_live_case_id(p) for p in live) if cid}
+
+    bundle_roots = sorted(
+        _EVIDENCE_STORE.glob("repetition_campaigns/CMP-*/level_B/EXEC-*/retained_case_lightweight_bundle/*")
+    )
+    seen_bundle_ids: set[str] = set()
+    preserved: list[tuple[float, Path]] = []
+    for bundle_root in bundle_roots:
+        if not bundle_root.is_dir():
+            continue
+        case_id = _bundle_case_id(bundle_root)
+        if not case_id or case_id in live_case_ids or case_id in seen_bundle_ids:
+            continue
+        seen_bundle_ids.add(case_id)
+        manifest = _load(bundle_root / "lightweight_case_bundle_manifest.json") or {}
+        generated_at = manifest.get("generated_at") or ""
+        try:
+            sort_key = bundle_root.stat().st_mtime
+        except Exception:
+            sort_key = 0.0
+        preserved.append((sort_key, bundle_root))
+
+    combined = list(live) + [p for _, p in sorted(preserved, key=lambda item: item[0])]
+    combined.sort(key=lambda p: (p.stat().st_mtime if p.exists() else 0.0))
+    return combined
+
+
+_CAMPAIGNS_ROOT = _EVIDENCE_STORE / "repetition_campaigns"
+_live_case_campaign_cache: dict[str, str] = {}
+
+
+def _campaign_id_for_case(case_dir: Path, case_id: str) -> str:
+    """Which campaign a case belongs to, for the per-campaign filter added 2026-07-20
+    (see forge_vi_dashboard/README.md — the dashboard was showing every case this install
+    has ever preserved under one hardcoded, unrelated campaign label). For a bundle-sourced
+    case (see _case_dirs()) the campaign_id is literally a path segment, cheap to read. For
+    a still-live case there's no such shortcut, so per_repetition_results across every
+    campaign's job files is scanned once and cached (keyed by case_id) for the life of this
+    process/worker -- acceptable since case_id -> campaign_id is immutable once sealed.
+    """
+    try:
+        parts = case_dir.parts
+        idx = parts.index("repetition_campaigns")
+        return parts[idx + 1]
+    except (ValueError, IndexError):
+        pass
+
+    if case_id in _live_case_campaign_cache:
+        return _live_case_campaign_cache[case_id]
+
+    found = ""
+    try:
+        for job_path in _CAMPAIGNS_ROOT.glob("CMP-*/jobs/*.json"):
+            payload = _load(job_path)
+            if not isinstance(payload, dict) or payload.get("job_type") != "level_b_repetitions":
+                continue
+            for result in payload.get("per_repetition_results") or []:
+                if isinstance(result, dict) and result.get("case_id") == case_id:
+                    found = (payload.get("meta") or {}).get("campaign_id") or ""
+                    break
+            if found:
+                break
+    except Exception:
+        found = ""
+    _live_case_campaign_cache[case_id] = found
+    return found
 
 
 _EDGE_ORDER = [
@@ -102,6 +200,12 @@ def _per_case_data() -> list[dict]:
                     }
                     break
 
+        # Volumes from manifest artifacts (must be before evidence_layers)
+        artifacts = manifest.get("artifacts") or []
+        memory_gib = round(sum(a.get("size", 0) for a in artifacts if a.get("type") == "memory_lime") / (1024 ** 3), 3)
+        disk_gib   = round(sum(a.get("size", 0) for a in artifacts if a.get("type") == "disk_raw")    / (1024 ** 3), 3)
+        pcap_gib   = round(sum(a.get("size", 0) for a in artifacts if a.get("type") == "network_pcap") / (1024 ** 3), 3)
+
         # Evidence layers — prefer manifest truth over intervention flag for disk/memory
         preserved = fi.get("preserved_evidence_categories") or {}
         evidence_layers = {
@@ -149,12 +253,6 @@ def _per_case_data() -> list[dict]:
             "acquisition_duration_s": _delta_s("forensic_intervention_started_at_utc", "case_sealed_at_utc"),
         }
 
-        # Volumes from manifest artifacts
-        artifacts = manifest.get("artifacts") or []
-        memory_gib = round(sum(a.get("size", 0) for a in artifacts if a.get("type") == "memory_lime") / (1024 ** 3), 3)
-        disk_gib   = round(sum(a.get("size", 0) for a in artifacts if a.get("type") == "disk_raw")    / (1024 ** 3), 3)
-        pcap_gib   = round(sum(a.get("size", 0) for a in artifacts if a.get("type") == "network_pcap") / (1024 ** 3), 3)
-
         # Merge wf_checks if available
         wf = {}
         if wf_checks and i < len(wf_checks):
@@ -201,9 +299,11 @@ def _per_case_data() -> list[dict]:
                 ratio = num / den if den else 0
                 e_checks[eid] = "satisfied" if ratio >= 1.0 else ("partial" if ratio > 0 else "failed")
 
+        resolved_case_id = nts.get("case_id") or fi.get("case_id") or ""
         out.append({
             "exec_id": exec_id,
-            "case_id": nts.get("case_id") or fi.get("case_id") or "",
+            "case_id": resolved_case_id,
+            "campaign_id": _campaign_id_for_case(case_dir, resolved_case_id) or None,
             "case_name": case_dir.name,
             "case_path": str(case_dir),
             "attack_started_at": nts.get("attack_started_at_utc"),
@@ -363,20 +463,57 @@ def _aggregate(runs: list[dict]) -> dict:
     }
 
 
+def _campaign_scenario_id(campaign_id: str) -> str:
+    config = _load(_CAMPAIGNS_ROOT / campaign_id / "campaign_config.json") or {}
+    return str(config.get("scenario_id") or "not_available")
+
+
 @forge_vi_bp.route("/api/forge-vi/dashboard", methods=["GET"])
 def api_forge_vi_dashboard():
-    runs = _per_case_data()
-    aggregate = _aggregate(runs)
+    from flask import request
 
-    # Campaign info from paper exports or derive
-    campaign_id = "CMP-20260707-000220-CBFB"
-    scenario_id = "scn-b83dbbfb"
-    try:
-        wf = _load(_PAPER_EXPORTS / "FORGE-VI_LevelC_Workflow_Checks.json") or []
-        if wf and wf[0].get("metrics"):
-            scenario_id = wf[0]["metrics"].get("scenario_id") or scenario_id
-    except Exception:
-        pass
+    all_runs = _per_case_data()
+
+    # Distinct campaigns present, most-recently-active first -- 2026-07-19/20 incident:
+    # this endpoint used to hardcode campaign_id="CMP-20260707-000220-CBFB" regardless of
+    # what `runs` actually contained, which became actively misleading once _case_dirs()
+    # started aggregating every campaign's preserved cases (see forge_vi_dashboard/README.md).
+    # The header must now always describe the runs it's actually showing, never a fixed string.
+    by_campaign: dict[str, list[dict]] = {}
+    for r in all_runs:
+        cid = r.get("campaign_id") or "unassigned"
+        by_campaign.setdefault(cid, []).append(r)
+    campaign_order = sorted(
+        by_campaign.keys(),
+        key=lambda cid: max((r.get("case_sealed_at") or r.get("attack_started_at") or "") for r in by_campaign[cid]),
+        reverse=True,
+    )
+    available_campaigns = [
+        {"campaign_id": cid, "n_executions": len(by_campaign[cid]), "scenario_id": _campaign_scenario_id(cid) if cid != "unassigned" else "not_available"}
+        for cid in campaign_order
+    ]
+
+    requested = str(request.args.get("campaign_id") or "").strip()
+    if requested == "all":
+        runs = all_runs
+        campaign_id = f"{len(campaign_order)} campaigns (all)"
+        scenario_id = "multiple" if len(campaign_order) > 1 else (_campaign_scenario_id(campaign_order[0]) if campaign_order else "not_available")
+    elif requested and requested in by_campaign:
+        runs = by_campaign[requested]
+        campaign_id = requested
+        scenario_id = _campaign_scenario_id(requested)
+    elif campaign_order:
+        # Default: the campaign with the most recently sealed/attacked case -- "the latest
+        # repetition" the user actually expects to see on first load, not a global mix.
+        campaign_id = campaign_order[0]
+        runs = by_campaign[campaign_id]
+        scenario_id = _campaign_scenario_id(campaign_id)
+    else:
+        runs = []
+        campaign_id = "not_available"
+        scenario_id = "not_available"
+
+    aggregate = _aggregate(runs)
 
     edge_meta = [
         {"label": label, "edge_id": eid, "desc": desc,
@@ -405,6 +542,8 @@ def api_forge_vi_dashboard():
             "n_executions": len(runs),
             "generated_at": runs[0].get("attack_started_at") if runs else None,
         },
+        "available_campaigns": available_campaigns,
+        "selected_campaign_id": requested or (campaign_order[0] if campaign_order else None),
         "aggregate": aggregate,
         "runs": runs,
         "edge_meta": edge_meta,

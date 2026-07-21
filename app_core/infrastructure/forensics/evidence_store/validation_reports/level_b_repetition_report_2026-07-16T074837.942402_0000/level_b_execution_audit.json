@@ -1,0 +1,73 @@
+{
+  "audit_type": "level_b_execution_audit",
+  "generated_at": "2026-07-16T11:07:47.647543+00:00",
+  "campaign_id": "CMP-20260707-000220-CBFB",
+  "requested_repetitions": 2,
+  "attempted_repetitions": 1,
+  "not_started_repetitions": 1,
+  "completed_repetitions": 0,
+  "partial_repetitions": 1,
+  "failed_repetitions": 0,
+  "current_job_status": "running",
+  "stop_context": {
+    "current_phase": "generate_report",
+    "current_phase_label": "Generate Level B report",
+    "current_phase_detail": "Aggregating per-repetition timing, acquisition, reconstruction, warnings, blockers, and case outputs into the final Level B validation report bundle.",
+    "errors": [
+      {
+        "message": "Mandatory free-space cleanup failed before repetition 2; failed_roles=fuxa,plc.",
+        "repetition": 2
+      }
+    ],
+    "warnings": [
+      "Only 3 of 8 expected causal edges were fully recovered. The result is useful for audit and degradation analysis, but it must not be presented as strong causal reconstruction.",
+      "Semantic reconstruction has not been generated.",
+      "At least one causal edge is temporally ambiguous under the preserved uncertainty window.",
+      "Temporal synchronization is not reliable. The preserved max clock offset is approximately 648.997s, which makes event ordering ambiguous for causal edges whose timestamps fall within the 650.997s uncertainty window.",
+      "Modbus traffic is observed, but register and value precision are not confirmed by packet-level parsing.",
+      "Modbus register and value precision (declared in ground truth as register=4, expected_value=30) is not confirmed by packet-level parsing; only the presence of Modbus traffic is verified here.",
+      "nested Level A scientific report did not complete successfully for this Level B case",
+      "Heavy generated case artifacts were cleaned after nested Level A reporting so the next Level B repetition could create a fresh case without accumulating heavy storage.",
+      "Post-delete free-space cleanup on fuxa/plc did not fully succeed; the next repetition will retry it before launching the next attack."
+    ]
+  },
+  "expected_flow": {
+    "per_level_b_repetition": [
+      "execute controlled OT attack",
+      "observe eligible high-severity alert",
+      "create and preserve one fresh forensic case",
+      "run multilayer analysis and reconstruction",
+      "run nested Level A scientific repetitions over that same preserved case",
+      "clean heavy case artifacts while retaining lightweight comparison bundle"
+    ],
+    "batch_finalization": [
+      "repeat until requested repetition count is reached",
+      "compare Level B repetitions",
+      "emit final Level B JSON/CSV/Markdown report bundle"
+    ]
+  },
+  "generated_outputs": {
+    "campaign_created": true,
+    "level_b_execution_workspaces": [
+      "EXEC-0029"
+    ],
+    "forensic_cases_created": [
+      "case-b5946a11"
+    ],
+    "analysis_outputs_present_cases": [
+      "case-b5946a11"
+    ],
+    "nested_level_a_reports_completed": [],
+    "lightweight_cleanup_bundles_completed": [
+      "case-b5946a11"
+    ],
+    "level_b_report_bundle": true
+  },
+  "missing_or_pending_outputs": {
+    "remaining_level_b_repetitions_not_started": 1,
+    "nested_level_a_reports_missing": 1,
+    "heavy_case_cleanups_missing": 0,
+    "higher_level_comparison_ready": false
+  },
+  "last_failed_repetition": {}
+}

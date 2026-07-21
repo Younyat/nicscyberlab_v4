@@ -476,9 +476,9 @@ def _collect_forensics(scenario_id: str | None, warnings: list) -> dict:
         cases = []
         for case_dir in case_dirs:
             manifest = _load_json(case_dir / "manifest.json") or {}
-            trigger = _load_json(case_dir / "trigger_alert.json") or {}
-            acquisition = _load_json(case_dir / "acquisition_metadata.json") or {}
-            analysis = _load_json(case_dir / "forensic_analysis_report.json") or {}
+            trigger = _load_json(case_dir / "metadata" / "trigger_alert_binding.json") or {}
+            acquisition = _load_json(case_dir / "metadata" / "acquisition_profile.json") or {}
+            analysis = _load_json(case_dir / "analysis" / "forensic_analysis_report.json") or {}
             custody_present = (case_dir / "chain_of_custody.log").is_file()
             sealed = (case_dir / "sealed_manifest.json").is_file()
 
@@ -530,11 +530,11 @@ def _collect_forensics(scenario_id: str | None, warnings: list) -> dict:
                 "case_dir": str(case_dir.relative_to(PROJECT_ROOT)),
                 "scenario_id": scenario_id,
                 "created_at": manifest.get("created_at") or manifest.get("timestamp"),
-                "attack_id": manifest.get("attack_id") or trigger.get("attack_id"),
-                "alert_id": trigger.get("alert_id") or trigger.get("event_id"),
+                "attack_id": manifest.get("attack_id") or trigger.get("attack_id") or trigger.get("attack_profile_id"),
+                "alert_id": trigger.get("alert_id") or trigger.get("event_id") or trigger.get("trigger_alert_id"),
                 "alert_signature": trigger.get("signature") or trigger.get("description"),
                 "trigger_severity": trigger.get("severity"),
-                "trigger_source": trigger.get("source"),
+                "trigger_source": trigger.get("source") or trigger.get("original_sensor") or trigger.get("collector"),
                 "acquisition_types": sorted(artifact_types - {""}),
                 "artifact_count": len(artifacts),
                 "hash_count": hash_count,
@@ -549,7 +549,7 @@ def _collect_forensics(scenario_id: str | None, warnings: list) -> dict:
                 "preservation_status": "COMPLETED" if artifacts else S_NOT_EXECUTED,
                 "case_status": manifest.get("status") or S_NOT_RECORDED,
                 "campaign_id": manifest.get("campaign_id"),
-                "execution_id": manifest.get("execution_id"),
+                "execution_id": manifest.get("execution_id") or trigger.get("execution_id"),
                 "foc_reconstruction_present": (
                     (FOC_OUTPUT_DIR / "attestations" / "forensic_intervention.json").is_file()
                 ),

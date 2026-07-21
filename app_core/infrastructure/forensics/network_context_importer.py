@@ -395,17 +395,65 @@ def _export_ot_from_preserved_segments(case_dir: Path, *, run_id: str, preserved
     first_epoch = None
     last_epoch = None
     max_records_cap = 200000
+    total_packets_read = 0
+    progress_heartbeat_every = 100000  # scapy parses pure-Python; this step can take a long
+    # time on large captures with zero external feedback otherwise — surface periodic progress.
+    packets_at_last_heartbeat = 0
+    # Packet-count heartbeats alone assume a roughly steady processing rate;
+    # scapy's actual speed varies a lot by packet complexity/hardware, so a
+    # slow-but-legitimate run could go over _PRESERVATION_ORPHAN_GRACE_SECONDS
+    # (forensics_api.py, 180s) between count-based heartbeats and get
+    # mistaken for orphaned by the watchdog added 2026-07-16. Add a wall-clock
+    # floor so a heartbeat always fires at least this often regardless of rate.
+    heartbeat_time_floor_seconds = 60.0
+    last_heartbeat_wall_time = time.time()
 
     try:
-        for entry in source_entries:
+        for file_index, entry in enumerate(source_entries, start=1):
             rel_pcap = str(entry.get("case_path") or "")
             abs_pcap = case_dir / rel_pcap
             per_file_records = 0
             if not abs_pcap.is_file():
                 file_summaries.append({"pcap_rel": rel_pcap, "status": "missing", "records_exported": 0})
                 continue
+            _append_case_event(
+                case_dir,
+                "ot_export_progress",
+                run_id=run_id,
+                meta={
+                    "stage": "file_start",
+                    "file_index": file_index,
+                    "file_count": len(source_entries),
+                    "pcap_rel": rel_pcap,
+                    "pcap_size_bytes": entry.get("size"),
+                    "total_packets_read_so_far": total_packets_read,
+                    "records_exported_so_far": len(records),
+                },
+            )
             with PcapReader(str(abs_pcap)) as reader:
                 for pkt in reader:
+                    total_packets_read += 1
+                    # Cheap sampling: only ask the clock every 5k packets, not every packet.
+                    time_floor_due = (
+                        total_packets_read % 5000 == 0
+                        and (time.time() - last_heartbeat_wall_time) >= heartbeat_time_floor_seconds
+                    )
+                    if total_packets_read - packets_at_last_heartbeat >= progress_heartbeat_every or time_floor_due:
+                        packets_at_last_heartbeat = total_packets_read
+                        last_heartbeat_wall_time = time.time()
+                        _append_case_event(
+                            case_dir,
+                            "ot_export_progress",
+                            run_id=run_id,
+                            meta={
+                                "stage": "in_progress",
+                                "file_index": file_index,
+                                "file_count": len(source_entries),
+                                "pcap_rel": rel_pcap,
+                                "total_packets_read_so_far": total_packets_read,
+                                "records_exported_so_far": len(records),
+                            },
+                        )
                     if not pkt.haslayer(IP) or not pkt.haslayer(TCP):
                         continue
                     tcp = pkt[TCP]
@@ -460,6 +508,20 @@ def _export_ot_from_preserved_segments(case_dir: Path, *, run_id: str, preserved
                     "segment_end_time": entry.get("segment_end_time"),
                     "size": entry.get("size"),
                 }
+            )
+            _append_case_event(
+                case_dir,
+                "ot_export_progress",
+                run_id=run_id,
+                meta={
+                    "stage": "file_done",
+                    "file_index": file_index,
+                    "file_count": len(source_entries),
+                    "pcap_rel": rel_pcap,
+                    "records_exported_this_file": per_file_records,
+                    "total_packets_read_so_far": total_packets_read,
+                    "records_exported_so_far": len(records),
+                },
             )
 
         payload = {
@@ -753,16 +815,23 @@ def import_continuous_network_context(
     acquisition_dt = _parse_utc(acquisition_started_utc or profile.get("acquisition_started_utc") or profile.get("case_created_utc")) or _utc_now()
     memory_completed_dt = _parse_utc(memory_completed_utc or profile.get("memory_completed_utc")) or _utc_now()
     window_anchor = trigger_dt or acquisition_dt
+    # 2026-07-19: window is now a FIXED trigger +/- pre/post_context_seconds,
+    # not trigger -> memory_acquisition_completion + post_context_seconds.
+    # The latter (kept below, commented, in case this needs reverting) made
+    # the real window scale with how long memory acquisition took (3 nodes,
+    # observed 8-15+ min combined), pulling in far more pcap segments than
+    # the nominal "120s either side" suggested -- confirmed live: a trigger
+    # at 22:36:43 with memory finishing at 22:47:37 produced a ~15min window
+    # (18 segments) instead of the intended ~4min one, dominating both
+    # acquisition and analysis time for no evidentiary requirement anyone
+    # had actually asked for. User explicitly chose speed over the wider
+    # window's "catches network activity during a long memory acquisition
+    # too" coverage -- this is a real trade-off, not a bug fix, flagged here
+    # so it's not silently reverted later without knowing why it changed.
     window_start_anchor = window_anchor
-    window_end_anchor = memory_completed_dt
+    window_end_anchor = window_anchor
     window_normalization = "standard"
-    if window_end_anchor < window_start_anchor:
-        # Keep the window usable even if an inconsistent trigger arrives after
-        # memory preservation. This should be rare and diagnostic, but it must
-        # not collapse network preservation to an empty inverted range.
-        window_start_anchor = window_end_anchor
-        window_end_anchor = window_anchor
-        window_normalization = "normalized_inverted_window_trigger_after_memory"
+    # window_end_anchor = memory_completed_dt  # pre-2026-07-19 behavior
     window_start = window_start_anchor - timedelta(seconds=int(pre_context_seconds))
     window_end = window_end_anchor + timedelta(seconds=int(post_context_seconds))
 

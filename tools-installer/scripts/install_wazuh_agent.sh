@@ -100,7 +100,32 @@ fi
 echo "[OK] Hostname remoto detectado: ${REMOTE_HOSTNAME}"
 
 # ------------------------------------------------------------
-# 3. CORREGIR AUTOMATICAMENTE EL MANAGER
+# 3. ESPERAR A QUE EL MANAGER TENGA WAZUH INSTALADO
+#    Wazuh Manager puede tardar 10-20 min (compilación ansible).
+#    No intentamos configurar ossec.conf hasta que exista.
+# ------------------------------------------------------------
+echo "[INFO] Esperando que Wazuh Manager esté listo en ${MANAGER_IP}..."
+WAIT_OSSEC=0
+WAIT_OSSEC_MAX=900  # 15 min máx
+until ssh -i "$SSH_KEY" \
+         -o StrictHostKeyChecking=no \
+         -o UserKnownHostsFile=/dev/null \
+         -o ConnectTimeout=5 \
+         "${MANAGER_SSH_USER}@${MANAGER_IP}" \
+         "sudo test -f /var/ossec/etc/ossec.conf && sudo systemctl is-active wazuh-manager | grep -q active" \
+         >/dev/null 2>&1; do
+    if [[ $WAIT_OSSEC -ge $WAIT_OSSEC_MAX ]]; then
+        echo "[ERROR] Timeout (${WAIT_OSSEC_MAX}s): Wazuh Manager no está listo en ${MANAGER_IP}."
+        exit 1
+    fi
+    echo "[WAIT] Wazuh Manager no listo todavía (${WAIT_OSSEC}s / ${WAIT_OSSEC_MAX}s)..."
+    sleep 15
+    WAIT_OSSEC=$((WAIT_OSSEC + 15))
+done
+echo "[OK] Wazuh Manager listo en ${MANAGER_IP} (esperado ${WAIT_OSSEC}s)."
+
+# ------------------------------------------------------------
+# 4. CORREGIR AUTOMATICAMENTE EL MANAGER
 # ------------------------------------------------------------
 echo "[INFO] Corrigiendo configuración de enrollment en el manager..."
 
@@ -229,6 +254,12 @@ cat > "$BASE_DIR/install_agent.yml" <<EOF
     remote_hostname: "$REMOTE_HOSTNAME"
 
   tasks:
+    - name: Limpiar repositorio bookworm-backports si existe (Ubuntu jammy)
+      file:
+        path: /etc/apt/sources.list.d/bookworm-backports.list
+        state: absent
+      ignore_errors: true
+
     - name: Detener agente si existe
       shell: |
         systemctl stop wazuh-agent || true
@@ -311,8 +342,7 @@ cat > "$BASE_DIR/install_agent.yml" <<EOF
         daemon_reload: true
 
     - name: Esperar unos segundos para conexión real
-      pause:
-        seconds: 25
+      command: sleep 25
 
     - name: Comprobar que el agente está activo
       command: systemctl is-active wazuh-agent
@@ -339,6 +369,7 @@ EOF
 # ------------------------------------------------------------
 echo "[INFO] Ejecutando Ansible Playbook..."
 export ANSIBLE_HOST_KEY_CHECKING=False
+export ANSIBLE_BECOME_TIMEOUT=60
 
 if ansible-playbook -i "$BASE_DIR/hosts.ini" "$BASE_DIR/install_agent.yml"; then
     echo "[SUCCESS] Agente Wazuh instalado y conectado correctamente."

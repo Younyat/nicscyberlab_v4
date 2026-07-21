@@ -12,6 +12,10 @@ const NH = {
   healthAlerts: document.getElementById("nh-health-alerts"),
   fleetTable: document.getElementById("nh-fleet-table"),
   fleetMeta: document.getElementById("nh-fleet-meta"),
+  floatingIpStatus: document.getElementById("nh-floating-ip-status"),
+  floatingIpJob: document.getElementById("nh-floating-ip-job"),
+  floatingIpHistory: document.getElementById("nh-floating-ip-history"),
+  btnCleanupFloatingIps: document.getElementById("nh-cleanup-floating-ips"),
   securityMeta: document.getElementById("nh-security-meta"),
   securitySummary: document.getElementById("nh-security-summary"),
   securityDetail: document.getElementById("nh-security-detail"),
@@ -43,6 +47,7 @@ const STATE = {
   timeSyncStatus: null,
   timeSyncPollTimer: null,
   healthSummary: null,
+  floatingIpPollTimer: null,
 };
 
 function now() {
@@ -462,11 +467,116 @@ function renderFleetTable(summary) {
   `;
 }
 
+function fmtDurationSeconds(seconds) {
+  if (seconds == null || Number.isNaN(Number(seconds))) return "not_available";
+  const s = Number(seconds);
+  if (s < 60) return `${s.toFixed(1)}s`;
+  const m = Math.floor(s / 60);
+  const rem = Math.round(s % 60);
+  return `${m}m ${rem}s`;
+}
+
+function renderFloatingIps(summary) {
+  if (!NH.floatingIpStatus) return;
+  const fip = summary?.floating_ips || {};
+  if (fip.error) {
+    NH.floatingIpStatus.innerHTML = `<div class="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">Floating IP status unavailable: ${esc(fip.error)}</div>`;
+  } else {
+    const pct = fip.available_pct;
+    NH.floatingIpStatus.innerHTML = `
+      <div class="flex flex-wrap items-center gap-3">
+        ${severityBadge(fip.severity)}
+        <div class="text-sm text-white font-bold">${esc(fip.available ?? "not_available")} of ${esc(fip.quota_limit ?? "not_available")} available${pct != null ? ` (${esc(pct)}%)` : ""}</div>
+        ${fip.below_threshold ? `<span class="text-xs text-amber-300 font-black uppercase tracking-[0.15em]">below ${esc(fip.threshold_pct)}% minimum</span>` : ""}
+      </div>
+      <div class="mt-2 text-xs text-slate-400">allocated=${esc(fip.allocated_total ?? "not_available")} · attached=${esc(fip.attached_count ?? "not_available")} · unattached=${esc(fip.unattached_count ?? "not_available")}</div>
+      ${fip.quota_error ? `<div class="mt-2 text-xs text-amber-300">Quota could not be read: ${esc(fip.quota_error)}</div>` : ""}
+    `;
+  }
+  refreshFloatingIpJobStatus();
+}
+
+function renderFloatingIpJob(payload) {
+  const current = payload?.current || {};
+  const history = payload?.history || [];
+  if (!current.status || current.status === "not_available") {
+    NH.floatingIpJob.innerHTML = "";
+  } else if (current.status === "running") {
+    NH.floatingIpJob.innerHTML = `
+      <div class="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+        Cleanup in progress (triggered by ${esc(current.triggered_by || "unknown")})… released so far: ${esc(current.released_count ?? 0)}
+      </div>
+    `;
+  } else {
+    const tone = current.status === "completed" ? "text-emerald-200 border-emerald-500/30 bg-emerald-500/10" : "text-red-200 border-red-500/30 bg-red-500/10";
+    NH.floatingIpJob.innerHTML = `
+      <div class="rounded-lg border px-3 py-2 text-xs ${tone}">
+        Last cleanup (${esc(current.triggered_by || "unknown")}): ${esc(current.status)} — released ${esc(current.released_count ?? 0)} unattached floating IP(s)
+        in ${fmtDurationSeconds(current.duration_seconds)} (finished ${esc(current.finished_at || "not_available")}).
+        ${current.before && current.after ? `Available before → after: ${esc(current.before.available_pct)}% → ${esc(current.after.available_pct)}%.` : ""}
+        ${current.error ? ` Error: ${esc(current.error)}` : ""}
+      </div>
+    `;
+  }
+  if (history.length) {
+    NH.floatingIpHistory.innerHTML = `
+      <div class="text-xs uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Cleanup History</div>
+      <div class="space-y-1">
+        ${history.map(h => `
+          <div>${esc(h.finished_at || h.started_at || "not_available")} · ${esc(h.triggered_by || "unknown")} · ${esc(h.status)} · released ${esc(h.released_count ?? 0)} · took ${fmtDurationSeconds(h.duration_seconds)}</div>
+        `).join("")}
+      </div>
+    `;
+  } else {
+    NH.floatingIpHistory.innerHTML = "";
+  }
+}
+
+async function refreshFloatingIpJobStatus() {
+  try {
+    const payload = await fetchJson("/api/node-health/openstack/floating-ips/cleanup/status", "floating IP cleanup status");
+    renderFloatingIpJob(payload);
+    if (payload?.current?.status === "running") {
+      scheduleFloatingIpPolling();
+    }
+    return payload;
+  } catch (error) {
+    consoleWrite(`Floating IP cleanup status check failed: ${error.message}`);
+  }
+}
+
+function scheduleFloatingIpPolling() {
+  if (STATE.floatingIpPollTimer) return;
+  STATE.floatingIpPollTimer = window.setTimeout(async () => {
+    STATE.floatingIpPollTimer = null;
+    const payload = await refreshFloatingIpJobStatus();
+    if (payload?.current?.status === "running") {
+      scheduleFloatingIpPolling();
+    } else {
+      loadHealthSummary(false).catch(() => {});
+    }
+  }, 3000);
+}
+
+async function startFloatingIpCleanup() {
+  const confirmed = window.confirm("Release all unattached (orphan) floating IPs until at least 65% of the quota is available? Floating IPs currently attached to running instances are never touched.");
+  if (!confirmed) return;
+  consoleWrite("Starting manual floating IP cleanup...");
+  try {
+    const payload = await requestJson("/api/node-health/openstack/floating-ips/cleanup", { method: "POST" }, "floating IP cleanup");
+    renderFloatingIpJob({ current: payload, history: [] });
+    scheduleFloatingIpPolling();
+  } catch (error) {
+    consoleWrite(`Floating IP cleanup failed to start: ${error.message}`);
+  }
+}
+
 function renderHealthSummary(summary) {
   STATE.healthSummary = summary;
   renderOpenstackHealth(summary);
   renderHealthAlerts(summary);
   renderFleetTable(summary);
+  renderFloatingIps(summary);
   const tone = healthStateTone(summary?.overall_state);
   if (tone !== "idle") {
     setStatus(`Health ${summary?.overall_state || "unknown"}`, tone);
@@ -1275,6 +1385,7 @@ NH.btnFixTimeSync.addEventListener("click", () => runTimeSync(true).catch(error 
 }));
 NH.btnCleanupSelected.addEventListener("click", startCleanup);
 NH.btnRestartOpenstack.addEventListener("click", startOpenstackRestart);
+NH.btnCleanupFloatingIps.addEventListener("click", startFloatingIpCleanup);
 NH.btnOpenHealthAlertCenter.addEventListener("click", openHealthAlertCenter);
 NH.btnClearConsole.addEventListener("click", () => { NH.console.textContent = ""; });
 

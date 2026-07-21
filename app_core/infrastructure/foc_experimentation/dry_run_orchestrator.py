@@ -24,8 +24,7 @@ from ..foc_causal_reconstruction.service import causal_status_payload, run_causa
 from ..foc_reconstruction.foc_case_analysis import _list_case_entries
 from ..foc_reconstruction.evidence_lifecycle_dashboard import get_lifecycle_job, start_full_lifecycle_job
 from ..foc_reconstruction.foc_bootstrap import bootstrap_existing_context
-from ..foc_reconstruction.foc_config import GENERATED_FILES
-from ..foc_reconstruction.foc_manifest_manager import read_generated_json, regenerate_foc
+from ..foc_reconstruction.foc_manifest_manager import regenerate_foc
 from ..foc_reconstruction.foc_paths import project_path
 from ..foc_reconstruction.foc_sources import utc_now
 
@@ -194,7 +193,7 @@ def _wait_for_lifecycle(job_id: str, *, timeout_seconds: float = DEFAULT_LIFECYC
     deadline = time.time() + timeout_seconds
     last = {"status": "unknown"}
     while time.time() < deadline:
-        if parent_job_id and parent_job_path and job_cancel_requested(parent_job_id):
+        if parent_job_id and parent_job_path and job_cancel_requested(parent_job_id, parent_job_path):
             raise_if_cancelled(parent_job_id, parent_job_path, phase_key="run_full_evidence_lifecycle", phase_label="Run Full Evidence Lifecycle", detail="Dry-run execution cancellation was requested while waiting for the full evidence lifecycle.")
         payload = get_lifecycle_job(job_id)
         if isinstance(payload, dict):
@@ -368,14 +367,21 @@ def _run_dry_run_execution(job_id: str, job_path: Path, campaign_id: str, manife
     _phase(job_id, job_path, "bootstrap_foc", "Bootstrap FOC", "completed", 28.0, f"FOC bootstrap finished with status {bootstrap_reason}.")
 
     raise_if_cancelled(job_id, job_path, phase_key="regenerate_reconstruction", phase_label="Regenerate Reconstruction", detail="Dry-run execution was cancelled before reconstruction regeneration.")
-    _phase(job_id, job_path, "regenerate_reconstruction", "Regenerate Reconstruction", "running", 34.0, "Calling the same reconstruction regeneration used by the FOC Reconstruction view.")
-    try:
-        current_manifest = read_generated_json(GENERATED_FILES["manifest"]) or bootstrap_manifest or {}
-        regenerate_foc(bootstrap_mode=bool(current_manifest.get("bootstrap_mode")))
-    except Exception as exc:
-        _fail(job_id, job_path, "regenerate_reconstruction", "Regenerate Reconstruction", 34.0, f"FOC regeneration failed: {exc}")
-        return
-    _phase(job_id, job_path, "regenerate_reconstruction", "Regenerate Reconstruction", "completed", 46.0, "FOC reconstruction artifacts were regenerated successfully.")
+    _phase(job_id, job_path, "regenerate_reconstruction", "Regenerate Reconstruction", "running", 34.0, "Reusing the FOC reconstruction just regenerated during Bootstrap FOC.")
+    # regenerate_foc() is a full evidence-store-wide rebuild (every case,
+    # every campaign, not scoped to this one) -- see foc_reconstruction's own
+    # README. This phase used to call it a SECOND time, immediately after
+    # Bootstrap FOC just called it once, with nothing evidence-relevant
+    # happening in between to invalidate that result: bootstrap_manifest IS
+    # the freshly-regenerated manifest already (regenerate_foc() returns the
+    # exact dict it just wrote to GENERATED_FILES["manifest"]). Confirmed
+    # live 2026-07-19: a single dry-run execution was paying for this full
+    # global rebuild TWICE, and a Level A repetition runs 2 dry-runs, each
+    # inside a Level B repetition that can itself repeat -- the redundant
+    # work compounded fast as the evidence store grew. Root-caused and
+    # removed after the user explicitly asked why this "same multi-analysis
+    # thing" kept taking so long.
+    _phase(job_id, job_path, "regenerate_reconstruction", "Regenerate Reconstruction", "completed", 46.0, "FOC reconstruction artifacts reused from Bootstrap FOC — not regenerated a second time.")
 
     raise_if_cancelled(job_id, job_path, phase_key="run_causal_reconstruction", phase_label="Run Causal Reconstruction", detail="Dry-run execution was cancelled before causal reconstruction.")
     _phase(job_id, job_path, "run_causal_reconstruction", "Run Causal Reconstruction", "running", 54.0, f"Launching causal reconstruction for preserved case {case_id}.")

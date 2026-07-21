@@ -107,6 +107,7 @@ echo "===================================================="
 echo " CONFIGURANDO DETECCION ICMP EN SURICATA"
 echo "===================================================="
 export ANSIBLE_HOST_KEY_CHECKING=False
+export ANSIBLE_BECOME_TIMEOUT=60
 
 if ansible-playbook -i "$BASE_DIR/hosts.ini" "$BASE_DIR/suricata-ping-detection.yml"; then
     echo "----------------------------------------------------"

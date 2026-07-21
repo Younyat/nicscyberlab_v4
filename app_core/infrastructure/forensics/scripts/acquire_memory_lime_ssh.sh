@@ -82,8 +82,48 @@ if [[ "$MODE" == "build" ]]; then
   echo "[SISTEMA] apt-get update..."
   sudo apt-get update -y || { echo "[ERROR] apt-get update falló (DNS/Repos)."; exit 52; }
 
-  echo "[SISTEMA] apt-get install headers/build-essential/git..."
-  sudo apt-get install -y linux-headers-\$(uname -r) build-essential git || { echo "[ERROR] apt-get install falló."; exit 53; }
+  echo "[SISTEMA] apt-get install build-essential git..."
+  sudo apt-get install -y build-essential git || { echo "[ERROR] build-essential/git falló."; exit 53; }
+
+  echo "[SISTEMA] Instalando linux-headers-\$(uname -r)..."
+  HEADERS_PKG="linux-headers-\$(uname -r)"
+  HEADERS_OK=0
+  if sudo apt-get install -y "\$HEADERS_PKG" 2>&1; then
+    HEADERS_OK=1
+  else
+    echo "[SISTEMA] Headers no en repos actuales. Buscando en snapshot.debian.org..."
+    DISTRO="\$(. /etc/os-release 2>/dev/null && echo \$ID || echo unknown)"
+    if [[ "\$DISTRO" == "debian" ]]; then
+      BIN_VER=\$(curl -sf --max-time 30 "https://snapshot.debian.org/mr/binary/\${HEADERS_PKG}/" 2>/dev/null \
+        | python3 -c "import json,sys; d=json.load(sys.stdin); r=d.get('result',[]); print(r[0]['binary_version'] if r else '')" 2>/dev/null || echo "")
+      if [[ -n "\$BIN_VER" ]]; then
+        BIN_HASH=\$(curl -sf --max-time 30 "https://snapshot.debian.org/mr/binary/\${HEADERS_PKG}/\${BIN_VER}/binfiles" 2>/dev/null \
+          | python3 -c "import json,sys; d=json.load(sys.stdin); r=d.get('result',[]); print(r[0]['hash'] if r else '')" 2>/dev/null || echo "")
+        if [[ -n "\$BIN_HASH" ]]; then
+          FILE_JSON=\$(curl -sf --max-time 30 "https://snapshot.debian.org/mr/file/\${BIN_HASH}/info" 2>/dev/null || echo "")
+          SNAP_SEC=\$(echo "\$FILE_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); r=sorted([x for x in d.get('result',[]) if x.get('archive_name')=='debian-security'], key=lambda x:x['first_seen']); print(r[0]['first_seen'] if r else '')" 2>/dev/null || echo "")
+          SNAP_MAIN=\$(echo "\$FILE_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); r=sorted([x for x in d.get('result',[]) if x.get('archive_name')=='debian'], key=lambda x:x['first_seen']); print(r[0]['first_seen'] if r else '')" 2>/dev/null || echo "")
+          sudo rm -f /etc/apt/sources.list.d/lime-snapshot.list
+          if [[ -n "\$SNAP_SEC" ]]; then
+            printf "deb [check-valid-until=no] https://snapshot.debian.org/archive/debian-security/\${SNAP_SEC}/ bookworm-security main\n" | sudo tee -a /etc/apt/sources.list.d/lime-snapshot.list > /dev/null
+          fi
+          if [[ -n "\$SNAP_MAIN" ]]; then
+            printf "deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/\${SNAP_MAIN}/ bookworm main\n" | sudo tee -a /etc/apt/sources.list.d/lime-snapshot.list > /dev/null
+          fi
+          echo "[SISTEMA] Snapshot sources: sec=\${SNAP_SEC:-none} main=\${SNAP_MAIN:-none}"
+          sudo apt-get update -o Acquire::Check-Valid-Until=false -y -q 2>&1 || true
+          if sudo apt-get install -y -o Acquire::Check-Valid-Until=false "\$HEADERS_PKG" 2>&1; then
+            HEADERS_OK=1
+          fi
+          sudo rm -f /etc/apt/sources.list.d/lime-snapshot.list
+        fi
+      fi
+    fi
+  fi
+  if [[ "\$HEADERS_OK" -ne 1 ]]; then
+    echo "[ERROR] No se pudo instalar \${HEADERS_PKG} (repos actuales + snapshot.debian.org)."
+    exit 53
+  fi
 
   rm -rf /tmp/LiME
   echo "[SISTEMA] git clone LiME..."

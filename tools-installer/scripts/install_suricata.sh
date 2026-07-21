@@ -42,9 +42,24 @@ cat > "$BASE_DIR/playbooks/suricata-aio.yml" <<'EOF'
   hosts: suricata
   become: true
   tasks:
-    - name: 0. Actualizar libhtp2 desde backports (resuelve conflicto con stable)
+    - name: 0a. Añadir repositorio bookworm-backports (solo Debian — libhtp2 >= 0.5.50)
+      copy:
+        dest: /etc/apt/sources.list.d/bookworm-backports.list
+        content: "deb http://deb.debian.org/debian bookworm-backports main\n"
+        mode: '0644'
+      when: ansible_distribution == "Debian"
+      ignore_errors: true
+
+    - name: 0b. Actualizar caché apt tras añadir backports (solo Debian)
+      apt:
+        update_cache: true
+      when: ansible_distribution == "Debian"
+      ignore_errors: true
+
+    - name: 0c. Instalar libhtp2 desde backports (solo Debian — suricata 7.x)
       command: apt-get install -y -t bookworm-backports libhtp2
       become: true
+      when: ansible_distribution == "Debian"
       ignore_errors: true
 
     - name: 1. Instalar Suricata y utilidades
@@ -124,6 +139,7 @@ EOF
 
 echo "[3/3] EJECUTANDO DESPLIEGUE ANSIBLE"
 export ANSIBLE_HOST_KEY_CHECKING=False
+export ANSIBLE_BECOME_TIMEOUT=60
 
 if ansible-playbook -i "$BASE_DIR/inventory/hosts.ini" "$BASE_DIR/playbooks/suricata-aio.yml"; then
     echo "----------------------------------------------------"

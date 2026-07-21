@@ -1,5 +1,7 @@
 import json
 import logging
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .foc_bootstrap import bootstrap_existing_context, read_id_mapping
@@ -52,8 +54,79 @@ def _hash_generated_file(path: Path) -> str:
     return hash_file(path) if path.is_file() else ""
 
 
-def regenerate_foc(bootstrap_mode: bool = False) -> dict:
+# How long a just-regenerated manifest is trusted as "still fresh enough" to
+# skip a full re-run. See regenerate_foc()'s own docstring for the incident
+# that motivated this.
+#
+# 2026-07-19: raised from 300s to 1800s after confirming a second, earlier
+# redundancy: a Level A dry-run's own "Bootstrap FOC" call is ALSO
+# structurally redundant with the regenerate_foc() call the case's own
+# analysis already made in its LAST phase (foc_case_analysis._phase_foc_refresh,
+# "foc_readiness_update") -- Level B's "store" phase (which launches the
+# nested dry-run) never starts until that analysis and its reconstruction
+# phase have already completed, so the exact attack-attestation data the
+# dry-run's causal reconstruction needs (foc_causal_reconstruction/service.py
+# _build_case_context(): looks up THIS case's own attack inside the global
+# attack_attestation.json) is already there by construction. The real gap
+# between "analysis finishes" and "dry-run's bootstrap runs" measured in
+# practice as seconds to low minutes (reconstruction is near-instant, store
+# launches right after) -- 1800s (30min) comfortably covers that with a lot
+# of margin, while remaining short enough that a genuinely separate, later
+# caller (a dashboard click hours later, a fresh Level B repetition on a
+# different case) still gets a real, guaranteed-fresh rebuild rather than
+# silently reusing unrelated data. Deliberately NOT removing the dry-run's
+# own call outright (a colder, riskier change with no real safety net if the
+# above ordering assumption is ever violated) -- this keeps a genuine
+# fallback rebuild available while capturing effectively the same time
+# savings in the common case.
+_REGENERATE_SKIP_TTL_SECONDS = 1800
+
+
+def _seconds_since(iso_ts) -> float | None:
+    if not iso_ts:
+        return None
+    try:
+        text = str(iso_ts).strip()
+        if text.endswith("Z"):
+            text = text[:-1] + "+00:00"
+        dt = datetime.fromisoformat(text)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return time.time() - dt.timestamp()
+    except Exception:
+        return None
+
+
+def regenerate_foc(bootstrap_mode: bool = False, force: bool = False) -> dict:
+    """Rebuild every generated FOC artifact (BOMs, timeline, sources,
+    indexes, attestations — ~20 files, ~2GB on a populated evidence store)
+    from scratch across the WHOLE evidence store, not scoped to any one
+    case or campaign. Also backs the FOC Reconstruction and Evidence
+    Lifecycle dashboards (see foc_endpoints.py, evidence_lifecycle_dashboard.py),
+    which is why it stays store-wide rather than case-scoped.
+
+    `force=False` (default): if the on-disk manifest was already
+    regenerated within the last `_REGENERATE_SKIP_TTL_SECONDS`, this is a
+    no-op returning that existing manifest instead of repeating the full
+    rebuild. Investigated live 2026-07-19 (see foc_experimentation/README.md):
+    a single Level A dry-run execution triggered THREE full regenerate_foc()
+    calls back-to-back — dry_run_orchestrator's own "Bootstrap FOC" phase,
+    then the case's own 14-phase analysis's LAST phase
+    (foc_case_analysis._phase_foc_refresh, "foc_readiness_update"), then
+    evidence_lifecycle_dashboard's own "Regenerate FOC context" phase
+    immediately after that — with nothing evidence-relevant changing
+    between the back-to-back pairs. Pass `force=True` for a caller that
+    must guarantee a truly fresh rebuild regardless of timing (e.g. the
+    dashboard's own user-triggered "Regenerate" button — see foc_endpoints.py).
+    """
     ensure_output_layout()
+    if not force:
+        existing = _safe_read_json(GENERATED_FILES["manifest"])
+        if isinstance(existing, dict):
+            age = _seconds_since(existing.get("updated_at"))
+            if age is not None and age < _REGENERATE_SKIP_TTL_SECONDS:
+                logger.info("regenerate_foc: skipped, manifest is %.1fs old (< %ss TTL)", age, _REGENERATE_SKIP_TTL_SECONDS)
+                return existing
     warnings: list[dict] = []
     id_mapping = read_id_mapping()
     if id_mapping is None:

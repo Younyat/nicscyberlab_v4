@@ -80,8 +80,7 @@ cat > "$BASE_DIR/wazuh-fim-realtime.yml" <<'EOF'
         state: restarted
 
     - name: Esperar a que el agente arranque
-      pause:
-        seconds: 3
+      command: sleep 3
 
     - name: Verificar que wazuh-agent sigue activo
       command: systemctl is-active wazuh-agent
@@ -112,6 +111,7 @@ echo "===================================================="
 echo " ACTIVANDO FIM REALTIME EN WAZUH"
 echo "===================================================="
 export ANSIBLE_HOST_KEY_CHECKING=False
+export ANSIBLE_BECOME_TIMEOUT=60
 
 if ansible-playbook -i "$BASE_DIR/hosts.ini" "$BASE_DIR/wazuh-fim-realtime.yml"; then
     echo "----------------------------------------------------"

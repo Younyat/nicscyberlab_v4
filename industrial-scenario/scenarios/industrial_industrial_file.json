@@ -1,0 +1,152 @@
+{
+  "scenario_name": "industrial_file",
+  "nodes": [
+    {
+      "id": "node1",
+      "name": "monitor 11",
+      "type": "monitor",
+      "position": {
+        "x": 719,
+        "y": 124
+      },
+      "properties": {
+        "os": "ubuntu-22.04",
+        "ip": "192.168.1.101",
+        "network": "net_private_01",
+        "subnet": "subnet_net_private_01",
+        "flavor": "M_4CPU_8GB",
+        "image": "ubuntu-22.04",
+        "security_group": "sg_basic",
+        "keypair": "my_key"
+      }
+    },
+    {
+      "id": "node2",
+      "name": "attack 22",
+      "type": "attack",
+      "position": {
+        "x": 1025,
+        "y": 306
+      },
+      "properties": {
+        "os": "debian-12",
+        "ip": "192.168.1.102",
+        "network": "net_private_01",
+        "subnet": "subnet_net_private_01",
+        "flavor": "T_1CPU_2GB",
+        "image": "debian-12",
+        "security_group": "sg_basic",
+        "keypair": "my_key"
+      }
+    },
+    {
+      "id": "node3",
+      "name": "victim 33",
+      "type": "victim",
+      "position": {
+        "x": 960,
+        "y": 146
+      },
+      "properties": {
+        "os": "debian-12",
+        "ip": "192.168.1.103",
+        "network": "net_private_01",
+        "subnet": "subnet_net_private_01",
+        "flavor": "S_2CPU_4GB",
+        "image": "debian-12",
+        "security_group": "sg_basic",
+        "keypair": "my_key"
+      }
+    },
+    {
+      "id": "plc1",
+      "name": "PLC_Instance",
+      "type": "industrial_plc",
+      "position": {
+        "x": 1200,
+        "y": 280
+      },
+      "ip_floating": "10.0.2.126",
+      "ip_private": "192.168.100.165"
+    },
+    {
+      "id": "scada1",
+      "name": "FUXA_Instance",
+      "type": "industrial_scada",
+      "position": {
+        "x": 1200,
+        "y": 160
+      },
+      "ip_floating": "10.0.2.93",
+      "ip_private": "192.168.100.102"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_node1_node3",
+      "source": "node1",
+      "target": "node3"
+    },
+    {
+      "id": "edge_node3_node1",
+      "source": "node3",
+      "target": "node1"
+    },
+    {
+      "id": "edge_node2_node3",
+      "source": "node2",
+      "target": "node3"
+    },
+    {
+      "id": "edge_node1_plc1",
+      "source": "node1",
+      "target": "plc1"
+    },
+    {
+      "id": "edge_node2_plc1",
+      "source": "node2",
+      "target": "plc1"
+    },
+    {
+      "id": "edge_node3_plc1",
+      "source": "node3",
+      "target": "plc1"
+    },
+    {
+      "id": "edge_node1_scada1",
+      "source": "node1",
+      "target": "scada1"
+    },
+    {
+      "id": "edge_node2_scada1",
+      "source": "node2",
+      "target": "scada1"
+    },
+    {
+      "id": "edge_node3_scada1",
+      "source": "node3",
+      "target": "scada1"
+    },
+    {
+      "id": "edge_plc1_scada1",
+      "source": "plc1",
+      "target": "scada1"
+    }
+  ],
+  "deployment": {
+    "plc_instance": {
+      "state": "created",
+      "instance_id": "1ed20558-9c61-4e7e-9674-0c341ce1a4e2",
+      "name": "PLC_Instance",
+      "ip_floating": "10.0.2.126",
+      "ip_private": "192.168.100.165"
+    },
+    "scada_instance": {
+      "state": "created",
+      "instance_id": "3cd1aa26-0bec-4b89-b7d6-c2d73c3532be",
+      "name": "FUXA_Instance",
+      "ip_floating": "10.0.2.93",
+      "ip_private": "192.168.100.102"
+    }
+  }
+}

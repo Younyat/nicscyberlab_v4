@@ -9,6 +9,7 @@ from .service import (
     SNAPSHOTS_DIR,
     get_comparison_report,
     get_job_status,
+    get_live_campaign_summary,
     launch_level_c,
     list_jobs,
 )
@@ -52,6 +53,11 @@ def api_status(job_id: str):
 @level_c_bp.route("/api/level-c/jobs", methods=["GET"])
 def api_list_jobs():
     return jsonify({"jobs": list_jobs()}), 200
+
+
+@level_c_bp.route("/api/level-c/live-summary", methods=["GET"])
+def api_live_summary():
+    return jsonify(get_live_campaign_summary()), 200
 
 
 @level_c_bp.route("/api/level-c/preflight", methods=["GET"])

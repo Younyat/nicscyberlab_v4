@@ -288,3 +288,35 @@ CPR/WCPR framework to validate full reproducibility.
 > They are the sole reconstruction blueprint.
 > Only explicit user action via the "Delete Snapshot" button (with confirmation dialogs)
 > can remove a snapshot. Sealed snapshots require double confirmation + `force=true` flag.
+
+---
+
+## Known Issues Fixed
+
+### 2026-07-17 — Forensic Cases tab showed "Analysis: NO" / empty Alert / empty Severity for cases that genuinely had both
+
+`_collect_forensics()` in `service.py` was reading four per-case files from the wrong path — all present
+under `CASE-*/` but not where the code looked, so every real case silently produced empty/default values
+without ever raising an error (`_load_json(...) or {}` swallows the missing file):
+
+| Field shown as empty | Code was reading | Real file |
+|---|---|---|
+| `Analysis: NO` | `CASE-*/forensic_analysis_report.json` | `CASE-*/analysis/forensic_analysis_report.json` |
+| `Alert: —`, `Severity: —` | `CASE-*/trigger_alert.json` | `CASE-*/metadata/trigger_alert_binding.json` |
+| (acquisition detail) | `CASE-*/acquisition_metadata.json` | `CASE-*/metadata/acquisition_profile.json` |
+| `Execution: —` | `manifest.json["execution_id"]` (field doesn't exist there) | also falls back to `trigger_alert_binding.json["execution_id"]` now |
+
+Also widened the field-name fallbacks to match `trigger_alert_binding.json`'s real schema
+(`attack_profile_id`, `trigger_alert_id`, `original_sensor`/`collector`) instead of only the
+guessed names (`attack_id`, `alert_id`/`event_id`, `source`) that file never actually has.
+
+Verified live against `CASE-20260717-000242` / `CASE-20260717-025938` — both now correctly show
+`analysis_present: True`, `severity: HIGH`, the real alert signature, and the real `execution_id`.
+
+**Still unresolved, not guessed at**: `Campaign: —` and `Status: NOT_RECORDED` — `manifest.json`
+for these cases genuinely has no `campaign_id`/`status` keys (`_load_json` returns only
+`case_dir`/`created_at`/`artifacts`). No other file was found with confident campaign linkage for
+this case-creation path; left as-is rather than wiring a guessed path that might be wrong for a
+different case-creation flow. If you need this fixed, find where `campaign_id` for a
+Level-B-generated case is actually recorded first (candidates: `case_digest.json` if regenerated,
+or resolving via `trigger_alert_binding.json["execution_id"]` → execution → campaign lookup).

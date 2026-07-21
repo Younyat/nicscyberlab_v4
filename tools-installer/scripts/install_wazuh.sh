@@ -68,7 +68,7 @@ ansible-playbook -i inventories/production/hosts playbooks/wazuh-single.yml
 
 echo "[5/5] POST-CONFIGURACIÓN DE SEGURIDAD (INDEXER)"
 
-ssh -i "$SSH_KEY" "$SSH_USER@$TARGET_IP" << EOF
+ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$SSH_USER@$TARGET_IP" << EOF
     set -e
     echo ">>> Generando Hash de seguridad..."
     HASH=\$(sudo /usr/share/wazuh-indexer/jdk/bin/java -cp "/usr/share/wazuh-indexer/plugins/opensearch-security/*:/usr/share/wazuh-indexer/lib/*" org.opensearch.security.tools.Hasher -p "$ADMIN_PASS" | tail -n 1)
@@ -94,6 +94,12 @@ ssh -i "$SSH_KEY" "$SSH_USER@$TARGET_IP" << EOF
 EOF
 
 rm -rf "$BASE_DIR"
+
+echo "[5b/5] INSTALANDO UTILIDADES DE MONITORIZACIÓN (jq, stdbuf)"
+# jq es necesario para que monitor_ataques.sh pueda parsear alerts.json remotamente.
+# stdbuf (coreutils) ya viene en Ubuntu, pero lo aseguramos.
+ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SSH_USER@$TARGET_IP" \
+    "sudo apt-get install -y jq coreutils 2>&1 | tail -3"
 
 echo "===================================================="
 echo "  WAZUH DESPLEGADO Y REPARADO EN: $TARGET_IP"

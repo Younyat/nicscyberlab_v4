@@ -49,8 +49,15 @@ function row(label, value, sub) {
 }
 
 // ── fetch ────────────────────────────────────────────────────────────────────
-async function load() {
-  const res = await fetch(API, { cache: "no-store" });
+// 2026-07-20: added campaignId param + selector (see renderHeader below). Previously this
+// endpoint had no notion of "which campaign" at all -- it aggregated every case this
+// install has ever preserved under one hardcoded, unrelated campaign label, which read as
+// "the last repetition's comparison" when it was actually a lifetime-of-the-lab mashup.
+// Default (no campaignId) now asks the backend for its own best default (the most recently
+// active campaign); "all" explicitly asks for the full historical mashup.
+async function load(campaignId) {
+  const url = campaignId ? `${API}?campaign_id=${encodeURIComponent(campaignId)}` : API;
+  const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   DATA = await res.json();
   render();
@@ -69,6 +76,18 @@ function renderHeader() {
   $("campaign-badges").innerHTML = badges.map(([l, v]) =>
     `<span class="tag-pill" style="color:var(--info);border-color:#38bdf840;background:#38bdf810;font-size:14px;">${esc(l)}: <strong>${esc(String(v))}</strong></span>`
   ).join("");
+
+  const selectorEl = $("campaign-selector");
+  if (selectorEl) {
+    const options = (DATA.available_campaigns || []).map(item => {
+      const selected = item.campaign_id === DATA.selected_campaign_id ? " selected" : "";
+      return `<option value="${esc(item.campaign_id)}"${selected}>${esc(item.campaign_id)} (${item.n_executions} exec, ${esc(item.scenario_id)})</option>`;
+    }).join("");
+    selectorEl.innerHTML = `${options}<option value="all">All campaigns (full history)</option>`;
+    selectorEl.value = DATA.campaign.id && (DATA.available_campaigns || []).some(c2 => c2.campaign_id === DATA.campaign.id)
+      ? DATA.campaign.id
+      : "all";
+  }
 }
 
 // ── KPI STRIP ────────────────────────────────────────────────────────────────
@@ -786,7 +805,8 @@ function togglePubMode() {
 // ── INIT ──────────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
   $("btn-pub-mode")?.addEventListener("click", togglePubMode);
-  $("btn-refresh")?.addEventListener("click", () => { $("loading-overlay").style.display="flex"; $("app").style.display="none"; load().catch(e => { alert("Error loading data: " + e.message); }); });
+  $("btn-refresh")?.addEventListener("click", () => { $("loading-overlay").style.display="flex"; $("app").style.display="none"; load($("campaign-selector")?.value).catch(e => { alert("Error loading data: " + e.message); }); });
+  $("campaign-selector")?.addEventListener("change", (e) => { load(e.target.value).catch(err => alert("Error loading data: " + err.message)); });
   $("edge-modal-close")?.addEventListener("click", () => { $("edge-modal").style.display = "none"; });
   $("edge-modal")?.addEventListener("click", e => { if (e.target === $("edge-modal")) $("edge-modal").style.display = "none"; });
   load().catch(err => {

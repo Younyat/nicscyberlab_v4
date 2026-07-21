@@ -1,0 +1,38 @@
+{
+  "case_id": "case-a0c098fc",
+  "execution_id": "EXEC-0002",
+  "generated_execution_ids": [
+    "EXEC-0001",
+    "EXEC-0002"
+  ],
+  "campaign_id": "CMP-20260721-043452-AEC2",
+  "requested_repetitions": 2,
+  "completed_repetitions": 2,
+  "analysis_status": "partial",
+  "causal_status": "completed_with_degradation",
+  "comparison_status": "Comparable With Degradation",
+  "cpr": null,
+  "weighted_cpr": 0.6096,
+  "recovered_edges": 5,
+  "degraded_edges": 2,
+  "missing_edges": 0,
+  "hypothesis_support": "moderate_support",
+  "trigger": "NICS CyberLab ICS Modbus write multiple registers",
+  "modbus_context": {
+    "source_pcap": "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/network/traffic_preserved/full_scenario_captures/20260721/tap3b33febb-d7/tap3b33febb-d7_20260721_033556Z_120s.pcap",
+    "packet_timestamp": null,
+    "source_ip": null,
+    "destination_ip": null,
+    "source_port": null,
+    "destination_port": 502,
+    "transaction_id": null,
+    "unit_id": null,
+    "function_code": null,
+    "register_address": null,
+    "value": null,
+    "parser_or_method": "tshark io,stat summaries and derived evidence support triage",
+    "confidence_level": "limited",
+    "note": "Packet-level Modbus register/value precision is not preserved by the current network extraction layer.",
+    "modbus_frames": 8499
+  }
+}

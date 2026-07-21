@@ -291,6 +291,21 @@ def _run_banners(dump_path: Path) -> dict:
     return {"ok": proc.returncode == 0, "stdout": stdout, "stderr": stderr, "command": command, "exit_code": proc.returncode}
 
 
+def _write_banner_cache(case_dir: Path, dump_name: str, banner_run: dict) -> None:
+    """Persist a successful banners.Banners run so _cached_banner_run finds it
+    next time. Without this, every status poll (e.g. /api/forensics/symbols/status)
+    re-runs the multi-GB-dump volatility scan from scratch instead of reusing
+    the result, which can loop indefinitely under repeated polling and starve
+    the deeper analysis phases (and everything gated behind them) of progress.
+    """
+    try:
+        out_dir = case_dir / "analysis" / "04_memory" / dump_name.replace(".lime", "")
+        out_dir.mkdir(parents=True, exist_ok=True)
+        (out_dir / "banners.stdout.log").write_text(banner_run.get("stdout") or "", encoding="utf-8")
+    except Exception:
+        pass
+
+
 def _cached_banner_run(case_dir: Path, dump_name: str, vm_ip: str | None) -> dict | None:
     candidates = [
         case_dir / "analysis" / "04_memory" / dump_name.replace(".lime", "") / "banners.stdout.log",
@@ -483,7 +498,11 @@ class SymbolResolverService:
         ssh_key_path = _detect_ssh_key_path(target_node.get("keypair") or builder_node.get("keypair"))
         if not ssh_key_path:
             raise RuntimeError("No SSH key path could be resolved from env/default paths")
-        banner_run = _cached_banner_run(case_dir, dump["dump_name"], dump.get("vm_ip")) or _run_banners(Path(dump["dump_path"]))
+        banner_run = _cached_banner_run(case_dir, dump["dump_name"], dump.get("vm_ip"))
+        if banner_run is None:
+            banner_run = _run_banners(Path(dump["dump_path"]))
+            if banner_run.get("ok"):
+                _write_banner_cache(case_dir, dump["dump_name"], banner_run)
         banner_info = _parse_linux_banner((banner_run.get("stdout") or "") + "\n" + (banner_run.get("stderr") or ""))
         target_os_id = banner_info.get("os_id")
         target_os_codename = banner_info.get("os_codename")
@@ -686,7 +705,12 @@ def _scp_to_command(user: str, ip: str, key_path: str, local_path: str, remote_p
 
 
 def _remote_run(user: str, ip: str, key_path: str, script: str, args: list[str]) -> subprocess.CompletedProcess:
-    command = _ssh_command(user, ip, key_path) + ["bash", "-s", "--", *args]
+    import shlex
+    # SSH joins argv elements with spaces, so empty strings would be lost.
+    # Build a single quoted command string so the remote shell preserves all args.
+    quoted_args = " ".join(shlex.quote(a) for a in args)
+    remote_cmd = f"bash -s -- {quoted_args}"
+    command = _ssh_command(user, ip, key_path) + [remote_cmd]
     return _run_command(command, input_text=script)
 
 
@@ -1033,10 +1057,11 @@ class MemoryAnalysisService:
         status = self.resolver.resolve_status(case_id, memory_artifact_id)
         case_dir = target.case_dir
         memory_dir = case_dir / "memory"
-        out_dir = memory_dir / f"volatility_results_{target.target_ip or target.target_node_id or 'unknown'}"
+        vm_id = target.target_node_id or target.target_ip or "unknown"
+        out_dir = case_dir / "analysis" / "04_memory" / vm_id
         out_dir.mkdir(parents=True, exist_ok=True)
-        preflight_path = memory_dir / "memory_preflight.json"
-        findings_path = memory_dir / "memory_findings.json"
+        preflight_path = case_dir / "analysis" / "04_memory" / "memory_preflight.json"
+        findings_path = case_dir / "analysis" / "04_memory" / "memory_findings.json"
         preflight = {
             "case_id": case_id,
             "memory_artifact_id": target.memory_artifact_id,
@@ -1089,13 +1114,14 @@ class MemoryAnalysisService:
                 "memory_findings_path": str(findings_path),
             }
         symbol_path = status["symbol_candidates"][0]["path"]
+        symbol_dir = str(Path(symbol_path).parent)
         vol = _vol_cmd()
         plugins = []
         completed = []
         failed = []
         for plugin_key, plugin_name in VOL3_PLUGIN_SPECS:
-            out_file = out_dir / f"{plugin_key}.txt"
-            command = [vol, "-s", str(SYMBOL_ROOT), "-f", str(target.dump_path), plugin_name]
+            out_file = out_dir / f"vol3_{plugin_key}.txt"
+            command = [vol, "-s", symbol_dir, "-f", str(target.dump_path), plugin_name]
             try:
                 proc = subprocess.run(command, capture_output=True, text=True, check=False, timeout=600)
                 combined = "\n".join(part for part in [proc.stdout, proc.stderr] if part)

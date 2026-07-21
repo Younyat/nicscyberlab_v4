@@ -1096,17 +1096,13 @@ def save_industrial_scenario():
                 "message": "Falta campo 'scenario'"
             }), 400
 
-        scenario_name = scenario.get("scenario_name", "industrial_scenario")
-
-        safe_name = re.sub(r'[^a-zA-Z0-9_-]', '_', scenario_name.lower())
-
         INDUSTRIAL_DIR = os.path.join(REPO_ROOT, "industrial-scenario", "scenarios")
 
         os.makedirs(INDUSTRIAL_DIR, exist_ok=True)
 
         file_path = os.path.join(
             INDUSTRIAL_DIR,
-            f"industrial_{safe_name}.json"
+            "industrial_industrial_file.json"
         )
 
         with open(file_path, "w") as f:
@@ -1676,7 +1672,7 @@ def _normalize_state_label(value: str | None) -> str:
 
 
 def _human_tool_status(value) -> str:
-    if isinstance(value, str) and re.match(r"^\d{4}-\d{2}-\d{2} ", value):
+    if isinstance(value, str) and re.match(r"^\d{4}-\d{2}-\d{2}[T ]", value):
         return "installed"
     return _normalize_state_label(value)
 
@@ -1918,12 +1914,18 @@ def _collect_detection_summary() -> dict:
             "timestamp": latest.get("timestamp") or latest.get("ts"),
         }
 
+    # Count total alerts across ALL sessions for the dashboard KPI
     alert_count = 0
     try:
-        with open(alerts_path, "r", encoding="utf-8") as fh:
-            for line in fh:
-                if line.strip():
-                    alert_count += 1
+        for sess in sessions:
+            sess_alerts = os.path.join(FORENSICS_ALERTS_BASE, sess, "alerts.jsonl")
+            try:
+                with open(sess_alerts, "r", encoding="utf-8") as fh:
+                    for line in fh:
+                        if line.strip():
+                            alert_count += 1
+            except Exception:
+                pass
     except Exception:
         alert_count = 0
 
@@ -2803,6 +2805,13 @@ try:
     from app_core.infrastructure.level_c_orchestrator.api import level_c_bp
     api_bp.register_blueprint(level_c_bp)
     print("[OK] Level C Orchestrator Blueprint cargado correctamente")
+except Exception:
+    pass
+
+try:
+    from app_core.infrastructure.campaign_repetitions.api import campaign_repetitions_bp
+    api_bp.register_blueprint(campaign_repetitions_bp)
+    print("[OK] Campaign Repetitions Blueprint cargado correctamente")
 except Exception:
     pass
 

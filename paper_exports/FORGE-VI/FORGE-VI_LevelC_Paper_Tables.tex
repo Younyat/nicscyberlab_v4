@@ -1,56 +1,56 @@
 \begin{table}[ht]
 \centering
-\caption{FORGE-VI Level C Workflow Verification Summary ($N_C = 10$ accepted redeployment-aware executions)}
+\caption{FORGE-VI Level C Workflow Verification Summary ($N_C = 1$ accepted redeployment-aware executions)}
 \label{tab:forge-vi-workflow}
 \begin{tabular}{llr}
 \hline
 \textbf{Phase} & \textbf{Verified Condition} & \textbf{Result} \\
 \hline
 \multirow{3}{*}{\textbf{Deploy/Redeploy}} & Teardown completed & \textit{N/A} (Level~B, standing scenario) \\
- & Same topology instantiated & 10/10$^{\dagger}$ \\
- & Effective inventory recorded & 10/10$^{\dagger}$ \\
+ & Same topology instantiated & 1/1$^{\dagger}$ \\
+ & Effective inventory recorded & 1/1$^{\dagger}$ \\
 \hline
-\multirow{5}{*}{\textbf{Validate}} & Validation gate passed$^{\dagger}$ & 10/10 \\
- & Segmentation verified$^{\dagger}$ & 10/10 \\
- & Sensor liveness verified$^{\dagger}$ & 10/10 \\
- & PLC/SCADA reachable$^{\dagger}$ & 10/10 \\
- & Time reference coherent & 10/10 \\
+\multirow{5}{*}{\textbf{Validate}} & Validation gate passed$^{\dagger}$ & 1/1 \\
+ & Segmentation verified$^{\dagger}$ & 1/1 \\
+ & Sensor liveness verified$^{\dagger}$ & 1/1 \\
+ & PLC/SCADA reachable$^{\dagger}$ & 1/1 \\
+ & Time reference coherent & 1/1 \\
 \hline
-\multirow{3}{*}{\textbf{Execute}} & Attack profile executed & 10/10 \\
- & Ground truth available & 10/10 \\
- & Attack duration & 20~s \pm 3~s \\
+\multirow{3}{*}{\textbf{Execute}} & Attack profile executed & 1/1 \\
+ & Ground truth available & 1/1 \\
+ & Attack duration & 17~s \\
 \hline
-\multirow{3}{*}{\textbf{Detect}} & Alert observed & 10/10 \\
- & Trigger alert bound & 10/10 \\
- & Attack-to-alert latency & 29~s \pm 59~s \\
+\multirow{3}{*}{\textbf{Detect}} & Alert observed & 1/1 \\
+ & Trigger alert bound & 1/1 \\
+ & Attack-to-alert latency & 11~s \\
 \hline
-\multirow{5}{*}{\textbf{Acquire}} & Memory acquired first & 10/10 \\
- & Acquisition order valid (mem$\to$net$\to$disk) & 10/10 \\
- & Alert-to-memory-start (neg.=preemptive) & 3~s \pm 53~s \\
- & Alert-to-memory-sealed & 324~s \pm 41~s \\
- & Alert-to-case-sealed (all artifacts) & 1615~s \pm 378~s \\
+\multirow{5}{*}{\textbf{Acquire}} & Memory acquired first & 1/1 \\
+ & Acquisition order valid (mem$\to$net$\to$disk) & 1/1 \\
+ & Alert-to-memory-start (neg.=preemptive) & 48~s \\
+ & Alert-to-memory-sealed & 704~s \\
+ & Alert-to-case-sealed (all artifacts) & 1272~s \\
 \hline
-\multirow{5}{*}{\textbf{Preserve}} & Required artifacts preserved & 10/10 \\
- & Manifest verified & 10/10 \\
- & Custody chain present & 10/10 \\
- & Memory (LiME) & 4.00~GiB \pm 0.00~GiB \\
- & Disk (RAW) & 25.00~GiB \pm 10.80~GiB \\
- & Network (PCAP) & 2.54~GiB \pm 0.66~GiB \\
+\multirow{5}{*}{\textbf{Preserve}} & Required artifacts preserved & 1/1 \\
+ & Manifest verified & 1/1 \\
+ & Custody chain present & 1/1 \\
+ & Memory (LiME) & 8.00~GiB \\
+ & Disk (RAW) & 70.00~GiB \\
+ & Network (PCAP) & 0.13~GiB \\
 \hline
-\multirow{5}{*}{\textbf{Analyze}} & Layers completed / expected & 11--12/14 \\
+\multirow{5}{*}{\textbf{Analyze}} & Layers completed / expected & 11/14 \\
  & Layers partial (output present, caveated) & 1 (total layer-run instances) \\
  & Useful layers (completed + partial) & 12/14 \\
- & Memory analysis status & completed (9/10), partial (1/10) \\
- & Timeline generated & 10/10 \\
- & Cross-layer findings & 10/10 \\
+ & Memory analysis status & completed (1/1) \\
+ & Timeline generated & 1/1 \\
+ & Cross-layer findings & 1/1 \\
 \hline
-\multirow{3}{*}{\textbf{Reconstruct (CPR)}} & CPR (diagnostic only) & 0.5 \\
- & Edge state & R=4, D=2, M=2, A=0 \\
+\multirow{3}{*}{\textbf{Reconstruct (CPR)}} & CPR (diagnostic only) & 0.625 \\
+ & Edge state & R=5, D=2, M=0, A=1 \\
  & Recoverability & partially_recoverable \\
 \hline
-\multirow{3}{*}{\textbf{Compare}} & FSR invariants stable & 10/10 \\
- & CPR stable & 10/10 \\
- & Edge-state pattern stable & 10/10 \\
+\multirow{3}{*}{\textbf{Compare}} & FSR invariants stable & 1/1 \\
+ & CPR stable & 1/1 \\
+ & Edge-state pattern stable & 1/1 \\
 \hline
 \end{tabular}
 \begin{flushleft}

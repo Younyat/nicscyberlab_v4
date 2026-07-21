@@ -270,7 +270,7 @@
   function renderCampaignPicker() {
     const select = byId("paper-level-b-campaign-select");
     if (!select) return;
-    const levelBCampaigns = state.campaigns.filter((item) => String(item.level || "").toUpperCase() === "B");
+    const levelBCampaigns = state.campaigns.filter((item) => String(item.level || "").toUpperCase() === "B").slice().reverse();
     if (!levelBCampaigns.length) {
       select.innerHTML = '<option value="">No Level B campaigns available</option>';
       return;
@@ -815,9 +815,9 @@
     renderLevelBPreflight();
   }
 
-  async function ensureLevelBCampaign() {
+  async function ensureLevelBCampaign(forceNew) {
     let campaign = selectedCampaign();
-    if (campaign) return campaign;
+    if (campaign && !forceNew) return campaign;
     const proposal = await getJson("/api/foc/experimentation/campaigns/proposal", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1151,13 +1151,87 @@
     if (button) button.disabled = true;
     if (summary) summary.innerHTML = '<div class="text-slate-300">Creating temporary Level B campaign from active scenario and recommended PLC attack profile…</div>';
     try {
-      const campaign = await ensureLevelBCampaign();
+      const campaign = await ensureLevelBCampaign(true);
       if (summary && campaign) {
         summary.innerHTML = `<div class="text-cyan-300">Temporary Level B campaign created: <span class="mono">${esc(campaign.campaign_id)}</span></div>`;
         renderCampaignSummary();
       }
     } catch (err) {
       if (summary) summary.innerHTML = `<div class="text-red-300">${esc(err.message || "Could not create the temporary Level B campaign.")}</div>`;
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+
+  // Level C's own campaign picker (#lc-campaign-select) previously had no way to create
+  // a new campaign at all -- only ever listed the single Level B campaign that has ever
+  // existed on this install. First attempt made this create a genuine level="C" campaign
+  // ("se trata de level c no b" -- user correction pointed out the label/button said B).
+  // That broke on the very next real launch: level_c_orchestrator.service.py's own
+  // VALIDATING phase (~line 450) hard-rejects any campaign whose level isn't exactly "B"
+  // ("Campaign {id} is not Level B.") -- confirmed live via LC-20260719-232811-AA0E's
+  // failure log. So despite the label reading "Level B campaign", that was structurally
+  // correct all along: Level C reuses an existing Level B campaign's scenario/attack/profile
+  // config as the template for its repeated destroy->redeploy->attack cycles; it does not
+  // have (and does not accept) its own separate "Level C campaign" concept for this purpose.
+  // Reverted to creating level="B" here too -- the real fix the user needed was just having
+  // a "create new" action available directly from the Level C card, not a new campaign level.
+  async function createNewLevelBCampaignForLevelC() {
+    const button = byId("lc-create-campaign-btn");
+    const status = byId("lc-create-campaign-status");
+    if (button) button.disabled = true;
+    if (status) status.innerHTML = '<div class="text-slate-300">Creating a new Level B campaign from the active scenario…</div>';
+    try {
+      const proposal = await getJson("/api/foc/experimentation/campaigns/proposal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ level: "B" }),
+      });
+      const attackCatalog = await getJson("/api/foc/experimentation/attack-catalog?target_role=plc");
+      const attacks = attackCatalog.attacks || [];
+      const preferredAttack = attacks.find((item) => String(item.attack_id || "").toUpperCase() === "T0831_MANIPULATION_OF_CONTROL_MODBUS")
+        || attacks.find((item) => String(item.mitre_id || "").toUpperCase() === "T0831")
+        || attacks[0];
+      if (!preferredAttack) {
+        throw new Error("No Level B-compatible attack profile is available for the PLC target.");
+      }
+      const repsB = Math.max(1, parseInt(document.getElementById("lc-reps-b")?.value || "6", 10));
+      const repsA = Math.max(1, parseInt(document.getElementById("lc-reps-a")?.value || "6", 10));
+      const created = await getJson("/api/foc/experimentation/campaigns/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          level: "B",
+          name: proposal.campaign_name || `Level B Repetition — ${proposal.scenario_id || "active_scenario"}`,
+          description: "Temporary Level B campaign created automatically from the Paper Evidence dashboard's Level C launcher.",
+          scenario_id: proposal.scenario_id,
+          repetitions: repsB,
+          nested_level_a_repetitions: repsA,
+          attack_id: preferredAttack.attack_id,
+          analysis_profile_id: proposal.analysis_profile_id || "default_multilayer_analysis_v1",
+          foc_profile_id: proposal.foc_profile_id || "default_foc_causal_reconstruction_v1",
+          detection_policy_id: proposal.detection_policy_id || "wazuh_suricata_alert_ingestion_v1",
+          trigger_policy_id: proposal.trigger_policy_id || "highest_severity_alert_v1",
+          acquisition_profile_id: proposal.acquisition_profile_id || "default_kolla_lime_tshark_v1",
+          notes: "Auto-created from the Level C launcher because a fresh Level B campaign was requested as its attack-cycle template.",
+        }),
+      });
+      const campaign = created?.campaign;
+      if (!campaign) throw new Error(created?.error || "Campaign creation did not return a campaign.");
+      if (status) status.innerHTML = `<div class="text-cyan-300">Created: <span class="mono">${esc(campaign.campaign_id)}</span></div>`;
+      const lcSel = document.getElementById("lc-campaign-select");
+      if (lcSel) {
+        let opt = Array.from(lcSel.options).find((o) => o.value === campaign.campaign_id);
+        if (!opt) {
+          opt = document.createElement("option");
+          opt.value = campaign.campaign_id;
+          opt.textContent = `${campaign.campaign_id} — ${campaign.name || campaign.campaign_id}`;
+          lcSel.insertBefore(opt, lcSel.firstChild);
+        }
+        lcSel.value = campaign.campaign_id;
+      }
+    } catch (err) {
+      if (status) status.innerHTML = `<div class="text-red-300">${esc(err.message || "Could not create a new Level B campaign.")}</div>`;
     } finally {
       if (button) button.disabled = false;
     }
@@ -1230,6 +1304,7 @@
     byId("paper-run-level-a-level-b-truthful-btn")?.addEventListener("click", runTruthfulEvaluation);
     byId("paper-level-a-level-b-truthful-refresh-btn")?.addEventListener("click", loadTruthfulEvaluationReports);
     byId("paper-create-level-b-campaign-btn")?.addEventListener("click", createTemporaryLevelBCampaign);
+    byId("lc-create-campaign-btn")?.addEventListener("click", createNewLevelBCampaignForLevelC);
     byId("paper-refresh-btn")?.addEventListener("click", async () => {
       await loadCases();
       await loadCampaigns();
@@ -1270,6 +1345,23 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 const LevelCMonitor = (() => {
   "use strict";
+
+  // Local copy of the other IIFE's getJson() (foc_paper_evidence.js's first, unrelated
+  // closure) -- not reachable from here, separate module scope. Needed by
+  // createFreshLevelBCampaignForLaunch() below.
+  async function getJson(url, options) {
+    const res = await fetch(url, options);
+    let payload = {};
+    try {
+      payload = await res.json();
+    } catch (_err) {
+      payload = {};
+    }
+    if (!res.ok) {
+      throw new Error(payload.error || `Request failed: ${res.status}`);
+    }
+    return payload;
+  }
 
   // ── phase definitions (must match orchestrator state machine) ────────────
   const PHASES = [
@@ -1455,7 +1547,10 @@ const LevelCMonitor = (() => {
       data = await res.json();
     } catch (_) { return; }
 
-    const status  = (data.phase || "VALIDATING").toUpperCase();
+    // phase_key is the clean phase name without "(rep N/N)" suffix.
+    // Fallback: strip suffix from data.phase for backward compat with older jobs.
+    const rawPhase = (data.phase_key || data.phase || "VALIDATING").toUpperCase();
+    const status  = rawPhase.replace(/\s*\(REP\s+\d+\/\d+\)\s*$/, "").trim();
     const repNum  = data.current_repetition || 1;
     const log     = data.log || [];
     const isTerminal = ["COMPLETED", "FAILED", "CANCELLED", "STOPPED"].includes(status) || (data.status && data.status !== "running" && data.status !== "stopped");
@@ -1492,6 +1587,21 @@ const LevelCMonitor = (() => {
     const pctEl = $("lc-pct");
     if (pctEl) pctEl.textContent = pct + "%";
 
+    // elapsed time since job started
+    const elapsedSec = jobElapsedSeconds(data);
+    const elapsedEl  = $("lc-elapsed");
+    if (elapsedEl) {
+      elapsedEl.textContent = elapsedSec != null
+        ? `Elapsed: ${fmtDuration(elapsedSec * 1000)}`
+        : (data.created_at ? `Queued: ${fmtDuration((Date.now() - new Date(data.created_at).getTime()))}` : "");
+    }
+    // time in current phase
+    const phaseSinceEl = $("lc-phase-since");
+    if (phaseSinceEl && data.phase_started_at) {
+      const phaseSec = Math.max(0, (Date.now() - new Date(data.phase_started_at).getTime()) / 1000);
+      phaseSinceEl.textContent = `Phase: ${fmtDuration(phaseSec * 1000)}`;
+    }
+
     // rebuild stage list if rep count changed
     buildStageList(repNum, status);
 
@@ -1517,13 +1627,23 @@ const LevelCMonitor = (() => {
     // append new log lines
     const newLines = log.slice(_lastLogLen);
     newLines.forEach(line => {
-      const txt = typeof line === "string" ? line : (line.message || line.msg || JSON.stringify(line));
+      const lvl = typeof line === "object" ? (line.level || "").toUpperCase() : "";
+      const txt = typeof line === "string" ? line : (line.msg || line.message || JSON.stringify(line));
       let cls = "lc-log-info";
-      if (/\[ERROR\]|FAIL|FATAL/i.test(txt))    cls = "lc-log-error";
-      else if (/\[WARN\]|WARNING/i.test(txt))    cls = "lc-log-warn";
-      else if (/\[OK\]|SUCCESS|COMPLETED/i.test(txt)) cls = "lc-log-ok";
-      else if (/^(PHASE|→|\[PHASE\])/i.test(txt))  cls = "lc-log-phase";
-      else if (/^\s*(ok|changed|skipping)/i.test(txt)) cls = "lc-log-stdout";
+      // Use structured level field first (more reliable than text matching)
+      if      (lvl === "ERROR")  cls = "lc-log-error";
+      else if (lvl === "WARN")   cls = "lc-log-warn";
+      else if (lvl === "OK")     cls = "lc-log-ok";
+      else if (lvl === "PHASE")  cls = "lc-log-phase";
+      else if (lvl === "STDOUT") cls = "lc-log-stdout";
+      else {
+        // Fallback text-based classification
+        if      (/\bFAIL\b|FATAL|\[ERROR\]/i.test(txt))          cls = "lc-log-error";
+        else if (/\bWARN\b|WARNING|\[WARN\]/i.test(txt))          cls = "lc-log-warn";
+        else if (/installed|deployed.*ok|✓|SUCCESS/i.test(txt))   cls = "lc-log-ok";
+        else if (/^→\s*|^\[PHASE\]/i.test(txt))                   cls = "lc-log-phase";
+        else if (/^\s*(ok|changed|skipping)/i.test(txt))          cls = "lc-log-stdout";
+      }
       appendLog(curStageId, txt, cls);
     });
     _lastLogLen = log.length;
@@ -1584,6 +1704,66 @@ const LevelCMonitor = (() => {
     }
   }
 
+  // Auto-creates a brand new Level B campaign for THIS launch specifically, instead of
+  // relying on whatever happens to be selected in #lc-campaign-select. 2026-07-20: user
+  // confirmed live that two Level C launches (a failed 5-rep attempt at 23:31, then a
+  // successful 3-rep run the next morning at 08:19) ended up sharing one campaign because
+  // the second launch simply reused whatever the dropdown still had selected from the
+  // first -- the "Create New Level B Campaign" button existed but nothing forced clicking
+  // it again before every single launch. Removing that manual step: every launch now gets
+  // its own isolated campaign automatically, so repetitions from different launches can
+  // never mix under one campaign_id again. Reuses the exact same creation recipe as
+  // createNewLevelBCampaignForLevelC() (proposal -> attack-catalog -> create); duplicated
+  // rather than shared since that function also drives its own button's UI state.
+  async function createFreshLevelBCampaignForLaunch(repsB, repsA) {
+    const proposal = await getJson("/api/foc/experimentation/campaigns/proposal", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ level: "B" }),
+    });
+    const attackCatalog = await getJson("/api/foc/experimentation/attack-catalog?target_role=plc");
+    const attacks = attackCatalog.attacks || [];
+    const preferredAttack = attacks.find((item) => String(item.attack_id || "").toUpperCase() === "T0831_MANIPULATION_OF_CONTROL_MODBUS")
+      || attacks.find((item) => String(item.mitre_id || "").toUpperCase() === "T0831")
+      || attacks[0];
+    if (!preferredAttack) {
+      throw new Error("No Level B-compatible attack profile is available for the PLC target.");
+    }
+    const created = await getJson("/api/foc/experimentation/campaigns/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        level: "B",
+        name: proposal.campaign_name || `Level B Repetition — ${proposal.scenario_id || "active_scenario"}`,
+        description: "Temporary Level B campaign auto-created for this specific Level C launch.",
+        scenario_id: proposal.scenario_id,
+        repetitions: repsB,
+        nested_level_a_repetitions: repsA,
+        attack_id: preferredAttack.attack_id,
+        analysis_profile_id: proposal.analysis_profile_id || "default_multilayer_analysis_v1",
+        foc_profile_id: proposal.foc_profile_id || "default_foc_causal_reconstruction_v1",
+        detection_policy_id: proposal.detection_policy_id || "wazuh_suricata_alert_ingestion_v1",
+        trigger_policy_id: proposal.trigger_policy_id || "highest_severity_alert_v1",
+        acquisition_profile_id: proposal.acquisition_profile_id || "default_kolla_lime_tshark_v1",
+        notes: "Auto-created at Level C launch time so this run's repetitions are never mixed with a different launch's.",
+      }),
+    });
+    const campaign = created?.campaign;
+    if (!campaign) throw new Error(created?.error || "Campaign creation did not return a campaign.");
+    const lcSel = document.getElementById("lc-campaign-select");
+    if (lcSel) {
+      let opt = Array.from(lcSel.options).find((o) => o.value === campaign.campaign_id);
+      if (!opt) {
+        opt = document.createElement("option");
+        opt.value = campaign.campaign_id;
+        opt.textContent = `${campaign.campaign_id} — ${campaign.name || campaign.campaign_id}`;
+        lcSel.insertBefore(opt, lcSel.firstChild);
+      }
+      lcSel.value = campaign.campaign_id;
+    }
+    return campaign.campaign_id;
+  }
+
   // ── launch ────────────────────────────────────────────────────────────────
   async function launch() {
     const confirmInput = document.getElementById("lc-confirm-input");
@@ -1591,9 +1771,6 @@ const LevelCMonitor = (() => {
       alert("Type LAUNCH in the confirmation field first.");
       return;
     }
-    const campaignSelect = document.getElementById("lc-campaign-select");
-    const campaignId = campaignSelect?.value || "";
-    if (!campaignId) { alert("Select a Level B campaign first."); return; }
 
     const repsC = Math.max(1, parseInt(document.getElementById("lc-reps-c")?.value || "2", 10));
     const repsB = Math.max(1, parseInt(document.getElementById("lc-reps-b")?.value || "6", 10));
@@ -1603,7 +1780,18 @@ const LevelCMonitor = (() => {
     localStorage.setItem("lc_total_reps", totalReps);
 
     const btn = document.getElementById("lc-launch-btn");
-    if (btn) { btn.disabled = true; btn.textContent = "Launching…"; }
+    if (btn) { btn.disabled = true; btn.textContent = "Creating fresh campaign…"; }
+
+    let campaignId;
+    try {
+      campaignId = await createFreshLevelBCampaignForLaunch(repsB, repsA);
+    } catch (err) {
+      alert("Could not create a fresh Level B campaign for this launch: " + err.message);
+      if (btn) { btn.disabled = false; btn.textContent = "Launch Level C Campaign"; }
+      return;
+    }
+
+    if (btn) btn.textContent = "Launching…";
 
     try {
       const res = await fetch("/api/level-c/launch", {
@@ -1633,11 +1821,18 @@ const LevelCMonitor = (() => {
     startPolling();
   }
 
-  // ── Level C campaign picker (mirrors Level B select) ─────────────────────
+  // ── Level C campaign picker ────────────────────────────────────────────────
+  // Must stay level="B" only: level_c_orchestrator's own VALIDATING phase hard-rejects
+  // any campaign whose level isn't exactly "B" ("Campaign {id} is not Level B.", see
+  // createNewLevelBCampaignForLevelC()'s note above) -- showing a level="C" campaign here
+  // at all would just let the operator pick something guaranteed to fail at launch.
   function populateCampaignPicker(campaigns) {
     const sel = document.getElementById("lc-campaign-select");
     if (!sel) return;
-    const levelB = (campaigns || []).filter(c => String(c.level || "").toUpperCase() === "B");
+    const levelB = (campaigns || [])
+      .filter(c => String(c.level || "").toUpperCase() === "B")
+      .slice()
+      .reverse();
     if (!levelB.length) {
       sel.innerHTML = '<option value="">No Level B campaigns found</option>';
       return;
@@ -1699,14 +1894,33 @@ const LevelCMonitor = (() => {
     btn.addEventListener("click", launch);
   }
 
+  // Direct, independent campaign fetch for #lc-campaign-select, called once on init.
+  // Previously this select had no fetch of its own at all -- it relied entirely on
+  // patchCampaignLoader()'s MutationObserver (later in this file) noticing a DOM change
+  // on #paper-level-b-campaign-select (the OTHER card's own picker, different IIFE) and
+  // scraping that select's already-rendered <option> list. That meant #lc-campaign-select
+  // stayed empty/stale until the other card happened to render first. Kept as its own
+  // function (not reusing loadCampaigns() from the other module scope -- separate IIFE,
+  // not reachable here).
+  async function refreshCampaignPicker() {
+    try {
+      const res = await fetch("/api/foc/experimentation/campaigns");
+      const payload = await res.json();
+      populateCampaignPicker(payload.campaigns || payload.items || []);
+    } catch (_) {
+      // leave whatever is already rendered (e.g. "Loading campaigns…") on failure
+    }
+  }
+
   // ── init ──────────────────────────────────────────────────────────────────
   function init() {
     initDrag();
     initConfirmGate();
     loadPreflight();
-
-    // hook into existing campaign loader
-    const origLoad = window._lcCampaignHook;
+    refreshCampaignPicker();
+    // Ongoing sync: fires whenever the Level B card's own campaign list changes
+    // (patchCampaignLoader(), later in this file) -- now carries a fresh, complete
+    // B+C fetch in e.detail rather than a level="B"-only DOM scrape.
     document.addEventListener("lc:campaigns-loaded", (e) => populateCampaignPicker(e.detail));
 
     // resume in-progress job from localStorage
@@ -1750,28 +1964,22 @@ const IndexWidget = (() => {
 
 // After campaigns load, broadcast them so the LC picker can populate
 (function patchCampaignLoader() {
-  const origRender = window.renderCampaignPicker;
-  // We dispatch a custom event that LevelCMonitor listens for
-  const observer = new MutationObserver(() => {
+  // We dispatch a custom event that LevelCMonitor listens for. Used to only scrape
+  // #paper-level-b-campaign-select's own already-rendered <option> list, which meant a
+  // brand new campaign wasn't reliably reflected here until that OTHER select's own DOM
+  // happened to update (see refreshCampaignPicker()'s note above for the related init-time
+  // gap). Now does a fresh, complete campaigns fetch of its own on every trigger instead,
+  // so LevelCMonitor's populateCampaignPicker() always sees current data regardless of
+  // what the Level B card's own select currently contains.
+  const observer = new MutationObserver(async () => {
     const sel = document.getElementById("paper-level-b-campaign-select");
     if (!sel) return;
-    // When the existing campaign select gets populated, also populate the LC picker
-    const opts = Array.from(sel.options).filter(o => o.value).map(o => ({
-      campaign_id: o.value,
-      name: o.textContent,
-      level: "B",
-    }));
-    if (opts.length) {
-      document.dispatchEvent(new CustomEvent("lc:campaigns-loaded", { detail: opts }));
-      // Also directly populate since we may miss the event timing
-      const lcSel = document.getElementById("lc-campaign-select");
-      if (lcSel) {
-        const prev = lcSel.value;
-        lcSel.innerHTML = opts.map(o =>
-          `<option value="${o.campaign_id}"${o.campaign_id === prev ? " selected" : ""}>${o.campaign_id} — ${o.name}</option>`
-        ).join("");
-        if (!lcSel.value && opts.length) lcSel.value = opts[0].campaign_id;
-      }
+    try {
+      const res = await fetch("/api/foc/experimentation/campaigns");
+      const payload = await res.json();
+      document.dispatchEvent(new CustomEvent("lc:campaigns-loaded", { detail: payload.campaigns || payload.items || [] }));
+    } catch (_) {
+      // ignore -- the next mutation (or the picker's own initial refreshCampaignPicker()) will retry
     }
   });
   document.addEventListener("DOMContentLoaded", () => {

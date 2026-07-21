@@ -1,8 +1,8 @@
 {
   "job_id": "LC-20260713-114549-9122",
   "job_type": "level_c_campaign",
-  "phase": "WAITING_LEVEL_B (rep 1/1)",
-  "status": "running",
+  "phase": "STOPPED",
+  "status": "stopped",
   "config": {
     "campaign_id": "CMP-20260707-000220-CBFB",
     "level_c_repetitions": 1,
@@ -10,7 +10,7 @@
     "level_a_repetitions": 2
   },
   "created_at": "2026-07-13T11:45:49.204262+00:00",
-  "updated_at": "2026-07-13T12:00:57.852576+00:00",
+  "updated_at": "2026-07-14T07:23:01.502074+00:00",
   "current_repetition": 1,
   "level_c_snapshot_ids": [],
   "comparison_report": null,
@@ -328,5 +328,7 @@
     }
   },
   "stop_requested": true,
-  "stop_requested_at": "2026-07-13T12:38:03.456670+00:00"
+  "stop_requested_at": "2026-07-13T12:38:03.456670+00:00",
+  "error": "Abandoned: Level B job exp-47f6ebca05a1 no longer exists (Flask restart killed background thread during WAITING_LEVEL_B with no heartbeat).",
+  "completed_at": "2026-07-14T07:23:01.502074+00:00"
 }

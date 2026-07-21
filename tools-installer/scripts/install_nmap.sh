@@ -77,6 +77,7 @@ EOF
 
 echo "[3/3] EJECUTANDO DESPLIEGUE ANSIBLE"
 export ANSIBLE_HOST_KEY_CHECKING=False
+export ANSIBLE_BECOME_TIMEOUT=60
 
 if ansible-playbook -i "$BASE_DIR/inventory/hosts.ini" "$BASE_DIR/playbooks/nmap-install.yml"; then
     echo "----------------------------------------------------"

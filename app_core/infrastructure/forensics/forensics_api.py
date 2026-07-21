@@ -2,6 +2,7 @@ import os
 import re
 import json
 import time
+import fcntl
 import hashlib
 import logging
 import threading
@@ -18,6 +19,7 @@ import openstack
 
 
 from pathlib import Path
+from ..foc_reconstruction.foc_paths import relative_path
 from ..node_health.node_health_api import cleanup_node_free_space, resolve_node_for_remote_ops
 from .volatility_symbols import (
     get_job as get_vol3_job,
@@ -197,6 +199,25 @@ def _clear_active_preservation_state(case_dir: str | None = None, *, run_id: str
         pass
 
 
+def release_stale_preservation_lock_for_case(case_id: str, *, reason: str | None = None) -> bool:
+    """Public entry point for other modules' orphan watchdogs (e.g.
+    job_runner._recover_orphaned_job) to release the active-preservation lock
+    for a case whose owning job was just marked interrupted, without needing
+    to resolve a case_dir themselves. No-op if the lock doesn't belong to
+    this case_id (never releases someone else's lock by mistake).
+    """
+    current = _load_active_preservation_state()
+    if not current or str(current.get("case_id") or "") != str(case_id or ""):
+        return False
+    _clear_active_preservation_state(
+        case_dir=current.get("case_dir"),
+        run_id=current.get("run_id"),
+        final_state="stopped_orphaned_worker",
+        reason=reason or "Owning job was marked interrupted by the job-runner orphan watchdog.",
+    )
+    return True
+
+
 def _load_acquisition_profile_for_case(case_dir: str) -> dict:
     try:
         path = os.path.join(case_dir, "metadata", "acquisition_profile.json")
@@ -268,6 +289,26 @@ def _is_abandoned_placeholder_case(case_dir: str, *, min_age_seconds: int = STAL
     return age_seconds >= float(min_age_seconds)
 
 
+_PRESERVATION_ORPHAN_GRACE_SECONDS = 180
+
+
+def _latest_case_activity_ts(case_dir: str) -> float:
+    """Cheap heartbeat proxy: mtime of the small metadata files every real
+    acquisition/analysis step touches, not a full scan of (possibly
+    multi-GB) evidence files. Same 'file activity as heartbeat' trick as
+    foc_case_analysis._latest_analysis_activity, kept fast on purpose since
+    this runs on every guard check.
+    """
+    latest = 0.0
+    for rel in ("metadata/pipeline_events.jsonl", "metadata/acquisition_profile.json", "analysis/analysis_status.json"):
+        try:
+            ts = os.path.getmtime(os.path.join(case_dir, rel))
+            latest = max(latest, ts)
+        except OSError:
+            continue
+    return latest
+
+
 def _active_preservation_guard(max_recent_seconds: int = 900) -> dict:
     current = _load_active_preservation_state()
     if not current:
@@ -296,6 +337,16 @@ def _active_preservation_guard(max_recent_seconds: int = 900) -> dict:
     if _case_event_present(case_dir, "dfir_orchestration_done"):
         _clear_active_preservation_state(case_dir=case_dir, run_id=run_id, final_state="completed", reason="dfir_orchestration_done_recorded")
         return {"allowed": True, "active": False, "reason": None, "stale_lock_cleared": True}
+
+    latest_activity_ts = _latest_case_activity_ts(case_dir)
+    if latest_activity_ts and (time.time() - latest_activity_ts) > _PRESERVATION_ORPHAN_GRACE_SECONDS:
+        reason = (
+            f"No preservation activity recorded for case {case_id} in over {_PRESERVATION_ORPHAN_GRACE_SECONDS}s "
+            "(pipeline_events.jsonl / acquisition_profile.json / analysis_status.json all stale) — the owning "
+            "worker likely died or was replaced before finishing. Releasing the lock; nothing already preserved was deleted."
+        )
+        _clear_active_preservation_state(case_dir=case_dir, run_id=run_id, final_state="stopped_orphaned_worker", reason=reason)
+        return {"allowed": True, "active": False, "reason": None, "stale_lock_cleared": True, "orphan_reason": reason}
 
     in_progress = _case_preservation_in_progress(case_dir)
     if not in_progress and age_seconds is not None and age_seconds > float(max_recent_seconds):
@@ -336,6 +387,8 @@ def _scientific_job_payloads() -> list[dict]:
 def _running_scientific_jobs() -> list[dict]:
     running_statuses = {"queued", "running", "cancel_requested"}
     items: list[dict] = []
+
+    # Level A / B jobs (stored under CAMPAIGNS_ROOT/CMP-*/jobs/*.json)
     for payload in _scientific_job_payloads():
         status = str(payload.get("status") or "").strip().lower()
         if status not in running_statuses:
@@ -351,6 +404,31 @@ def _running_scientific_jobs() -> list[dict]:
                 "current_phase": str(payload.get("current_phase_label") or payload.get("current_phase") or "running"),
             }
         )
+
+    # Level C jobs (stored under runtime/level_c_jobs/LC-*/job_state.json)
+    lc_jobs_root = Path(REPO_ROOT) / "runtime" / "level_c_jobs"
+    if lc_jobs_root.exists():
+        for state_path in lc_jobs_root.glob("LC-*/job_state.json"):
+            try:
+                payload = _read_json_file(state_path)
+                if not payload:
+                    continue
+                status = str(payload.get("status") or "").strip().lower()
+                if status not in running_statuses:
+                    continue
+                items.append(
+                    {
+                        "job_id": str(payload.get("job_id") or state_path.parent.name),
+                        "title": "Level C campaign",
+                        "status": status,
+                        "campaign_id": str((payload.get("config") or {}).get("campaign_id") or ""),
+                        "level": "C",
+                        "current_phase": str(payload.get("phase") or "running"),
+                    }
+                )
+            except Exception:
+                pass
+
     return items
 
 
@@ -1096,6 +1174,35 @@ def _add_artifact_fast(case_dir: str, rel_path: str, a_type: str, sha256: str = 
 # CHAIN OF CUSTODY (append-only + hash chaining) + TIME SYNC
 # ============================================================
 
+# 2026-07-20: _append_custody_entry() used to read the last entry's hash and
+# then append its own entry with zero locking around that read-then-write
+# sequence. Two concurrent writers for the same case (two gunicorn workers, or
+# two acquisition threads) could both read the same "last hash" before either
+# had written, so the second writer's entry would silently chain from a stale
+# (or, if the read raced with file creation, genesis "0"*64) prev_hash instead
+# of the real current tail -- producing a permanently broken custody chain
+# with no error at write time, only discovered later by
+# foc_case_analysis._phase_integrity_custody() reporting custody_chain_valid:
+# false. Confirmed live on a real case: entry 3 ("acquire_start") had
+# prev_hash "0"*64 instead of chaining from entry 2 ("ir_inputs_preserved").
+# Fixed with a per-case-dir threading.Lock (fast path, guards threads within
+# one worker process) plus an fcntl.flock on the custody log itself (guards
+# across separate gunicorn worker processes, which don't share Python
+# objects) held around the entire read-last-hash + compute + append sequence.
+_CUSTODY_THREAD_LOCKS_GUARD = threading.Lock()
+_CUSTODY_THREAD_LOCKS: dict[str, threading.Lock] = {}
+
+
+def _custody_thread_lock(case_dir: str) -> threading.Lock:
+    key = os.path.abspath(case_dir)
+    with _CUSTODY_THREAD_LOCKS_GUARD:
+        lock = _CUSTODY_THREAD_LOCKS.get(key)
+        if lock is None:
+            lock = threading.Lock()
+            _CUSTODY_THREAD_LOCKS[key] = lock
+        return lock
+
+
 def _custody_path(case_dir: str) -> str:
     return os.path.join(case_dir, "chain_of_custody.log")
 
@@ -1147,26 +1254,32 @@ def _append_custody_entry(
         return
     _ensure_custody_file(case_dir)
 
-    prev_hash = _read_last_custody_hash(case_dir)
-    ts = _utc_now_iso()
+    with _custody_thread_lock(case_dir):
+        with open(_custody_path(case_dir), "a+", encoding="utf-8") as f:
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            try:
+                prev_hash = _read_last_custody_hash(case_dir)
+                ts = _utc_now_iso()
 
-    entry = {
-        "ts_utc": ts,
-        "ts_epoch": time.time(),
-        "run_id": (run_id or "R1"),
-        "actor": (actor or "unknown"),
-        "action": action,
-        "artifact_rel": artifact_rel,
-        "outcome": outcome,
-        "details": (details or {}),
-        "prev_hash": prev_hash,
-    }
+                entry = {
+                    "ts_utc": ts,
+                    "ts_epoch": time.time(),
+                    "run_id": (run_id or "R1"),
+                    "actor": (actor or "unknown"),
+                    "action": action,
+                    "artifact_rel": artifact_rel,
+                    "outcome": outcome,
+                    "details": (details or {}),
+                    "prev_hash": prev_hash,
+                }
 
-    payload = json.dumps(entry, sort_keys=True, ensure_ascii=False).encode("utf-8")
-    entry["entry_hash"] = _sha256_hex(payload)
+                payload = json.dumps(entry, sort_keys=True, ensure_ascii=False).encode("utf-8")
+                entry["entry_hash"] = _sha256_hex(payload)
 
-    with open(_custody_path(case_dir), "a", encoding="utf-8") as f:
-        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+                f.flush()
+            finally:
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 
 def _register_custody_artifact(case_dir: str) -> None:
     rel = "chain_of_custody.log"
@@ -4322,27 +4435,33 @@ def _append_custody_entry(
     ensure_case_layout(case_dir)
     _ensure_custody_file(case_dir)
 
-    prev_hash = _read_last_custody_hash(case_dir)
-    ts = _utc_now_iso()
+    with _custody_thread_lock(case_dir):
+        with open(_custody_path(case_dir), "a+", encoding="utf-8") as f:
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            try:
+                prev_hash = _read_last_custody_hash(case_dir)
+                ts = _utc_now_iso()
 
-    entry = {
-        "ts_utc": ts,
-        "ts_epoch": iso_to_epoch(ts),
-        "run_id": (run_id or "R1"),
-        "actor": actor,
-        "action": action,
-        "artifact_rel": artifact_rel,
-        "outcome": outcome,
-        "details": (details or {}),
-        "prev_hash": prev_hash,
-    }
+                entry = {
+                    "ts_utc": ts,
+                    "ts_epoch": iso_to_epoch(ts),
+                    "run_id": (run_id or "R1"),
+                    "actor": actor,
+                    "action": action,
+                    "artifact_rel": artifact_rel,
+                    "outcome": outcome,
+                    "details": (details or {}),
+                    "prev_hash": prev_hash,
+                }
 
-    payload = json.dumps(entry, sort_keys=True, ensure_ascii=False).encode("utf-8")
-    entry_hash = _sha256_hex(payload)
-    entry["entry_hash"] = entry_hash
+                payload = json.dumps(entry, sort_keys=True, ensure_ascii=False).encode("utf-8")
+                entry_hash = _sha256_hex(payload)
+                entry["entry_hash"] = entry_hash
 
-    with open(_custody_path(case_dir), "a", encoding="utf-8") as f:
-        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+                f.flush()
+            finally:
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 
 def _register_custody_artifact(case_dir: str) -> None:
     """

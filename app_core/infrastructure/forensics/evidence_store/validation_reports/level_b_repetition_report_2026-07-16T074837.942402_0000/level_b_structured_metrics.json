@@ -1,0 +1,345 @@
+{
+  "level": "B",
+  "n_repetitions": 1,
+  "metrics_per_repetition": [
+    {
+      "repetition_number": 1,
+      "campaign_id": "CMP-20260707-000220-CBFB",
+      "execution_id": "EXEC-0029",
+      "execution_status": "partial",
+      "dfir_mode_before": "on",
+      "dfir_mode_after": "on",
+      "dfir_mode_enabled_successfully": true,
+      "dfir_mode_blocker": null,
+      "attack_profile_id": "T0831_MANIPULATION_OF_CONTROL_MODBUS",
+      "attack_name": "Modbus Register Manipulation",
+      "target_role": "PLC",
+      "target_node": "PLC_Instance",
+      "target_ip": "192.168.100.176",
+      "protocol": "modbus_tcp",
+      "destination_port": 502,
+      "function_code": "confirmed",
+      "register": "confirmed",
+      "value": "confirmed",
+      "attack_started_at": "2026-07-16T07:59:28.368555+00:00",
+      "attack_completed_at": "2026-07-16T07:59:49.468189+00:00",
+      "attack_output_path": "app_core/infrastructure/attack/outputs/20260716T075930Z_T0831_MANIPULATION_OF_CONTROL_MODBUS",
+      "attack_output_sha256": "4ffbc3ca756b3d4db95b603cc0745e7eb128677e03ee12de4f134d07d828f014",
+      "trigger_alert_detected": true,
+      "trigger_alert_id": "dfac4d11d2b1486b91337a2fdd677e79",
+      "trigger_alert_rule": "86601",
+      "trigger_alert_severity": "high",
+      "trigger_alert_timestamp": "2026-07-16T07:59:42.292+0000",
+      "trigger_alert_mitre": null,
+      "forensic_intervention_required": true,
+      "automatic_acquisition_started": true,
+      "alert_to_acquisition_start_seconds": 590.708,
+      "case_id": "case-b5946a11",
+      "case_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260716-075956",
+      "memory_acquisition_status": "completed",
+      "memory_hash": null,
+      "network_context_status": "partial",
+      "pcap_segments_imported": 30,
+      "disk_acquisition_status": "completed",
+      "ot_export_status": "completed",
+      "alerts_preserved": 0,
+      "custody_status": "valid",
+      "case_sealed_status": "sealed",
+      "analysis_status": "completed",
+      "layers_total": 14,
+      "layers_completed": 14,
+      "layers_partial": 0,
+      "layers_failed": 0,
+      "memory_analysis_status": "completed",
+      "network_analysis_status": "completed",
+      "disk_analysis_status": "completed",
+      "ot_analysis_status": "completed",
+      "alert_analysis_status": "completed",
+      "timeline_status": "completed",
+      "reconstruction_status": "completed_with_degradation",
+      "timing_metrics": {
+        "deploy_time_seconds": 0.0,
+        "teardown_redeploy_time_seconds": 0.0,
+        "network_mode": "continuous_rolling_pcap_with_case_bound_incident_window_import",
+        "alert_to_acquisition_start_seconds": 590.708,
+        "alert_to_memory_start_seconds": 34.167,
+        "alert_to_memory_preserved_seconds": 591.123,
+        "alert_to_ot_export_preserved_seconds": 2819.708,
+        "alert_to_disk_snapshot_start_seconds": 2820.976,
+        "alert_to_disk_snapshot_preserved_seconds": 3368.53,
+        "alert_to_case_sealed_seconds": 3367.708,
+        "t_first_sealed_seconds": 3367.708,
+        "t_case_sealed_seconds": 3367.708,
+        "memory_acquisition_duration_seconds": 556.956,
+        "pcap_import_duration_seconds": 2230.266,
+        "disk_acquisition_duration_seconds": 547.554,
+        "case_sealed_to_analysis_completed_seconds": 5507.594,
+        "total_repetition_duration_seconds": 5789.641,
+        "pcap_periodic_context_size_gib": 7.514649,
+        "pcap_reactive_capture_size_bytes": 0,
+        "memory_dump_size_bytes": 8588285152,
+        "disk_snapshot_size_bytes": 75161927680,
+        "retries_or_failures_count": 0,
+        "ot_export_present_in_manifest": true,
+        "ot_export_paths": [
+          "industrial/ot_export_rolling_EXEC-0029_20260716_081200Z.json"
+        ],
+        "evidence_completeness_gate": "scientifically_complete"
+      },
+      "reconstruction_metrics": {
+        "expected_relations": 8,
+        "recovered_relations": 3,
+        "degraded_relations": 0,
+        "ambiguous_relations": 5,
+        "missing_relations": 0,
+        "recoverability_score": 0.375,
+        "weighted_recoverability_score": 0.3562,
+        "reconstruction_confidence": 0.4915,
+        "recoverability_label": null,
+        "scientific_confidence_label": 0.4915,
+        "warnings": [
+          "Only 3 of 8 expected causal edges were fully recovered. The result is useful for audit and degradation analysis, but it must not be presented as strong causal reconstruction.",
+          "Semantic reconstruction has not been generated.",
+          "At least one causal edge is temporally ambiguous under the preserved uncertainty window.",
+          "Temporal synchronization is not reliable. The preserved max clock offset is approximately 648.997s, which makes event ordering ambiguous for causal edges whose timestamps fall within the 650.997s uncertainty window.",
+          "Modbus traffic is observed, but register and value precision are not confirmed by packet-level parsing.",
+          "Modbus register and value precision (declared in ground truth as register=4, expected_value=30) is not confirmed by packet-level parsing; only the presence of Modbus traffic is verified here.",
+          "nested Level A scientific report did not complete successfully for this Level B case"
+        ],
+        "blockers": [
+          "Mandatory free-space cleanup failed before repetition 2; failed_roles=fuxa,plc."
+        ]
+      },
+      "comparison_family_id": "family-c682f7009807aaac",
+      "scenario_fingerprint": "fbbfc3a04a139edc617da291",
+      "final_case_status": "the hypothesis can receive moderate support, not absolute causality.",
+      "scientific_case_status": "scientifically_complete",
+      "critical_evidence_gate": {
+        "generated_at_utc": "2026-07-16T08:55:50.835318+00:00",
+        "execution_id": "EXEC-0029",
+        "case_id": "case-b5946a11",
+        "gate_status": "scientifically_complete",
+        "scientifically_complete": true,
+        "missing_critical_evidence": [],
+        "checks": {
+          "pcap_packet_level_modbus_evidence_present": true,
+          "ot_export_present_in_manifest": true,
+          "raw_wazuh_trigger_binding_present": true,
+          "forensic_intervention_artifact_present": true,
+          "memory_artifacts_present": true,
+          "disk_artifacts_present": true,
+          "manifest_present": true,
+          "custody_present": true,
+          "normalized_timestamps_available": true
+        },
+        "failure_details": [],
+        "supporting_metrics": {
+          "pcap_artifact_count": 30,
+          "preserved_segments": 30,
+          "ot_export_artifact_count": 1,
+          "memory_artifact_count": 9,
+          "disk_artifact_count": 9
+        },
+        "message": "Critical scientific evidence gate passed."
+      },
+      "nested_level_a": {
+        "status": "failed",
+        "campaign_id": "CMP-20260716-093600-FB1B",
+        "job_id": "exp-726d464e2c7c",
+        "report": {},
+        "warnings": [],
+        "errors": [
+          {
+            "message": "child_job_timeout"
+          }
+        ],
+        "comparison_status": null,
+        "comparison_type": null,
+        "generated_execution_ids": [],
+        "report_output_path": null,
+        "report_markdown_path": null,
+        "completed_repetitions": null,
+        "requested_repetitions": 2
+      },
+      "trigger_attempt_trace": [
+        {
+          "attempt_number": 1,
+          "attack_started_at": "2026-07-16T07:48:46.034156+00:00",
+          "attack_completed_at": "2026-07-16T07:49:10.641891+00:00",
+          "attack_status": "completed",
+          "dfir_mode_after": "on",
+          "trigger_alert_detected": false,
+          "trigger_alert_id": null,
+          "trigger_alert_rule": null,
+          "trigger_alert_severity": "unknown",
+          "forensic_intervention_eligible": false,
+          "automatic_preservation_armed": false,
+          "eligibility_reason": "observed alert severity is unknown, not HIGH/CRITICAL",
+          "fallback_reasons": [],
+          "observed_alerts_count": 6
+        },
+        {
+          "attempt_number": 2,
+          "attack_started_at": "2026-07-16T07:59:28.368555+00:00",
+          "attack_completed_at": "2026-07-16T07:59:49.468189+00:00",
+          "attack_status": "completed",
+          "dfir_mode_after": "on",
+          "trigger_alert_detected": true,
+          "trigger_alert_id": "dfac4d11d2b1486b91337a2fdd677e79",
+          "trigger_alert_rule": "86601",
+          "trigger_alert_severity": "high",
+          "forensic_intervention_eligible": true,
+          "automatic_preservation_armed": true,
+          "eligibility_reason": "observed alert is HIGH/CRITICAL and eligible for forensic intervention",
+          "fallback_reasons": [],
+          "observed_alerts_count": 1
+        }
+      ],
+      "trigger_attempts_total": 2,
+      "artifacts": {
+        "forensic_result_card": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260707-000220-CBFB/level_B/EXEC-0029/forensic_result_card.json",
+        "forensic_comparison_profile": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260707-000220-CBFB/level_B/EXEC-0029/forensic_comparison_profile.json",
+        "acquisition_profile": "app_core/infrastructure/forensics/evidence_store/CASE-20260716-075956/metadata/acquisition_profile.json",
+        "network_context_manifest": "app_core/infrastructure/forensics/evidence_store/CASE-20260716-075956/network/traffic_preserved/network_context_manifest.json",
+        "pipeline_events": "app_core/infrastructure/forensics/evidence_store/CASE-20260716-075956/metadata/pipeline_events.jsonl"
+      },
+      "warnings": [
+        "Only 3 of 8 expected causal edges were fully recovered. The result is useful for audit and degradation analysis, but it must not be presented as strong causal reconstruction.",
+        "Semantic reconstruction has not been generated.",
+        "At least one causal edge is temporally ambiguous under the preserved uncertainty window.",
+        "Temporal synchronization is not reliable. The preserved max clock offset is approximately 648.997s, which makes event ordering ambiguous for causal edges whose timestamps fall within the 650.997s uncertainty window.",
+        "Modbus traffic is observed, but register and value precision are not confirmed by packet-level parsing.",
+        "Modbus register and value precision (declared in ground truth as register=4, expected_value=30) is not confirmed by packet-level parsing; only the presence of Modbus traffic is verified here.",
+        "nested Level A scientific report did not complete successfully for this Level B case",
+        "Heavy generated case artifacts were cleaned after nested Level A reporting so the next Level B repetition could create a fresh case without accumulating heavy storage.",
+        "Post-delete free-space cleanup on fuxa/plc did not fully succeed; the next repetition will retry it before launching the next attack."
+      ],
+      "blockers": [
+        "Mandatory free-space cleanup failed before repetition 2; failed_roles=fuxa,plc."
+      ],
+      "post_report_case_cleanup": {
+        "status": "ok",
+        "action_type": "delete_case_directory",
+        "retention_manifest_path": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260707-000220-CBFB/level_B/EXEC-0029/retention_manifest.json",
+        "archive_target": null,
+        "lightweight_case_bundle_path": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260707-000220-CBFB/level_B/EXEC-0029/retained_case_lightweight_bundle/case-b5946a11",
+        "lightweight_case_bundle_manifest_path": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260707-000220-CBFB/level_B/EXEC-0029/retained_case_lightweight_bundle/case-b5946a11/lightweight_case_bundle_manifest.json"
+      },
+      "post_case_free_space_cleanup": {
+        "status": "failed",
+        "per_target": [
+          {
+            "status": "failed",
+            "reason": "node_not_found",
+            "instance_id": "d1bbce56-7648-4897-9031-ab726b333218",
+            "vm_ip": "10.0.2.236",
+            "attempts": [],
+            "role": "fuxa",
+            "vm_name": "FUXA_Instance",
+            "elapsed_seconds": 1.613
+          },
+          {
+            "status": "failed",
+            "reason": "node_not_found",
+            "instance_id": "6421af86-44f7-4433-83b2-116927d98b6c",
+            "vm_ip": "10.0.2.209",
+            "attempts": [],
+            "role": "plc",
+            "vm_name": "PLC_Instance",
+            "elapsed_seconds": 2.081
+          }
+        ],
+        "cleaned_roles": [],
+        "failed_roles": [
+          "fuxa",
+          "plc"
+        ]
+      },
+      "pre_next_repetition_cleanup": {
+        "status": "skipped",
+        "reason": "no_active_case_present"
+      },
+      "pre_next_repetition_node_cleanup": {
+        "status": "failed",
+        "per_target": [
+          {
+            "status": "failed",
+            "reason": "node_not_found",
+            "instance_id": "d1bbce56-7648-4897-9031-ab726b333218",
+            "vm_ip": "10.0.2.236",
+            "attempts": [],
+            "role": "fuxa",
+            "vm_name": "FUXA_Instance",
+            "elapsed_seconds": 1.951
+          },
+          {
+            "status": "failed",
+            "reason": "node_not_found",
+            "instance_id": "6421af86-44f7-4433-83b2-116927d98b6c",
+            "vm_ip": "10.0.2.209",
+            "attempts": [],
+            "role": "plc",
+            "vm_name": "PLC_Instance",
+            "elapsed_seconds": 1.638
+          }
+        ],
+        "cleaned_roles": [],
+        "failed_roles": [
+          "fuxa",
+          "plc"
+        ]
+      }
+    }
+  ],
+  "aggregate": {
+    "timing": {
+      "N_B": 1,
+      "deploy_time_mean_seconds": 0.0,
+      "deploy_time_std_seconds": 0.0,
+      "teardown_redeploy_time_mean_seconds": 0.0,
+      "teardown_redeploy_time_std_seconds": 0.0,
+      "alert_to_acquisition_start_mean_seconds": 590.708,
+      "alert_to_acquisition_start_std_seconds": 0.0,
+      "alert_to_memory_start_mean_seconds": 34.167,
+      "alert_to_memory_start_std_seconds": 0.0,
+      "alert_to_memory_preserved_mean_seconds": 591.123,
+      "alert_to_memory_preserved_std_seconds": 0.0,
+      "alert_to_ot_export_preserved_mean_seconds": 2819.708,
+      "alert_to_ot_export_preserved_std_seconds": 0.0,
+      "alert_to_disk_snapshot_start_mean_seconds": 2820.976,
+      "alert_to_disk_snapshot_start_std_seconds": 0.0,
+      "alert_to_disk_snapshot_preserved_mean_seconds": 3368.53,
+      "alert_to_disk_snapshot_preserved_std_seconds": 0.0,
+      "alert_to_case_sealed_mean_seconds": 3367.708,
+      "alert_to_case_sealed_std_seconds": 0.0,
+      "t_first_sealed_mean_seconds": 3367.708,
+      "t_first_sealed_std_seconds": 0.0,
+      "t_case_sealed_mean_seconds": 3367.708,
+      "t_case_sealed_std_seconds": 0.0,
+      "total_duration_mean_seconds": 5789.641,
+      "total_duration_std_seconds": 0.0,
+      "pcap_periodic_context_size_gib_mean": 7.514649,
+      "pcap_periodic_context_size_gib_std": 0.0,
+      "pcap_reactive_capture_size_bytes_mean": 0.0,
+      "pcap_reactive_capture_size_bytes_std": 0.0,
+      "memory_dump_size_bytes_mean": 8588285152.0,
+      "memory_dump_size_bytes_std": 0.0,
+      "disk_snapshot_size_bytes_mean": 75161927680.0,
+      "disk_snapshot_size_bytes_std": 0.0,
+      "retries_or_failures_count_mean": 0.0,
+      "retries_or_failures_count_std": 0.0,
+      "network_mode": "continuous_rolling_pcap_with_case_bound_incident_window_import"
+    },
+    "reconstruction": {
+      "expected_relations_total": 8,
+      "recovered_relations_total": 3,
+      "recoverability_mean": 0.375,
+      "recoverability_std": 0.0,
+      "weighted_recoverability_mean": 0.3562,
+      "weighted_recoverability_std": 0.0,
+      "degraded_relations_total": 0,
+      "ambiguous_relations_total": 5,
+      "missing_relations_total": 0
+    }
+  }
+}

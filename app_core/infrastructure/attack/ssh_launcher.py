@@ -103,6 +103,21 @@ class SSHTacticalManager:
             self.client.connect(host, username=user, key_filename=self.key_path, timeout=15)
 
             sftp = self.client.open_sftp()
+
+            # Ensure the SSH key is available on the attack node so scripts that
+            # SSH further to targets (e.g. multi_Attack_sim.sh → PLC) can auth.
+            remote_ssh_dir = f"/home/{user}/.ssh"
+            remote_key_path = f"{remote_ssh_dir}/my_key"
+            try:
+                sftp.mkdir(remote_ssh_dir)
+            except OSError:
+                pass  # already exists
+            try:
+                sftp.put(self.key_path, remote_key_path)
+                sftp.chmod(remote_key_path, 0o600)
+            except Exception as key_err:
+                yield f"data: [WARN] Could not upload SSH key to attack node: {key_err}\n\n"
+
             remote_path = f"/tmp/exec_{int(time.time())}.sh"
             sftp.put(local_script_path, remote_path)
             sftp.chmod(remote_path, 0o755)

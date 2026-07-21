@@ -237,6 +237,7 @@ echo "[1/1] 🚀 Ejecutando instalación Zeek"
 echo ""
 
 export ANSIBLE_HOST_KEY_CHECKING=False
+export ANSIBLE_BECOME_TIMEOUT=60
 export ANSIBLE_STDOUT_CALLBACK=yaml
 
 if ansible-playbook \

@@ -1,0 +1,267 @@
+{
+  "generated_at": "2026-07-20T03:27:52.806957+00:00",
+  "campaign_id": "CMP-20260720-032752-6C09",
+  "execution_id": "EXEC-0001",
+  "generated_execution_ids": [
+    "EXEC-0001"
+  ],
+  "case_id": "case-5a1166af",
+  "claims": [
+    {
+      "claim_id": "CLAIM-LEVELA-SCOPE-READONLY",
+      "claim": "This report is a Level A reanalysis of the same preserved case and does not represent a new attack, new scenario execution, or new heavy preservation event.",
+      "status": "supported",
+      "source_files": [
+        {
+          "path": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-032752-6C09/level_A/EXEC-0001/forensic_comparison_profile.json",
+          "hash": "82ccee762288017527f51c57fd3d65079d1f6ee1f55628c4cce235f7c022286c",
+          "fields_used": [
+            "level",
+            "source_case_id"
+          ],
+          "role": "primary"
+        },
+        {
+          "path": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-032752-6C09/level_A/EXEC-0001/analysis_repeatability_profile.json",
+          "hash": "2afdf80023fd096dca00ef2d2df95e66f3dec341b554dec3c138efad5b84d408",
+          "fields_used": [
+            "base_case_id",
+            "analysis_profile",
+            "FOC_profile"
+          ],
+          "role": "supporting"
+        }
+      ],
+      "confidence": "strong",
+      "limitations": []
+    },
+    {
+      "claim_id": "CLAIM-LEVELA-MULTILAYER-COMPLETED",
+      "claim": "The preserved case has complete multilayer analytical coverage with useful outputs across the expected layers.",
+      "status": "partial",
+      "source_files": [
+        {
+          "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260720-023550/derived/executive/evidence_lifecycle_summary.json",
+          "hash": "ecb5ee7475685356f9723550f54300e679bebaeee653cab9c1be77b5d18eb09f",
+          "fields_used": [
+            "multilayer_analysis_summary.execution_status",
+            "multilayer_analysis_summary.layers_completed",
+            "multilayer_analysis_summary.layers_with_useful_output"
+          ],
+          "role": "primary"
+        },
+        {
+          "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260720-023550/analysis/forensic_analysis_report.json",
+          "hash": "47072184a5644237f004ccf834946cf6e32fccf46981cfcb5b91edde4b0f53bb",
+          "fields_used": [
+            "analysis_status",
+            "phases"
+          ],
+          "role": "supporting"
+        }
+      ],
+      "confidence": "moderate",
+      "limitations": [
+        "Integrity or custody validation remains partial."
+      ]
+    },
+    {
+      "claim_id": "CLAIM-LEVELA-NETWORK-MODBUS",
+      "claim": "Network evidence confirms Modbus/TCP activity, but the current extraction layer does not fully prove packet-level register and value precision.",
+      "status": "partial",
+      "source_files": [
+        {
+          "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260720-023550/analysis/03_network/network_findings.json",
+          "hash": "8db67cacc5b2484253a3b54141fa2f47d9018bfc984e1fe177c280c14139ff2d",
+          "fields_used": [
+            "findings.files",
+            "limitations"
+          ],
+          "role": "primary"
+        },
+        {
+          "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260720-023550/derived/executive/evidence_lifecycle_summary.json",
+          "hash": "ecb5ee7475685356f9723550f54300e679bebaeee653cab9c1be77b5d18eb09f",
+          "fields_used": [
+            "causal_summary.modbus_specificity"
+          ],
+          "role": "supporting"
+        }
+      ],
+      "confidence": "moderate",
+      "limitations": [
+        "Modbus traffic is observed, but register and value precision are not confirmed by packet-level parsing."
+      ]
+    },
+    {
+      "claim_id": "CLAIM-LEVELA-MEMORY-COMPLETED",
+      "claim": "Memory analysis completed successfully and produced reusable Volatility-based outputs for all preserved dumps included in this case.",
+      "status": "supported",
+      "source_files": [
+        {
+          "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260720-023550/analysis/04_memory/memory_findings.json",
+          "hash": "6e0d99c815cfe06ffe8c00547c048d4764a0fbd7411ce360462b88faf0244e67",
+          "fields_used": [
+            "findings.results",
+            "status"
+          ],
+          "role": "primary"
+        },
+        {
+          "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260720-023550/analysis/forensic_analysis_report.json",
+          "hash": "47072184a5644237f004ccf834946cf6e32fccf46981cfcb5b91edde4b0f53bb",
+          "fields_used": [
+            "phases"
+          ],
+          "role": "supporting"
+        }
+      ],
+      "confidence": "strong",
+      "limitations": []
+    },
+    {
+      "claim_id": "CLAIM-LEVELA-TRIGGER-LIMITATION",
+      "claim": "The operational acquisition trigger is not a complete causal proof of the OT incident path and must be interpreted separately from OT causal evidence.",
+      "status": "partial",
+      "source_files": [
+        {
+          "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260720-023550/derived/executive/evidence_lifecycle_summary.json",
+          "hash": "ecb5ee7475685356f9723550f54300e679bebaeee653cab9c1be77b5d18eb09f",
+          "fields_used": [
+            "trigger_summary.trigger",
+            "trigger_summary.trigger_selection_method",
+            "causal_summary.trigger_vs_causal_path"
+          ],
+          "role": "primary"
+        },
+        {
+          "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260720-023550/derived/evidence_support/hypothesis_support_report.json",
+          "hash": "f4096d165e6a7aa59a9136a9a205f3318820c12791f5390287e5c83604efcdfe",
+          "fields_used": [
+            "limitations"
+          ],
+          "role": "supporting"
+        }
+      ],
+      "confidence": "moderate",
+      "limitations": [
+        "Selected trigger: ALERTA: Ping Detectado",
+        "Trigger selection method: scoped_target_window"
+      ]
+    },
+    {
+      "claim_id": "CLAIM-LEVELA-ALERT-INTERVENTION-PRESERVATION-CHAIN",
+      "claim": "The alert-to-intervention-to-preservation chain is not fully proven by the preserved artifacts in this case.",
+      "status": "partial",
+      "source_files": [
+        {
+          "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260720-023550/derived/reconstruction/causal_graph.json",
+          "hash": "c90b9afc6edd58881cd219a67e35d66f41ae32ab1d4ff2a462ed1a23a9f044e1",
+          "fields_used": [
+            "edges"
+          ],
+          "role": "primary"
+        },
+        {
+          "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260720-023550/manifest.json",
+          "hash": "5334896adb1f185da6c1f3e4e4f92f0f448d66525005798969f03c10a3e874da",
+          "fields_used": [
+            "artifacts"
+          ],
+          "role": "supporting"
+        },
+        {
+          "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260720-023550/chain_of_custody.log",
+          "hash": "0d1d29ec95b0a9bc8ea650147d9997efc11a66be7adac8b37a7ff05e2c109780",
+          "fields_used": [],
+          "role": "supporting"
+        }
+      ],
+      "confidence": "limited",
+      "limitations": [
+        "edge_alert_observation_to_forensic_case is missing",
+        "edge_forensic_case_to_preserved_case_evidence is missing"
+      ]
+    },
+    {
+      "claim_id": "CLAIM-LEVELA-CAUSAL-PARTIAL",
+      "claim": "The causal reconstruction is partial rather than complete: some expected causal relations were recovered, some remain degraded, and some remain missing.",
+      "status": "partial",
+      "source_files": [
+        {
+          "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260720-023550/derived/reconstruction/reconstruction_metrics.json",
+          "hash": "d856faca476acd6907f5f6591df3bb520c44129d5efcf6c4b5310675cb55794e",
+          "fields_used": [
+            "expected_edges",
+            "recovered_edges",
+            "degraded_edges",
+            "missing_edges",
+            "cpr",
+            "weighted_cpr"
+          ],
+          "role": "primary"
+        },
+        {
+          "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260720-023550/derived/executive/evidence_lifecycle_summary.json",
+          "hash": "ecb5ee7475685356f9723550f54300e679bebaeee653cab9c1be77b5d18eb09f",
+          "fields_used": [
+            "causal_summary.main_limitation",
+            "causal_summary.why_expected_relations"
+          ],
+          "role": "supporting"
+        }
+      ],
+      "confidence": "moderate",
+      "limitations": [
+        "At least one causal edge is temporally ambiguous under the preserved uncertainty window."
+      ]
+    },
+    {
+      "claim_id": "CLAIM-LEVELA-HYPOTHESIS-MODERATE",
+      "claim": "The reconstructed incident hypothesis currently receives moderate support, not absolute causality.",
+      "status": "partial",
+      "source_files": [
+        {
+          "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260720-023550/derived/evidence_support/hypothesis_support_report.json",
+          "hash": "f4096d165e6a7aa59a9136a9a205f3318820c12791f5390287e5c83604efcdfe",
+          "fields_used": [
+            "global_support_level",
+            "final_claimability_status",
+            "relations"
+          ],
+          "role": "primary"
+        },
+        {
+          "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260720-023550/derived/executive/evidence_lifecycle_summary.json",
+          "hash": "ecb5ee7475685356f9723550f54300e679bebaeee653cab9c1be77b5d18eb09f",
+          "fields_used": [
+            "final_forensic_conclusion"
+          ],
+          "role": "supporting"
+        }
+      ],
+      "confidence": "moderate",
+      "limitations": [
+        "the hypothesis can receive moderate support, not absolute causality."
+      ]
+    },
+    {
+      "claim_id": "CLAIM-LEVELA-CPR-STABLE",
+      "claim": "This Level A repetition can be compared with previous Level A executions using CPR and Weighted CPR drift metrics derived from the generated comparison profiles.",
+      "status": "unsupported",
+      "source_files": [
+        {
+          "path": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-032752-6C09/level_A/EXEC-0001/forensic_comparison_profile.json",
+          "hash": "82ccee762288017527f51c57fd3d65079d1f6ee1f55628c4cce235f7c022286c",
+          "fields_used": [
+            "causal_reconstruction.cpr",
+            "causal_reconstruction.weighted_cpr"
+          ],
+          "role": "supporting"
+        }
+      ],
+      "confidence": "moderate",
+      "limitations": []
+    }
+  ]
+}

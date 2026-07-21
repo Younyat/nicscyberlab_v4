@@ -1,20 +1,26 @@
 {
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
-  "generated_at": "2026-07-07T23:39:58.195205+00:00",
+  "generated_at": "2026-07-21T09:19:35.359427+00:00",
   "base_scenario_path": "scenario/scenario_file.json",
   "nodes": [
     {
       "id": "node1",
-      "name": "monitor 1",
+      "name": "monitor 11",
       "type": "monitor",
-      "industrial": false,
-      "installed": true,
-      "installable": false,
-      "linked_to": null,
       "position": {
         "x": 719,
         "y": 124
+      },
+      "properties": {
+        "os": "ubuntu-22.04",
+        "ip": "192.168.1.101",
+        "network": "net_private_01",
+        "subnet": "subnet_net_private_01",
+        "flavor": "M_4CPU_8GB",
+        "image": "ubuntu-22.04",
+        "security_group": "sg_basic",
+        "keypair": "my_key"
       },
       "node_id": "node-4e09b076",
       "source_node_id": "node1",
@@ -22,15 +28,21 @@
     },
     {
       "id": "node2",
-      "name": "attack 2",
+      "name": "attack 22",
       "type": "attack",
-      "industrial": false,
-      "installed": true,
-      "installable": false,
-      "linked_to": null,
       "position": {
         "x": 1025,
         "y": 306
+      },
+      "properties": {
+        "os": "debian-12",
+        "ip": "192.168.1.102",
+        "network": "net_private_01",
+        "subnet": "subnet_net_private_01",
+        "flavor": "T_1CPU_2GB",
+        "image": "debian-12",
+        "security_group": "sg_basic",
+        "keypair": "my_key"
       },
       "node_id": "node-45d20749",
       "source_node_id": "node2",
@@ -38,61 +50,56 @@
     },
     {
       "id": "node3",
-      "name": "victim 3",
+      "name": "victim 33",
       "type": "victim",
-      "industrial": false,
-      "installed": true,
-      "installable": false,
-      "linked_to": null,
       "position": {
         "x": 960,
         "y": 146
+      },
+      "properties": {
+        "os": "debian-12",
+        "ip": "192.168.1.103",
+        "network": "net_private_01",
+        "subnet": "subnet_net_private_01",
+        "flavor": "S_2CPU_4GB",
+        "image": "debian-12",
+        "security_group": "sg_basic",
+        "keypair": "my_key"
       },
       "node_id": "node-c800d431",
       "source_node_id": "node3",
       "id_origin": "derived_from_existing_id"
     },
     {
-      "id": "plc_1767533920429",
-      "name": "PLC",
+      "id": "plc1",
+      "name": "PLC_Instance",
       "type": "industrial_plc",
-      "industrial": true,
-      "installed": false,
-      "installable": true,
-      "linked_to": "node3",
       "position": {
-        "x": 1080,
-        "y": 266
+        "x": 1200,
+        "y": 280
       },
-      "node_id": "node-f9ca9bfc",
-      "source_node_id": "plc_1767533920429",
+      "ip_floating": "10.0.2.126",
+      "ip_private": "192.168.100.165",
+      "node_id": "node-53087541",
+      "source_node_id": "plc1",
       "id_origin": "derived_from_existing_id"
     },
     {
-      "id": "scada_1767534004810",
-      "name": "SCADA",
+      "id": "scada1",
+      "name": "FUXA_Instance",
       "type": "industrial_scada",
-      "industrial": true,
-      "installed": false,
-      "installable": true,
-      "linked_to": "node3",
       "position": {
-        "x": 1083.7,
-        "y": 156.58571428571426
+        "x": 1200,
+        "y": 160
       },
-      "node_id": "node-e1ac03b8",
-      "source_node_id": "scada_1767534004810",
+      "ip_floating": "10.0.2.93",
+      "ip_private": "192.168.100.102",
+      "node_id": "node-f400bb36",
+      "source_node_id": "scada1",
       "id_origin": "derived_from_existing_id"
     }
   ],
   "edges": [
-    {
-      "id": "edge_node3_plc_1767533920429",
-      "source": "node3",
-      "target": "plc_1767533920429",
-      "source_node_id": "node-c800d431",
-      "target_node_id": "node-f9ca9bfc"
-    },
     {
       "id": "edge_node1_node3",
       "source": "node1",
@@ -115,25 +122,73 @@
       "target_node_id": "node-c800d431"
     },
     {
-      "id": "edge_node3_scada_1767534004810",
+      "id": "edge_node1_plc1",
+      "source": "node1",
+      "target": "plc1",
+      "source_node_id": "node-4e09b076",
+      "target_node_id": "node-53087541"
+    },
+    {
+      "id": "edge_node2_plc1",
+      "source": "node2",
+      "target": "plc1",
+      "source_node_id": "node-45d20749",
+      "target_node_id": "node-53087541"
+    },
+    {
+      "id": "edge_node3_plc1",
       "source": "node3",
-      "target": "scada_1767534004810",
+      "target": "plc1",
       "source_node_id": "node-c800d431",
-      "target_node_id": "node-e1ac03b8"
+      "target_node_id": "node-53087541"
+    },
+    {
+      "id": "edge_node1_scada1",
+      "source": "node1",
+      "target": "scada1",
+      "source_node_id": "node-4e09b076",
+      "target_node_id": "node-f400bb36"
+    },
+    {
+      "id": "edge_node2_scada1",
+      "source": "node2",
+      "target": "scada1",
+      "source_node_id": "node-45d20749",
+      "target_node_id": "node-f400bb36"
+    },
+    {
+      "id": "edge_node3_scada1",
+      "source": "node3",
+      "target": "scada1",
+      "source_node_id": "node-c800d431",
+      "target_node_id": "node-f400bb36"
+    },
+    {
+      "id": "edge_plc1_scada1",
+      "source": "plc1",
+      "target": "scada1",
+      "source_node_id": "node-53087541",
+      "target_node_id": "node-f400bb36"
     }
   ],
   "it_nodes": [
     {
       "id": "node1",
-      "name": "monitor 1",
+      "name": "monitor 11",
       "type": "monitor",
-      "industrial": false,
-      "installed": true,
-      "installable": false,
-      "linked_to": null,
       "position": {
         "x": 719,
         "y": 124
+      },
+      "properties": {
+        "os": "ubuntu-22.04",
+        "ip": "192.168.1.101",
+        "network": "net_private_01",
+        "subnet": "subnet_net_private_01",
+        "flavor": "M_4CPU_8GB",
+        "image": "ubuntu-22.04",
+        "security_group": "sg_basic",
+        "keypair": "my_key"
       },
       "node_id": "node-4e09b076",
       "source_node_id": "node1",
@@ -141,15 +196,21 @@
     },
     {
       "id": "node2",
-      "name": "attack 2",
+      "name": "attack 22",
       "type": "attack",
-      "industrial": false,
-      "installed": true,
-      "installable": false,
-      "linked_to": null,
       "position": {
         "x": 1025,
         "y": 306
+      },
+      "properties": {
+        "os": "debian-12",
+        "ip": "192.168.1.102",
+        "network": "net_private_01",
+        "subnet": "subnet_net_private_01",
+        "flavor": "T_1CPU_2GB",
+        "image": "debian-12",
+        "security_group": "sg_basic",
+        "keypair": "my_key"
       },
       "node_id": "node-45d20749",
       "source_node_id": "node2",
@@ -157,55 +218,56 @@
     },
     {
       "id": "node3",
-      "name": "victim 3",
+      "name": "victim 33",
       "type": "victim",
-      "industrial": false,
-      "installed": true,
-      "installable": false,
-      "linked_to": null,
       "position": {
         "x": 960,
         "y": 146
       },
+      "properties": {
+        "os": "debian-12",
+        "ip": "192.168.1.103",
+        "network": "net_private_01",
+        "subnet": "subnet_net_private_01",
+        "flavor": "S_2CPU_4GB",
+        "image": "debian-12",
+        "security_group": "sg_basic",
+        "keypair": "my_key"
+      },
       "node_id": "node-c800d431",
       "source_node_id": "node3",
       "id_origin": "derived_from_existing_id"
-    }
-  ],
-  "ot_nodes": [
+    },
     {
-      "id": "plc_1767533920429",
-      "name": "PLC",
+      "id": "plc1",
+      "name": "PLC_Instance",
       "type": "industrial_plc",
-      "industrial": true,
-      "installed": false,
-      "installable": true,
-      "linked_to": "node3",
       "position": {
-        "x": 1080,
-        "y": 266
+        "x": 1200,
+        "y": 280
       },
-      "node_id": "node-f9ca9bfc",
-      "source_node_id": "plc_1767533920429",
+      "ip_floating": "10.0.2.126",
+      "ip_private": "192.168.100.165",
+      "node_id": "node-53087541",
+      "source_node_id": "plc1",
       "id_origin": "derived_from_existing_id"
     },
     {
-      "id": "scada_1767534004810",
-      "name": "SCADA",
+      "id": "scada1",
+      "name": "FUXA_Instance",
       "type": "industrial_scada",
-      "industrial": true,
-      "installed": false,
-      "installable": true,
-      "linked_to": "node3",
       "position": {
-        "x": 1083.7,
-        "y": 156.58571428571426
+        "x": 1200,
+        "y": 160
       },
-      "node_id": "node-e1ac03b8",
-      "source_node_id": "scada_1767534004810",
+      "ip_floating": "10.0.2.93",
+      "ip_private": "192.168.100.102",
+      "node_id": "node-f400bb36",
+      "source_node_id": "scada1",
       "id_origin": "derived_from_existing_id"
     }
   ],
+  "ot_nodes": [],
   "node_roles": [
     "attack",
     "industrial_plc",
@@ -226,7 +288,7 @@
       "ip": "192.168.1.101",
       "network": "net_private_01",
       "subnet": "subnet_net_private_01",
-      "flavor": "S_2CPU_4GB",
+      "flavor": "M_4CPU_8GB",
       "image": "ubuntu-22.04",
       "security_group": "sg_basic",
       "keypair": "my_key"
@@ -246,102 +308,56 @@
       "ip": "192.168.1.103",
       "network": "net_private_01",
       "subnet": "subnet_net_private_01",
-      "flavor": "T_1CPU_2GB",
+      "flavor": "S_2CPU_4GB",
       "image": "debian-12",
       "security_group": "sg_basic",
       "keypair": "my_key"
     }
   },
-  "ot_extensions": [
-    {
-      "id": "plc_1767533920429",
-      "name": "PLC",
-      "type": "industrial_plc",
-      "industrial": true,
-      "installed": false,
-      "installable": true,
-      "linked_to": "node3",
-      "position": {
-        "x": 1080,
-        "y": 266
-      },
-      "node_id": "node-f9ca9bfc",
-      "source_node_id": "plc_1767533920429",
-      "id_origin": "derived_from_existing_id"
-    },
-    {
-      "id": "scada_1767534004810",
-      "name": "SCADA",
-      "type": "industrial_scada",
-      "industrial": true,
-      "installed": false,
-      "installable": true,
-      "linked_to": "node3",
-      "position": {
-        "x": 1083.7,
-        "y": 156.58571428571426
-      },
-      "node_id": "node-e1ac03b8",
-      "source_node_id": "scada_1767534004810",
-      "id_origin": "derived_from_existing_id"
-    }
-  ],
-  "industrial_linkages": [
-    {
-      "ot_node_id": "node-f9ca9bfc",
-      "ot_node_name": "PLC",
-      "linked_to": "node-c800d431",
-      "relationship_status": "confirmed"
-    },
-    {
-      "ot_node_id": "node-e1ac03b8",
-      "ot_node_name": "SCADA",
-      "linked_to": "node-c800d431",
-      "relationship_status": "confirmed"
-    }
-  ],
+  "ot_extensions": [],
+  "industrial_linkages": [],
   "node_instance_bindings": [
     {
       "node_id": "node-4e09b076",
-      "node_name": "monitor 1",
-      "instance_id": "inst-995d7668",
-      "openstack_instance_id": "995d7668-24d6-4d21-92fe-83fdf61cdc05",
-      "instance_name": "monitor 1",
+      "node_name": "monitor 11",
+      "instance_id": "inst-fcca2542",
+      "openstack_instance_id": "fcca2542-66ea-4640-b7c1-1a34f2794921",
+      "instance_name": "monitor 11",
       "id_origin": "derived_from_existing_id",
       "status": "bound"
     },
     {
       "node_id": "node-45d20749",
-      "node_name": "attack 2",
-      "instance_id": "inst-fd472bac",
-      "openstack_instance_id": "fd472bac-f010-4bf9-9a15-89e95998f4f1",
-      "instance_name": "attack 2",
+      "node_name": "attack 22",
+      "instance_id": "inst-d993d57b",
+      "openstack_instance_id": "d993d57b-1fc9-4e8c-ae73-4194d62969c5",
+      "instance_name": "attack 22",
       "id_origin": "derived_from_existing_id",
       "status": "bound"
     },
     {
       "node_id": "node-c800d431",
-      "node_name": "victim 3",
-      "instance_id": "inst-16583180",
-      "openstack_instance_id": "16583180-627d-4c40-bd65-aa9db704d75c",
-      "instance_name": "victim 3",
+      "node_name": "victim 33",
+      "instance_id": "inst-ea7d32b2",
+      "openstack_instance_id": "ea7d32b2-653b-4573-93b7-a0bef8cad241",
+      "instance_name": "victim 33",
       "id_origin": "derived_from_existing_id",
       "status": "bound"
     },
     {
-      "node_id": "node-f9ca9bfc",
-      "node_name": "PLC",
-      "instance_id": "inst-8c0c86c9",
-      "openstack_instance_id": "8c0c86c9-2c69-424b-9080-f6c07d798787",
+      "node_id": "node-53087541",
+      "node_name": "PLC_Instance",
+      "instance_id": "inst-f8e92e0a",
+      "openstack_instance_id": "f8e92e0a-3031-400e-b181-0cad5bc675c5",
       "instance_name": "PLC_Instance",
       "id_origin": "derived_from_existing_id",
       "status": "bound"
     },
     {
-      "node_id": "node-e1ac03b8",
-      "node_name": "SCADA",
-      "instance_id": "inst-a495cfe7",
-      "openstack_instance_id": "a495cfe7-b55b-41d0-95bf-78f9093f7fe2",
+      "node_id": "node-f400bb36",
+      "node_name": "FUXA_Instance",
+      "instance_id": "inst-d81230d9",
+      "openstack_instance_id": "d81230d9-ec8e-4815-8dd1-5280fe790f67",
       "instance_name": "FUXA_Instance",
       "id_origin": "derived_from_existing_id",
       "status": "bound"
@@ -352,7 +368,10 @@
       "plc": {
         "instance": {
           "status": "created",
-          "ip_floating": "10.0.2.22",
+          "instance_id": "1ed20558-9c61-4e7e-9674-0c341ce1a4e2",
+          "name": "PLC_Instance",
+          "ip_floating": "10.0.2.126",
+          "ip_private": "192.168.100.165",
           "last_error": null
         },
         "tool": {
@@ -364,7 +383,10 @@
       "scada": {
         "instance": {
           "status": "created",
-          "ip_floating": "10.0.2.9",
+          "instance_id": "3cd1aa26-0bec-4b89-b7d6-c2d73c3532be",
+          "name": "FUXA_Instance",
+          "ip_floating": "10.0.2.93",
+          "ip_private": "192.168.100.102",
           "last_error": null
         },
         "tool": {
@@ -376,16 +398,18 @@
     },
     "industrial_deployment": {
       "plc_instance": {
-        "exists": true,
-        "name": "plc-1",
-        "ip": null,
-        "openplc_installed": false
+        "state": "created",
+        "instance_id": "1ed20558-9c61-4e7e-9674-0c341ce1a4e2",
+        "name": "PLC_Instance",
+        "ip_floating": "10.0.2.126",
+        "ip_private": "192.168.100.165"
       },
       "scada_instance": {
-        "exists": true,
-        "name": "scada-1",
-        "ip": null,
-        "fuxa_installed": false
+        "state": "created",
+        "instance_id": "3cd1aa26-0bec-4b89-b7d6-c2d73c3532be",
+        "name": "FUXA_Instance",
+        "ip_floating": "10.0.2.93",
+        "ip_private": "192.168.100.102"
       }
     }
   },

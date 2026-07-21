@@ -1,0 +1,39 @@
+{
+  "job_id": "fip-cleanup-13d91076a226",
+  "status": "completed",
+  "triggered_by": "manual",
+  "started_at": "2026-07-20T08:13:15.922337Z",
+  "updated_at": "2026-07-20T08:13:17.084024Z",
+  "finished_at": "2026-07-20T08:13:17.084024Z",
+  "duration_seconds": 1.16,
+  "target_pct": 65.0,
+  "before": {
+    "quota_limit": 50,
+    "allocated_total": 17,
+    "attached_count": 12,
+    "unattached_count": 5,
+    "available_pct": 66.0
+  },
+  "after": {
+    "quota_limit": 50,
+    "allocated_total": 16,
+    "attached_count": 12,
+    "unattached_count": 4,
+    "available_pct": 68.0
+  },
+  "released": [
+    {
+      "id": "d4203cb7-aafc-4aeb-8f34-7fb9c6b716b9",
+      "floating_ip_address": "10.0.2.220",
+      "fixed_ip_address": null,
+      "status": "DOWN",
+      "port_id": null,
+      "attached": false,
+      "description": null
+    }
+  ],
+  "released_count": 1,
+  "skipped_attached_count": 12,
+  "per_ip_errors": [],
+  "error": null
+}

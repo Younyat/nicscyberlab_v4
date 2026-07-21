@@ -247,11 +247,17 @@ def _wait_for_child_dry_run_job(
     requested_repetitions: int,
     case_id: str,
     report_output_path: str,
-    timeout_seconds: int = 2700,
 ) -> dict:
-    started = time.time()
+    """Wait for a nested dry-run execution job — heartbeat-driven, no fixed
+    deadline (2026-07-17, same reasoning as level_b_repetition_runner's
+    _wait_for_child_job: a full FOC + causal reconstruction pass over a large
+    preserved case can legitimately run long, and a blind clock here used to
+    discard a real, still-progressing repetition's data). If the child's
+    thread genuinely dies, job_runner.get_job()'s own orphan watchdog already
+    flips it to 'failed' the next time it's read below.
+    """
     while True:
-        if job_cancel_requested(parent_job_id):
+        if job_cancel_requested(parent_job_id, parent_job_path):
             request_cancel(child_job_id)
             raise JobCancelled("level_a_report_cancelled")
         child = get_job(child_job_id) or {}
@@ -276,15 +282,6 @@ def _wait_for_child_dry_run_job(
         status = str(child.get("status") or "").lower()
         if status in {"completed", "completed_with_degradation", "completed_with_failures", "failed", "cancelled", "stopped"}:
             return child
-        if time.time() - started > timeout_seconds:
-            request_cancel(child_job_id)
-            return {
-                "job_id": child_job_id,
-                "status": "failed",
-                "current_phase_label": "Timed out",
-                "current_phase_detail": f"Dry-run repetition {repetition_index}/{requested_repetitions} exceeded the allowed timeout and was cancelled.",
-                "errors": [{"message": "dry_run_repetition_timeout"}],
-            }
         time.sleep(2.5)
 
 
@@ -1325,6 +1322,67 @@ def _run_level_a_report_job(job_id: str, job_path: Path, campaign_id: str) -> No
         report_metadata_path=metadata["report_output_path"] + "/report_metadata.json",
         level_a_report=metadata,
     )
+
+
+def find_active_level_a_job() -> dict | None:
+    """Scan every campaign's jobs/ directory on disk for a Level A scientific
+    report job that hasn't reached a terminal status yet.
+
+    Mirrors level_b_repetition_runner.find_active_level_b_job() exactly, for
+    the same reason: a job's background thread runs inside whichever
+    gunicorn worker started it and is invisible to job_runner.list_jobs() in
+    every other worker's own process memory, so this reads the persisted job
+    JSON files directly instead. Used by
+    level_c_orchestrator.get_live_campaign_summary() to detect a Level A
+    report launched standalone (not nested inside an active Level B
+    repetition, which already surfaces its own live state a different way)
+    so the old Live Campaign Status panel doesn't go blind for that case
+    either — see that module's README, 2026-07-19.
+    """
+    from .config import CAMPAIGNS_ROOT
+    if not CAMPAIGNS_ROOT.is_dir():
+        return None
+    candidates: list[tuple[float, dict]] = []
+    for job_file in CAMPAIGNS_ROOT.glob("*/jobs/*.json"):
+        try:
+            payload = json.loads(job_file.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if payload.get("job_type") != "level_a_scientific_report":
+            continue
+        if str(payload.get("status") or "").lower() != "running":
+            continue
+        candidates.append((job_file.stat().st_mtime, payload))
+    if not candidates:
+        return None
+    candidates.sort(key=lambda item: item[0], reverse=True)
+    # Re-validate through get_job() before trusting the raw file's status --
+    # a job whose thread died before job_runner's heartbeat/orphan-recovery
+    # fix landed (or was simply never read since) can sit at status="running"
+    # on disk forever with nothing to lazily correct it. Confirmed live
+    # 2026-07-19: a job from 2026-07-16 (updated_at: None -- predates that
+    # fix) was still reported as "the active Level A job" three days later
+    # by a raw-file-only version of this function. get_job() is now safe to
+    # call here (its own cross-worker caching bug was fixed the same day,
+    # see job_runner.py) and will correct a dead ghost to its real terminal
+    # status on this exact call instead of leaving it stuck.
+    for _, payload in candidates:
+        job_id = payload.get("job_id")
+        revalidated = get_job(job_id) if job_id else None
+        current = revalidated if revalidated else payload
+        if str(current.get("status") or "").lower() != "running":
+            continue
+        return {
+            "job_id": current.get("job_id") or job_id,
+            "campaign_id": (current.get("meta") or payload.get("meta") or {}).get("campaign_id"),
+            "status": current.get("status"),
+            "current_phase": current.get("current_phase"),
+            "current_phase_label": current.get("current_phase_label"),
+            "current_phase_detail": current.get("current_phase_detail"),
+            "started_at": current.get("started_at") or current.get("requested_at"),
+            "current_case_id": current.get("current_case_id"),
+        }
+    return None
 
 
 def start_level_a_scientific_report_job(campaign_id: str) -> dict:

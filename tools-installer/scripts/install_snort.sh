@@ -120,6 +120,7 @@ echo "===================================================="
 echo " REINTENTANDO COMPILACION CON PCRE2"
 echo "===================================================="
 export ANSIBLE_HOST_KEY_CHECKING=False
+export ANSIBLE_BECOME_TIMEOUT=60
 
 if ansible-playbook -i "$BASE_DIR/hosts.ini" "$BASE_DIR/snort-install.yml"; then
     echo "----------------------------------------------------"

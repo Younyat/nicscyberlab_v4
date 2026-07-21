@@ -252,6 +252,20 @@
     return ["queued", "running"].includes(String(status || "").toLowerCase());
   }
 
+  function formatElapsedDuration(startedAtIso, finishedAtIso) {
+    if (!startedAtIso) return "not_available";
+    const started = new Date(startedAtIso);
+    if (Number.isNaN(started.getTime())) return "not_available";
+    const end = finishedAtIso ? new Date(finishedAtIso) : new Date();
+    const seconds = Math.max(0, Math.round((end.getTime() - started.getTime()) / 1000));
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    if (hours > 0) return `${hours}h ${minutes}m ${secs}s`;
+    if (minutes > 0) return `${minutes}m ${secs}s`;
+    return `${secs}s`;
+  }
+
   function isLevelAReportJob(payload) {
     return String(payload?.job_type || "").toLowerCase() === "level_a_scientific_report";
   }
@@ -435,7 +449,13 @@
       display.current_phase = analysisActive ? String(analysis.current_phase || "run_multilayer_analysis") : (lifecycle?.current_phase || payload.current_phase || "running");
       display.current_phase_label = `Run Full Evidence Lifecycle · ${livePhaseLabel}`;
       display.current_phase_detail = livePhaseDetail;
-      display.progress_percent = mapLifecycleProgressToWrapper(lifecycle?.progress_percent) ?? mapAnalysisProgressToLifecycle(analysis?.progress_percent) ?? payload.progress_percent;
+      // Both mappers clamp into the same [74, 88] "nested phase" band on the outer
+      // wrapper's progress bar. Falling back to the raw payload.progress_percent
+      // here was wrong: that's the OUTER job's own last phase progress (any
+      // value 0-100), not scaled to this nested band, so the displayed percent
+      // would jump erratically between e.g. 20% and 80% depending on which of
+      // lifecycle/analysis happened to report a number on a given poll.
+      display.progress_percent = mapLifecycleProgressToWrapper(lifecycle?.progress_percent) ?? mapAnalysisProgressToLifecycle(analysis?.progress_percent) ?? 74;
       if (isTerminalJobStatus(payload.status)) {
         display.live_recovery_note = "The experimentation wrapper reached a terminal state, but the underlying lifecycle or multilayer analysis is still active. Live child progress is shown below until the scientific backend really finishes.";
       }
@@ -2379,10 +2399,11 @@
     const blockers = (payload.errors || []).map((item) => item?.message || JSON.stringify(item));
     const terminalLog = levelBTerminalLines(payload, phaseStatuses, nestedTrace);
     statusBadge.textContent = titleCaseStatus(payload.status || phaseStatus || "running");
+    const elapsed = formatElapsedDuration(payload.started_at || payload.requested_at, payload.finished_at);
     body.innerHTML = `
       <div class="space-y-4 text-sm text-slate-900">
         <div class="rounded-2xl border border-slate-900/10 bg-white px-4 py-3 font-mono text-[11px] text-slate-700">
-          job=${esc(payload.job_id || "not_available")} | repetition=${esc(payload.current_repetition || 0)}/${esc(payload.requested_repetitions || payload.meta?.requested_repetitions || 0)} | case=${esc(payload.current_case_id || "not_available")} | execution=${esc(payload.current_execution_id || "not_available")} | progress=${esc(payload.progress_percent ?? "not_available")}${payload.progress_percent != null ? "%" : ""}
+          job=${esc(payload.job_id || "not_available")} | repetition=${esc(payload.current_repetition || 0)}/${esc(payload.requested_repetitions || payload.meta?.requested_repetitions || 0)} | case=${esc(payload.current_case_id || "not_available")} | execution=${esc(payload.current_execution_id || "not_available")} | progress=${esc(payload.progress_percent ?? "not_available")}${payload.progress_percent != null ? "%" : ""} | elapsed=${esc(elapsed)}
         </div>
         <div class="rounded-2xl border border-slate-900/10 bg-black shadow-[inset_0_0_0_1px_rgba(16,185,129,0.10)]">
           <div class="border-b border-slate-800/80 px-4 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-300">Live Preservation Console</div>
@@ -2396,6 +2417,7 @@
           <div class="rounded-2xl border border-slate-900/10 bg-slate-50 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-500">Attack status</div><div class="mt-2 font-black text-slate-900">${esc(titleCaseStatus(payload.current_attack_status || "queued"))}</div></div>
           <div class="rounded-2xl border border-slate-900/10 bg-slate-50 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-500">Preservation status</div><div class="mt-2 font-black text-slate-900">${esc(titleCaseStatus(payload.current_preservation_status || "queued"))}</div></div>
           <div class="rounded-2xl border border-slate-900/10 bg-slate-50 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-500">Analysis status</div><div class="mt-2 font-black text-slate-900">${esc(titleCaseStatus(payload.current_analysis_status || "queued"))}</div></div>
+          <div class="rounded-2xl border border-slate-900/10 bg-slate-50 p-4"><div class="text-xs uppercase tracking-[0.16em] text-slate-500">Elapsed</div><div class="mt-2 font-black text-slate-900">${esc(elapsed)}</div></div>
         </div>
         <div class="rounded-2xl border border-slate-900/10 bg-slate-50 p-4">
           <div class="text-xs uppercase tracking-[0.16em] text-slate-500">Detailed message</div>
@@ -2817,7 +2839,10 @@
   async function loadCampaigns() {
     state.executionCache.clear();
     const payload = await getJson("/api/foc/experimentation/campaigns");
-    state.campaigns = payload.campaigns || [];
+    // Backend lists campaigns oldest-first (sorted CMP-* dir glob); reverse so the
+    // most recently created campaign is what gets shown/selected by default, not the
+    // oldest one (was pinning selection to the very first campaign ever created).
+    state.campaigns = (payload.campaigns || []).slice().reverse();
     if (!state.campaigns.some((item) => item.campaign_id === state.selectedCampaignId)) {
       state.selectedCampaignId = state.campaigns.length ? state.campaigns[0].campaign_id : null;
     }
@@ -2893,7 +2918,6 @@
   function renderJob(payload) {
     const root = byId("job-panel");
     if (!root) return;
-    renderFloatingJobToast(payload);
     if (payload && isLevelAReportJob(payload) && state.levelAReportOverlayJobId === payload.job_id) {
       renderLevelAReportOverlay(payload);
     }
@@ -3027,49 +3051,6 @@
       `;
     };
     return roots.map((item) => renderNode(item)).join("");
-  }
-
-  function renderFloatingJobToast(payload) {
-    const existing = byId("foc-exp-job-toast");
-    const visible = payload && !payload.summary_mode && !isTerminalJobStatus(payload.status);
-    if (!visible) {
-      if (existing) existing.remove();
-      return;
-    }
-    const phaseStatuses = payload.phase_statuses || [];
-    const lastPhase = phaseStatuses.length ? phaseStatuses[phaseStatuses.length - 1] : null;
-    const phaseLabel = payload.current_phase_label || lastPhase?.phase_label || titleCaseStatus(payload.current_phase || "running");
-    const phaseDetail = formatDetail(payload.current_phase_detail || lastPhase?.detail || "Experimentation job running.");
-    const progress = payload.progress_percent != null ? `${payload.progress_percent}%` : "running";
-    const root = existing || document.createElement("button");
-    if (!existing) {
-      root.id = "foc-exp-job-toast";
-      root.type = "button";
-      root.setAttribute("aria-label", "Open background job status");
-      root.style.position = "fixed";
-      root.style.right = "20px";
-      root.style.bottom = "20px";
-      root.style.zIndex = "999";
-      root.style.maxWidth = "360px";
-      root.style.padding = "14px 16px";
-      root.style.borderRadius = "18px";
-      root.style.border = "1px solid rgba(148,163,184,.22)";
-      root.style.background = "rgba(8,15,28,.72)";
-      root.style.backdropFilter = "blur(14px)";
-      root.style.color = "#e2e8f0";
-      root.style.boxShadow = "0 12px 30px rgba(2,6,23,.32)";
-      root.style.textAlign = "left";
-      root.style.cursor = "pointer";
-      root.addEventListener("click", () => {
-        byId("job-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-      document.body.appendChild(root);
-    }
-    root.innerHTML = `
-      <div style="font-size:11px;letter-spacing:.22em;text-transform:uppercase;font-weight:900;color:#67e8f9;">Background execution</div>
-      <div style="margin-top:6px;font-weight:900;">${esc(phaseLabel)} · ${esc(progress)}</div>
-      <div style="margin-top:6px;font-size:12px;color:#cbd5e1;">${esc(phaseDetail)}</div>
-    `;
   }
 
   async function pollJob() {

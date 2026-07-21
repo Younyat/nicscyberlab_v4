@@ -99,6 +99,7 @@ echo "===================================================="
 echo " EJECUTANDO DESPLIEGUE ROBUSTO EN: $TARGET_IP"
 echo "===================================================="
 export ANSIBLE_HOST_KEY_CHECKING=False
+export ANSIBLE_BECOME_TIMEOUT=60
 
 if ansible-playbook -i "$TEMP_WORK_DIR/hosts.ini" "$TEMP_WORK_DIR/caldera-install.yml"; then
     echo "----------------------------------------------------"

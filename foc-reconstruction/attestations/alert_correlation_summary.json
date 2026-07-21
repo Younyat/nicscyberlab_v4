@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-07-07T23:40:19.671730+00:00",
+  "generated_at": "2026-07-21T09:40:12.991202+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
-  "total_correlation_records": 97578,
-  "total_alerts": 13477,
-  "relevant_alerts": 1493,
-  "correlated_alerts": 97539,
-  "confirmed_correlations": 97539,
+  "total_correlation_records": 484878,
+  "total_alerts": 159739,
+  "relevant_alerts": 123639,
+  "correlated_alerts": 406644,
+  "confirmed_correlations": 406644,
   "weak_correlations": 0,
-  "unresolved_alerts": 0,
+  "unresolved_alerts": 78196,
   "noise_alerts": 0,
   "false_positive_candidates": 0,
-  "missing_expected_alerts_total": 39,
+  "missing_expected_alerts_total": 61,
   "bucket_counts": {
-    "correlated": 97539,
-    "uncorrelated": 960,
-    "noise": 11984,
+    "correlated": 406644,
+    "uncorrelated": 122403,
+    "noise": 36100,
     "false_positive_candidate": 0,
-    "missing_expected_alert": 39,
+    "missing_expected_alert": 61,
     "weak_candidate": 0,
     "inferred_low": 0,
     "inferred_medium": 0
@@ -25,73 +25,117 @@
   "top_signatures": [
     {
       "label": "NICS CyberLab ICS Modbus write multiple registers",
-      "count": 97539
+      "count": 406644
+    },
+    {
+      "label": "/etc/shadow_backup",
+      "count": 23688
+    },
+    {
+      "label": "Jul 14 12:50:23 plc-instance sshd[42092]: Invalid user debian from 10.0.2.1 port 51432",
+      "count": 21056
+    },
+    {
+      "label": "Jul 14 12:50:23 plc-instance sshd[42092]: Disconnecting invalid user debian 10.0.2.1 port 51432: Too many authentication failures [preauth]",
+      "count": 21056
+    },
+    {
+      "label": "Jul 14 12:50:23 plc-instance sshd[42092]: error: maximum authentication attempts exceeded for invalid user debian from 10.0.2.1 port 51432 ssh2 [preauth]",
+      "count": 11844
+    },
+    {
+      "label": "NICS CyberLab ICS Modbus write single register",
+      "count": 414
+    },
+    {
+      "label": "NICS CyberLab ICS Modbus write single coil",
+      "count": 138
     }
   ],
   "top_rule_ids": [
     {
       "label": "86601",
-      "count": 97539
+      "count": 407196
+    },
+    {
+      "label": "5710",
+      "count": 42112
+    },
+    {
+      "label": "5758",
+      "count": 11844
+    },
+    {
+      "label": "554",
+      "count": 11844
+    },
+    {
+      "label": "550",
+      "count": 11844
     }
   ],
   "top_nodes": [
     {
-      "label": "node-f9ca9bfc",
-      "count": 97539
+      "label": "node-53087541",
+      "count": 658
     }
   ],
   "severity_distribution": [
     {
-      "label": "LOW",
-      "count": 11984
-    },
-    {
       "label": "HIGH",
-      "count": 1013
+      "count": 72954
     },
     {
       "label": "MEDIUM",
-      "count": 480
+      "count": 50805
+    },
+    {
+      "label": "LOW",
+      "count": 35980
     }
   ],
   "alerts_by_node": [
     {
-      "label": "node-c800d431",
-      "count": 10212
+      "label": "node-4e09b076",
+      "count": 779
     },
     {
-      "label": "node-f9ca9bfc",
-      "count": 2305
+      "label": "node-53087541",
+      "count": 5
+    },
+    {
+      "label": "node-f400bb36",
+      "count": 3
     }
   ],
   "alerts_by_mitre_technique": [
     {
       "label": "T1692.001",
-      "count": 533
+      "count": 1320
     },
     {
       "label": "T0836",
-      "count": 533
+      "count": 1320
     }
   ],
   "alerts_by_original_sensor": [
     {
-      "label": "suricata",
-      "count": 12517
+      "label": "wazuh",
+      "count": 122439
     },
     {
-      "label": "wazuh",
-      "count": 960
+      "label": "suricata",
+      "count": 37300
     }
   ],
   "alerts_by_collector": [
     {
       "label": "wazuh",
-      "count": 13477
+      "count": 159739
     }
   ],
-  "unique_confirmed_attack_pairs": 1,
-  "unique_correlation_candidates": 26,
+  "unique_confirmed_attack_pairs": 2,
+  "unique_correlation_candidates": 32,
   "confirmed_attack_ids": 1,
   "weak_attack_ids": 0,
   "observable_attack_ids": 1,
@@ -105,8 +149,8 @@
         "service_probe"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-e1ac03b8",
-      "target_instance_id": "inst-a495cfe7"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     },
     {
       "attack_id": "atk-1ffc12d9",
@@ -117,8 +161,8 @@
         "ssh_bruteforce_validation"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-e1ac03b8",
-      "target_instance_id": "inst-a495cfe7"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     },
     {
       "attack_id": "atk-714a5490",
@@ -129,8 +173,8 @@
         "stored_data_manipulation"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-e1ac03b8",
-      "target_instance_id": "inst-a495cfe7"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     },
     {
       "attack_id": "atk-c6476470",
@@ -143,8 +187,8 @@
         "modbus_write_register"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-e1ac03b8",
-      "target_instance_id": "inst-a495cfe7"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     },
     {
       "attack_id": "atk-f6b49cab",
@@ -157,8 +201,8 @@
         "modbus_write_register"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-e1ac03b8",
-      "target_instance_id": "inst-a495cfe7"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     },
     {
       "attack_id": "atk-fe43fa87",
@@ -169,8 +213,8 @@
         "active_scanning"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-e1ac03b8",
-      "target_instance_id": "inst-a495cfe7"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     },
     {
       "attack_id": "atk-575e93b6",
@@ -181,8 +225,8 @@
         "service_probe"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-e1ac03b8",
-      "target_instance_id": "inst-a495cfe7"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     },
     {
       "attack_id": "atk-4d96b57f",
@@ -195,8 +239,8 @@
         "modbus_write_register"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-e1ac03b8",
-      "target_instance_id": "inst-a495cfe7"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     },
     {
       "attack_id": "atk-2756b700",
@@ -207,8 +251,8 @@
         "active_scanning"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-e1ac03b8",
-      "target_instance_id": "inst-a495cfe7"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     },
     {
       "attack_id": "atk-2875cdf0",
@@ -219,8 +263,8 @@
         "ssh_bruteforce_validation"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-e1ac03b8",
-      "target_instance_id": "inst-a495cfe7"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     },
     {
       "attack_id": "atk-c5849db0",
@@ -231,8 +275,8 @@
         "stored_data_manipulation"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-e1ac03b8",
-      "target_instance_id": "inst-a495cfe7"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     },
     {
       "attack_id": "atk-28075cff",
@@ -244,8 +288,8 @@
         "exfiltration_activity"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-e1ac03b8",
-      "target_instance_id": "inst-a495cfe7"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     },
     {
       "attack_id": "atk-fc8dd835",
@@ -258,8 +302,8 @@
         "modbus_write_register"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-e1ac03b8",
-      "target_instance_id": "inst-a495cfe7"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     },
     {
       "attack_id": "atk-d976ba7c",
@@ -270,8 +314,8 @@
         "suricata_modbus_alert"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-e1ac03b8",
-      "target_instance_id": "inst-a495cfe7"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     },
     {
       "attack_id": "atk-26eb5a6b",
@@ -282,8 +326,8 @@
         "wazuh_suricata_ingest"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-e1ac03b8",
-      "target_instance_id": "inst-a495cfe7"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     },
     {
       "attack_id": "atk-761a78ab",
@@ -296,8 +340,8 @@
         "modbus_write_register"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-c800d431",
-      "target_instance_id": "inst-16583180"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     },
     {
       "attack_id": "atk-761a78ab",
@@ -310,8 +354,8 @@
         "modbus_write_register"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-c800d431",
-      "target_instance_id": "inst-16583180"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     },
     {
       "attack_id": "atk-761a78ab",
@@ -324,8 +368,8 @@
         "modbus_write_register"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-c800d431",
-      "target_instance_id": "inst-16583180"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     },
     {
       "attack_id": "atk-761a78ab",
@@ -338,8 +382,8 @@
         "modbus_write_register"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-c800d431",
-      "target_instance_id": "inst-16583180"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     },
     {
       "attack_id": "atk-d03c67e4",
@@ -351,8 +395,8 @@
         "exfiltration_activity"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-e1ac03b8",
-      "target_instance_id": "inst-a495cfe7"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     },
     {
       "attack_id": "atk-5402854b",
@@ -363,8 +407,8 @@
         "active_scanning"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-e1ac03b8",
-      "target_instance_id": "inst-a495cfe7"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     },
     {
       "attack_id": "atk-6efb604c",
@@ -375,8 +419,8 @@
         "service_probe"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-e1ac03b8",
-      "target_instance_id": "inst-a495cfe7"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     },
     {
       "attack_id": "atk-5402854b",
@@ -387,8 +431,8 @@
         "active_scanning"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-e1ac03b8",
-      "target_instance_id": "inst-a495cfe7"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     },
     {
       "attack_id": "atk-761a78ab",
@@ -401,8 +445,8 @@
         "modbus_write_register"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-e1ac03b8",
-      "target_instance_id": "inst-a495cfe7"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     },
     {
       "attack_id": "atk-25f9f5c2",
@@ -413,8 +457,8 @@
         "stored_data_manipulation"
       ],
       "status": "missing_expected_alert",
-      "target_node_id": "node-e1ac03b8",
-      "target_instance_id": "inst-a495cfe7"
+      "target_node_id": "unresolved",
+      "target_instance_id": "unresolved"
     }
   ],
   "uncorrelated_alert_samples": [
@@ -423,8 +467,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     },
     {
@@ -432,8 +476,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     },
     {
@@ -441,8 +485,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     },
     {
@@ -450,8 +494,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     },
     {
@@ -459,8 +503,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     },
     {
@@ -468,8 +512,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     },
     {
@@ -477,8 +521,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     },
     {
@@ -486,8 +530,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     },
     {
@@ -495,8 +539,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     },
     {
@@ -504,8 +548,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     },
     {
@@ -513,8 +557,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     },
     {
@@ -522,8 +566,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     },
     {
@@ -531,8 +575,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     },
     {
@@ -540,8 +584,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     },
     {
@@ -549,8 +593,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     },
     {
@@ -558,8 +602,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     },
     {
@@ -567,8 +611,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     },
     {
@@ -576,8 +620,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-c800d431",
-      "instance_id": "inst-16583180",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     },
     {
@@ -585,8 +629,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-f9ca9bfc",
-      "instance_id": "inst-8c0c86c9",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     },
     {
@@ -594,8 +638,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-f9ca9bfc",
-      "instance_id": "inst-8c0c86c9",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     },
     {
@@ -603,8 +647,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-f9ca9bfc",
-      "instance_id": "inst-8c0c86c9",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     },
     {
@@ -612,8 +656,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-f9ca9bfc",
-      "instance_id": "inst-8c0c86c9",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     },
     {
@@ -621,8 +665,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-f9ca9bfc",
-      "instance_id": "inst-8c0c86c9",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     },
     {
@@ -630,8 +674,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-f9ca9bfc",
-      "instance_id": "inst-8c0c86c9",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     },
     {
@@ -639,8 +683,8 @@
       "signature": "ALERTA: Ping Detectado",
       "rule_id": "86601",
       "severity": "LOW",
-      "node_id": "node-f9ca9bfc",
-      "instance_id": "inst-8c0c86c9",
+      "node_id": "unresolved",
+      "instance_id": "unresolved",
       "status": "noise"
     }
   ]

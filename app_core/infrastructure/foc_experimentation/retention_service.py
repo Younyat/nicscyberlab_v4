@@ -23,6 +23,12 @@ LIGHTWEIGHT_CASE_RETAIN_PATHS: tuple[str, ...] = (
     "metadata/normalized_causal_timestamps.json",
     "metadata/pipeline_events.jsonl",
     "metadata/time_sync.json",
+    # 2026-07-20: added so forge_vi_dashboard._per_case_data() can read this after
+    # cleanup deletes the heavy case (see that module's README for the full incident:
+    # the FORGE-VI Scientific Reproducibility Dashboard was only ever seeing whatever
+    # cases happened to still physically exist, which after cleanup was almost none).
+    # Purely additive to this tuple -- every existing reader of the bundle is unaffected.
+    "metadata/workflow_phase_summary.json",
     "network/traffic_preserved/network_context_manifest.json",
     "analysis/analysis_status.json",
     "analysis/preflight_validation.json",

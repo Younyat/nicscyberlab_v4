@@ -229,12 +229,14 @@
           <h2 class="text-2xl font-black mt-2">Full Scenario Reconstruction Campaign</h2>
           <p class="mt-3 text-sm text-slate-300">Destroy, redeploy and re-execute the full scenario N times. Each cycle runs Level B + nested Level A repetitions, captures a snapshot and compares it against the reference.</p>
           <div class="mt-5 space-y-4">
-            <label class="block text-sm">
-              <span class="font-black text-slate-200">Level B campaign</span>
+            <div class="block text-sm">
+              <label class="font-black text-slate-200" for="lc-campaign-select">Level B campaign</label>
               <select id="lc-campaign-select" class="w-full mt-2 rounded-xl bg-slate-950/60 border border-slate-700 px-3 py-2 text-slate-100">
                 <option value="">Loading campaigns…</option>
               </select>
-            </label>
+              <button type="button" id="lc-create-campaign-btn" class="btn-secondary rounded-xl px-3 py-2 mt-2 text-xs font-extrabold tracking-[0.14em] uppercase">Create New Level B Campaign</button>
+              <div id="lc-create-campaign-status" class="mt-2 text-xs text-slate-400"></div>
+            </div>
             <div class="grid grid-cols-3 gap-3">
               <label class="block text-sm">
                 <span class="font-black text-slate-200 block mb-1">Level C reps</span>
@@ -382,6 +384,10 @@
         <span id="lc-pct">0%</span>
       </div>
       <div class="lc-bar-track"><div class="lc-bar-fill" id="lc-bar" style="width:0%"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:9px;color:#64748b;letter-spacing:.1em">
+        <span id="lc-elapsed" style="color:#94a3b8"></span>
+        <span id="lc-phase-since" style="color:#475569"></span>
+      </div>
     </div>
     <div id="lc-monitor-stages"></div>
     <div id="lc-monitor-result"></div>
@@ -398,6 +404,6 @@
 
   <script src="/js/theme-switcher.js"></script>
   <script>window.NicsThemeSwitcher.mount('#theme-switcher-mount');</script>
-  <script src="/js/foc_paper_evidence.js?v=20260713-level-c-launcher"></script>
+  <script src="/js/foc_paper_evidence.js?v=20260720-fresh-campaign-per-launch"></script>
 </body>
 </html>

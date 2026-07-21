@@ -40,6 +40,22 @@ ACTIVE_CASE_PTR = EVIDENCE_ROOT / "_active_case.txt"
 _TIME_SYNC_STATE_LOCK = threading.Lock()
 _RUNNING_TIME_SYNC: dict[str, threading.Thread] = {}
 
+# Floating IP quota monitor + cleanup -- added 2026-07-20 after a real incident: the lab
+# silently ran out of floating IPs (nothing detected or reported it until a Level C launch
+# failed because OpenStack could not allocate one). The invariant the user wants enforced:
+# at least 50% of the project's floating IP quota must stay available at all times. Below
+# that, unattached (orphan) floating IPs are released automatically and the action is
+# reported with how long it took -- mirrors the existing safe-disk-cleanup precedent
+# (cleanup_node_free_space() above) but for a quota-level OpenStack resource instead of a
+# per-node filesystem.
+FLOATING_IP_RUNTIME_DIR = NODE_HEALTH_RUNTIME_DIR / "floating_ips"
+FLOATING_IP_JOB_STATUS_PATH = FLOATING_IP_RUNTIME_DIR / "job_status.json"
+FLOATING_IP_HISTORY_PATH = FLOATING_IP_RUNTIME_DIR / "cleanup_history.jsonl"
+FLOATING_IP_MIN_AVAILABLE_PCT = 50.0
+FLOATING_IP_CLEANUP_TARGET_PCT = 65.0  # auto-cleanup stops once back above this, not just past the 50% floor -- avoids re-triggering on every single health-summary poll
+_FLOATING_IP_LOCK = threading.Lock()
+_FLOATING_IP_CLEANUP_RUNNING = False
+
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -551,6 +567,227 @@ def cleanup_node_free_space(
         "minimum_free_mb": minimum_free_mb,
         "attempts": attempts,
     }
+
+
+def _floating_ip_severity(available_pct: float | None) -> str:
+    if available_pct is None:
+        return "unknown"
+    if available_pct < 25.0:
+        return "critical"
+    if available_pct < FLOATING_IP_MIN_AVAILABLE_PCT:
+        return "warning"
+    return "ok"
+
+
+def _floating_ip_status(conn=None) -> dict:
+    """Real, live floating IP quota usage for the current OpenStack project.
+
+    `available_pct` is what the 50% invariant is checked against: (quota_limit -
+    allocated_total) / quota_limit. If the quota itself can't be read (some OpenStack
+    deployments report -1/unlimited, or the quota API call fails), available/available_pct
+    are left None and severity is "unknown" rather than guessing -- there is nothing honest
+    to compare against without a real limit.
+    """
+    owns_conn = conn is None
+    if owns_conn:
+        conn = _connect()
+    try:
+        project_id = conn.current_project_id
+        floating_ips = list(conn.network.ips())
+        ip_rows = [
+            {
+                "id": ip.id,
+                "floating_ip_address": getattr(ip, "floating_ip_address", None),
+                "fixed_ip_address": getattr(ip, "fixed_ip_address", None),
+                "status": getattr(ip, "status", "UNKNOWN"),
+                "port_id": getattr(ip, "port_id", None),
+                "attached": bool(getattr(ip, "port_id", None)),
+                "description": getattr(ip, "description", None) or None,
+            }
+            for ip in floating_ips
+        ]
+        allocated_total = len(ip_rows)
+        attached_count = sum(1 for row in ip_rows if row["attached"])
+        unattached_count = allocated_total - attached_count
+
+        quota_limit = None
+        quota_error = None
+        try:
+            quota = conn.network.get_quota(project_id)
+            raw_limit = getattr(quota, "floating_ips", None)
+            if raw_limit is None:
+                raw_limit = getattr(quota, "floating_ip", None)
+            if raw_limit is None:
+                raw_limit = getattr(quota, "floatingip", None)
+            if raw_limit is not None and int(raw_limit) >= 0:
+                quota_limit = int(raw_limit)
+        except Exception as exc:
+            quota_error = str(exc)
+
+        available = None
+        available_pct = None
+        if quota_limit:
+            available = max(quota_limit - allocated_total, 0)
+            available_pct = round((available / quota_limit) * 100.0, 1)
+
+        severity = _floating_ip_severity(available_pct)
+        return {
+            "generated_at": _utc_now(),
+            "quota_limit": quota_limit,
+            "quota_error": quota_error,
+            "allocated_total": allocated_total,
+            "attached_count": attached_count,
+            "unattached_count": unattached_count,
+            "available": available,
+            "available_pct": available_pct,
+            "severity": severity,
+            "threshold_pct": FLOATING_IP_MIN_AVAILABLE_PCT,
+            "below_threshold": available_pct is not None and available_pct < FLOATING_IP_MIN_AVAILABLE_PCT,
+            "ips": ip_rows,
+        }
+    finally:
+        if owns_conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+def _floating_ip_deployment_in_progress() -> bool:
+    """True while a Level C job is actively (re)deploying instances.
+
+    Guards ONLY the automatic threshold-triggered cleanup (never the manual button, which
+    is an explicit operator action) against a real race: a floating IP can briefly exist
+    allocated-but-not-yet-associated to a port while a scenario is being stood back up
+    during DEPLOYING_IT/DEPLOYING_OT/WAITING_NODES. Deleting it in that exact window would
+    break the deployment it was about to be used by. If this can't be determined, err
+    towards NOT auto-cleaning rather than risking a live deployment.
+    """
+    try:
+        from ..level_c_orchestrator.service import list_jobs
+        risky_phases = {"DEPLOYING_IT", "DEPLOYING_OT", "WAITING_NODES"}
+        for job in list_jobs():
+            if str(job.get("status") or "").lower() != "running":
+                continue
+            phase = str(job.get("phase") or "")
+            if any(phase.startswith(p) for p in risky_phases):
+                return True
+        return False
+    except Exception:
+        return True
+
+
+def _write_floating_ip_job_status(payload: dict) -> None:
+    _write_json(FLOATING_IP_JOB_STATUS_PATH, payload)
+
+
+def _floating_ip_cleanup_worker(*, triggered_by: str, target_pct: float = FLOATING_IP_CLEANUP_TARGET_PCT) -> None:
+    global _FLOATING_IP_CLEANUP_RUNNING
+    job_id = f"fip-cleanup-{uuid.uuid4().hex[:12]}"
+    started_at = _utc_now()
+    start_ts = time.time()
+    status = {
+        "job_id": job_id,
+        "status": "running",
+        "triggered_by": triggered_by,
+        "started_at": started_at,
+        "updated_at": started_at,
+        "finished_at": None,
+        "duration_seconds": None,
+        "target_pct": target_pct,
+        "before": None,
+        "after": None,
+        "released": [],
+        "released_count": 0,
+        "skipped_attached_count": 0,
+        "per_ip_errors": [],
+        "error": None,
+    }
+    _write_floating_ip_job_status(status)
+    conn = None
+    try:
+        conn = _connect()
+        before = _floating_ip_status(conn)
+        status["before"] = {k: before[k] for k in ("quota_limit", "allocated_total", "attached_count", "unattached_count", "available_pct")}
+        status["skipped_attached_count"] = before["attached_count"]
+
+        candidates = [row for row in before["ips"] if not row["attached"]]
+        released: list[dict] = []
+        for row in candidates:
+            try:
+                conn.network.delete_ip(row["id"])
+                released.append(row)
+            except Exception as exc:
+                status["per_ip_errors"].append({"id": row["id"], "floating_ip_address": row.get("floating_ip_address"), "error": str(exc)})
+                continue
+            status["released"] = released
+            status["released_count"] = len(released)
+            status["updated_at"] = _utc_now()
+            _write_floating_ip_job_status(status)
+            interim = _floating_ip_status(conn)
+            if interim.get("available_pct") is not None and interim["available_pct"] >= target_pct:
+                break
+
+        after = _floating_ip_status(conn)
+        status["after"] = {k: after[k] for k in ("quota_limit", "allocated_total", "attached_count", "unattached_count", "available_pct")}
+        status["released"] = released
+        status["released_count"] = len(released)
+        status["status"] = "completed"
+    except Exception as exc:
+        status["status"] = "failed"
+        status["error"] = str(exc)
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+        finished_at = _utc_now()
+        status["finished_at"] = finished_at
+        status["updated_at"] = finished_at
+        status["duration_seconds"] = round(time.time() - start_ts, 2)
+        _write_floating_ip_job_status(status)
+        _append_jsonl(FLOATING_IP_HISTORY_PATH, status)
+        with _FLOATING_IP_LOCK:
+            _FLOATING_IP_CLEANUP_RUNNING = False
+
+
+def trigger_floating_ip_cleanup(*, triggered_by: str) -> dict:
+    """Starts the cleanup in the background (fire-and-forget, same pattern as
+    run_node_time_sync). If one is already running, returns its current status instead of
+    starting a second one -- releasing floating IPs is not something to run concurrently
+    with itself.
+    """
+    global _FLOATING_IP_CLEANUP_RUNNING
+    with _FLOATING_IP_LOCK:
+        if _FLOATING_IP_CLEANUP_RUNNING:
+            return _read_json(FLOATING_IP_JOB_STATUS_PATH) or {"status": "running", "triggered_by": triggered_by}
+        _FLOATING_IP_CLEANUP_RUNNING = True
+    thread = threading.Thread(
+        target=_floating_ip_cleanup_worker,
+        kwargs={"triggered_by": triggered_by},
+        daemon=True,
+        name="floating-ip-cleanup",
+    )
+    thread.start()
+    return _read_json(FLOATING_IP_JOB_STATUS_PATH) or {"status": "starting", "triggered_by": triggered_by}
+
+
+def floating_ip_cleanup_status() -> dict:
+    current = _read_json(FLOATING_IP_JOB_STATUS_PATH) or {"status": "not_available"}
+    history: list[dict] = []
+    if FLOATING_IP_HISTORY_PATH.is_file():
+        try:
+            lines = FLOATING_IP_HISTORY_PATH.read_text(encoding="utf-8").splitlines()
+            for line in lines[-10:]:
+                try:
+                    history.append(json.loads(line))
+                except Exception:
+                    continue
+        except Exception:
+            pass
+    history.reverse()
+    return {"current": current, "history": history}
 
 
 def _safe_instance_filename(instance_name: str) -> str:
@@ -1143,7 +1380,7 @@ def _host_health_row(summary: dict) -> dict:
     }
 
 
-def _build_health_alerts(openstack_status: dict, host_row: dict, node_rows: list[dict]) -> list[dict]:
+def _build_health_alerts(openstack_status: dict, host_row: dict, node_rows: list[dict], floating_ip_status: dict | None = None) -> list[dict]:
     alerts: list[dict] = []
 
     def push(alert_id: str, level: str, title: str, detail: str, scope: str, recommendation: str, target: str | None = None) -> None:
@@ -1246,6 +1483,66 @@ def _build_health_alerts(openstack_status: dict, host_row: dict, node_rows: list
                 "Review the node process list from Node Health before launching additional tasks.",
                 target=name,
             )
+
+    # Campaign stages running longer than their own historical median — added
+    # 2026-07-17 per the "no fixed timeout, alert instead while still
+    # progressing" philosophy change. Purely informational (the stage is
+    # NOT stopped for this alone — see level_c_orchestrator._phase_wait_level_b);
+    # reuses the same live summary the "Live Campaign Status" panel already
+    # computes, so this is one more consumer of existing data, not a new
+    # tracking system.
+    try:
+        from app_core.infrastructure.level_c_orchestrator.service import get_live_campaign_summary
+        live = get_live_campaign_summary()
+        if live.get("active"):
+            lc = live.get("level_c") or {}
+            b = live.get("level_b") or {}
+            for stg in (b.get("stage_timeline") or []):
+                if stg.get("delayed"):
+                    push(
+                        f"campaign-stage-delayed-{stg.get('stage_key')}-{b.get('current_case_id') or ''}",
+                        "warning",
+                        f"Campaign stage running longer than usual: {stg.get('label')}",
+                        f"Campaign {lc.get('campaign_id') or 'not_available'} · repetition "
+                        f"{lc.get('current_repetition') or '?'}/{lc.get('total_repetitions') or '?'} · "
+                        f"case {b.get('current_case_id') or 'not_available'} · target {stg.get('target') or 'not_available'} — "
+                        f"{stg.get('elapsed_seconds')}s elapsed vs ~{stg.get('expected_seconds')}s usual.",
+                        "campaign",
+                        "Still progressing — no action needed unless it stops advancing. Check the Live Campaign Status panel for the full stage timeline.",
+                        target=stg.get("target"),
+                    )
+    except Exception:
+        pass
+
+    # Floating IP quota pressure -- added 2026-07-20 after the lab silently exhausted its
+    # floating IP quota with nothing detecting or reporting it (see FLOATING_IP_* above and
+    # build_node_health_summary()'s auto-cleanup trigger).
+    fip = floating_ip_status or {}
+    if fip.get("below_threshold"):
+        push(
+            "health-openstack-floating-ips",
+            fip.get("severity", "warning"),
+            "OpenStack floating IP pool is running low",
+            f"{fip.get('available')} of {fip.get('quota_limit')} floating IPs available "
+            f"({fip.get('available_pct')}%), below the required {fip.get('threshold_pct')}% minimum "
+            f"({fip.get('unattached_count', 0)} currently unattached, {fip.get('attached_count', 0)} in active use). "
+            "Automatic cleanup of unattached floating IPs has been triggered (skipped if a Level C "
+            "deployment is currently in progress, to avoid a race with in-flight allocations).",
+            "openstack",
+            "Check the Fleet Resource Monitor's Floating IPs panel in Node Health for cleanup progress and history. "
+            "If usage stays high after cleanup, review scenarios/campaigns that may not be releasing floating IPs on destroy.",
+        )
+    elif fip.get("quota_error"):
+        push(
+            "health-openstack-floating-ips-quota-unknown",
+            "warning",
+            "Floating IP quota could not be read",
+            f"Floating IP count is visible ({fip.get('allocated_total', 'not_available')} allocated) but the project quota "
+            f"could not be read: {fip.get('quota_error')}. The 50% availability invariant cannot be checked without it.",
+            "openstack",
+            "Verify Neutron quota API access for this project so floating IP exhaustion can be detected automatically again.",
+        )
+
     alerts.sort(key=lambda item: (_severity_rank(item.get("severity")), item.get("title", "")), reverse=True)
     return alerts
 
@@ -1296,13 +1593,29 @@ def build_node_health_summary(*, refresh_node_metrics: bool = False, max_probe_a
             ]
 
     openstack_status = _openstack_runtime_status(nodes, inventory_error, cache_fallback=cache_fallback)
-    alerts = _build_health_alerts(openstack_status, host_row, node_rows)
+
+    # Floating IP quota check + auto-cleanup trigger. Runs on every health-summary
+    # computation (i.e. every time anyone loads/polls Node Health, or the alert bell
+    # refreshes) -- same "no separate cron, triggered by normal traffic" pattern already
+    # used everywhere else in this codebase. Only actually starts a cleanup when the 50%
+    # floor is breached AND nothing is auto-triggered twice concurrently (see
+    # trigger_floating_ip_cleanup's own running-guard) AND no Level C deployment is
+    # currently in flight (see _floating_ip_deployment_in_progress).
+    try:
+        floating_ip_status = _floating_ip_status()
+        if floating_ip_status.get("below_threshold") and not _floating_ip_deployment_in_progress():
+            trigger_floating_ip_cleanup(triggered_by="auto_threshold_check")
+    except Exception as exc:
+        floating_ip_status = {"error": str(exc), "severity": "unknown", "below_threshold": False}
+
+    alerts = _build_health_alerts(openstack_status, host_row, node_rows, floating_ip_status)
     payload = {
         "generated_at": _utc_now(),
         "overall_state": _health_state_from_alerts(alerts, openstack_status),
         "openstack": openstack_status,
         "host": host_row,
         "nodes": node_rows,
+        "floating_ips": floating_ip_status,
         "alerts": alerts,
         "alert_count": len(alerts),
         "inventory_nodes": nodes,
@@ -1312,6 +1625,7 @@ def build_node_health_summary(*, refresh_node_metrics: bool = False, max_probe_a
             "openstack_health_dir": _relative_repo_path(OPENSTACK_HEALTH_DIR),
             "openstack_restart_script": _relative_repo_path(OPENSTACK_RESTART_SCRIPT_PATH),
             "openstack_restart_jobs_dir": _relative_repo_path(OPENSTACK_RESTART_JOBS_DIR),
+            "floating_ip_cleanup_history": _relative_repo_path(FLOATING_IP_HISTORY_PATH),
         },
     }
     _write_json(HEALTH_SUMMARY_CACHE_PATH, payload)
@@ -1675,6 +1989,25 @@ def node_health_openstack_status():
             "artifacts": payload.get("artifacts", {}),
         }
     )
+
+
+@node_health_bp.route("/api/node-health/openstack/floating-ips", methods=["GET"])
+def node_health_floating_ips_status():
+    try:
+        return jsonify(_floating_ip_status()), 200
+    except Exception as exc:
+        return jsonify({"error": str(exc), "severity": "unknown"}), 502
+
+
+@node_health_bp.route("/api/node-health/openstack/floating-ips/cleanup", methods=["POST"])
+def node_health_floating_ips_cleanup():
+    payload = trigger_floating_ip_cleanup(triggered_by="manual")
+    return jsonify(payload), 202
+
+
+@node_health_bp.route("/api/node-health/openstack/floating-ips/cleanup/status", methods=["GET"])
+def node_health_floating_ips_cleanup_status():
+    return jsonify(floating_ip_cleanup_status()), 200
 
 
 @node_health_bp.route("/api/node-health/alerts", methods=["GET"])

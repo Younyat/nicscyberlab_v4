@@ -743,11 +743,14 @@ def api_foc_level_b_repetitions_run():
             detection_timeout_seconds=body.get("detection_timeout_seconds"),
             dfir_mode_before=str(body.get("dfir_mode_before") or "unknown"),
             dfir_mode_after=str(body.get("dfir_mode_after") or "unknown"),
+            force_replace_active=bool(body.get("force_replace_active")),
         )
     except FileNotFoundError:
         return jsonify({"error": "campaign_not_found", "campaign_id": campaign_id}), 404
     except ValueError as exc:
         return jsonify({"error": str(exc), "campaign_id": campaign_id}), 400
+    if job.get("error") == "active_job_running":
+        return jsonify(job), 409
     if job.get("error"):
         return jsonify(job), 400
     return jsonify(job), 202

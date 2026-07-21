@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import csv
 import json
 import math
@@ -7,6 +8,7 @@ import os
 import shutil
 import statistics
 import subprocess
+import threading
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -14,7 +16,7 @@ from pathlib import Path
 
 from .campaign_service import create_campaign
 from .comparability_service import compare_executions
-from .config import EVIDENCE_STORE_ROOT, campaign_config_path, campaign_dir, campaign_manifest_path, execution_dir, rel
+from .config import CAMPAIGNS_ROOT, EVIDENCE_STORE_ROOT, campaign_config_path, campaign_dir, campaign_manifest_path, execution_dir, rel
 from .execution_service import aggregate_campaign_state, attach_real_case_to_execution, create_execution_from_campaign, load_execution
 from .job_runner import append_job_list, append_phase, get_job, job_cancel_requested, new_job, raise_if_cancelled, request_cancel, request_force_stop, start_job, update_job
 from .level_a_scientific_report_service import start_level_a_scientific_report_job
@@ -1535,6 +1537,13 @@ def _run_cleanup(runtime_dir: Path, *, enabled: bool) -> dict:
             continue
         size_before = int(item.get("size_bytes") or 0)
         try:
+            from .retention_service import _copy_lightweight_case_bundle
+            bundle = _copy_lightweight_case_bundle(original_case_path=case_path, execution_base=runtime_dir, case_id=case_id)
+            preserved_metadata[-1]["lightweight_bundle_path"] = bundle.get("bundle_root")
+            preserved_metadata[-1]["lightweight_bundle_copied_files"] = len(bundle.get("copied_files") or [])
+        except Exception as exc:
+            warnings.append(f"{case_id}: could not preserve lightweight bundle before deletion: {exc}")
+        try:
             shutil.rmtree(case_path)
             deleted_cases.append(case_id)
             deleted_paths.append(relative_path(case_path))
@@ -1712,6 +1721,48 @@ def _observed_case_state(case_id: str | None, case_dir: Path | None) -> dict:
     }
 
 
+@contextlib.contextmanager
+def _heartbeat_during(job_id: str, job_path: Path, interval: int = 30):
+    """Keep a job's heartbeat (`updated_at`) fresh for the duration of a long
+    blocking call that has no interim `update_job()` calls of its own —
+    e.g. `acquire_memory`/`acquire_disk` below, which can each legitimately
+    run for many minutes per node with nothing touching the job's own
+    heartbeat in between (their `update_acquisition_profile` calls write to
+    the CASE's acquisition_profile.json, not the job's job_state.json).
+
+    Without this, a `get_job()` read from a different gunicorn worker than
+    the one actually running this job (e.g. a dashboard poll) can't verify
+    the thread is alive (per-worker `_THREADS`) and falls back to heartbeat
+    staleness, wrongly declaring a genuinely-running acquisition orphaned
+    once `_ORPHAN_JOB_GRACE_SECONDS` (180s) elapses. Confirmed live
+    2026-07-17 as a real bug in this exact class, one module over
+    (`level_c_orchestrator._phase_deploy_ot` — see that module's README and
+    `job_runner.py`'s gotchas) — this is the same fix applied here since the
+    acquisition loop below has the identical shape (a single long blocking
+    call, no wait loop of its own to piggyback a heartbeat onto).
+
+    `update_job(job_id, job_path)` with zero changes still stamps
+    `updated_at` unconditionally, so this is a true heartbeat-only touch —
+    it does not alter any other job field.
+    """
+    stop = threading.Event()
+
+    def _beat():
+        while not stop.wait(interval):
+            try:
+                update_job(job_id, job_path)
+            except Exception:
+                pass
+
+    t = threading.Thread(target=_beat, daemon=True, name=f"heartbeat-{job_id}")
+    t.start()
+    try:
+        yield
+    finally:
+        stop.set()
+        t.join(timeout=2)
+
+
 def _wait_for_child_job(
     child_job_id: str,
     *,
@@ -1720,11 +1771,24 @@ def _wait_for_child_job(
     current_phase: str,
     current_phase_label: str,
     current_detail_prefix: str,
-    timeout_seconds: int = 5400,
 ) -> dict:
-    started = time.time()
+    """Wait for a nested scientific job (e.g. a Level A report generation) to
+    reach a terminal state — driven by the child's own heartbeat, not a fixed
+    deadline. 2026-07-17: this used to force-cancel the child after a flat
+    5400s (90min), which killed real work — a nested Level A report over a
+    large preserved case legitimately runs several dry-run repetitions, each
+    doing a full causal-reconstruction pass, and their combined real duration
+    routinely exceeds 90min without anything actually being stuck (confirmed
+    live: `child_job_timeout: stuck at 'Refresh or load multilayer analysis'`
+    fired mid-reconstruction on rep 2/2, not on a dead job). Same philosophy
+    as level_c_orchestrator._phase_wait_level_b: no invented ceiling here. If
+    the child's thread genuinely dies, job_runner.get_job()'s own orphan
+    watchdog (_recover_orphaned_job, ~180s heartbeat grace) already flips it
+    to 'failed' on its own the next time it's read below — nothing extra to
+    add for that case.
+    """
     while True:
-        if job_cancel_requested(parent_job_id):
+        if job_cancel_requested(parent_job_id, parent_job_path):
             request_cancel(child_job_id)
             raise_if_cancelled(parent_job_id, parent_job_path, phase_key=current_phase, phase_label=current_phase_label, detail=f"{current_phase_label} was cancelled by the operator.")
         child = get_job(child_job_id) or {}
@@ -1739,15 +1803,6 @@ def _wait_for_child_job(
         )
         if child_status in {"completed", "completed_with_degradation", "completed_with_failures", "failed", "cancelled", "stopped"}:
             return child
-        if time.time() - started > timeout_seconds:
-            request_cancel(child_job_id)
-            return {
-                "job_id": child_job_id,
-                "status": "failed",
-                "current_phase_label": "Timed out",
-                "current_phase_detail": f"{current_phase_label} exceeded the allowed timeout and was cancelled.",
-                "errors": [{"message": "child_job_timeout"}],
-            }
         time.sleep(2.5)
 
 
@@ -1838,7 +1893,12 @@ def _repetition_result_from_case(
     warnings.extend(list((lifecycle_result or {}).get("warnings") or []))
     warnings.extend(list((result_card or {}).get("scientific_limitations") or []))
     if nested_level_a and str(nested_level_a.get("status") or "").lower() not in {"completed", "completed_with_degradation"}:
-        warnings.append("nested Level A scientific report did not complete successfully for this Level B case")
+        nested_errs = [str((e or {}).get("message") if isinstance(e, dict) else e) for e in (nested_level_a.get("errors") or [])]
+        reason = f" — reason: {'; '.join(nested_errs)}" if nested_errs else ""
+        warnings.append(
+            f"nested Level A scientific report did not complete successfully for this Level B case "
+            f"(status={nested_level_a.get('status') or 'unknown'}){reason}"
+        )
     blockers = []
     blockers.extend([str(item) for item in ((lifecycle_result or {}).get("errors") or []) if item])
     trigger_ts = trigger_primary.get("ts_utc") or trigger_primary.get("timestamp")
@@ -3276,51 +3336,77 @@ def _run_single_repetition(
                 trigger_time_utc=trigger_time_utc,
             )
             update_job(job_id, job_path, current_case_id=case_id)
-            update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"memory_started_utc": utc_now()})
-            memory_items = []
-            ssh_key = os.environ.get("NICS_DFIR_SSH_KEY") or os.path.expanduser("~/.ssh/my_key")
-            for node in acquisition_targets:
-                memory_items.append(
-                    acquire_memory(
-                        str(case_dir),
-                        node.get("vm_id"),
-                        node.get("vm_ip"),
-                        ssh_key,
-                        ssh_user=_dfir_ssh_user_for_role(node.get("role")),
-                        mode="build",
-                        run_id=execution_id,
-                    )
+
+            def _emit_acquisition_progress(text: str) -> None:
+                _emit_phase(
+                    job_id, job_path,
+                    phase_key=f"repetition_{rep_idx}_acquisition",
+                    phase_label="Run automatic acquisition",
+                    status="running",
+                    detail=text,
+                    category="repetition",
+                    index=4,
+                    repetition_number=rep_idx,
+                    total_repetitions=total_repetitions,
+                    extra={"current_acquisition_status": "running", **phase_extra},
                 )
-            update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"memory_completed_utc": utc_now()})
-            memory_result = {
-                "ok": bool(memory_items) and all(bool(item.get("ok")) for item in memory_items),
-                "result": "ok" if memory_items and all(bool(item.get("ok")) for item in memory_items) else "error",
-                "items": memory_items,
-            }
-            update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"network_context_import_started_utc": utc_now()})
-            try:
-                network_result = import_continuous_network_context(str(case_dir), run_id=execution_id, trigger_time_utc=trigger_time_utc)
-            except Exception as exc:
-                network_result = {"error": str(exc), "preserved_segments": 0, "pending_segments": 0}
-            update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"network_context_import_completed_utc": utc_now()})
-            update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"disk_started_utc": utc_now()})
-            disk_items = []
-            for node in acquisition_targets:
-                disk_items.append(
-                    acquire_disk(
-                        str(case_dir),
-                        node.get("vm_id"),
-                        "nova_libvirt",
-                        run_id=execution_id,
-                        noninteractive=True,
+
+            n_targets = len(acquisition_targets)
+            with _heartbeat_during(job_id, job_path):
+                update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"memory_started_utc": utc_now()})
+                memory_items = []
+                ssh_key = os.environ.get("NICS_DFIR_SSH_KEY") or os.path.expanduser("~/.ssh/my_key")
+                for i, node in enumerate(acquisition_targets, start=1):
+                    _emit_acquisition_progress(
+                        f"Stage: MEMORY ({i}/{n_targets}) — acquiring volatile memory from "
+                        f"{node.get('role') or 'unknown'} ({node.get('vm_ip') or node.get('vm_id') or 'unknown'})."
                     )
-                )
-            update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"disk_completed_utc": utc_now()})
-            disk_result = {
-                "ok": bool(disk_items) and all(bool(item.get("ok")) for item in disk_items),
-                "result": "ok" if disk_items and all(bool(item.get("ok")) for item in disk_items) else "error",
-                "items": disk_items,
-            }
+                    memory_items.append(
+                        acquire_memory(
+                            str(case_dir),
+                            node.get("vm_id"),
+                            node.get("vm_ip"),
+                            ssh_key,
+                            ssh_user=_dfir_ssh_user_for_role(node.get("role")),
+                            mode="build",
+                            run_id=execution_id,
+                        )
+                    )
+                update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"memory_completed_utc": utc_now()})
+                memory_result = {
+                    "ok": bool(memory_items) and all(bool(item.get("ok")) for item in memory_items),
+                    "result": "ok" if memory_items and all(bool(item.get("ok")) for item in memory_items) else "error",
+                    "items": memory_items,
+                }
+                update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"network_context_import_started_utc": utc_now()})
+                _emit_acquisition_progress("Stage: NETWORK — importing rolling-PCAP context across fuxa, plc, and victim (post-memory).")
+                try:
+                    network_result = import_continuous_network_context(str(case_dir), run_id=execution_id, trigger_time_utc=trigger_time_utc)
+                except Exception as exc:
+                    network_result = {"error": str(exc), "preserved_segments": 0, "pending_segments": 0}
+                update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"network_context_import_completed_utc": utc_now()})
+                update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"disk_started_utc": utc_now()})
+                disk_items = []
+                for i, node in enumerate(acquisition_targets, start=1):
+                    _emit_acquisition_progress(
+                        f"Stage: DISK ({i}/{n_targets}) — acquiring disk image from "
+                        f"{node.get('role') or 'unknown'} ({node.get('vm_ip') or node.get('vm_id') or 'unknown'})."
+                    )
+                    disk_items.append(
+                        acquire_disk(
+                            str(case_dir),
+                            node.get("vm_id"),
+                            "nova_libvirt",
+                            run_id=execution_id,
+                            noninteractive=True,
+                        )
+                    )
+                update_acquisition_profile(str(case_dir), run_id=execution_id, merge_fields={"disk_completed_utc": utc_now()})
+                disk_result = {
+                    "ok": bool(disk_items) and all(bool(item.get("ok")) for item in disk_items),
+                    "result": "ok" if disk_items and all(bool(item.get("ok")) for item in disk_items) else "error",
+                    "items": disk_items,
+                }
             acquisition_note = (
                 f"Case {case_id} created. Acquisition scope={acquisition_roles}. "
                 f"Memory={memory_result.get('result')} ({len(memory_items)} host(s)); "
@@ -3526,7 +3612,22 @@ def _run_single_repetition(
             trigger_attempt_trace=trigger_attempt_trace,
         )
     update_job(job_id, job_path, current_lifecycle_job_id=str(lifecycle_job.get("job_id") or ""))
-    lifecycle_result = _wait_for_lifecycle_job(lifecycle_job.get("job_id"))
+    # _wait_for_lifecycle_job (level_b_orchestrator.py) is a plain poll loop
+    # with no knowledge of THIS job_id/job_path — it can't touch our own
+    # heartbeat itself. Without _heartbeat_during, this call can block for
+    # 20-35+ minutes (the case's own multilayer analysis, confirmed live
+    # 2026-07-19: repetition_1_analysis went quiet for 18+ minutes) with zero
+    # update_job() calls in between, so a get_job() read landing on a
+    # different gunicorn worker mid-wait can't verify the thread is alive and
+    # wrongly declares this job orphaned via _ORPHAN_JOB_GRACE_SECONDS —
+    # confirmed live the same day: the job briefly flipped to status=failed
+    # with "no active worker exists anymore", then self-corrected back to
+    # running on its own next natural update, since the owning worker's
+    # thread was never actually dead. Same fix already applied to the
+    # acquisition block above (line ~3339) — this call site was simply
+    # missed when that fix landed.
+    with _heartbeat_during(job_id, job_path):
+        lifecycle_result = _wait_for_lifecycle_job(lifecycle_job.get("job_id"))
     update_job(job_id, job_path, current_lifecycle_job_id=None)
     lifecycle_status = str(lifecycle_result.get("status") or "unknown")
     if lifecycle_status == "failed":
@@ -4025,6 +4126,100 @@ def _run_level_b_repetitions_job(
     )
 
 
+_ACTIVE_JOB_TERMINAL_STATUSES = {"completed", "completed_with_degradation", "completed_with_failures", "failed", "cancelled", "stopped"}
+
+
+def find_active_level_b_job() -> dict | None:
+    """Scan every campaign's jobs/ directory on disk for a Level B job that
+    hasn't reached a terminal status yet.
+
+    Jobs run as a background thread inside whichever gunicorn worker started
+    them and are invisible to other workers' in-memory job_runner state, so
+    this reads the persisted job JSON files directly rather than relying on
+    job_runner.list_jobs() (process-local only).
+
+    Level B repetitions drive real attacks and evidence acquisition against
+    the one shared physical lab scenario — running two at once means two
+    attacks/acquisitions racing over the same VMs, which is exactly the
+    'doble estado' (double state) this guards against.
+    """
+    if not CAMPAIGNS_ROOT.is_dir():
+        return None
+    candidates: list[tuple[float, dict]] = []
+    for job_file in CAMPAIGNS_ROOT.glob("*/jobs/*.json"):
+        try:
+            payload = json.loads(job_file.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if payload.get("job_type") not in ("level_b_repetitions", "level_b_real_execution"):
+            continue
+        if str(payload.get("status") or "").lower() in _ACTIVE_JOB_TERMINAL_STATUSES:
+            continue
+        candidates.append((job_file.stat().st_mtime, payload))
+    if not candidates:
+        return None
+    candidates.sort(key=lambda item: item[0], reverse=True)
+    # The raw file's own status can be a stale lie: a job whose thread died
+    # before job_runner's heartbeat/orphan-recovery fix landed (or was never
+    # read since) can sit with status="running" on disk indefinitely --
+    # nothing lazily corrects it until something calls get_job() on it.
+    # Confirmed live 2026-07-19: a Level A job from 2026-07-16 (updated_at:
+    # None, i.e. predates that fix entirely) was still being reported as
+    # "the active job" three days later by the read-raw-file-only version of
+    # this function. Re-validate through get_job() (safe to call now that
+    # its own cross-worker caching bug is fixed -- see job_runner.py) so a
+    # dead ghost gets corrected to its real terminal status here instead of
+    # silently blocking every future launch check forever.
+    for _, payload in candidates:
+        job_id = payload.get("job_id")
+        revalidated = get_job(job_id) if job_id else None
+        current = revalidated if revalidated else payload
+        if str(current.get("status") or "").lower() in _ACTIVE_JOB_TERMINAL_STATUSES:
+            continue
+        return {
+            "job_id": current.get("job_id") or job_id,
+            "job_type": current.get("job_type") or payload.get("job_type"),
+            "campaign_id": (current.get("meta") or payload.get("meta") or {}).get("campaign_id"),
+            "status": current.get("status"),
+            "current_phase": current.get("current_phase"),
+            "current_phase_label": current.get("current_phase_label"),
+            "current_phase_detail": current.get("current_phase_detail"),
+            "started_at": current.get("started_at") or current.get("requested_at"),
+            "current_case_id": current.get("current_case_id"),
+            "job_path": current.get("job_path") or payload.get("job_path"),
+        }
+    return None
+
+
+def _force_replace_active_level_b_job(active_job: dict) -> dict:
+    """Force-stop a still-active Level B job and clean up the incomplete
+    forensic case it left behind, so a fresh launch doesn't inherit stale
+    scenario/case state alongside it.
+    """
+    result = {
+        "stopped_job_id": active_job.get("job_id"),
+        "force_stop_applied": False,
+        "case_cleanup": None,
+    }
+    job_id = active_job.get("job_id")
+    if job_id:
+        stopped = request_force_stop(job_id)
+        result["force_stop_applied"] = bool(stopped)
+    case_id = active_job.get("current_case_id")
+    if case_id:
+        try:
+            from .global_cleanup_service import execute_cleanup
+            cleanup = execute_cleanup(
+                selected_item_ids=[f"case:{case_id}"],
+                confirmation="OK",
+                operator="level_b_repetitions_force_replace",
+            )
+            result["case_cleanup"] = cleanup
+        except Exception as exc:
+            result["case_cleanup"] = {"error": str(exc)}
+    return result
+
+
 def start_level_b_repetitions_job(
     campaign_id: str,
     *,
@@ -4035,9 +4230,27 @@ def start_level_b_repetitions_job(
     detection_timeout_seconds: int | None = None,
     dfir_mode_before: str = "unknown",
     dfir_mode_after: str = "unknown",
+    force_replace_active: bool = False,
 ) -> dict:
     if str(confirmation or "").strip() != CONFIRMATION_TOKEN:
         return {"error": "confirmation_required", "message": 'Type exactly "OK" to confirm the Level B repetition batch. This launches real OT attacks, waits for real alerts, creates new forensic cases, and runs real acquisition and analysis.'}
+    active_job = find_active_level_b_job()
+    replaced_job_info = None
+    if active_job:
+        if not force_replace_active:
+            return {
+                "error": "active_job_running",
+                "message": (
+                    f"A Level B job is already running (campaign {active_job.get('campaign_id')}, "
+                    f"phase '{active_job.get('current_phase_label') or active_job.get('current_phase')}', "
+                    f"started {active_job.get('started_at')}). Finish or stop it before launching another one — "
+                    "running two at once against the same lab scenario corrupts both. Pass force_replace_active=True "
+                    "to stop it and clean up its case before launching this one."
+                ),
+                "active_job": active_job,
+            }
+        replaced_job_info = _force_replace_active_level_b_job(active_job)
+        replaced_job_info["active_job"] = active_job
     manifest, config = _load_campaign(campaign_id)
     if not manifest:
         raise FileNotFoundError(f"campaign_not_found:{campaign_id}")
@@ -4069,6 +4282,7 @@ def start_level_b_repetitions_job(
             "attack_id": attack_id,
             "requested_repetitions": repetitions,
             "nested_level_a_repetitions": nested_level_a_repetitions,
+            "replaced_active_job": replaced_job_info,
         },
     )
     timeout = int(detection_timeout_seconds or DEFAULT_DETECTION_TIMEOUT_SECONDS)

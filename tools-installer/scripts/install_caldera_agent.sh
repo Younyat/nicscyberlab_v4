@@ -75,6 +75,7 @@ EOF
 # --- 4. EJECUCIÓN ---
 echo " [INFO] Desplegando Sandcat en $VICTIM_IP (Atacante: $ATTACK_IP)..."
 export ANSIBLE_HOST_KEY_CHECKING=False
+export ANSIBLE_BECOME_TIMEOUT=60
 
 if ansible-playbook -i "$BASE_DIR/hosts.ini" "$BASE_DIR/install_agent.yml"; then
     echo " [SUCCESS] Agente instalado correctamente."

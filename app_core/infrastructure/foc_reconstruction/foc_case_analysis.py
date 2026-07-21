@@ -1,3 +1,4 @@
+import contextlib
 import json
 import logging
 import os
@@ -2003,8 +2004,8 @@ def _phase_memory(case_dir: Path) -> dict:
         banners_stdout = output_dir / banners_spec["filename"]
         banners_stderr = output_dir / "vol3_banners.stderr.txt"
         banner_cmd = [vol_cmd, "--offline", "-f", str(dump_file)]
-        if symbol_search_paths:
-            banner_cmd.extend(["-s", ";".join(symbol_search_paths)])
+        for _sp in symbol_search_paths:
+            banner_cmd.extend(["-s", _sp])
         banner_cmd.append(banners_spec["plugin"])
         banner_rc, _ = _run_command(banner_cmd, case_dir, banners_stdout, banners_stderr)
         shutil.copy2(banners_stdout, legacy_dir / "01_banners.txt")
@@ -2023,14 +2024,31 @@ def _phase_memory(case_dir: Path) -> dict:
             except Exception:
                 # best-effort generation; continue if it fails
                 matched_symbols = matched_symbols
-        # If still no matched symbols, attempt SSH-based generation using helper script and available creds
+        # If still no matched symbols, use the existing SymbolGenerationService which resolves
+        # SSH credentials from the OpenStack runtime inventory (supports ubuntu/debian users automatically).
         symbol_generation_report_path = None
+        if not matched_symbols:
+            try:
+                from ..forensics.volatility_symbols import SymbolGenerationService
+                gen_service = SymbolGenerationService()
+                gen_result = gen_service.generate(
+                    case_id=case_dir.name,
+                    memory_artifact_id=dump_id,
+                    overwrite=False,
+                    mode="auto",
+                )
+                if gen_result.get("status") == "completed":
+                    symbol_generation_report_path = output_dir / "symbol_generation_report.json"
+                    _, symbol_files = _discover_symbol_files()
+                    matched_symbols = _matching_symbol_files(detected_kernel, symbol_files)
+            except Exception:
+                pass
+        # Fallback: custom SSH helper with available creds from dump metadata
         if not matched_symbols:
             try:
                 ssh_report = _generate_symbol_via_ssh(case_dir, output_dir, dump_file, detected_kernel, metadata)
                 if ssh_report:
                     symbol_generation_report_path = output_dir / "symbol_generation_report.json"
-                    # refresh discovered symbols and re-evaluate matches
                     _, symbol_files = _discover_symbol_files()
                     matched_symbols = _matching_symbol_files(detected_kernel, symbol_files)
             except Exception:
@@ -2138,8 +2156,11 @@ def _phase_memory(case_dir: Path) -> dict:
             stdout_path = output_dir / spec["filename"]
             stderr_path = output_dir / f"{spec['key']}.stderr.txt"
             cmd = [vol_cmd, "--offline", "-f", str(dump_file)]
-            if symbol_search_paths:
-                cmd.extend(["-s", ";".join(symbol_search_paths)])
+            if matched_symbols:
+                cmd.extend(["-s", str(matched_symbols[0].parent)])
+            else:
+                for _sp in symbol_search_paths:
+                    cmd.extend(["-s", _sp])
             cmd.append(spec["plugin"])
             rc, _ = _run_command(cmd, case_dir, stdout_path, stderr_path)
             stdout_text = _read_text(stdout_path)
@@ -2770,6 +2791,46 @@ def _phase_final_report(case_entry: dict, case_dir: Path, status: dict) -> dict:
     return report
 
 
+@contextlib.contextmanager
+def _heartbeat_during_analysis_phase(case_dir: Path, status: dict, interval: int = 30):
+    """Keep analysis_status.json's mtime fresh for the duration of ANY
+    analysis phase — applied generically around every _run_phase() call in
+    _worker(), not one specific phase.
+
+    First found on `foc_readiness_update` (2026-07-17: regenerate_foc()
+    rebuilds BOMs/timeline/attestations/indexes across the WHOLE evidence
+    store, took 26m50s with zero interim writes). Fixed narrowly there —
+    then confirmed live the NEXT day on `network_analysis` for a different
+    case (28min of pure-Python pcap parsing, same zero-interim-write shape,
+    same result: the stall detector killed a 5-hour-old campaign at the
+    10-minute mark of a phase that was still genuinely working and finished
+    fine 18 minutes after the campaign had already been declared dead).
+    Both phases process real, sometimes-large evidence with no progress
+    reporting of their own — rather than chase every phase that might one
+    day run long enough to trigger this, the heartbeat now wraps ALL of
+    them uniformly. Same "background thread only refreshes the heartbeat,
+    never touches the phase's own result" pattern as the other
+    heartbeat-during wrappers added this session (level_c_orchestrator.
+    _run_cmd, level_b_repetition_runner._heartbeat_during).
+    """
+    stop = threading.Event()
+
+    def _beat():
+        while not stop.wait(interval):
+            try:
+                _write_status(case_dir, status)
+            except Exception:
+                pass
+
+    t = threading.Thread(target=_beat, daemon=True, name="analysis-phase-heartbeat")
+    t.start()
+    try:
+        yield
+    finally:
+        stop.set()
+        t.join(timeout=2)
+
+
 def _phase_foc_refresh(case_dir: Path) -> dict:
     manifest = regenerate_foc()
     return {
@@ -2843,7 +2904,8 @@ def _worker(case_entry: dict, force: bool) -> None:
                 pass
             _record_phase_transition(case_dir, status, phase_key, "running", {"started_at": utc_now()})
             try:
-                payload = _run_phase(case_entry, case_dir, status, phase_key)
+                with _heartbeat_during_analysis_phase(case_dir, status):
+                    payload = _run_phase(case_entry, case_dir, status, phase_key)
                 payload = _finalize_phase_output(case_dir, status, phase_key, payload)
                 phase_status = str(payload.get("status") or "completed")
                 extra = {
