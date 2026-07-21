@@ -1014,39 +1014,116 @@ Physical process fidelity is intentionally bounded by the virtualized and instru
 
 The next section describes safe repository hygiene before sharing or publishing deployments.
 
+
+
+
 ---
 
-## 13. Repository Hygiene
 
-Before publishing or sharing a FORGE-VI deployment, check that the repository does not include environment-specific or sensitive files.
 
-Avoid committing:
+
+## 13. Repository Content and Artifact Management
+
+Before publishing or sharing a FORGE-VI deployment, verify that the repository contains only source code, documentation, configuration templates, and lightweight reproducibility metadata intended for version control.
+
+The following categories should remain outside the public repository.
+
+### Sensitive and environment-specific files
+
+Files containing credentials, private keys, passwords, access tokens, local addresses, or deployment-specific configuration must not be committed.
+
+Examples:
 
 ```text
 admin-openrc.sh
-app.log
-app.log.*
-wget-log
 *.pem
 *.key
 *.env
-__pycache__/
-evidence_store/
-large raw memory dumps
-large disk images
-large PCAP bundles
 ```
 
-Use example templates when credentials or local paths are required:
+When configuration examples are required, provide sanitized templates without operational credentials or local values:
 
 ```text
 admin-openrc.example.sh
 .env.example
 ```
 
-Large forensic artifacts should normally be retained outside the public repository or shared through controlled transfer mechanisms.
+### Generated development files
 
-The next section acknowledges the funding and institutional support behind the project.
+Runtime logs, Python caches, virtual environments, dependency directories, editor settings, temporary files, and build outputs should not be versioned.
+
+Examples:
+
+```text
+__pycache__/
+*.pyc
+.venv/
+venv/
+node_modules/
+dist/
+.validation-build/
+.idea/
+.vscode/
+app.log
+app.log.*
+wget-log
+```
+
+### Large experimental and forensic artifacts
+
+Raw RF captures, signal recordings, generated datasets, trained models, memory dumps, disk images, packet captures, and other large binary artifacts should remain outside the source repository.
+
+Common excluded formats include:
+
+```text
+*.iq
+*.cfile
+*.cf32
+*.complex
+*.sigmf-data
+*.wav
+*.bin
+*.dat
+*.pcap
+*.pcapng
+*.h5
+*.hdf5
+*.npy
+*.npz
+*.pkl
+*.joblib
+*.pt
+*.pth
+*.onnx
+*.jsonl
+```
+
+Generated storage directories should also remain outside version control unless they contain a small and explicitly selected test fixture.
+
+Examples:
+
+```text
+backend/app/infrastructure/persistence/storage/recordings/
+backend/app/infrastructure/persistence/storage/datasets/
+backend/app/infrastructure/persistence/storage/exports/
+backend/app/infrastructure/persistence/storage/temp/
+backend/app/infrastructure/persistence/storage/fingerprinting/captures/
+backend/app/infrastructure/persistence/storage/mlops/data/rf_dataset/
+evidence_store/
+```
+
+Large experimental and forensic artifacts should be stored in dedicated local storage, an evidence repository, an object-storage service, or another controlled transfer mechanism.
+
+When these artifacts are required for experiment reproduction, the repository should retain only the information needed to identify and verify them, such as:
+
+* acquisition parameters;
+* artifact manifests;
+* cryptographic hashes;
+* file sizes and formats;
+* generation procedures;
+* controlled retrieval instructions.
+
+Small reference artifacts may be committed only when their purpose is documented, they do not contain sensitive information, and their size is appropriate for normal repository distribution.
 
 ---
 
