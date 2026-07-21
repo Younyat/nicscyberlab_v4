@@ -391,7 +391,7 @@ The dashboard supports:
 
 The dashboard also provides extended operational views for attack execution and feedback.
 
-![Tactical Cyber Operations Dashboard - Execution View](Images_readme/tactical_cyber_operations_dashboard_.png)
+
 
 ![Tactical Cyber Operations Dashboard - Operational Feedback](Images_readme/tactical_cyber_operations_dashboard_2.png)
 
@@ -399,34 +399,10 @@ The attack workflow is linked to detection and forensic expectations.
 
 ---
 
-### 4.8 Advanced Detection Module
-
-The **Advanced Detection Module** exposes detection-oriented capabilities associated with the monitored scenario.
-
-It supports the transition from controlled incident execution to alert observation and forensic escalation.
-
-This module can be used to inspect:
-
-- detection rules;
-- alert behavior;
-- monitoring status;
-- detection profile state;
-- expected detector outputs;
-- security-event visibility.
-
-It is especially relevant when attack profiles are expected to generate observable detection traces that later become triggers for acquisition and reconstruction.
-
-![Advanced Detection Module](Images_readme/ADV_DETECTION_MODULE.png)
-
-Detection can also include traffic-oriented analysis views.
 
 ---
 
-The detected or observed incident can then be moved into the forensic workflow.
-
----
-
-### 4.9 End-to-End Forensic Workflow View
+### 4.8 End-to-End Forensic Workflow View
 
 The **End-to-End Forensic Workflow View** presents the forensic workflow as a complete process.
 
@@ -455,7 +431,7 @@ The next view executes evidence acquisition and preservation.
 
 ---
 
-### 4.10 Forensic Acquisition Dashboard
+### 4.9 Forensic Acquisition Dashboard
 
 The **Forensic Acquisition Dashboard** is used to acquire and preserve evidence from the deployed scenario.
 
@@ -486,7 +462,7 @@ After acquisition, the preserved evidence can be inspected and analyzed.
 
 ---
 
-### 4.11 Forensic Live Traffic Analyzer
+### 4.10 Forensic Live Traffic Analyzer
 
 The **Forensic Live Traffic Analyzer** supports network-oriented inspection during or after the incident workflow.
 
@@ -506,7 +482,7 @@ The next views expose the forensic report and analysis surfaces.
 
 ---
 
-### 4.12 Digital Forensics Report and Analysis Dashboard
+### 4.11 Digital Forensics Report and Analysis Dashboard
 
 The **Digital Forensics Report and Analysis Dashboard** provides a case-centered view of preserved artifacts, integrity records, custody information, analysis outputs, and forensic summaries.
 
@@ -529,17 +505,17 @@ This dashboard separates primary evidence from derived analysis outputs, preserv
 
 Additional report views expose detailed case information and analysis outputs.
 
-![Digital Forensics Report - Evidence Review](Images_readme/forensic_report_.png)
+
 
 ![Digital Forensics Report - Analysis View](Images_readme/forensic_report_2.png)
 
-![Digital Forensics Report - Detailed Findings](Images_readme/forensic_report_2_.png)
+
 
 The preserved case can then be used for reconstruction and cross-run comparison.
 
 ---
 
-### 4.13 FOC Reconstruction and Comparability View
+### 4.12 FOC Reconstruction and Comparability View
 
 The **FOC Reconstruction and Comparability View** organizes the preserved incident into a Forensic Observational Context and supports comparison across repeated executions.
 
@@ -573,7 +549,7 @@ The final service supports movement of selected artifacts to external laboratory
 
 ---
 
-### 4.14 Remote Lab Exchange Dashboard
+### 4.13 Remote Lab Exchange Dashboard
 
 The **Remote Lab Exchange Dashboard** supports controlled exchange of selected artifacts between FORGE-VI and external analysis environments.
 
