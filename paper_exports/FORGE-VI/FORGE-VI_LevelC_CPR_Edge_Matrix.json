@@ -1,7 +1,7 @@
 {
   "schema": "forge_vi_cpr_edge_matrix_v1",
-  "generated_at_utc": "2026-07-21T12:52:53Z",
-  "campaign_id": "CMP-20260720-230112-DFA1",
+  "generated_at_utc": "2026-07-22T09:07:32Z",
+  "campaign_id": "CMP-20260721-224722-861D",
   "paper_level": "Level C",
   "execution_source_level": "Level B",
   "manual_level_c_completion_required": true,
@@ -20,13 +20,13 @@
   ],
   "current_campaign_support": "not_available_from_current_campaign (Level B standing scenario)",
   "cpr_note": "CPR appears here only as a reconstruction diagnostic metric, not as a global workflow metric. CPR=0 means no edges recovered; CPR=1 means full recovery. Current value CPR=0.5 means 4/8 edges are recovered, 2 degraded, 2 missing.",
-  "n_executions": 6,
+  "n_executions": 5,
   "executions": [
     {
       "execution_id": "EXEC-0001",
-      "case_id": "case-a7742447",
-      "case_dir": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0001/retained_case_lightweight_bundle/case-a7742447",
-      "comparison_family_id": "family-4ec7052a3c44f113",
+      "case_id": "case-b924680b",
+      "case_dir": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0001/retained_case_lightweight_bundle/case-b924680b",
+      "comparison_family_id": "family-6496e542f4399f1c",
       "cpr": {
         "expected": 8,
         "recovered": 5,
@@ -36,7 +36,7 @@
         "cpr": 0.625,
         "wcpr": 0.6096,
         "recoverability_label": "partially_recoverable",
-        "reconstruction_confidence": 0.712,
+        "reconstruction_confidence": 0.7128,
         "interpretation": "5 of 8 expected causal edges recovered. CPR=0.625. Recoverability: partially_recoverable."
       },
       "edges": [
@@ -59,12 +59,12 @@
           ],
           "evidence_found": [
             "foc-reconstruction/attestations/attack_attestation.json#atk-6402b8e1",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260720-235124/analysis/03_network/network_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-234057/analysis/03_network/network_findings.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
             "foc-reconstruction/attestations/attack_attestation.json#atk-6402b8e1",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260720-235124/analysis/03_network/network_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-234057/analysis/03_network/network_findings.json"
           ],
           "reason": "",
           "scientific_interpretation": "The T0831 attack was executed and the unauthorized Modbus write (FC=16, register confirmed) is attested in attack_attestation.json and network_findings.json. This edge is fully recovered.",
@@ -89,11 +89,11 @@
             "network_modbus_observation"
           ],
           "evidence_found": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260720-235124/analysis/03_network/network_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-234057/analysis/03_network/network_findings.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260720-235124/analysis/03_network/network_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-234057/analysis/03_network/network_findings.json"
           ],
           "reason": "",
           "scientific_interpretation": "Modbus TCP traffic containing the write command is confirmed in the OT export and network findings. The traffic crossed the IT→OT conduit (192.168.100.x→10.0.2.22:502). Fully recovered.",
@@ -150,11 +150,11 @@
             "plc_state_observation"
           ],
           "evidence_found": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260720-235124/analysis/06_ot/ot_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-234057/analysis/06_ot/ot_findings.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260720-235124/analysis/06_ot/ot_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-234057/analysis/06_ot/ot_findings.json"
           ],
           "reason": "",
           "scientific_interpretation": "ot_findings.json confirms the Modbus write reached the PLC (FC=16 with payload). The OT export contains 3313+ Modbus records including the attack writes. Fully recovered.",
@@ -213,12 +213,12 @@
           ],
           "evidence_found": [
             "foc-reconstruction/attestations/alert_correlation.json#alr-bc4c82dd",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260720-235124/metadata/forensic_intervention.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-234057/metadata/forensic_intervention.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
             "foc-reconstruction/attestations/alert_correlation.json#alr-bc4c82dd",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260720-235124/metadata/forensic_intervention.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-234057/metadata/forensic_intervention.json"
           ],
           "reason": "forensic_intervention.json does not carry the trigger_alert_id → case_id causal chain.",
           "scientific_interpretation": "forensic_intervention.json exists but does not carry the explicit trigger_alert_id → case_id causal link. Without this, the causal path from alert to case creation cannot be traced programmatically. Edge is missing.",
@@ -246,17 +246,17 @@
             "chain_of_custody"
           ],
           "evidence_found": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260720-235124/metadata/forensic_intervention.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-234057/metadata/forensic_intervention.json",
             "foc-reconstruction/attestations/case_manifest_link.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260720-235124/manifest.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260720-235124/chain_of_custody.log"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-234057/manifest.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-234057/chain_of_custody.log"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260720-235124/metadata/forensic_intervention.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-234057/metadata/forensic_intervention.json",
             "foc-reconstruction/attestations/case_manifest_link.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260720-235124/manifest.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260720-235124/chain_of_custody.log"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-234057/manifest.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-234057/chain_of_custody.log"
           ],
           "reason": "forensic_intervention.json exists but does not contain the explicit case_id → preserved_case_directory → manifest link needed for causal traceability.",
           "scientific_interpretation": "manifest.json and chain_of_custody.log exist and are verified. However, forensic_intervention.json does not link the forensic case to the preserved case directory explicitly, so the causal chain alert → case → evidence is broken at the artifact level. Edge is missing.",
@@ -285,19 +285,19 @@
             "memory_analysis_useful"
           ],
           "evidence_found": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260720-235124/manifest.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260720-235124/chain_of_custody.log",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260720-235124/analysis/forensic_analysis_report.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260720-235124/analysis/visual/analysis_visual_summary.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260720-235124/analysis/04_memory/memory_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-234057/manifest.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-234057/chain_of_custody.log",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-234057/analysis/forensic_analysis_report.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-234057/analysis/visual/analysis_visual_summary.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-234057/analysis/04_memory/memory_findings.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260720-235124/manifest.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260720-235124/chain_of_custody.log",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260720-235124/analysis/forensic_analysis_report.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260720-235124/analysis/visual/analysis_visual_summary.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260720-235124/analysis/04_memory/memory_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-234057/manifest.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-234057/chain_of_custody.log",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-234057/analysis/forensic_analysis_report.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-234057/analysis/visual/analysis_visual_summary.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-234057/analysis/04_memory/memory_findings.json"
           ],
           "reason": "",
           "scientific_interpretation": "forensic_analysis_report.json contains 12-14 layers of analysis over the preserved evidence. The analysis consumed memory, network, disk, OT, and alert evidence. Fully recovered.",
@@ -307,19 +307,19 @@
         }
       ],
       "artifact_paths": {
-        "forensic_comparison_profile": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0001/forensic_comparison_profile.json",
-        "forensic_result_card": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0001/forensic_result_card.json",
-        "reconstruction_metrics": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0001/retained_case_lightweight_bundle/case-a7742447/derived/reconstruction/reconstruction_metrics.json",
-        "causal_graph": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0001/retained_case_lightweight_bundle/case-a7742447/derived/reconstruction/causal_graph.json",
-        "forensic_intervention": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0001/retained_case_lightweight_bundle/case-a7742447/metadata/forensic_intervention.json",
-        "trigger_alert_binding": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0001/retained_case_lightweight_bundle/case-a7742447/metadata/trigger_alert_binding.json"
+        "forensic_comparison_profile": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0001/forensic_comparison_profile.json",
+        "forensic_result_card": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0001/forensic_result_card.json",
+        "reconstruction_metrics": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0001/retained_case_lightweight_bundle/case-b924680b/derived/reconstruction/reconstruction_metrics.json",
+        "causal_graph": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0001/retained_case_lightweight_bundle/case-b924680b/derived/reconstruction/causal_graph.json",
+        "forensic_intervention": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0001/retained_case_lightweight_bundle/case-b924680b/metadata/forensic_intervention.json",
+        "trigger_alert_binding": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0001/retained_case_lightweight_bundle/case-b924680b/metadata/trigger_alert_binding.json"
       }
     },
     {
       "execution_id": "EXEC-0002",
-      "case_id": "case-a81b135c",
-      "case_dir": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0002/retained_case_lightweight_bundle/case-a81b135c",
-      "comparison_family_id": "family-ba716ad56b24908d",
+      "case_id": "case-bc50bdc5",
+      "case_dir": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0002/retained_case_lightweight_bundle/case-bc50bdc5",
+      "comparison_family_id": "family-dc16a1e2487ce31e",
       "cpr": {
         "expected": 8,
         "recovered": 5,
@@ -329,7 +329,7 @@
         "cpr": 0.625,
         "wcpr": 0.6096,
         "recoverability_label": "partially_recoverable",
-        "reconstruction_confidence": 0.712,
+        "reconstruction_confidence": 0.713,
         "interpretation": "5 of 8 expected causal edges recovered. CPR=0.625. Recoverability: partially_recoverable."
       },
       "edges": [
@@ -352,12 +352,12 @@
           ],
           "evidence_found": [
             "foc-reconstruction/attestations/attack_attestation.json#atk-6402b8e1",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-012120/analysis/03_network/network_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-015209/analysis/03_network/network_findings.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
             "foc-reconstruction/attestations/attack_attestation.json#atk-6402b8e1",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-012120/analysis/03_network/network_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-015209/analysis/03_network/network_findings.json"
           ],
           "reason": "",
           "scientific_interpretation": "The T0831 attack was executed and the unauthorized Modbus write (FC=16, register confirmed) is attested in attack_attestation.json and network_findings.json. This edge is fully recovered.",
@@ -382,11 +382,11 @@
             "network_modbus_observation"
           ],
           "evidence_found": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-012120/analysis/03_network/network_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-015209/analysis/03_network/network_findings.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-012120/analysis/03_network/network_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-015209/analysis/03_network/network_findings.json"
           ],
           "reason": "",
           "scientific_interpretation": "Modbus TCP traffic containing the write command is confirmed in the OT export and network findings. The traffic crossed the IT→OT conduit (192.168.100.x→10.0.2.22:502). Fully recovered.",
@@ -443,11 +443,11 @@
             "plc_state_observation"
           ],
           "evidence_found": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-012120/analysis/06_ot/ot_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-015209/analysis/06_ot/ot_findings.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-012120/analysis/06_ot/ot_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-015209/analysis/06_ot/ot_findings.json"
           ],
           "reason": "",
           "scientific_interpretation": "ot_findings.json confirms the Modbus write reached the PLC (FC=16 with payload). The OT export contains 3313+ Modbus records including the attack writes. Fully recovered.",
@@ -506,12 +506,12 @@
           ],
           "evidence_found": [
             "foc-reconstruction/attestations/alert_correlation.json#alr-bc4c82dd",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-012120/metadata/forensic_intervention.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-015209/metadata/forensic_intervention.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
             "foc-reconstruction/attestations/alert_correlation.json#alr-bc4c82dd",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-012120/metadata/forensic_intervention.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-015209/metadata/forensic_intervention.json"
           ],
           "reason": "forensic_intervention.json does not carry the trigger_alert_id → case_id causal chain.",
           "scientific_interpretation": "forensic_intervention.json exists but does not carry the explicit trigger_alert_id → case_id causal link. Without this, the causal path from alert to case creation cannot be traced programmatically. Edge is missing.",
@@ -539,17 +539,17 @@
             "chain_of_custody"
           ],
           "evidence_found": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-012120/metadata/forensic_intervention.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-015209/metadata/forensic_intervention.json",
             "foc-reconstruction/attestations/case_manifest_link.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-012120/manifest.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-012120/chain_of_custody.log"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-015209/manifest.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-015209/chain_of_custody.log"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-012120/metadata/forensic_intervention.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-015209/metadata/forensic_intervention.json",
             "foc-reconstruction/attestations/case_manifest_link.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-012120/manifest.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-012120/chain_of_custody.log"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-015209/manifest.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-015209/chain_of_custody.log"
           ],
           "reason": "forensic_intervention.json exists but does not contain the explicit case_id → preserved_case_directory → manifest link needed for causal traceability.",
           "scientific_interpretation": "manifest.json and chain_of_custody.log exist and are verified. However, forensic_intervention.json does not link the forensic case to the preserved case directory explicitly, so the causal chain alert → case → evidence is broken at the artifact level. Edge is missing.",
@@ -578,19 +578,19 @@
             "memory_analysis_useful"
           ],
           "evidence_found": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-012120/manifest.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-012120/chain_of_custody.log",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-012120/analysis/forensic_analysis_report.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-012120/analysis/visual/analysis_visual_summary.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-012120/analysis/04_memory/memory_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-015209/manifest.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-015209/chain_of_custody.log",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-015209/analysis/forensic_analysis_report.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-015209/analysis/visual/analysis_visual_summary.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-015209/analysis/04_memory/memory_findings.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-012120/manifest.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-012120/chain_of_custody.log",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-012120/analysis/forensic_analysis_report.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-012120/analysis/visual/analysis_visual_summary.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-012120/analysis/04_memory/memory_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-015209/manifest.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-015209/chain_of_custody.log",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-015209/analysis/forensic_analysis_report.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-015209/analysis/visual/analysis_visual_summary.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-015209/analysis/04_memory/memory_findings.json"
           ],
           "reason": "",
           "scientific_interpretation": "forensic_analysis_report.json contains 12-14 layers of analysis over the preserved evidence. The analysis consumed memory, network, disk, OT, and alert evidence. Fully recovered.",
@@ -600,19 +600,19 @@
         }
       ],
       "artifact_paths": {
-        "forensic_comparison_profile": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0002/forensic_comparison_profile.json",
-        "forensic_result_card": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0002/forensic_result_card.json",
-        "reconstruction_metrics": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0002/retained_case_lightweight_bundle/case-a81b135c/derived/reconstruction/reconstruction_metrics.json",
-        "causal_graph": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0002/retained_case_lightweight_bundle/case-a81b135c/derived/reconstruction/causal_graph.json",
-        "forensic_intervention": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0002/retained_case_lightweight_bundle/case-a81b135c/metadata/forensic_intervention.json",
-        "trigger_alert_binding": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0002/retained_case_lightweight_bundle/case-a81b135c/metadata/trigger_alert_binding.json"
+        "forensic_comparison_profile": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0002/forensic_comparison_profile.json",
+        "forensic_result_card": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0002/forensic_result_card.json",
+        "reconstruction_metrics": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0002/retained_case_lightweight_bundle/case-bc50bdc5/derived/reconstruction/reconstruction_metrics.json",
+        "causal_graph": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0002/retained_case_lightweight_bundle/case-bc50bdc5/derived/reconstruction/causal_graph.json",
+        "forensic_intervention": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0002/retained_case_lightweight_bundle/case-bc50bdc5/metadata/forensic_intervention.json",
+        "trigger_alert_binding": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0002/retained_case_lightweight_bundle/case-bc50bdc5/metadata/trigger_alert_binding.json"
       }
     },
     {
       "execution_id": "EXEC-0003",
-      "case_id": "case-a0c098fc",
-      "case_dir": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0003/retained_case_lightweight_bundle/case-a0c098fc",
-      "comparison_family_id": "family-b1d718a40f7c70d1",
+      "case_id": "case-aec95891",
+      "case_dir": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0003/retained_case_lightweight_bundle/case-aec95891",
+      "comparison_family_id": "family-fee7e0776357d2ca",
       "cpr": {
         "expected": 8,
         "recovered": 5,
@@ -622,7 +622,7 @@
         "cpr": 0.625,
         "wcpr": 0.6096,
         "recoverability_label": "partially_recoverable",
-        "reconstruction_confidence": 0.7122,
+        "reconstruction_confidence": 0.7321,
         "interpretation": "5 of 8 expected causal edges recovered. CPR=0.625. Recoverability: partially_recoverable."
       },
       "edges": [
@@ -645,12 +645,12 @@
           ],
           "evidence_found": [
             "foc-reconstruction/attestations/attack_attestation.json#atk-6402b8e1",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/analysis/03_network/network_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-034806/analysis/03_network/network_findings.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
             "foc-reconstruction/attestations/attack_attestation.json#atk-6402b8e1",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/analysis/03_network/network_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-034806/analysis/03_network/network_findings.json"
           ],
           "reason": "",
           "scientific_interpretation": "The T0831 attack was executed and the unauthorized Modbus write (FC=16, register confirmed) is attested in attack_attestation.json and network_findings.json. This edge is fully recovered.",
@@ -675,11 +675,11 @@
             "network_modbus_observation"
           ],
           "evidence_found": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/analysis/03_network/network_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-034806/analysis/03_network/network_findings.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/analysis/03_network/network_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-034806/analysis/03_network/network_findings.json"
           ],
           "reason": "",
           "scientific_interpretation": "Modbus TCP traffic containing the write command is confirmed in the OT export and network findings. The traffic crossed the IT→OT conduit (192.168.100.x→10.0.2.22:502). Fully recovered.",
@@ -736,11 +736,11 @@
             "plc_state_observation"
           ],
           "evidence_found": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/analysis/06_ot/ot_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-034806/analysis/06_ot/ot_findings.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/analysis/06_ot/ot_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-034806/analysis/06_ot/ot_findings.json"
           ],
           "reason": "",
           "scientific_interpretation": "ot_findings.json confirms the Modbus write reached the PLC (FC=16 with payload). The OT export contains 3313+ Modbus records including the attack writes. Fully recovered.",
@@ -799,12 +799,12 @@
           ],
           "evidence_found": [
             "foc-reconstruction/attestations/alert_correlation.json#alr-bc4c82dd",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/metadata/forensic_intervention.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-034806/metadata/forensic_intervention.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
             "foc-reconstruction/attestations/alert_correlation.json#alr-bc4c82dd",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/metadata/forensic_intervention.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-034806/metadata/forensic_intervention.json"
           ],
           "reason": "forensic_intervention.json does not carry the trigger_alert_id → case_id causal chain.",
           "scientific_interpretation": "forensic_intervention.json exists but does not carry the explicit trigger_alert_id → case_id causal link. Without this, the causal path from alert to case creation cannot be traced programmatically. Edge is missing.",
@@ -832,17 +832,17 @@
             "chain_of_custody"
           ],
           "evidence_found": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/metadata/forensic_intervention.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-034806/metadata/forensic_intervention.json",
             "foc-reconstruction/attestations/case_manifest_link.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/manifest.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/chain_of_custody.log"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-034806/manifest.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-034806/chain_of_custody.log"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/metadata/forensic_intervention.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-034806/metadata/forensic_intervention.json",
             "foc-reconstruction/attestations/case_manifest_link.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/manifest.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/chain_of_custody.log"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-034806/manifest.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-034806/chain_of_custody.log"
           ],
           "reason": "forensic_intervention.json exists but does not contain the explicit case_id → preserved_case_directory → manifest link needed for causal traceability.",
           "scientific_interpretation": "manifest.json and chain_of_custody.log exist and are verified. However, forensic_intervention.json does not link the forensic case to the preserved case directory explicitly, so the causal chain alert → case → evidence is broken at the artifact level. Edge is missing.",
@@ -871,19 +871,19 @@
             "memory_analysis_useful"
           ],
           "evidence_found": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/manifest.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/chain_of_custody.log",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/analysis/forensic_analysis_report.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/analysis/visual/analysis_visual_summary.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/analysis/04_memory/memory_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-034806/manifest.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-034806/chain_of_custody.log",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-034806/analysis/forensic_analysis_report.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-034806/analysis/visual/analysis_visual_summary.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-034806/analysis/04_memory/memory_findings.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/manifest.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/chain_of_custody.log",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/analysis/forensic_analysis_report.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/analysis/visual/analysis_visual_summary.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-033957/analysis/04_memory/memory_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-034806/manifest.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-034806/chain_of_custody.log",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-034806/analysis/forensic_analysis_report.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-034806/analysis/visual/analysis_visual_summary.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-034806/analysis/04_memory/memory_findings.json"
           ],
           "reason": "",
           "scientific_interpretation": "forensic_analysis_report.json contains 12-14 layers of analysis over the preserved evidence. The analysis consumed memory, network, disk, OT, and alert evidence. Fully recovered.",
@@ -893,19 +893,19 @@
         }
       ],
       "artifact_paths": {
-        "forensic_comparison_profile": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0003/forensic_comparison_profile.json",
-        "forensic_result_card": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0003/forensic_result_card.json",
-        "reconstruction_metrics": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0003/retained_case_lightweight_bundle/case-a0c098fc/derived/reconstruction/reconstruction_metrics.json",
-        "causal_graph": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0003/retained_case_lightweight_bundle/case-a0c098fc/derived/reconstruction/causal_graph.json",
-        "forensic_intervention": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0003/retained_case_lightweight_bundle/case-a0c098fc/metadata/forensic_intervention.json",
-        "trigger_alert_binding": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0003/retained_case_lightweight_bundle/case-a0c098fc/metadata/trigger_alert_binding.json"
+        "forensic_comparison_profile": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0003/forensic_comparison_profile.json",
+        "forensic_result_card": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0003/forensic_result_card.json",
+        "reconstruction_metrics": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0003/retained_case_lightweight_bundle/case-aec95891/derived/reconstruction/reconstruction_metrics.json",
+        "causal_graph": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0003/retained_case_lightweight_bundle/case-aec95891/derived/reconstruction/causal_graph.json",
+        "forensic_intervention": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0003/retained_case_lightweight_bundle/case-aec95891/metadata/forensic_intervention.json",
+        "trigger_alert_binding": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0003/retained_case_lightweight_bundle/case-aec95891/metadata/trigger_alert_binding.json"
       }
     },
     {
       "execution_id": "EXEC-0004",
-      "case_id": "case-e4ee21c5",
-      "case_dir": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0004/retained_case_lightweight_bundle/case-e4ee21c5",
-      "comparison_family_id": "family-b608b6e40b57991f",
+      "case_id": "case-fad5f3b1",
+      "case_dir": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0004/retained_case_lightweight_bundle/case-fad5f3b1",
+      "comparison_family_id": "family-70a58d7c8a5a0804",
       "cpr": {
         "expected": 8,
         "recovered": 5,
@@ -915,7 +915,7 @@
         "cpr": 0.625,
         "wcpr": 0.6096,
         "recoverability_label": "partially_recoverable",
-        "reconstruction_confidence": 0.7122,
+        "reconstruction_confidence": 0.7134,
         "interpretation": "5 of 8 expected causal edges recovered. CPR=0.625. Recoverability: partially_recoverable."
       },
       "edges": [
@@ -938,12 +938,12 @@
           ],
           "evidence_found": [
             "foc-reconstruction/attestations/attack_attestation.json#atk-6402b8e1",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-050506/analysis/03_network/network_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-055012/analysis/03_network/network_findings.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
             "foc-reconstruction/attestations/attack_attestation.json#atk-6402b8e1",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-050506/analysis/03_network/network_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-055012/analysis/03_network/network_findings.json"
           ],
           "reason": "",
           "scientific_interpretation": "The T0831 attack was executed and the unauthorized Modbus write (FC=16, register confirmed) is attested in attack_attestation.json and network_findings.json. This edge is fully recovered.",
@@ -968,11 +968,11 @@
             "network_modbus_observation"
           ],
           "evidence_found": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-050506/analysis/03_network/network_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-055012/analysis/03_network/network_findings.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-050506/analysis/03_network/network_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-055012/analysis/03_network/network_findings.json"
           ],
           "reason": "",
           "scientific_interpretation": "Modbus TCP traffic containing the write command is confirmed in the OT export and network findings. The traffic crossed the IT→OT conduit (192.168.100.x→10.0.2.22:502). Fully recovered.",
@@ -1029,11 +1029,11 @@
             "plc_state_observation"
           ],
           "evidence_found": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-050506/analysis/06_ot/ot_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-055012/analysis/06_ot/ot_findings.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-050506/analysis/06_ot/ot_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-055012/analysis/06_ot/ot_findings.json"
           ],
           "reason": "",
           "scientific_interpretation": "ot_findings.json confirms the Modbus write reached the PLC (FC=16 with payload). The OT export contains 3313+ Modbus records including the attack writes. Fully recovered.",
@@ -1092,12 +1092,12 @@
           ],
           "evidence_found": [
             "foc-reconstruction/attestations/alert_correlation.json#alr-bc4c82dd",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-050506/metadata/forensic_intervention.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-055012/metadata/forensic_intervention.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
             "foc-reconstruction/attestations/alert_correlation.json#alr-bc4c82dd",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-050506/metadata/forensic_intervention.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-055012/metadata/forensic_intervention.json"
           ],
           "reason": "forensic_intervention.json does not carry the trigger_alert_id → case_id causal chain.",
           "scientific_interpretation": "forensic_intervention.json exists but does not carry the explicit trigger_alert_id → case_id causal link. Without this, the causal path from alert to case creation cannot be traced programmatically. Edge is missing.",
@@ -1125,17 +1125,17 @@
             "chain_of_custody"
           ],
           "evidence_found": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-050506/metadata/forensic_intervention.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-055012/metadata/forensic_intervention.json",
             "foc-reconstruction/attestations/case_manifest_link.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-050506/manifest.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-050506/chain_of_custody.log"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-055012/manifest.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-055012/chain_of_custody.log"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-050506/metadata/forensic_intervention.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-055012/metadata/forensic_intervention.json",
             "foc-reconstruction/attestations/case_manifest_link.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-050506/manifest.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-050506/chain_of_custody.log"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-055012/manifest.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-055012/chain_of_custody.log"
           ],
           "reason": "forensic_intervention.json exists but does not contain the explicit case_id → preserved_case_directory → manifest link needed for causal traceability.",
           "scientific_interpretation": "manifest.json and chain_of_custody.log exist and are verified. However, forensic_intervention.json does not link the forensic case to the preserved case directory explicitly, so the causal chain alert → case → evidence is broken at the artifact level. Edge is missing.",
@@ -1164,19 +1164,19 @@
             "memory_analysis_useful"
           ],
           "evidence_found": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-050506/manifest.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-050506/chain_of_custody.log",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-050506/analysis/forensic_analysis_report.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-050506/analysis/visual/analysis_visual_summary.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-050506/analysis/04_memory/memory_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-055012/manifest.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-055012/chain_of_custody.log",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-055012/analysis/forensic_analysis_report.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-055012/analysis/visual/analysis_visual_summary.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-055012/analysis/04_memory/memory_findings.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-050506/manifest.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-050506/chain_of_custody.log",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-050506/analysis/forensic_analysis_report.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-050506/analysis/visual/analysis_visual_summary.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-050506/analysis/04_memory/memory_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-055012/manifest.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-055012/chain_of_custody.log",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-055012/analysis/forensic_analysis_report.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-055012/analysis/visual/analysis_visual_summary.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-055012/analysis/04_memory/memory_findings.json"
           ],
           "reason": "",
           "scientific_interpretation": "forensic_analysis_report.json contains 12-14 layers of analysis over the preserved evidence. The analysis consumed memory, network, disk, OT, and alert evidence. Fully recovered.",
@@ -1186,312 +1186,19 @@
         }
       ],
       "artifact_paths": {
-        "forensic_comparison_profile": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0004/forensic_comparison_profile.json",
-        "forensic_result_card": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0004/forensic_result_card.json",
-        "reconstruction_metrics": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0004/retained_case_lightweight_bundle/case-e4ee21c5/derived/reconstruction/reconstruction_metrics.json",
-        "causal_graph": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0004/retained_case_lightweight_bundle/case-e4ee21c5/derived/reconstruction/causal_graph.json",
-        "forensic_intervention": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0004/retained_case_lightweight_bundle/case-e4ee21c5/metadata/forensic_intervention.json",
-        "trigger_alert_binding": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0004/retained_case_lightweight_bundle/case-e4ee21c5/metadata/trigger_alert_binding.json"
+        "forensic_comparison_profile": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0004/forensic_comparison_profile.json",
+        "forensic_result_card": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0004/forensic_result_card.json",
+        "reconstruction_metrics": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0004/retained_case_lightweight_bundle/case-fad5f3b1/derived/reconstruction/reconstruction_metrics.json",
+        "causal_graph": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0004/retained_case_lightweight_bundle/case-fad5f3b1/derived/reconstruction/causal_graph.json",
+        "forensic_intervention": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0004/retained_case_lightweight_bundle/case-fad5f3b1/metadata/forensic_intervention.json",
+        "trigger_alert_binding": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0004/retained_case_lightweight_bundle/case-fad5f3b1/metadata/trigger_alert_binding.json"
       }
     },
     {
       "execution_id": "EXEC-0005",
-      "case_id": "case-dbe63124",
-      "case_dir": "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723",
-      "comparison_family_id": "family-09042307bc49992f",
-      "cpr": {
-        "expected": 8,
-        "recovered": 4,
-        "degraded": 3,
-        "missing": 0,
-        "ambiguous": 1,
-        "cpr": 0.5,
-        "wcpr": 0.5137,
-        "recoverability_label": "partially_recoverable",
-        "reconstruction_confidence": 0.6404,
-        "interpretation": "4 of 8 expected causal edges recovered. CPR=0.5. Recoverability: partially_recoverable."
-      },
-      "edges": [
-        {
-          "edge_id": "edge_attack_execution_to_ot_write",
-          "name": "Attack Execution → OT Modbus Write",
-          "meaning": "The T0831 attack execution issues an unauthorized Modbus write to the PLC register.",
-          "source_state": "attack_execution",
-          "target_state": "ot_modbus_write",
-          "state": "recovered",
-          "weight": 1.0,
-          "cpr_contribution": 0.125,
-          "wcpr_contribution": "not_computed",
-          "temporal_status": "supported",
-          "semantic_status": "supported",
-          "integrity_status": "verified",
-          "evidence_required": [
-            "attack_attestation",
-            "network_modbus_observation"
-          ],
-          "evidence_found": [
-            "foc-reconstruction/attestations/attack_attestation.json#atk-6402b8e1",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/analysis/03_network/network_findings.json"
-          ],
-          "missing_artifacts": [],
-          "artifact_paths": [
-            "foc-reconstruction/attestations/attack_attestation.json#atk-6402b8e1",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/analysis/03_network/network_findings.json"
-          ],
-          "reason": "",
-          "scientific_interpretation": "The T0831 attack was executed and the unauthorized Modbus write (FC=16, register confirmed) is attested in attack_attestation.json and network_findings.json. This edge is fully recovered.",
-          "fix_required": false,
-          "rerun_required": false,
-          "fix_description": "Confirm attack_attestation.json references the write function code and register."
-        },
-        {
-          "edge_id": "edge_ot_write_to_network_modbus_write",
-          "name": "OT Modbus Write → Observable Network Traffic",
-          "meaning": "The write instruction should produce observable Modbus TCP traffic capturable by IDS.",
-          "source_state": "ot_modbus_write",
-          "target_state": "network_modbus_write",
-          "state": "recovered",
-          "weight": 1.0,
-          "cpr_contribution": 0.125,
-          "wcpr_contribution": "not_computed",
-          "temporal_status": "not_required",
-          "semantic_status": "supported",
-          "integrity_status": "verified",
-          "evidence_required": [
-            "network_modbus_observation"
-          ],
-          "evidence_found": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/analysis/03_network/network_findings.json"
-          ],
-          "missing_artifacts": [],
-          "artifact_paths": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/analysis/03_network/network_findings.json"
-          ],
-          "reason": "",
-          "scientific_interpretation": "Modbus TCP traffic containing the write command is confirmed in the OT export and network findings. The traffic crossed the IT→OT conduit (192.168.100.x→10.0.2.22:502). Fully recovered.",
-          "fix_required": false,
-          "rerun_required": false,
-          "fix_description": "Verify OT export PCAP contains the Modbus write function code and target register."
-        },
-        {
-          "edge_id": "edge_network_modbus_write_to_detection_surface",
-          "name": "Network Modbus Write → Detection Surface",
-          "meaning": "Observable Modbus traffic reaches the detection surface (Suricata/Wazuh).",
-          "source_state": "network_modbus_write",
-          "target_state": "detection_surface",
-          "state": "recovered",
-          "weight": 1.0,
-          "cpr_contribution": 0.125,
-          "wcpr_contribution": "not_computed",
-          "temporal_status": "supported",
-          "semantic_status": "supported",
-          "integrity_status": "verified",
-          "evidence_required": [
-            "attack_attestation",
-            "detection_attestation"
-          ],
-          "evidence_found": [
-            "foc-reconstruction/attestations/attack_attestation.json#atk-6402b8e1",
-            "foc-reconstruction/attestations/detection_attestation.json#910836102"
-          ],
-          "missing_artifacts": [],
-          "artifact_paths": [
-            "foc-reconstruction/attestations/attack_attestation.json#atk-6402b8e1",
-            "foc-reconstruction/attestations/detection_attestation.json#910836102"
-          ],
-          "reason": "Temporal link between network traffic and detection surface is unresolved (temporal_status=unknown).",
-          "scientific_interpretation": "Suricata and Wazuh detected the attack (rule 86601), but the temporal link between the network event and the detection moment is unresolved because UTC timestamps are not normalized across the detection chain. Edge is degraded.",
-          "fix_required": false,
-          "rerun_required": false,
-          "fix_description": "Resolve UTC timestamp gap between attack_started_at and network_event_observed_at."
-        },
-        {
-          "edge_id": "edge_ot_write_to_plc_state_observation",
-          "name": "OT Modbus Write → PLC State Observation",
-          "meaning": "The register write should produce an observable PLC/SCADA state change.",
-          "source_state": "ot_modbus_write",
-          "target_state": "plc_or_scada_state_observation",
-          "state": "degraded",
-          "weight": 1.0,
-          "cpr_contribution": 0.0625,
-          "wcpr_contribution": "not_computed",
-          "temporal_status": "not_required",
-          "semantic_status": "partial",
-          "integrity_status": "verified",
-          "evidence_required": [
-            "plc_state_observation"
-          ],
-          "evidence_found": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/analysis/06_ot/ot_findings.json"
-          ],
-          "missing_artifacts": [],
-          "artifact_paths": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/analysis/06_ot/ot_findings.json"
-          ],
-          "reason": "",
-          "scientific_interpretation": "ot_findings.json confirms the Modbus write reached the PLC (FC=16 with payload). The OT export contains 3313+ Modbus records including the attack writes. Fully recovered.",
-          "fix_required": true,
-          "rerun_required": false,
-          "fix_description": "ot_findings.json already covers this; confirm function code=16 and register/value."
-        },
-        {
-          "edge_id": "edge_detection_surface_to_alert_observation",
-          "name": "Detection Surface → Alert Observation",
-          "meaning": "The detection surface produces an alert observable by the SIEM/alert pipeline.",
-          "source_state": "detection_surface",
-          "target_state": "alert_observation",
-          "state": "ambiguous",
-          "weight": 1.0,
-          "cpr_contribution": 0.0625,
-          "wcpr_contribution": "not_computed",
-          "temporal_status": "ambiguous",
-          "semantic_status": "supported",
-          "integrity_status": "verified",
-          "evidence_required": [
-            "detection_attestation",
-            "alert_correlation"
-          ],
-          "evidence_found": [
-            "foc-reconstruction/attestations/detection_attestation.json#910836102",
-            "foc-reconstruction/attestations/alert_correlation.json#alr-bc4c82dd"
-          ],
-          "missing_artifacts": [],
-          "artifact_paths": [
-            "foc-reconstruction/attestations/detection_attestation.json#910836102",
-            "foc-reconstruction/attestations/alert_correlation.json#alr-bc4c82dd"
-          ],
-          "reason": "Temporal resolution between detection and alert observation is limited (temporal_status=unknown).",
-          "scientific_interpretation": "The alert was observed and bound in trigger_alert_binding.json. However, the timestamp chain from detection surface event to alert observation is not fully normalized in normalized_causal_timestamps.json. Edge is degraded.",
-          "fix_required": false,
-          "rerun_required": false,
-          "fix_description": "Normalize detection_observed_at_utc vs alert_observed_at_utc in normalized_causal_timestamps.json."
-        },
-        {
-          "edge_id": "edge_alert_observation_to_forensic_case",
-          "name": "Alert Observation → Forensic Case",
-          "meaning": "The observed alert triggers forensic intervention and creates the forensic case.",
-          "source_state": "alert_observation",
-          "target_state": "forensic_case",
-          "state": "recovered",
-          "weight": 1.0,
-          "cpr_contribution": 0.125,
-          "wcpr_contribution": "not_computed",
-          "temporal_status": "supported",
-          "semantic_status": "supported",
-          "integrity_status": "verified",
-          "evidence_required": [
-            "alert_correlation",
-            "forensic_intervention"
-          ],
-          "evidence_found": [
-            "foc-reconstruction/attestations/alert_correlation.json#alr-bc4c82dd",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/metadata/forensic_intervention.json"
-          ],
-          "missing_artifacts": [],
-          "artifact_paths": [
-            "foc-reconstruction/attestations/alert_correlation.json#alr-bc4c82dd",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/metadata/forensic_intervention.json"
-          ],
-          "reason": "forensic_intervention.json does not carry the trigger_alert_id → case_id causal chain.",
-          "scientific_interpretation": "forensic_intervention.json exists but does not carry the explicit trigger_alert_id → case_id causal link. Without this, the causal path from alert to case creation cannot be traced programmatically. Edge is missing.",
-          "fix_required": false,
-          "rerun_required": false,
-          "fix_description": "forensic_intervention.json must explicitly link trigger_alert_id → case_id. Currently, the artifact exists but the causal link to the triggering alert is not resolved."
-        },
-        {
-          "edge_id": "edge_forensic_case_to_preserved_case_evidence",
-          "name": "Forensic Case → Preserved Case Evidence",
-          "meaning": "The forensic case maps to concrete preserved evidence (manifest, custody chain, artifacts).",
-          "source_state": "forensic_case",
-          "target_state": "preserved_case_evidence",
-          "state": "degraded",
-          "weight": 1.0,
-          "cpr_contribution": 0.0625,
-          "wcpr_contribution": "not_computed",
-          "temporal_status": "supported",
-          "semantic_status": "partial",
-          "integrity_status": "verified",
-          "evidence_required": [
-            "forensic_intervention",
-            "case_manifest_link",
-            "manifest",
-            "chain_of_custody"
-          ],
-          "evidence_found": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/metadata/forensic_intervention.json",
-            "foc-reconstruction/attestations/case_manifest_link.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/manifest.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/chain_of_custody.log"
-          ],
-          "missing_artifacts": [],
-          "artifact_paths": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/metadata/forensic_intervention.json",
-            "foc-reconstruction/attestations/case_manifest_link.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/manifest.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/chain_of_custody.log"
-          ],
-          "reason": "forensic_intervention.json exists but does not contain the explicit case_id → preserved_case_directory → manifest link needed for causal traceability.",
-          "scientific_interpretation": "manifest.json and chain_of_custody.log exist and are verified. However, forensic_intervention.json does not link the forensic case to the preserved case directory explicitly, so the causal chain alert → case → evidence is broken at the artifact level. Edge is missing.",
-          "fix_required": true,
-          "rerun_required": false,
-          "fix_description": "forensic_intervention.json must contain preserved_case_directory and link to manifest.json. This creates the causal chain: alert → intervention → case → evidence."
-        },
-        {
-          "edge_id": "edge_preserved_case_evidence_to_multilayer_analysis",
-          "name": "Preserved Case Evidence → Multilayer Analysis",
-          "meaning": "Preserved evidence is consumed by the multilayer forensic analysis pipeline.",
-          "source_state": "preserved_case_evidence",
-          "target_state": "multilayer_analysis",
-          "state": "degraded",
-          "weight": 1.0,
-          "cpr_contribution": 0.0625,
-          "wcpr_contribution": "not_computed",
-          "temporal_status": "supported",
-          "semantic_status": "partial",
-          "integrity_status": "verified",
-          "evidence_required": [
-            "manifest",
-            "chain_of_custody",
-            "forensic_analysis_report",
-            "analysis_visual_summary",
-            "memory_analysis_useful"
-          ],
-          "evidence_found": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/manifest.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/chain_of_custody.log",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/analysis/forensic_analysis_report.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/analysis/visual/analysis_visual_summary.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/analysis/04_memory/memory_findings.json"
-          ],
-          "missing_artifacts": [],
-          "artifact_paths": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/manifest.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/chain_of_custody.log",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/analysis/forensic_analysis_report.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/analysis/visual/analysis_visual_summary.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/analysis/04_memory/memory_findings.json"
-          ],
-          "reason": "",
-          "scientific_interpretation": "forensic_analysis_report.json contains 12-14 layers of analysis over the preserved evidence. The analysis consumed memory, network, disk, OT, and alert evidence. Fully recovered.",
-          "fix_required": true,
-          "rerun_required": false,
-          "fix_description": "forensic_analysis_report.json and analysis_visual_summary.json cover this edge."
-        }
-      ],
-      "artifact_paths": {
-        "forensic_comparison_profile": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0005/forensic_comparison_profile.json",
-        "forensic_result_card": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0005/forensic_result_card.json",
-        "reconstruction_metrics": "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/derived/reconstruction/reconstruction_metrics.json",
-        "causal_graph": "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/derived/reconstruction/causal_graph.json",
-        "forensic_intervention": "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/metadata/forensic_intervention.json",
-        "trigger_alert_binding": "app_core/infrastructure/forensics/evidence_store/CASE-20260721-071723/metadata/trigger_alert_binding.json"
-      }
-    },
-    {
-      "execution_id": "EXEC-0006",
-      "case_id": "case-0376b413",
-      "case_dir": "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427",
-      "comparison_family_id": "family-6f97a06713c9a850",
+      "case_id": "case-4aca605e",
+      "case_dir": "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033",
+      "comparison_family_id": "family-7a9ed60c0b642554",
       "cpr": {
         "expected": 8,
         "recovered": 5,
@@ -1501,7 +1208,7 @@
         "cpr": 0.625,
         "wcpr": 0.6096,
         "recoverability_label": "partially_recoverable",
-        "reconstruction_confidence": 0.7123,
+        "reconstruction_confidence": 0.7137,
         "interpretation": "5 of 8 expected causal edges recovered. CPR=0.625. Recoverability: partially_recoverable."
       },
       "edges": [
@@ -1524,12 +1231,12 @@
           ],
           "evidence_found": [
             "foc-reconstruction/attestations/attack_attestation.json#atk-6402b8e1",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/analysis/03_network/network_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/analysis/03_network/network_findings.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
             "foc-reconstruction/attestations/attack_attestation.json#atk-6402b8e1",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/analysis/03_network/network_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/analysis/03_network/network_findings.json"
           ],
           "reason": "",
           "scientific_interpretation": "The T0831 attack was executed and the unauthorized Modbus write (FC=16, register confirmed) is attested in attack_attestation.json and network_findings.json. This edge is fully recovered.",
@@ -1554,11 +1261,11 @@
             "network_modbus_observation"
           ],
           "evidence_found": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/analysis/03_network/network_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/analysis/03_network/network_findings.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/analysis/03_network/network_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/analysis/03_network/network_findings.json"
           ],
           "reason": "",
           "scientific_interpretation": "Modbus TCP traffic containing the write command is confirmed in the OT export and network findings. The traffic crossed the IT→OT conduit (192.168.100.x→10.0.2.22:502). Fully recovered.",
@@ -1615,11 +1322,11 @@
             "plc_state_observation"
           ],
           "evidence_found": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/analysis/06_ot/ot_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/analysis/06_ot/ot_findings.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/analysis/06_ot/ot_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/analysis/06_ot/ot_findings.json"
           ],
           "reason": "",
           "scientific_interpretation": "ot_findings.json confirms the Modbus write reached the PLC (FC=16 with payload). The OT export contains 3313+ Modbus records including the attack writes. Fully recovered.",
@@ -1678,12 +1385,12 @@
           ],
           "evidence_found": [
             "foc-reconstruction/attestations/alert_correlation.json#alr-bc4c82dd",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/metadata/forensic_intervention.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/metadata/forensic_intervention.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
             "foc-reconstruction/attestations/alert_correlation.json#alr-bc4c82dd",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/metadata/forensic_intervention.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/metadata/forensic_intervention.json"
           ],
           "reason": "forensic_intervention.json does not carry the trigger_alert_id → case_id causal chain.",
           "scientific_interpretation": "forensic_intervention.json exists but does not carry the explicit trigger_alert_id → case_id causal link. Without this, the causal path from alert to case creation cannot be traced programmatically. Edge is missing.",
@@ -1711,17 +1418,17 @@
             "chain_of_custody"
           ],
           "evidence_found": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/metadata/forensic_intervention.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/metadata/forensic_intervention.json",
             "foc-reconstruction/attestations/case_manifest_link.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/manifest.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/chain_of_custody.log"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/manifest.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/chain_of_custody.log"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/metadata/forensic_intervention.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/metadata/forensic_intervention.json",
             "foc-reconstruction/attestations/case_manifest_link.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/manifest.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/chain_of_custody.log"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/manifest.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/chain_of_custody.log"
           ],
           "reason": "forensic_intervention.json exists but does not contain the explicit case_id → preserved_case_directory → manifest link needed for causal traceability.",
           "scientific_interpretation": "manifest.json and chain_of_custody.log exist and are verified. However, forensic_intervention.json does not link the forensic case to the preserved case directory explicitly, so the causal chain alert → case → evidence is broken at the artifact level. Edge is missing.",
@@ -1750,19 +1457,19 @@
             "memory_analysis_useful"
           ],
           "evidence_found": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/manifest.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/chain_of_custody.log",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/analysis/forensic_analysis_report.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/analysis/visual/analysis_visual_summary.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/analysis/04_memory/memory_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/manifest.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/chain_of_custody.log",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/analysis/forensic_analysis_report.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/analysis/visual/analysis_visual_summary.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/analysis/04_memory/memory_findings.json"
           ],
           "missing_artifacts": [],
           "artifact_paths": [
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/manifest.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/chain_of_custody.log",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/analysis/forensic_analysis_report.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/analysis/visual/analysis_visual_summary.json",
-            "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/analysis/04_memory/memory_findings.json"
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/manifest.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/chain_of_custody.log",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/analysis/forensic_analysis_report.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/analysis/visual/analysis_visual_summary.json",
+            "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/analysis/04_memory/memory_findings.json"
           ],
           "reason": "",
           "scientific_interpretation": "forensic_analysis_report.json contains 12-14 layers of analysis over the preserved evidence. The analysis consumed memory, network, disk, OT, and alert evidence. Fully recovered.",
@@ -1772,12 +1479,12 @@
         }
       ],
       "artifact_paths": {
-        "forensic_comparison_profile": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0006/forensic_comparison_profile.json",
-        "forensic_result_card": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260720-230112-DFA1/level_B/EXEC-0006/forensic_result_card.json",
-        "reconstruction_metrics": "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/derived/reconstruction/reconstruction_metrics.json",
-        "causal_graph": "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/derived/reconstruction/causal_graph.json",
-        "forensic_intervention": "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/metadata/forensic_intervention.json",
-        "trigger_alert_binding": "app_core/infrastructure/forensics/evidence_store/CASE-20260721-083427/metadata/trigger_alert_binding.json"
+        "forensic_comparison_profile": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0005/forensic_comparison_profile.json",
+        "forensic_result_card": "app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260721-224722-861D/level_B/EXEC-0005/forensic_result_card.json",
+        "reconstruction_metrics": "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/derived/reconstruction/reconstruction_metrics.json",
+        "causal_graph": "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/derived/reconstruction/causal_graph.json",
+        "forensic_intervention": "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/metadata/forensic_intervention.json",
+        "trigger_alert_binding": "app_core/infrastructure/forensics/evidence_store/CASE-20260722-080033/metadata/trigger_alert_binding.json"
       }
     }
   ]

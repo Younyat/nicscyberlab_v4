@@ -104,6 +104,24 @@
     return "text-slate-300";
   }
 
+  // 2026-07-21: campaigns previously showed no time information at all -- with 40+
+  // accumulated, telling two "Level B Repetition — industrial_file" entries apart meant
+  // reading raw campaign_id timestamps by hand. Absolute + relative, both real (no
+  // rounding tricks beyond simple bucketing), never invented.
+  function fmtCampaignTimestamp(iso) {
+    if (!iso) return "not_available";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "not_available";
+    const diffMs = Date.now() - d.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    let rel;
+    if (diffMin < 1) rel = "just now";
+    else if (diffMin < 60) rel = `${diffMin}m ago`;
+    else if (diffMin < 1440) rel = `${Math.floor(diffMin / 60)}h ago`;
+    else rel = `${Math.floor(diffMin / 1440)}d ago`;
+    return `${d.toISOString().slice(0, 16).replace("T", " ")} UTC · ${rel}`;
+  }
+
   function openInteractiveOverlay(title, html, onReady) {
     let root = byId("cmp-overlay");
     if (!root) {
@@ -338,15 +356,27 @@
       root.innerHTML = '<div class="glass-soft rounded-2xl p-4">No campaigns registered yet.</div>';
       return;
     }
-    root.innerHTML = state.campaigns.map((item) => `
-      <button type="button" data-campaign-id="${esc(item.campaign_id)}" class="cmp-campaign-btn w-full text-left glass-soft rounded-2xl p-4 hover:border-cyan-400/50 ${item.campaign_id === state.selectedCampaignId ? "ring-1 ring-cyan-400/60" : ""}">
+    // 2026-07-21: "running_job" comes straight from list_campaigns() (backend, one disk
+    // scan of every job file, not per-campaign) -- a campaign with a repetition genuinely
+    // in progress right now is marked here, distinct from its aggregate technical/scientific
+    // outcome (item.status), which only describes what already finished.
+    root.innerHTML = state.campaigns.map((item) => {
+      const running = item.running_job;
+      const activeBadge = running
+        ? `<div class="mt-2 text-xs font-black uppercase tracking-[0.14em]" style="color:#22c55e;">● Active now — ${esc(titleCase(running.current_phase_label || running.job_type || "running"))}</div>
+           ${running.current_phase_detail ? `<div class="mt-1 text-xs text-slate-400">${esc(running.current_phase_detail)}</div>` : ""}`
+        : "";
+      return `
+      <button type="button" data-campaign-id="${esc(item.campaign_id)}" class="cmp-campaign-btn w-full text-left glass-soft rounded-2xl p-4 hover:border-cyan-400/50 ${item.campaign_id === state.selectedCampaignId ? "ring-1 ring-cyan-400/60" : ""} ${running ? "ring-1 ring-emerald-400/40" : ""}">
         <div class="flex items-center justify-between gap-3">
           <div class="font-black">${esc(item.name || item.campaign_id)}</div>
           <div class="text-xs uppercase tracking-[0.16em] ${statusClass(item.status)}">${esc(titleCase(item.status || "unknown"))}</div>
         </div>
-        <div class="text-xs text-slate-400 mt-2">${esc(item.campaign_id)} · executions ${esc(item.execution_count || 0)}</div>
+        <div class="text-xs text-slate-400 mt-2">${esc(item.campaign_id)} · executions ${esc(item.execution_count || 0)} · ${esc(fmtCampaignTimestamp(item.created_at))}</div>
+        ${activeBadge}
       </button>
-    `).join("");
+    `;
+    }).join("");
     root.querySelectorAll(".cmp-campaign-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
         state.selectedCampaignId = btn.dataset.campaignId;
@@ -372,7 +402,14 @@
     if (!state.selectedExecutionIds.size && params.get("execution_id")) {
       state.selectedExecutionIds.add(params.get("execution_id"));
     }
-    root.innerHTML = executions.length ? executions.map((item) => `
+    // 2026-07-21: user asked for a simple "I launched a repetition, compare its rounds"
+    // path instead of hand-checking boxes one by one, especially once a campaign has many
+    // executions. Purely a selection shortcut -- still goes through the exact same
+    // readiness/compare flow as manual selection, nothing bypassed.
+    const selectAllBtn = executions.length > 1
+      ? `<button type="button" id="cmp-select-all-execs" class="btn-secondary rounded-xl px-3 py-2 mb-3 text-xs font-extrabold tracking-[0.1em] uppercase">Select all ${executions.length} executions</button>`
+      : "";
+    root.innerHTML = selectAllBtn + (executions.length ? executions.map((item) => `
       <label class="glass-soft rounded-2xl p-4 block cursor-pointer">
         <div class="flex items-center justify-between gap-3">
           <div class="flex items-center gap-3">
@@ -383,7 +420,7 @@
         </div>
         <div class="text-xs text-slate-400 mt-2">${esc(item.level || "")} · source case ${esc(item.source_case_id || "not_available")}</div>
       </label>
-    `).join("") : '<div class="glass-soft rounded-2xl p-4">No executions registered for this campaign.</div>';
+    `).join("") : '<div class="glass-soft rounded-2xl p-4">No executions registered for this campaign.</div>');
     root.querySelectorAll(".cmp-execution-check").forEach((node) => {
       node.addEventListener("change", () => {
         if (node.checked) state.selectedExecutionIds.add(node.value);
@@ -392,6 +429,13 @@
         renderStoryline();
         renderResultStory();
       });
+    });
+    byId("cmp-select-all-execs")?.addEventListener("click", () => {
+      executions.forEach((item) => state.selectedExecutionIds.add(item.execution_id));
+      renderExecutions();
+      renderReadiness();
+      renderStoryline();
+      renderResultStory();
     });
   }
 
@@ -743,9 +787,26 @@
 
   async function loadCampaigns() {
     const payload = await getJson("/api/foc/experimentation/campaigns");
-    state.campaigns = payload.campaigns || [];
+    // 2026-07-21: backend list_campaigns() sorts CMP-* directories alphabetically, which
+    // for CMP-YYYYMMDD-HHMMSS-XXXX ids is also chronological -- oldest first. With 40+
+    // campaigns accumulated, the one the user actually launched minutes ago (possibly
+    // still with a repetition in progress) was buried at the very bottom of the list and
+    // never the default selection. Reversed here so the most recent campaign is both
+    // first in the list and the default -- same fix already applied to the Level B/C
+    // campaign pickers elsewhere in this codebase.
+    state.campaigns = (payload.campaigns || []).slice().reverse();
     if (!state.campaigns.some((item) => item.campaign_id === state.selectedCampaignId)) {
-      state.selectedCampaignId = params.get("campaign_id") || (state.campaigns[0]?.campaign_id || null);
+      // 2026-07-21 correction: defaulting to campaigns[0] (now the single most recent
+      // campaign of ANY level) surfaced a tiny auto-created "Nested Level A" campaign as
+      // the default far more often than not -- one gets created per Level B repetition,
+      // so they're the most frequent campaign type by far and constantly outrank the
+      // actual Level B/C campaign the user launched. Caught live: right after this fix,
+      // the default became "Nested Level A · EXEC-0001" (1 execution) instead of the real
+      // Level B campaign created 12 seconds earlier (2 executions). Default now skips
+      // level="A" campaigns specifically -- they're still fully visible/selectable in the
+      // list, just never the silent default.
+      const primary = state.campaigns.find((item) => String(item.level || "").toUpperCase() !== "A");
+      state.selectedCampaignId = params.get("campaign_id") || (primary || state.campaigns[0])?.campaign_id || null;
     }
     renderCampaigns();
     renderExecutions();

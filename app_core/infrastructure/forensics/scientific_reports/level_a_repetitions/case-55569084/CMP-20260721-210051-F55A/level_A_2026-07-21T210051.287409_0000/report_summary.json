@@ -1,0 +1,37 @@
+{
+  "case_id": "case-55569084",
+  "execution_id": "EXEC-0001",
+  "generated_execution_ids": [
+    "EXEC-0001"
+  ],
+  "campaign_id": "CMP-20260721-210051-F55A",
+  "requested_repetitions": 1,
+  "completed_repetitions": 1,
+  "analysis_status": "partial",
+  "causal_status": "completed_with_degradation",
+  "comparison_status": "Insufficient Data",
+  "cpr": null,
+  "weighted_cpr": 0.6096,
+  "recovered_edges": 5,
+  "degraded_edges": 2,
+  "missing_edges": 0,
+  "hypothesis_support": "moderate_support",
+  "trigger": "ALERTA: Ping Detectado",
+  "modbus_context": {
+    "source_pcap": "app_core/infrastructure/forensics/evidence_store/CASE-20260721-195848/network/traffic_preserved/full_scenario_captures/20260721/tap5ccc441e-77/tap5ccc441e-77_20260721_195547Z_120s.pcap",
+    "packet_timestamp": null,
+    "source_ip": null,
+    "destination_ip": null,
+    "source_port": null,
+    "destination_port": 502,
+    "transaction_id": null,
+    "unit_id": null,
+    "function_code": null,
+    "register_address": null,
+    "value": null,
+    "parser_or_method": "tshark io,stat summaries and derived evidence support triage",
+    "confidence_level": "limited",
+    "note": "Packet-level Modbus register/value precision is not preserved by the current network extraction layer.",
+    "modbus_frames": 72
+  }
+}

@@ -1,10 +1,10 @@
 {
   "schema": "forge_vi_cpr_diagnostics_v1",
-  "generated_at_utc": "2026-07-21T12:52:53Z",
+  "generated_at_utc": "2026-07-22T09:07:32Z",
   "diagnostics": [
     {
       "execution_id": "EXEC-0001",
-      "case_id": "case-a7742447",
+      "case_id": "case-b924680b",
       "cpr": 0.625,
       "what_worked": [
         "edge_attack_execution_to_ot_write",
@@ -37,7 +37,7 @@
     },
     {
       "execution_id": "EXEC-0002",
-      "case_id": "case-a81b135c",
+      "case_id": "case-bc50bdc5",
       "cpr": 0.625,
       "what_worked": [
         "edge_attack_execution_to_ot_write",
@@ -70,7 +70,7 @@
     },
     {
       "execution_id": "EXEC-0003",
-      "case_id": "case-a0c098fc",
+      "case_id": "case-aec95891",
       "cpr": 0.625,
       "what_worked": [
         "edge_attack_execution_to_ot_write",
@@ -103,7 +103,7 @@
     },
     {
       "execution_id": "EXEC-0004",
-      "case_id": "case-e4ee21c5",
+      "case_id": "case-fad5f3b1",
       "cpr": 0.625,
       "what_worked": [
         "edge_attack_execution_to_ot_write",
@@ -136,44 +136,7 @@
     },
     {
       "execution_id": "EXEC-0005",
-      "case_id": "case-dbe63124",
-      "cpr": 0.5,
-      "what_worked": [
-        "edge_attack_execution_to_ot_write",
-        "edge_ot_write_to_network_modbus_write",
-        "edge_network_modbus_write_to_detection_surface",
-        "edge_alert_observation_to_forensic_case"
-      ],
-      "what_is_degraded": [
-        {
-          "edge_id": "edge_ot_write_to_plc_state_observation",
-          "reason": "",
-          "fix": "ot_findings.json already covers this; confirm function code=16 and register/value."
-        },
-        {
-          "edge_id": "edge_forensic_case_to_preserved_case_evidence",
-          "reason": "forensic_intervention.json exists but does not contain the explicit case_id → preserved_case_directory → manifest link needed for causal traceability.",
-          "fix": "forensic_intervention.json must contain preserved_case_directory and link to manifest.json. This creates the causal chain: alert → intervention → case → evidence."
-        },
-        {
-          "edge_id": "edge_preserved_case_evidence_to_multilayer_analysis",
-          "reason": "",
-          "fix": "forensic_analysis_report.json and analysis_visual_summary.json cover this edge."
-        }
-      ],
-      "what_is_missing": [],
-      "impact_on_cpr": {
-        "current_cpr": 0.5,
-        "cpr_if_degraded_resolved": 0.875,
-        "cpr_if_all_resolved": 1.0
-      },
-      "preservation_completeness": "complete",
-      "causal_completeness": "partial",
-      "paper_level_c_completeness": "not_available_from_current_campaign"
-    },
-    {
-      "execution_id": "EXEC-0006",
-      "case_id": "case-0376b413",
+      "case_id": "case-4aca605e",
       "cpr": 0.625,
       "what_worked": [
         "edge_attack_execution_to_ot_write",

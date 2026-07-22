@@ -2401,10 +2401,18 @@ def launch_level_c(
     job_dir = JOBS_DIR / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
 
+    # 2026-07-22: removed the previous silent upper clamps (min(5, ...) / min(50, ...)) --
+    # neither had a comment or any discoverable justification anywhere in this codebase,
+    # and they were silently overriding whatever the operator actually requested with zero
+    # feedback (confirmed live: a request for 10 Level C repetitions was clamped to 5 with
+    # no warning anywhere in the UI, only discovered when the live status panel didn't
+    # match what was launched). User: "el número que pongo es el número que tiene que dar
+    # de vueltas" -- whatever is typed is now exactly what runs. Only floor (at least 1) is
+    # kept, since 0 or negative repetitions has no meaning.
     config = {
         "campaign_id": campaign_id,
-        "level_c_repetitions": max(1, min(5, level_c_repetitions)),
-        "level_b_repetitions": max(1, min(50, level_b_repetitions)),
+        "level_c_repetitions": max(1, level_c_repetitions),
+        "level_b_repetitions": max(1, level_b_repetitions),
         "level_a_repetitions": level_a_repetitions or level_b_repetitions,
     }
 

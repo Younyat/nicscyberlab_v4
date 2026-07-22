@@ -1,56 +1,56 @@
 \begin{table}[ht]
 \centering
-\caption{FORGE-VI Level C Workflow Verification Summary ($N_C = 31$ accepted redeployment-aware executions)}
+\caption{FORGE-VI Level C Workflow Verification Summary ($N_C = 38$ accepted redeployment-aware executions)}
 \label{tab:forge-vi-workflow}
 \begin{tabular}{llr}
 \hline
 \textbf{Phase} & \textbf{Verified Condition} & \textbf{Result} \\
 \hline
 \multirow{3}{*}{\textbf{Deploy/Redeploy}} & Teardown completed & \textit{N/A} (Level~B, standing scenario) \\
- & Same topology instantiated & 31/31$^{\dagger}$ \\
- & Effective inventory recorded & 31/31$^{\dagger}$ \\
+ & Same topology instantiated & 38/38$^{\dagger}$ \\
+ & Effective inventory recorded & 38/38$^{\dagger}$ \\
 \hline
-\multirow{5}{*}{\textbf{Validate}} & Validation gate passed$^{\dagger}$ & 31/31 \\
- & Segmentation verified$^{\dagger}$ & 29/31 \\
- & Sensor liveness verified$^{\dagger}$ & 31/31 \\
- & PLC/SCADA reachable$^{\dagger}$ & 31/31 \\
- & Time reference coherent & 25/31 \\
+\multirow{5}{*}{\textbf{Validate}} & Validation gate passed$^{\dagger}$ & 38/38 \\
+ & Segmentation verified$^{\dagger}$ & 36/38 \\
+ & Sensor liveness verified$^{\dagger}$ & 38/38 \\
+ & PLC/SCADA reachable$^{\dagger}$ & 38/38 \\
+ & Time reference coherent & 32/38 \\
 \hline
-\multirow{3}{*}{\textbf{Execute}} & Attack profile executed & 31/31 \\
- & Ground truth available & 31/31 \\
+\multirow{3}{*}{\textbf{Execute}} & Attack profile executed & 38/38 \\
+ & Ground truth available & 38/38 \\
  & Attack duration & 20~s \pm 3~s \\
 \hline
-\multirow{3}{*}{\textbf{Detect}} & Alert observed & 31/31 \\
- & Trigger alert bound & 31/31 \\
- & Attack-to-alert latency & 19~s \pm 33~s \\
+\multirow{3}{*}{\textbf{Detect}} & Alert observed & 38/38 \\
+ & Trigger alert bound & 38/38 \\
+ & Attack-to-alert latency & 18~s \pm 30~s \\
 \hline
-\multirow{5}{*}{\textbf{Acquire}} & Memory acquired first & 31/31 \\
- & Acquisition order valid (mem$\to$net$\to$disk) & 31/31 \\
- & Alert-to-memory-start (neg.=preemptive) & 21~s \pm 34~s \\
- & Alert-to-memory-sealed & 487~s \pm 165~s \\
- & Alert-to-case-sealed (all artifacts) & 1746~s \pm 574~s \\
+\multirow{5}{*}{\textbf{Acquire}} & Memory acquired first & 38/38 \\
+ & Acquisition order valid (mem$\to$net$\to$disk) & 38/38 \\
+ & Alert-to-memory-start (neg.=preemptive) & 22~s \pm 31~s \\
+ & Alert-to-memory-sealed & 508~s \pm 158~s \\
+ & Alert-to-case-sealed (all artifacts) & 1732~s \pm 534~s \\
 \hline
-\multirow{5}{*}{\textbf{Preserve}} & Required artifacts preserved & 31/31 \\
- & Manifest verified & 31/31 \\
- & Custody chain present & 31/31 \\
- & Memory (LiME) & 6.19~GiB \pm 2.15~GiB \\
- & Disk (RAW) & 54.19~GiB \pm 21.57~GiB \\
- & Network (PCAP) & 2.41~GiB \pm 1.67~GiB \\
+\multirow{5}{*}{\textbf{Preserve}} & Required artifacts preserved & 38/38 \\
+ & Manifest verified & 38/38 \\
+ & Custody chain present & 38/38 \\
+ & Memory (LiME) & 6.52~GiB \pm 2.06~GiB \\
+ & Disk (RAW) & 57.11~GiB \pm 20.39~GiB \\
+ & Network (PCAP) & 2.26~GiB \pm 1.60~GiB \\
 \hline
 \multirow{5}{*}{\textbf{Analyze}} & Layers completed / expected & 9--12/14 \\
- & Layers partial (output present, caveated) & 22 (total layer-run instances) \\
+ & Layers partial (output present, caveated) & 29 (total layer-run instances) \\
  & Useful layers (completed + partial) & 11--12/14 \\
- & Memory analysis status & completed (24/31), partial (7/31) \\
- & Timeline generated & 31/31 \\
- & Cross-layer findings & 31/31 \\
+ & Memory analysis status & completed (31/38), partial (7/38) \\
+ & Timeline generated & 38/38 \\
+ & Cross-layer findings & 38/38 \\
 \hline
 \multirow{3}{*}{\textbf{Reconstruct (CPR)}} & CPR (diagnostic only) & 0.5 \\
  & Edge state & R=4, D=2, M=2, A=0 \\
  & Recoverability & partially_recoverable \\
 \hline
-\multirow{3}{*}{\textbf{Compare}} & FSR invariants stable & 0/31 \\
- & CPR stable & 0/31 \\
- & Edge-state pattern stable & 0/31 \\
+\multirow{3}{*}{\textbf{Compare}} & FSR invariants stable & 0/38 \\
+ & CPR stable & 0/38 \\
+ & Edge-state pattern stable & 0/38 \\
 \hline
 \end{tabular}
 \begin{flushleft}

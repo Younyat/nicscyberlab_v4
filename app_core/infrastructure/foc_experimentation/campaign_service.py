@@ -125,8 +125,70 @@ def _running_job_for_campaign(campaign_id: str) -> dict | None:
     return None
 
 
+# 180s -- same grace window job_runner._recover_orphaned_job() uses before treating a
+# "running" job with no heartbeat as dead. Duplicated (not imported) to avoid pulling this
+# module into job_runner's own dependency chain for one constant.
+_ACTIVE_CAMPAIGN_GRACE_SECONDS = 180
+
+
+def _active_jobs_by_campaign() -> dict[str, dict]:
+    """campaign_id -> its currently-running job, for the "active campaign" indicator added
+    2026-07-21 to list_campaigns(). Deliberately does NOT reuse list_jobs() (job_runner's
+    in-memory _JOBS dict) or a per-campaign _running_job_for_campaign() loop: list_jobs()
+    only reflects whatever the CURRENT gunicorn worker happens to have cached (same class
+    of cross-worker blindness fixed in job_runner.get_job() and
+    level_b_repetition_runner.find_active_level_b_job() earlier this session -- never
+    applied here before), and looping _running_job_for_campaign() per campaign would be an
+    O(campaigns x jobs) re-scan every time list_campaigns() is called (40+ campaigns today).
+    Single pass over every job file on disk instead, building the index once. A job is only
+    trusted as "active" if it also has a recent heartbeat (same _ORPHAN_JOB_GRACE_SECONDS
+    window as job_runner's own watchdog) -- a job that says status="running" on disk but
+    hasn't been touched in 3+ minutes is exactly the kind of dead-but-not-yet-recovered job
+    this session found repeatedly, and showing it as "active" here would just resurrect that
+    same false-positive class in a new place.
+    """
+    from datetime import datetime as _dt
+
+    def _age_seconds(iso: str | None) -> float | None:
+        if not iso:
+            return None
+        try:
+            return (datetime.now(timezone.utc) - _dt.fromisoformat(iso.replace("Z", "+00:00"))).total_seconds()
+        except Exception:
+            return None
+
+    result: dict[str, dict] = {}
+    for job_path in CAMPAIGNS_ROOT.glob("CMP-*/jobs/*.json"):
+        payload = _json_load(job_path)
+        if not isinstance(payload, dict):
+            continue
+        status = str(payload.get("status") or "").lower()
+        if status not in ("queued", "running"):
+            continue
+        campaign_id = str((payload.get("meta") or {}).get("campaign_id") or "").strip()
+        if not campaign_id:
+            continue
+        age = _age_seconds(payload.get("updated_at") or payload.get("started_at") or payload.get("requested_at"))
+        if age is not None and age > _ACTIVE_CAMPAIGN_GRACE_SECONDS:
+            continue
+        candidate = {
+            "job_id": payload.get("job_id"),
+            "job_type": payload.get("job_type"),
+            "status": status,
+            "current_phase_label": payload.get("current_phase_label"),
+            "current_phase_detail": payload.get("current_phase_detail"),
+            "started_at": payload.get("started_at") or payload.get("requested_at"),
+            "updated_at": payload.get("updated_at"),
+        }
+        existing = result.get(campaign_id)
+        if existing is None or (candidate.get("updated_at") or "") > (existing.get("updated_at") or ""):
+            result[campaign_id] = candidate
+    return result
+
+
 def list_campaigns() -> dict:
     CAMPAIGNS_ROOT.mkdir(parents=True, exist_ok=True)
+    active_by_campaign = _active_jobs_by_campaign()
     campaigns: list[dict] = []
     for item in sorted(CAMPAIGNS_ROOT.glob("CMP-*")):
         manifest = _json_load(item / "campaign_manifest.json")
@@ -137,6 +199,11 @@ def list_campaigns() -> dict:
         except Exception:
             pass
         manifest["executions"] = _execution_summaries(str(manifest.get("campaign_id")))
+        # 2026-07-21: additive field, computed once above (not per-campaign) -- see
+        # _active_jobs_by_campaign()'s own docstring. None for every campaign with no
+        # currently-running job, which is the overwhelming majority; existing consumers of
+        # this endpoint that don't know about this field are unaffected.
+        manifest["running_job"] = active_by_campaign.get(str(manifest.get("campaign_id")))
         campaigns.append(manifest)
     return {"generated_at": utc_now(), "campaigns": campaigns}
 
