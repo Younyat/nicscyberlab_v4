@@ -1179,16 +1179,22 @@ def _add_artifact_fast(case_dir: str, rel_path: str, a_type: str, sha256: str = 
 # sequence. Two concurrent writers for the same case (two gunicorn workers, or
 # two acquisition threads) could both read the same "last hash" before either
 # had written, so the second writer's entry would silently chain from a stale
-# (or, if the read raced with file creation, genesis "0"*64) prev_hash instead
-# of the real current tail -- producing a permanently broken custody chain
-# with no error at write time, only discovered later by
+# prev_hash instead of the real current tail -- producing a permanently broken
+# custody chain with no error at write time, only discovered later by
 # foc_case_analysis._phase_integrity_custody() reporting custody_chain_valid:
-# false. Confirmed live on a real case: entry 3 ("acquire_start") had
-# prev_hash "0"*64 instead of chaining from entry 2 ("ir_inputs_preserved").
-# Fixed with a per-case-dir threading.Lock (fast path, guards threads within
-# one worker process) plus an fcntl.flock on the custody log itself (guards
-# across separate gunicorn worker processes, which don't share Python
+# false. Fixed with a per-case-dir threading.Lock (fast path, guards threads
+# within one worker process) plus an fcntl.flock on the custody log itself
+# (guards across separate gunicorn worker processes, which don't share Python
 # objects) held around the entire read-last-hash + compute + append sequence.
+#
+# 2026-07-22: this lock did NOT stop every chain break. A separate, fully
+# deterministic bug in _read_last_custody_hash()'s fixed 8192-byte tail-read
+# window was the actual cause of every "entry N chains from genesis 0*64
+# instead of entry N-1" break observed live (22/22 real custody_chain_valid:
+# false cases, always right after "ir_inputs_preserved", whose own JSON line
+# reliably exceeds 8192 bytes). See that function's own comment for the fix.
+# Both bugs are real and independent; this lock remains necessary for the
+# genuine concurrent-writer case it targets.
 _CUSTODY_THREAD_LOCKS_GUARD = threading.Lock()
 _CUSTODY_THREAD_LOCKS: dict[str, threading.Lock] = {}
 
@@ -1209,24 +1215,34 @@ def _custody_path(case_dir: str) -> str:
 def _sha256_hex(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
+# 2026-07-22: the fixed 8192-byte tail-read below used to truncate mid-line
+# whenever the immediately preceding entry's own JSON line exceeded 8192
+# bytes -- which "ir_inputs_preserved" reliably does once the lab has
+# accumulated enough tools-installer records (its line embeds the full
+# per-instance installed-tools list). The truncated fragment failed
+# json.loads() and was silently swallowed by the except below, so the next
+# entry chained from genesis "0"*64 instead of the real prior hash --
+# a deterministic (not racy) chain break, confirmed on 22/22 real cases with
+# custody_chain_valid: False, always breaking right after "ir_inputs_preserved".
+# Fixed by scanning the whole file for the true last non-empty line instead of
+# a fixed-size tail window. Custody logs are small, per-case JSONL files
+# (tens to low hundreds of KB), so a full read is cheap and removes this
+# class of bug regardless of how large any single entry grows.
 def _read_last_custody_hash(case_dir: str) -> str:
     p = _custody_path(case_dir)
     if not os.path.exists(p):
         return "0" * 64
     try:
-        with open(p, "rb") as f:
-            f.seek(0, os.SEEK_END)
-            size = f.tell()
-            if size <= 0:
-                return "0" * 64
-            back = min(8192, size)
-            f.seek(-back, os.SEEK_END)
-            tail = f.read().decode("utf-8", errors="ignore")
-        lines = [ln for ln in tail.splitlines() if ln.strip()]
-        if not lines:
+        last = None
+        with open(p, "r", encoding="utf-8", errors="ignore") as f:
+            for raw_line in f:
+                line = raw_line.strip()
+                if line:
+                    last = line
+        if not last:
             return "0" * 64
-        last = json.loads(lines[-1])
-        h = (last.get("entry_hash") or "").strip()
+        entry = json.loads(last)
+        h = (entry.get("entry_hash") or "").strip()
         return h if h else "0" * 64
     except Exception:
         return "0" * 64
@@ -4384,28 +4400,31 @@ def _custody_path(case_dir: str) -> str:
 def _sha256_hex(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
+# 2026-07-22: see the sibling definition of this function near the top of the
+# file for the full explanation -- a fixed 8192-byte tail read used to
+# truncate mid-line whenever "ir_inputs_preserved"'s own JSON line exceeded
+# 8192 bytes, silently breaking the hash chain on the very next entry
+# (confirmed on 22/22 real cases with custody_chain_valid: False). This is
+# the definition actually bound at runtime (Python keeps the last top-level
+# def of the same name), so this is the copy that matters. Fixed the same way:
+# scan the whole (small, per-case) file for the true last non-empty line.
 def _read_last_custody_hash(case_dir: str) -> str:
     p = _custody_path(case_dir)
     if not os.path.exists(p):
         return "0" * 64
 
     try:
-        with open(p, "rb") as f:
-            f.seek(0, os.SEEK_END)
-            size = f.tell()
-            if size <= 0:
-                return "0" * 64
-
-            back = min(8192, size)
-            f.seek(-back, os.SEEK_END)
-            tail = f.read().decode("utf-8", errors="ignore")
-
-        lines = [ln for ln in tail.splitlines() if ln.strip()]
-        if not lines:
+        last = None
+        with open(p, "r", encoding="utf-8", errors="ignore") as f:
+            for raw_line in f:
+                line = raw_line.strip()
+                if line:
+                    last = line
+        if not last:
             return "0" * 64
 
-        last = json.loads(lines[-1])
-        h = (last.get("entry_hash") or "").strip()
+        entry = json.loads(last)
+        h = (entry.get("entry_hash") or "").strip()
         return h if h else "0" * 64
     except Exception:
         return "0" * 64

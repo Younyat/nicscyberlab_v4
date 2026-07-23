@@ -385,6 +385,42 @@ function renderEdgeTable() {
   $("edge-table").innerHTML = rows;
 }
 
+// ── ROOT CAUSE REFERENCE ────────────────────────────────────────────────────
+// 2026-07-22: static, code-sourced explanations for edges with a recurring
+// degraded/ambiguous pattern (see _EDGE_ROOT_CAUSES in
+// forge_vi_dashboard/endpoints.py for the full investigation trail). Only
+// rendered for edges the backend actually attaches a root_cause to — most
+// edges have none and the section stays hidden if the current campaign has
+// no edges with a documented root cause.
+const ROOT_CAUSE_BADGE = {
+  architectural_limitation: { label: "Architectural limitation", color: "var(--info)" },
+  fixed_forward:             { label: "Root-caused & fixed",      color: "var(--ok)" },
+  open_investigation:        { label: "Under investigation",      color: "var(--amb)" },
+};
+
+function renderRootCauseSection() {
+  const edgeMeta = (DATA.edge_meta || []).filter(e => e.root_cause);
+  const section = $("root-cause-section");
+  if (!edgeMeta.length) {
+    section.style.display = "none";
+    return;
+  }
+  section.style.display = "";
+  $("root-cause-list").innerHTML = edgeMeta.map(e => {
+    const rc = e.root_cause;
+    const badge = ROOT_CAUSE_BADGE[rc.status] || { label: rc.status, color: "var(--muted)" };
+    return `<div class="glass2 rounded-[18px] p-5">
+      <div class="flex flex-wrap items-center gap-2 mb-2">
+        <span class="mono text-xs font-black" style="color:var(--info);">${esc(e.label)}</span>
+        <span style="font-size:14px;color:var(--muted);">${esc(e.desc)}</span>
+        <span class="tag-pill" style="color:${badge.color};border-color:${badge.color}40;background:${badge.color}12;">${esc(badge.label)}</span>
+      </div>
+      <div style="font-size:15px;font-weight:800;margin-bottom:4px;">${esc(rc.title)}</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.55;">${esc(rc.explanation)}</div>
+    </div>`;
+  }).join("");
+}
+
 // ── EDGE MODAL ───────────────────────────────────────────────────────────────
 function openEdgeModal(label) {
   const edgeMeta = (DATA.edge_meta || []).find(e => e.label === label) || {};
@@ -393,6 +429,18 @@ function openEdgeModal(label) {
   const ea = agg[label] || {};
 
   $("edge-modal-title").textContent = `${label} — ${edgeMeta.desc || ""}`;
+
+  const rc = edgeMeta.root_cause;
+  const rootCauseBlock = rc ? (() => {
+    const badge = ROOT_CAUSE_BADGE[rc.status] || { label: rc.status, color: "var(--muted)" };
+    return `<div class="glass2 rounded-[14px] p-4 mb-3" style="border-color:${badge.color}40;">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="tag-pill" style="color:${badge.color};border-color:${badge.color}40;background:${badge.color}12;">${esc(badge.label)}</span>
+        <span style="font-size:14px;font-weight:800;">${esc(rc.title)}</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.5;">${esc(rc.explanation)}</div>
+    </div>`;
+  })() : "";
 
   const runRows = runs.map(r => {
     const st = (r.edge_states || {})[label] || {};
@@ -411,6 +459,7 @@ function openEdgeModal(label) {
   }).join("");
 
   $("edge-modal-body").innerHTML = `
+    ${rootCauseBlock}
     <div class="glass2 rounded-[14px] p-4 mb-3">
       <div class="text-xs font-black uppercase tracking-[.18em] text-slate-400 mb-2">Required Evidence</div>
       <div class="text-sm">${esc((edgeMeta.required_evidence || []).join(", ") || "—")}</div>
@@ -776,6 +825,7 @@ function render() {
   renderCprDonut();
   renderCausalHeatmap();
   renderEdgeTable();
+  renderRootCauseSection();
   renderEvidenceMatrix();
   renderM1();
   renderM2();

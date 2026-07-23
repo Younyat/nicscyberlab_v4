@@ -1,21 +1,21 @@
 {
-  "generated_at": "2026-07-22T08:50:11.088169+00:00",
+  "generated_at": "2026-07-23T13:32:37.191548+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
-  "total_correlation_records": 499550,
-  "total_alerts": 165884,
-  "relevant_alerts": 129460,
-  "correlated_alerts": 419664,
-  "confirmed_correlations": 419664,
+  "total_correlation_records": 521298,
+  "total_alerts": 166947,
+  "relevant_alerts": 130235,
+  "correlated_alerts": 438344,
+  "confirmed_correlations": 438344,
   "weak_correlations": 0,
-  "unresolved_alerts": 79848,
+  "unresolved_alerts": 82916,
   "noise_alerts": 0,
   "false_positive_candidates": 0,
   "missing_expected_alerts_total": 61,
   "bucket_counts": {
-    "correlated": 419664,
-    "uncorrelated": 128211,
-    "noise": 36424,
+    "correlated": 438344,
+    "uncorrelated": 128979,
+    "noise": 36712,
     "false_positive_candidate": 0,
     "missing_expected_alert": 61,
     "weak_candidate": 0,
@@ -25,23 +25,23 @@
   "top_signatures": [
     {
       "label": "NICS CyberLab ICS Modbus write multiple registers",
-      "count": 419664
+      "count": 438344
     },
     {
       "label": "/etc/shadow_backup",
-      "count": 24192
+      "count": 25128
     },
     {
       "label": "Jul 14 12:50:23 plc-instance sshd[42092]: Invalid user debian from 10.0.2.1 port 51432",
-      "count": 21504
+      "count": 22336
     },
     {
       "label": "Jul 14 12:50:23 plc-instance sshd[42092]: Disconnecting invalid user debian 10.0.2.1 port 51432: Too many authentication failures [preauth]",
-      "count": 21504
+      "count": 22336
     },
     {
       "label": "Jul 14 12:50:23 plc-instance sshd[42092]: error: maximum authentication attempts exceeded for invalid user debian from 10.0.2.1 port 51432 ssh2 [preauth]",
-      "count": 12096
+      "count": 12564
     },
     {
       "label": "NICS CyberLab ICS Modbus write single register",
@@ -55,53 +55,61 @@
   "top_rule_ids": [
     {
       "label": "86601",
-      "count": 420216
+      "count": 438896
     },
     {
       "label": "5710",
-      "count": 43008
+      "count": 44672
     },
     {
       "label": "5758",
-      "count": 12096
+      "count": 12564
     },
     {
       "label": "554",
-      "count": 12096
+      "count": 12564
     },
     {
       "label": "550",
-      "count": 12096
+      "count": 12564
     }
   ],
   "top_nodes": [
     {
-      "label": "node-4e09b076",
-      "count": 336
+      "label": "node-c800d431",
+      "count": 349
     },
     {
       "label": "node-53087541",
-      "count": 336
+      "count": 349
     }
   ],
   "severity_distribution": [
     {
       "label": "HIGH",
-      "count": 74311
+      "count": 74606
     },
     {
       "label": "MEDIUM",
-      "count": 55269
+      "count": 55749
     },
     {
       "label": "LOW",
-      "count": 36304
+      "count": 36592
     }
   ],
   "alerts_by_node": [
     {
+      "label": "node-c800d431",
+      "count": 739
+    },
+    {
+      "label": "node-45d20749",
+      "count": 30
+    },
+    {
       "label": "node-4e09b076",
-      "count": 1
+      "count": 3
     },
     {
       "label": "node-53087541",
@@ -111,27 +119,27 @@
   "alerts_by_mitre_technique": [
     {
       "label": "T1692.001",
-      "count": 1333
+      "count": 1340
     },
     {
       "label": "T0836",
-      "count": 1333
+      "count": 1340
     }
   ],
   "alerts_by_original_sensor": [
     {
       "label": "wazuh",
-      "count": 128247
+      "count": 129015
     },
     {
       "label": "suricata",
-      "count": 37637
+      "count": 37932
     }
   ],
   "alerts_by_collector": [
     {
       "label": "wazuh",
-      "count": 165884
+      "count": 166947
     }
   ],
   "unique_confirmed_attack_pairs": 3,

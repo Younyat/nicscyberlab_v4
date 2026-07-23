@@ -1,33 +1,24 @@
 {
   "schema": "forge_vi_cpr_diagnostics_v1",
-  "generated_at_utc": "2026-07-22T09:07:32Z",
+  "generated_at_utc": "2026-07-23T13:57:09Z",
   "diagnostics": [
     {
       "execution_id": "EXEC-0001",
-      "case_id": "case-b924680b",
-      "cpr": 0.625,
+      "case_id": "case-97ba3a63",
+      "cpr": 0.875,
       "what_worked": [
         "edge_attack_execution_to_ot_write",
         "edge_ot_write_to_network_modbus_write",
         "edge_network_modbus_write_to_detection_surface",
         "edge_ot_write_to_plc_state_observation",
-        "edge_alert_observation_to_forensic_case"
+        "edge_alert_observation_to_forensic_case",
+        "edge_forensic_case_to_preserved_case_evidence",
+        "edge_preserved_case_evidence_to_multilayer_analysis"
       ],
-      "what_is_degraded": [
-        {
-          "edge_id": "edge_forensic_case_to_preserved_case_evidence",
-          "reason": "forensic_intervention.json exists but does not contain the explicit case_id → preserved_case_directory → manifest link needed for causal traceability.",
-          "fix": "forensic_intervention.json must contain preserved_case_directory and link to manifest.json. This creates the causal chain: alert → intervention → case → evidence."
-        },
-        {
-          "edge_id": "edge_preserved_case_evidence_to_multilayer_analysis",
-          "reason": "",
-          "fix": "forensic_analysis_report.json and analysis_visual_summary.json cover this edge."
-        }
-      ],
+      "what_is_degraded": [],
       "what_is_missing": [],
       "impact_on_cpr": {
-        "current_cpr": 0.625,
+        "current_cpr": 0.875,
         "cpr_if_degraded_resolved": 0.875,
         "cpr_if_all_resolved": 1.0
       },
@@ -37,30 +28,21 @@
     },
     {
       "execution_id": "EXEC-0002",
-      "case_id": "case-bc50bdc5",
-      "cpr": 0.625,
+      "case_id": "case-d998f2f3",
+      "cpr": 0.875,
       "what_worked": [
         "edge_attack_execution_to_ot_write",
         "edge_ot_write_to_network_modbus_write",
         "edge_network_modbus_write_to_detection_surface",
         "edge_ot_write_to_plc_state_observation",
-        "edge_alert_observation_to_forensic_case"
+        "edge_alert_observation_to_forensic_case",
+        "edge_forensic_case_to_preserved_case_evidence",
+        "edge_preserved_case_evidence_to_multilayer_analysis"
       ],
-      "what_is_degraded": [
-        {
-          "edge_id": "edge_forensic_case_to_preserved_case_evidence",
-          "reason": "forensic_intervention.json exists but does not contain the explicit case_id → preserved_case_directory → manifest link needed for causal traceability.",
-          "fix": "forensic_intervention.json must contain preserved_case_directory and link to manifest.json. This creates the causal chain: alert → intervention → case → evidence."
-        },
-        {
-          "edge_id": "edge_preserved_case_evidence_to_multilayer_analysis",
-          "reason": "",
-          "fix": "forensic_analysis_report.json and analysis_visual_summary.json cover this edge."
-        }
-      ],
+      "what_is_degraded": [],
       "what_is_missing": [],
       "impact_on_cpr": {
-        "current_cpr": 0.625,
+        "current_cpr": 0.875,
         "cpr_if_degraded_resolved": 0.875,
         "cpr_if_all_resolved": 1.0
       },
@@ -70,30 +52,21 @@
     },
     {
       "execution_id": "EXEC-0003",
-      "case_id": "case-aec95891",
-      "cpr": 0.625,
+      "case_id": "case-cf84e58b",
+      "cpr": 0.875,
       "what_worked": [
         "edge_attack_execution_to_ot_write",
         "edge_ot_write_to_network_modbus_write",
         "edge_network_modbus_write_to_detection_surface",
         "edge_ot_write_to_plc_state_observation",
-        "edge_alert_observation_to_forensic_case"
+        "edge_alert_observation_to_forensic_case",
+        "edge_forensic_case_to_preserved_case_evidence",
+        "edge_preserved_case_evidence_to_multilayer_analysis"
       ],
-      "what_is_degraded": [
-        {
-          "edge_id": "edge_forensic_case_to_preserved_case_evidence",
-          "reason": "forensic_intervention.json exists but does not contain the explicit case_id → preserved_case_directory → manifest link needed for causal traceability.",
-          "fix": "forensic_intervention.json must contain preserved_case_directory and link to manifest.json. This creates the causal chain: alert → intervention → case → evidence."
-        },
-        {
-          "edge_id": "edge_preserved_case_evidence_to_multilayer_analysis",
-          "reason": "",
-          "fix": "forensic_analysis_report.json and analysis_visual_summary.json cover this edge."
-        }
-      ],
+      "what_is_degraded": [],
       "what_is_missing": [],
       "impact_on_cpr": {
-        "current_cpr": 0.625,
+        "current_cpr": 0.875,
         "cpr_if_degraded_resolved": 0.875,
         "cpr_if_all_resolved": 1.0
       },
@@ -103,30 +76,21 @@
     },
     {
       "execution_id": "EXEC-0004",
-      "case_id": "case-fad5f3b1",
-      "cpr": 0.625,
+      "case_id": "case-77c36013",
+      "cpr": 0.875,
       "what_worked": [
         "edge_attack_execution_to_ot_write",
         "edge_ot_write_to_network_modbus_write",
         "edge_network_modbus_write_to_detection_surface",
         "edge_ot_write_to_plc_state_observation",
-        "edge_alert_observation_to_forensic_case"
+        "edge_alert_observation_to_forensic_case",
+        "edge_forensic_case_to_preserved_case_evidence",
+        "edge_preserved_case_evidence_to_multilayer_analysis"
       ],
-      "what_is_degraded": [
-        {
-          "edge_id": "edge_forensic_case_to_preserved_case_evidence",
-          "reason": "forensic_intervention.json exists but does not contain the explicit case_id → preserved_case_directory → manifest link needed for causal traceability.",
-          "fix": "forensic_intervention.json must contain preserved_case_directory and link to manifest.json. This creates the causal chain: alert → intervention → case → evidence."
-        },
-        {
-          "edge_id": "edge_preserved_case_evidence_to_multilayer_analysis",
-          "reason": "",
-          "fix": "forensic_analysis_report.json and analysis_visual_summary.json cover this edge."
-        }
-      ],
+      "what_is_degraded": [],
       "what_is_missing": [],
       "impact_on_cpr": {
-        "current_cpr": 0.625,
+        "current_cpr": 0.875,
         "cpr_if_degraded_resolved": 0.875,
         "cpr_if_all_resolved": 1.0
       },
@@ -136,30 +100,117 @@
     },
     {
       "execution_id": "EXEC-0005",
-      "case_id": "case-4aca605e",
-      "cpr": 0.625,
+      "case_id": "case-37aa2a91",
+      "cpr": 0.875,
       "what_worked": [
         "edge_attack_execution_to_ot_write",
         "edge_ot_write_to_network_modbus_write",
         "edge_network_modbus_write_to_detection_surface",
         "edge_ot_write_to_plc_state_observation",
-        "edge_alert_observation_to_forensic_case"
+        "edge_alert_observation_to_forensic_case",
+        "edge_forensic_case_to_preserved_case_evidence",
+        "edge_preserved_case_evidence_to_multilayer_analysis"
       ],
-      "what_is_degraded": [
-        {
-          "edge_id": "edge_forensic_case_to_preserved_case_evidence",
-          "reason": "forensic_intervention.json exists but does not contain the explicit case_id → preserved_case_directory → manifest link needed for causal traceability.",
-          "fix": "forensic_intervention.json must contain preserved_case_directory and link to manifest.json. This creates the causal chain: alert → intervention → case → evidence."
-        },
-        {
-          "edge_id": "edge_preserved_case_evidence_to_multilayer_analysis",
-          "reason": "",
-          "fix": "forensic_analysis_report.json and analysis_visual_summary.json cover this edge."
-        }
-      ],
+      "what_is_degraded": [],
       "what_is_missing": [],
       "impact_on_cpr": {
-        "current_cpr": 0.625,
+        "current_cpr": 0.875,
+        "cpr_if_degraded_resolved": 0.875,
+        "cpr_if_all_resolved": 1.0
+      },
+      "preservation_completeness": "complete",
+      "causal_completeness": "partial",
+      "paper_level_c_completeness": "not_available_from_current_campaign"
+    },
+    {
+      "execution_id": "EXEC-0006",
+      "case_id": "CASE-PLANNED-81F0-EXEC-0006",
+      "cpr": null,
+      "what_worked": [],
+      "what_is_degraded": [],
+      "what_is_missing": [],
+      "impact_on_cpr": {
+        "current_cpr": null,
+        "cpr_if_degraded_resolved": 0.0,
+        "cpr_if_all_resolved": 1.0
+      },
+      "preservation_completeness": "degraded",
+      "causal_completeness": "partial",
+      "paper_level_c_completeness": "not_available_from_current_campaign"
+    },
+    {
+      "execution_id": "EXEC-0007",
+      "case_id": "CASE-PLANNED-81F0-EXEC-0007",
+      "cpr": null,
+      "what_worked": [],
+      "what_is_degraded": [],
+      "what_is_missing": [],
+      "impact_on_cpr": {
+        "current_cpr": null,
+        "cpr_if_degraded_resolved": 0.0,
+        "cpr_if_all_resolved": 1.0
+      },
+      "preservation_completeness": "degraded",
+      "causal_completeness": "partial",
+      "paper_level_c_completeness": "not_available_from_current_campaign"
+    },
+    {
+      "execution_id": "EXEC-0008",
+      "case_id": "CASE-PLANNED-81F0-EXEC-0008",
+      "cpr": null,
+      "what_worked": [],
+      "what_is_degraded": [],
+      "what_is_missing": [],
+      "impact_on_cpr": {
+        "current_cpr": null,
+        "cpr_if_degraded_resolved": 0.0,
+        "cpr_if_all_resolved": 1.0
+      },
+      "preservation_completeness": "degraded",
+      "causal_completeness": "partial",
+      "paper_level_c_completeness": "not_available_from_current_campaign"
+    },
+    {
+      "execution_id": "EXEC-0009",
+      "case_id": "case-903d9084",
+      "cpr": 0.875,
+      "what_worked": [
+        "edge_attack_execution_to_ot_write",
+        "edge_ot_write_to_network_modbus_write",
+        "edge_network_modbus_write_to_detection_surface",
+        "edge_ot_write_to_plc_state_observation",
+        "edge_alert_observation_to_forensic_case",
+        "edge_forensic_case_to_preserved_case_evidence",
+        "edge_preserved_case_evidence_to_multilayer_analysis"
+      ],
+      "what_is_degraded": [],
+      "what_is_missing": [],
+      "impact_on_cpr": {
+        "current_cpr": 0.875,
+        "cpr_if_degraded_resolved": 0.875,
+        "cpr_if_all_resolved": 1.0
+      },
+      "preservation_completeness": "complete",
+      "causal_completeness": "partial",
+      "paper_level_c_completeness": "not_available_from_current_campaign"
+    },
+    {
+      "execution_id": "EXEC-0010",
+      "case_id": "case-8e390ced",
+      "cpr": 0.875,
+      "what_worked": [
+        "edge_attack_execution_to_ot_write",
+        "edge_ot_write_to_network_modbus_write",
+        "edge_network_modbus_write_to_detection_surface",
+        "edge_ot_write_to_plc_state_observation",
+        "edge_alert_observation_to_forensic_case",
+        "edge_forensic_case_to_preserved_case_evidence",
+        "edge_preserved_case_evidence_to_multilayer_analysis"
+      ],
+      "what_is_degraded": [],
+      "what_is_missing": [],
+      "impact_on_cpr": {
+        "current_cpr": 0.875,
         "cpr_if_degraded_resolved": 0.875,
         "cpr_if_all_resolved": 1.0
       },

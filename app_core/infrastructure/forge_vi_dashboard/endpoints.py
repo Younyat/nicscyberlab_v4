@@ -133,6 +133,82 @@ _EDGE_ORDER = [
     ("e8", "edge_preserved_case_evidence_to_multilayer_analysis","Evidence → Analysis"),
 ]
 
+# Root-cause reference for edges with a recurring, systemic degraded/ambiguous
+# pattern -- from the 2026-07-22 investigation across 38 real executions
+# (aggregate edge_states + integrity_custody_report.json + source-level
+# tracing of foc_causal_reconstruction/evaluators/edge_evaluator.py and
+# forensics_api.py). "status" values: "architectural_limitation" (honest,
+# acknowledged platform constraint, no code fix possible without a bigger
+# design change), "fixed_forward" (root-caused to a specific bug and fixed;
+# historical executions predating the fix remain unaffected/unchanged, only
+# new executions benefit), "open_investigation" (mechanism narrowed down but
+# not yet fully root-caused to a single fixable line).
+_EDGE_ROOT_CAUSES = {
+    "e3": {
+        "status": "open_investigation",
+        "title": "Temporal resolution splits into two terminal states",
+        "explanation": (
+            "Across 38 real executions this edge showed 10 'degraded' (unresolved timestamps) and "
+            "6 'ambiguous' (resolved but within the uncertainty window) -- these are the two terminal "
+            "branches of the same temporal evaluator (edge_evaluator.py): temporal_status == 'unknown' "
+            "always yields 'degraded', temporal_status in {'ambiguous','contradicted'} always yields "
+            "'ambiguous'. The mechanism is confirmed; why the underlying timestamps fail to resolve at "
+            "all in exactly those 10 cases has not yet been traced to a single fixable cause."
+        ),
+    },
+    "e5": {
+        "status": "architectural_limitation",
+        "title": "Suricata detection has no independent timestamp",
+        "explanation": (
+            "0/38 executions ever reach 'recovered' on this edge. Root cause (already documented as a "
+            "code comment in foc_causal_reconstruction/service.py::_resolve_timestamp()): the platform "
+            "reads Suricata only through the Wazuh SIEM pipeline, which cannot export a sub-alert "
+            "detection timestamp independently -- detection_surface_hit_at_utc and alert_observed_at_utc "
+            "collapse to the same value, so the temporal delta is always ~0 and always falls inside the "
+            "uncertainty window ('ambiguous', 28/38) or fails to resolve at all ('degraded', 10/38). This "
+            "is an honest, acknowledged limitation of the current detection architecture, not a bug."
+        ),
+    },
+    "e6": {
+        "status": "open_investigation",
+        "title": "forensic_intervention.json exists but selector match fails",
+        "explanation": (
+            "10/38 executions show 'missing' on this edge. Verified live: metadata/forensic_intervention.json "
+            "is present in all 38/38 cases -- this is not a missing-file problem. The per-case selector match "
+            "against that file's content fails in these 10 cases, and the global attestation fallback also "
+            "fails to match, so the requirement resolves to 'missing'. The exact selector/content mismatch has "
+            "not yet been traced to a single fixable cause."
+        ),
+    },
+    "e7": {
+        "status": "fixed_forward",
+        "title": "8192-byte custody hash tail-read truncation (fixed 2026-07-22)",
+        "explanation": (
+            "22/38 executions showed this edge 'degraded' because its required chain_of_custody sub-check "
+            "read custody_chain_valid: false. Root cause: forensics_api.py::_read_last_custody_hash() only "
+            "read the last 8192 bytes of chain_of_custody.log to find the previous entry's hash. The "
+            "'ir_inputs_preserved' entry embeds the full tools-installer snapshot and reliably exceeds 8192 "
+            "bytes, so the tail read landed mid-line, JSON parsing silently failed, and the next entry chained "
+            "from a genesis hash instead of the real prior hash -- confirmed deterministic and reproduced on "
+            "22/22 broken cases, always breaking immediately after 'ir_inputs_preserved'. Fixed by reading the "
+            "whole (small, per-case) file for the true last line instead of a fixed-size window. Executions "
+            "recorded before the fix keep their sealed, unmodified custody chain (never rewritten after the "
+            "fact) and will still show partial integrity; new executions are not expected to hit this anymore."
+        ),
+    },
+    "e8": {
+        "status": "fixed_forward",
+        "title": "Same custody buffer bug, plus a secondary memory-analysis path",
+        "explanation": (
+            "26/38 executions showed this edge 'degraded'. 22 of those trace to the same chain_of_custody "
+            "8192-byte truncation bug as e7 (see e7 above, fixed 2026-07-22). The remaining ~4 trace to an "
+            "independent path in memory_analysis_useful's requirement check (service.py): a memory dump was "
+            "analyzed but produced no completed plugin output, which is scored 'degraded' regardless of "
+            "custody state. That secondary path has not been root-caused further."
+        ),
+    },
+}
+
 _LAYER_KEYS = ["memory", "network", "disk", "ot", "alert", "metadata", "manifest", "custody", "analysis"]
 
 # C1-C5 invariants mapped from workflow_checks metrics fields
@@ -505,7 +581,17 @@ def api_forge_vi_dashboard():
     elif campaign_order:
         # Default: the campaign with the most recently sealed/attacked case -- "the latest
         # repetition" the user actually expects to see on first load, not a global mix.
-        campaign_id = campaign_order[0]
+        # 2026-07-23: "unassigned" is not a real campaign -- it's cases whose Level B job
+        # hasn't finished storing per_repetition_results yet (see _campaign_id_for_case()),
+        # which happens for every still-running repetition's just-sealed case. Left
+        # unfiltered, a live 10-rep Level C run's freshly-sealed rep 9 case would outrank
+        # the real campaign as "most recent" purely because its campaign lookup hasn't
+        # resolved yet -- confirmed live (campaign showed "unassigned", n_executions: 1,
+        # while the real campaign had 9). Same "skip the noisy synthetic bucket when
+        # picking a default, but keep it selectable" principle already applied to Level A
+        # nested campaigns in the Comparability View.
+        default_campaign_id = next((cid for cid in campaign_order if cid != "unassigned"), campaign_order[0])
+        campaign_id = default_campaign_id
         runs = by_campaign[campaign_id]
         scenario_id = _campaign_scenario_id(campaign_id)
     else:
@@ -522,7 +608,8 @@ def api_forge_vi_dashboard():
               for r in runs
               for e in [(r.get("edge_states") or {}).get(label, {})]
               if isinstance(e, dict) and e.get("required_evidence")),
-             [])}
+             []),
+         "root_cause": _EDGE_ROOT_CAUSES.get(label)}
         for label, eid, desc in _EDGE_ORDER
     ]
 

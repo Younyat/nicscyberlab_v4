@@ -2810,6 +2810,7 @@
 
   <script src="/js/theme-switcher.js"></script>
   <script>window.NicsThemeSwitcher.mount('#theme-switcher-mount');</script>
+  <script src="/js/repetition_process_tree.js?v=20260723-2"></script>
   <script>
     let COPILOT_PENDING = false;
 
@@ -5298,6 +5299,22 @@
             repStopJob(btn.dataset.stopLevel, btn.dataset.stopJob, stopRep ? Number(stopRep) : null, btn.dataset.stopForce === "1");
           });
         });
+        // Fill the "Full process tree" placeholder (see repDetailRenderHtml)
+        // asynchronously -- it can need extra fetches for nested Level B/A
+        // jobs, so it must not block the rest of this overlay from showing.
+        // requestToken guards against a slow tree build for a PREVIOUS click
+        // overwriting a newer overlay if the user clicks another repetition
+        // before this one finishes.
+        const requestToken = (repDetailOpen._token = (repDetailOpen._token || 0) + 1);
+        repTreeBuildTree(level, detail).then((root) => {
+          if (repDetailOpen._token !== requestToken) return;
+          const slot = document.getElementById("repDetailTreeSlot");
+          if (slot) slot.innerHTML = repTreeRenderLines([root]);
+        }).catch(() => {
+          if (repDetailOpen._token !== requestToken) return;
+          const slot = document.getElementById("repDetailTreeSlot");
+          if (slot) slot.innerHTML = `<div style="color:#fca5a5;font-size:11px;">Process tree could not be built.</div>`;
+        });
       } catch (_) {
         body.innerHTML = `<div style="color:#fca5a5;">Failed to load repetition detail.</div>`;
       }
@@ -5559,6 +5576,18 @@
           extra += lcLiveCollapsible("Errors", d.errors.map((e) => `<div style="color:#f87171;font-size:11px;padding:3px 0;">${lcLiveEsc(typeof e === "string" ? e : (e && e.message) || JSON.stringify(e))}</div>`).join(""), { badge: String(d.errors.length) });
         }
       }
+
+      // Full nested process tree (launch -> every stage/sub-stage -> nested
+      // Level B/A, with real machines and exact timestamps) -- built from
+      // the SAME detail payload this overlay already fetched, via the
+      // repTree* library (repetition_process_tree.js). Filled in
+      // asynchronously right after this HTML is inserted (repDetailOpen()),
+      // since building it may need extra fetches for nested jobs; starts as
+      // a loading placeholder so the rest of this overlay isn't blocked on it.
+      // 2026-07-23: user explicitly asked for this to live inside the existing
+      // repBell -> overlay flow, not as a separate page or a new icon.
+      const treeHtml = `<div id="repDetailTreeSlot" style="color:rgba(148,163,184,0.6);font-size:11px;">Building process tree…</div>`;
+      extra += lcLiveCollapsible("🌳 Full process tree", treeHtml, { open: true });
 
       return titleRow + actionBarHtml + stagesHtml + extra;
     }

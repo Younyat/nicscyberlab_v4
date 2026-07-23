@@ -1,9 +1,9 @@
 # FORGE-VI Level C — CPR Edge Matrix Interpretation
 
-**Campaign:** `CMP-20260721-224722-861D`  
+**Campaign:** `CMP-20260722-180010-81F0`  
 **Paper level:** Level C (provisional — using Level B standing-scenario repetitions)  
-**Executions accepted:** 5/6  
-**Generated:** 2026-07-22T09:07:32Z
+**Executions accepted:** 10/6  
+**Generated:** 2026-07-23T13:57:09Z
 
 ---
 
@@ -12,15 +12,15 @@
 | Metric | Value |
 |--------|-------|
 | Expected causal edges | 8 |
-| Recovered edges | 5 |
-| Degraded edges | 2 |
+| Recovered edges | 7 |
+| Degraded edges | 0 |
 | Missing edges | 0 |
 | Ambiguous edges | 1 |
-| CPR | 0.625 (= 5/8) |
-| Weighted CPR | 0.6096 |
-| Recoverability | partially_recoverable |
-| Reconstruction confidence | 0.7128 |
-| CPR stable across runs | True (identical in all 5 runs) |
+| CPR | 0.875 (= 7/8) |
+| Weighted CPR | 0.8767 |
+| Recoverability | mostly_recoverable |
+| Reconstruction confidence | 0.8728 |
+| CPR stable across runs | True (identical in all 10 runs) |
 
 ---
 
@@ -34,8 +34,8 @@
 | `edge_ot_write_to_plc_state_observation` | ✅ recovered | not_required | OT Modbus Write → PLC State Observation |
 | `edge_detection_surface_to_alert_observation` | 🔶 ambiguous | ambiguous | Detection Surface → Alert Observation |
 | `edge_alert_observation_to_forensic_case` | ✅ recovered | supported | Alert Observation → Forensic Case |
-| `edge_forensic_case_to_preserved_case_evidence` | ⚠️ degraded | supported | Forensic Case → Preserved Case Evidence |
-| `edge_preserved_case_evidence_to_multilayer_analysis` | ⚠️ degraded | supported | Preserved Case Evidence → Multilayer Analysis |
+| `edge_forensic_case_to_preserved_case_evidence` | ✅ recovered | supported | Forensic Case → Preserved Case Evidence |
+| `edge_preserved_case_evidence_to_multilayer_analysis` | ✅ recovered | supported | Preserved Case Evidence → Multilayer Analysis |
 
 ---
 

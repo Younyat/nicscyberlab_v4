@@ -295,6 +295,42 @@ def _persist_trigger_alert_binding(
         event_name="trigger_alert_binding_preserved",
         event_meta={"artifact_rel": TRIGGER_ALERT_BINDING_REL, "trigger_alert_id": payload.get("trigger_alert_id")},
     )
+
+    # 2026-07-22: also preserve this same alert as an individual per-case JSON
+    # file under alerts/, in the shape foc_case_analysis._phase_alerts() reads
+    # (rule_level/severity, source, protocol, rule_id, signature, raw). Before
+    # this, the trigger alert's full content was only ever written to
+    # TRIGGER_ALERT_BINDING_REL above -- _phase_alerts() globs
+    # case_dir/alerts/*.json and found nothing there in 23/38 real cases,
+    # skipping alert analysis and cross-layer alert-signature findings even
+    # though the alert was fully captured and just never copied to where that
+    # phase looks (confirmed: no writer for case_dir/alerts/ existed anywhere
+    # in the pipeline). Purely additive -- does not change
+    # trigger_alert_binding.json, chain_of_custody.log, or any other existing
+    # behavior; only adds one more preserved artifact.
+    if primary or triage:
+        alert_id = str(primary.get("event_id") or f"{execution_id}-trigger")
+        alert_rel = f"alerts/{alert_id}.json"
+        alert_payload = {
+            "alert_id": alert_id,
+            "severity": triage.get("severity"),
+            "source": primary.get("collector") or primary.get("original_sensor"),
+            "protocol": primary.get("protocol"),
+            "rule_id": primary.get("rule_id"),
+            "signature": primary.get("signature"),
+            "event_id": primary.get("event_id"),
+            "ts_utc": primary.get("ts_utc") or primary.get("timestamp"),
+            "raw": raw,
+        }
+        _write_case_json_artifact(
+            case_dir,
+            alert_rel,
+            "alert_json",
+            alert_payload,
+            run_id=run_id,
+            event_name="trigger_alert_case_copy_preserved",
+            event_meta={"artifact_rel": alert_rel, "trigger_alert_id": alert_id},
+        )
     return payload
 
 

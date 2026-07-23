@@ -1,6 +1,6 @@
 {
   "scenario_id": "scn-b83dbbfb",
-  "generated_at": "2026-07-22T08:29:56.570727+00:00",
+  "generated_at": "2026-07-23T13:12:58.041393+00:00",
   "nodes": [
     {
       "instance_id": "inst-d81230d9",
@@ -133,7 +133,7 @@
       "node_name": "FUXA_Instance"
     },
     {
-      "instance_id": "inst-6d9f3034",
+      "instance_id": "inst-1a90cedd",
       "instance_name": "FUXA_Instance",
       "node_type": "industrial_scada",
       "desired_tools": [
@@ -166,24 +166,24 @@
       "log_status_map": {},
       "log_sources": {},
       "installed_timestamps": {
-        "tool-suricata": "2026-07-22T07:53:42.059667+00:00",
-        "tool-wazuh_agent": "2026-07-22T07:55:54.879929+00:00",
-        "tool-rollback_suricata_ping_detection": "2026-07-22T07:58:12.354420+00:00",
-        "tool-rollback_suricata_modbus_register_detection": "2026-07-22T07:58:35.001445+00:00",
-        "tool-rollback_wazuh_suricata_integration": "2026-07-22T07:58:59.699028+00:00",
-        "tool-wazuh_fim_realtime": "2026-07-22T07:59:28.510045+00:00"
+        "tool-suricata": "2026-07-23T12:30:53.615067+00:00",
+        "tool-wazuh_agent": "2026-07-23T12:33:05.774942+00:00",
+        "tool-rollback_suricata_ping_detection": "2026-07-23T12:35:39.903618+00:00",
+        "tool-rollback_suricata_modbus_register_detection": "2026-07-23T12:36:00.858563+00:00",
+        "tool-rollback_wazuh_suricata_integration": "2026-07-23T12:36:25.625344+00:00",
+        "tool-wazuh_fim_realtime": "2026-07-23T12:36:54.370807+00:00"
       },
       "ip": "not_available",
-      "ip_private": "192.168.100.182",
-      "ip_floating": "10.0.2.186",
+      "ip_private": "192.168.100.20",
+      "ip_floating": "10.0.2.79",
       "tool_states": [
         {
           "tool_id": "tool-rollback_suricata_modbus_register_detection",
           "state": "installed",
           "current_state": "installed",
-          "installed_timestamp": "2026-07-22T07:58:35.001445+00:00",
+          "installed_timestamp": "2026-07-23T12:36:00.858563+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/6d9f3034-8e9c-4fc1-94b1-ac2aefb8e8e0.json",
+          "installed_source": "tools-installer/installed/1a90cedd-4693-4e3f-8db5-d9c919eddc49.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         },
@@ -191,9 +191,9 @@
           "tool_id": "tool-rollback_suricata_ping_detection",
           "state": "installed",
           "current_state": "installed",
-          "installed_timestamp": "2026-07-22T07:58:12.354420+00:00",
+          "installed_timestamp": "2026-07-23T12:35:39.903618+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/6d9f3034-8e9c-4fc1-94b1-ac2aefb8e8e0.json",
+          "installed_source": "tools-installer/installed/1a90cedd-4693-4e3f-8db5-d9c919eddc49.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         },
@@ -201,9 +201,9 @@
           "tool_id": "tool-rollback_wazuh_suricata_integration",
           "state": "installed",
           "current_state": "installed",
-          "installed_timestamp": "2026-07-22T07:58:59.699028+00:00",
+          "installed_timestamp": "2026-07-23T12:36:25.625344+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/6d9f3034-8e9c-4fc1-94b1-ac2aefb8e8e0.json",
+          "installed_source": "tools-installer/installed/1a90cedd-4693-4e3f-8db5-d9c919eddc49.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         },
@@ -211,9 +211,9 @@
           "tool_id": "tool-suricata",
           "state": "installed",
           "current_state": "installed",
-          "installed_timestamp": "2026-07-22T07:53:42.059667+00:00",
+          "installed_timestamp": "2026-07-23T12:30:53.615067+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/6d9f3034-8e9c-4fc1-94b1-ac2aefb8e8e0.json",
+          "installed_source": "tools-installer/installed/1a90cedd-4693-4e3f-8db5-d9c919eddc49.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         },
@@ -221,9 +221,9 @@
           "tool_id": "tool-wazuh_agent",
           "state": "installed",
           "current_state": "installed",
-          "installed_timestamp": "2026-07-22T07:55:54.879929+00:00",
+          "installed_timestamp": "2026-07-23T12:33:05.774942+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/6d9f3034-8e9c-4fc1-94b1-ac2aefb8e8e0.json",
+          "installed_source": "tools-installer/installed/1a90cedd-4693-4e3f-8db5-d9c919eddc49.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         },
@@ -231,14 +231,14 @@
           "tool_id": "tool-wazuh_fim_realtime",
           "state": "installed",
           "current_state": "installed",
-          "installed_timestamp": "2026-07-22T07:59:28.510045+00:00",
+          "installed_timestamp": "2026-07-23T12:36:54.370807+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/6d9f3034-8e9c-4fc1-94b1-ac2aefb8e8e0.json",
+          "installed_source": "tools-installer/installed/1a90cedd-4693-4e3f-8db5-d9c919eddc49.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         }
       ],
-      "openstack_instance_id": "6d9f3034-8e9c-4fc1-94b1-ac2aefb8e8e0",
+      "openstack_instance_id": "1a90cedd-4693-4e3f-8db5-d9c919eddc49",
       "id_origin": "derived_from_existing_id",
       "node_name": "FUXA_Instance"
     },
@@ -546,6 +546,108 @@
         }
       ],
       "openstack_instance_id": "161fb4fa-73d9-41e8-825e-4b1074ddd853",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-19bcdfd9",
+      "instance_name": "FUXA_Instance",
+      "node_type": "industrial_scada",
+      "desired_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "installed_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-suricata": "2026-07-22T18:44:10.494834+00:00",
+        "tool-wazuh_agent": "2026-07-22T18:46:22.389410+00:00",
+        "tool-rollback_suricata_ping_detection": "2026-07-22T18:48:37.500822+00:00",
+        "tool-rollback_suricata_modbus_register_detection": "2026-07-22T18:48:59.736430+00:00",
+        "tool-rollback_wazuh_suricata_integration": "2026-07-22T18:49:23.927255+00:00",
+        "tool-wazuh_fim_realtime": "2026-07-22T18:49:52.332232+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-rollback_suricata_modbus_register_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T18:48:59.736430+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/19bcdfd9-ac0e-43b7-9308-15649db40e14.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_suricata_ping_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T18:48:37.500822+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/19bcdfd9-ac0e-43b7-9308-15649db40e14.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_wazuh_suricata_integration",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T18:49:23.927255+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/19bcdfd9-ac0e-43b7-9308-15649db40e14.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-suricata",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T18:44:10.494834+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/19bcdfd9-ac0e-43b7-9308-15649db40e14.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T18:46:22.389410+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/19bcdfd9-ac0e-43b7-9308-15649db40e14.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_fim_realtime",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T18:49:52.332232+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/19bcdfd9-ac0e-43b7-9308-15649db40e14.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "19bcdfd9-ac0e-43b7-9308-15649db40e14",
       "id_origin": "derived_from_existing_id"
     },
     {
@@ -1161,6 +1263,108 @@
       "id_origin": "derived_from_existing_id"
     },
     {
+      "instance_id": "inst-41276663",
+      "instance_name": "FUXA_Instance",
+      "node_type": "industrial_scada",
+      "desired_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "installed_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-suricata": "2026-07-22T20:57:31.787807+00:00",
+        "tool-wazuh_agent": "2026-07-22T20:59:46.917759+00:00",
+        "tool-rollback_suricata_ping_detection": "2026-07-22T21:02:04.474063+00:00",
+        "tool-rollback_suricata_modbus_register_detection": "2026-07-22T21:02:26.921598+00:00",
+        "tool-rollback_wazuh_suricata_integration": "2026-07-22T21:02:53.423566+00:00",
+        "tool-wazuh_fim_realtime": "2026-07-22T21:03:21.962227+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-rollback_suricata_modbus_register_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T21:02:26.921598+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/41276663-65b9-451a-a976-c3ee0cc577ca.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_suricata_ping_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T21:02:04.474063+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/41276663-65b9-451a-a976-c3ee0cc577ca.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_wazuh_suricata_integration",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T21:02:53.423566+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/41276663-65b9-451a-a976-c3ee0cc577ca.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-suricata",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T20:57:31.787807+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/41276663-65b9-451a-a976-c3ee0cc577ca.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T20:59:46.917759+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/41276663-65b9-451a-a976-c3ee0cc577ca.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_fim_realtime",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T21:03:21.962227+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/41276663-65b9-451a-a976-c3ee0cc577ca.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "41276663-65b9-451a-a976-c3ee0cc577ca",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
       "instance_id": "inst-42fa955f",
       "instance_name": "FUXA_Instance",
       "node_type": "industrial_scada",
@@ -1773,6 +1977,210 @@
       "id_origin": "derived_from_existing_id"
     },
     {
+      "instance_id": "inst-6d9f3034",
+      "instance_name": "FUXA_Instance",
+      "node_type": "industrial_scada",
+      "desired_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "installed_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-suricata": "2026-07-22T07:53:42.059667+00:00",
+        "tool-wazuh_agent": "2026-07-22T07:55:54.879929+00:00",
+        "tool-rollback_suricata_ping_detection": "2026-07-22T07:58:12.354420+00:00",
+        "tool-rollback_suricata_modbus_register_detection": "2026-07-22T07:58:35.001445+00:00",
+        "tool-rollback_wazuh_suricata_integration": "2026-07-22T07:58:59.699028+00:00",
+        "tool-wazuh_fim_realtime": "2026-07-22T07:59:28.510045+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-rollback_suricata_modbus_register_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T07:58:35.001445+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/6d9f3034-8e9c-4fc1-94b1-ac2aefb8e8e0.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_suricata_ping_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T07:58:12.354420+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/6d9f3034-8e9c-4fc1-94b1-ac2aefb8e8e0.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_wazuh_suricata_integration",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T07:58:59.699028+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/6d9f3034-8e9c-4fc1-94b1-ac2aefb8e8e0.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-suricata",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T07:53:42.059667+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/6d9f3034-8e9c-4fc1-94b1-ac2aefb8e8e0.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T07:55:54.879929+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/6d9f3034-8e9c-4fc1-94b1-ac2aefb8e8e0.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_fim_realtime",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T07:59:28.510045+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/6d9f3034-8e9c-4fc1-94b1-ac2aefb8e8e0.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "6d9f3034-8e9c-4fc1-94b1-ac2aefb8e8e0",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-71e5352b",
+      "instance_name": "FUXA_Instance",
+      "node_type": "industrial_scada",
+      "desired_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "installed_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-suricata": "2026-07-23T10:26:57.652649+00:00",
+        "tool-wazuh_agent": "2026-07-23T10:29:12.417745+00:00",
+        "tool-rollback_suricata_ping_detection": "2026-07-23T10:31:30.453850+00:00",
+        "tool-rollback_suricata_modbus_register_detection": "2026-07-23T10:31:51.323427+00:00",
+        "tool-rollback_wazuh_suricata_integration": "2026-07-23T10:32:32.678947+00:00",
+        "tool-wazuh_fim_realtime": "2026-07-23T10:33:03.510692+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-rollback_suricata_modbus_register_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T10:31:51.323427+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/71e5352b-9b59-4ec1-8c1e-28ddb717f64f.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_suricata_ping_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T10:31:30.453850+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/71e5352b-9b59-4ec1-8c1e-28ddb717f64f.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_wazuh_suricata_integration",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T10:32:32.678947+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/71e5352b-9b59-4ec1-8c1e-28ddb717f64f.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-suricata",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T10:26:57.652649+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/71e5352b-9b59-4ec1-8c1e-28ddb717f64f.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T10:29:12.417745+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/71e5352b-9b59-4ec1-8c1e-28ddb717f64f.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_fim_realtime",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T10:33:03.510692+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/71e5352b-9b59-4ec1-8c1e-28ddb717f64f.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "71e5352b-9b59-4ec1-8c1e-28ddb717f64f",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
       "instance_id": "inst-7805c8a5",
       "instance_name": "FUXA_Instance",
       "node_type": "industrial_scada",
@@ -1872,6 +2280,108 @@
         }
       ],
       "openstack_instance_id": "7805c8a5-5a11-40d3-9218-de27ecca5782",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-7a59cbd0",
+      "instance_name": "FUXA_Instance",
+      "node_type": "industrial_scada",
+      "desired_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "installed_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-suricata": "2026-07-22T23:07:56.374045+00:00",
+        "tool-wazuh_agent": "2026-07-22T23:10:09.179940+00:00",
+        "tool-rollback_suricata_ping_detection": "2026-07-22T23:12:30.910748+00:00",
+        "tool-rollback_suricata_modbus_register_detection": "2026-07-22T23:12:52.190576+00:00",
+        "tool-rollback_wazuh_suricata_integration": "2026-07-22T23:13:24.424425+00:00",
+        "tool-wazuh_fim_realtime": "2026-07-22T23:13:52.759340+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-rollback_suricata_modbus_register_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T23:12:52.190576+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/7a59cbd0-df2e-4617-9116-5e45f16fbb77.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_suricata_ping_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T23:12:30.910748+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/7a59cbd0-df2e-4617-9116-5e45f16fbb77.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_wazuh_suricata_integration",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T23:13:24.424425+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/7a59cbd0-df2e-4617-9116-5e45f16fbb77.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-suricata",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T23:07:56.374045+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/7a59cbd0-df2e-4617-9116-5e45f16fbb77.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T23:10:09.179940+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/7a59cbd0-df2e-4617-9116-5e45f16fbb77.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_fim_realtime",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T23:13:52.759340+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/7a59cbd0-df2e-4617-9116-5e45f16fbb77.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "7a59cbd0-df2e-4617-9116-5e45f16fbb77",
       "id_origin": "derived_from_existing_id"
     },
     {
@@ -2076,6 +2586,108 @@
         }
       ],
       "openstack_instance_id": "87407e84-6e74-41cd-889e-f143318d0532",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-899216fb",
+      "instance_name": "FUXA_Instance",
+      "node_type": "industrial_scada",
+      "desired_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "installed_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-suricata": "2026-07-23T03:39:20.769547+00:00",
+        "tool-wazuh_agent": "2026-07-23T03:41:33.873985+00:00",
+        "tool-rollback_suricata_ping_detection": "2026-07-23T03:43:51.729749+00:00",
+        "tool-rollback_suricata_modbus_register_detection": "2026-07-23T03:44:12.403005+00:00",
+        "tool-rollback_wazuh_suricata_integration": "2026-07-23T03:44:37.245833+00:00",
+        "tool-wazuh_fim_realtime": "2026-07-23T03:45:03.970343+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-rollback_suricata_modbus_register_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T03:44:12.403005+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/899216fb-3f1f-452c-84d9-590c2baf3b8e.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_suricata_ping_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T03:43:51.729749+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/899216fb-3f1f-452c-84d9-590c2baf3b8e.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_wazuh_suricata_integration",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T03:44:37.245833+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/899216fb-3f1f-452c-84d9-590c2baf3b8e.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-suricata",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T03:39:20.769547+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/899216fb-3f1f-452c-84d9-590c2baf3b8e.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T03:41:33.873985+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/899216fb-3f1f-452c-84d9-590c2baf3b8e.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_fim_realtime",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T03:45:03.970343+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/899216fb-3f1f-452c-84d9-590c2baf3b8e.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "899216fb-3f1f-452c-84d9-590c2baf3b8e",
       "id_origin": "derived_from_existing_id"
     },
     {
@@ -2382,6 +2994,108 @@
         }
       ],
       "openstack_instance_id": "98fa334f-ce18-4b3e-bf42-99e36aedcb97",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-99bfab2f",
+      "instance_name": "FUXA_Instance",
+      "node_type": "industrial_scada",
+      "desired_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "installed_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-suricata": "2026-07-23T01:26:05.962621+00:00",
+        "tool-wazuh_agent": "2026-07-23T01:28:20.703413+00:00",
+        "tool-rollback_suricata_ping_detection": "2026-07-23T01:30:37.793470+00:00",
+        "tool-rollback_suricata_modbus_register_detection": "2026-07-23T01:31:00.482942+00:00",
+        "tool-rollback_wazuh_suricata_integration": "2026-07-23T01:31:30.300629+00:00",
+        "tool-wazuh_fim_realtime": "2026-07-23T01:31:57.136108+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-rollback_suricata_modbus_register_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T01:31:00.482942+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/99bfab2f-6ca9-42ac-92ab-56b31120f745.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_suricata_ping_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T01:30:37.793470+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/99bfab2f-6ca9-42ac-92ab-56b31120f745.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_wazuh_suricata_integration",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T01:31:30.300629+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/99bfab2f-6ca9-42ac-92ab-56b31120f745.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-suricata",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T01:26:05.962621+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/99bfab2f-6ca9-42ac-92ab-56b31120f745.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T01:28:20.703413+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/99bfab2f-6ca9-42ac-92ab-56b31120f745.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_fim_realtime",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T01:31:57.136108+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/99bfab2f-6ca9-42ac-92ab-56b31120f745.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "99bfab2f-6ca9-42ac-92ab-56b31120f745",
       "id_origin": "derived_from_existing_id"
     },
     {
@@ -2719,7 +3433,7 @@
       "node_name": "PLC_Instance"
     },
     {
-      "instance_id": "inst-2a17a394",
+      "instance_id": "inst-d765af8f",
       "instance_name": "PLC_Instance",
       "node_type": "industrial_plc",
       "desired_tools": [
@@ -2752,24 +3466,24 @@
       "log_status_map": {},
       "log_sources": {},
       "installed_timestamps": {
-        "tool-suricata": "2026-07-22T07:50:50.501727+00:00",
-        "tool-wazuh_agent": "2026-07-22T07:53:03.363324+00:00",
-        "tool-rollback_suricata_ping_detection": "2026-07-22T07:56:39.552515+00:00",
-        "tool-rollback_suricata_modbus_register_detection": "2026-07-22T07:57:02.168367+00:00",
-        "tool-rollback_wazuh_suricata_integration": "2026-07-22T07:57:28.999107+00:00",
-        "tool-wazuh_fim_realtime": "2026-07-22T07:57:55.736181+00:00"
+        "tool-suricata": "2026-07-23T12:27:50.687739+00:00",
+        "tool-wazuh_agent": "2026-07-23T12:30:12.836008+00:00",
+        "tool-rollback_suricata_ping_detection": "2026-07-23T12:34:11.368292+00:00",
+        "tool-rollback_suricata_modbus_register_detection": "2026-07-23T12:34:31.288937+00:00",
+        "tool-rollback_wazuh_suricata_integration": "2026-07-23T12:34:56.435688+00:00",
+        "tool-wazuh_fim_realtime": "2026-07-23T12:35:23.130412+00:00"
       },
       "ip": "not_available",
-      "ip_private": "192.168.100.113",
-      "ip_floating": "10.0.2.235",
+      "ip_private": "192.168.100.170",
+      "ip_floating": "10.0.2.124",
       "tool_states": [
         {
           "tool_id": "tool-rollback_suricata_modbus_register_detection",
           "state": "installed",
           "current_state": "installed",
-          "installed_timestamp": "2026-07-22T07:57:02.168367+00:00",
+          "installed_timestamp": "2026-07-23T12:34:31.288937+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/2a17a394-76b8-49a9-867e-0823517cc1db.json",
+          "installed_source": "tools-installer/installed/d765af8f-4819-432c-8fb6-b72e38a264f2.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         },
@@ -2777,9 +3491,9 @@
           "tool_id": "tool-rollback_suricata_ping_detection",
           "state": "installed",
           "current_state": "installed",
-          "installed_timestamp": "2026-07-22T07:56:39.552515+00:00",
+          "installed_timestamp": "2026-07-23T12:34:11.368292+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/2a17a394-76b8-49a9-867e-0823517cc1db.json",
+          "installed_source": "tools-installer/installed/d765af8f-4819-432c-8fb6-b72e38a264f2.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         },
@@ -2787,9 +3501,9 @@
           "tool_id": "tool-rollback_wazuh_suricata_integration",
           "state": "installed",
           "current_state": "installed",
-          "installed_timestamp": "2026-07-22T07:57:28.999107+00:00",
+          "installed_timestamp": "2026-07-23T12:34:56.435688+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/2a17a394-76b8-49a9-867e-0823517cc1db.json",
+          "installed_source": "tools-installer/installed/d765af8f-4819-432c-8fb6-b72e38a264f2.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         },
@@ -2797,9 +3511,9 @@
           "tool_id": "tool-suricata",
           "state": "installed",
           "current_state": "installed",
-          "installed_timestamp": "2026-07-22T07:50:50.501727+00:00",
+          "installed_timestamp": "2026-07-23T12:27:50.687739+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/2a17a394-76b8-49a9-867e-0823517cc1db.json",
+          "installed_source": "tools-installer/installed/d765af8f-4819-432c-8fb6-b72e38a264f2.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         },
@@ -2807,9 +3521,9 @@
           "tool_id": "tool-wazuh_agent",
           "state": "installed",
           "current_state": "installed",
-          "installed_timestamp": "2026-07-22T07:53:03.363324+00:00",
+          "installed_timestamp": "2026-07-23T12:30:12.836008+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/2a17a394-76b8-49a9-867e-0823517cc1db.json",
+          "installed_source": "tools-installer/installed/d765af8f-4819-432c-8fb6-b72e38a264f2.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         },
@@ -2817,16 +3531,220 @@
           "tool_id": "tool-wazuh_fim_realtime",
           "state": "installed",
           "current_state": "installed",
-          "installed_timestamp": "2026-07-22T07:57:55.736181+00:00",
+          "installed_timestamp": "2026-07-23T12:35:23.130412+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/2a17a394-76b8-49a9-867e-0823517cc1db.json",
+          "installed_source": "tools-installer/installed/d765af8f-4819-432c-8fb6-b72e38a264f2.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         }
       ],
-      "openstack_instance_id": "2a17a394-76b8-49a9-867e-0823517cc1db",
+      "openstack_instance_id": "d765af8f-4819-432c-8fb6-b72e38a264f2",
       "id_origin": "derived_from_existing_id",
       "node_name": "PLC_Instance"
+    },
+    {
+      "instance_id": "inst-0a3f0c1a",
+      "instance_name": "PLC_Instance",
+      "node_type": "industrial_plc",
+      "desired_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "installed_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-suricata": "2026-07-22T18:41:14.849140+00:00",
+        "tool-wazuh_agent": "2026-07-22T18:43:28.318107+00:00",
+        "tool-rollback_suricata_ping_detection": "2026-07-22T18:47:08.699684+00:00",
+        "tool-rollback_suricata_modbus_register_detection": "2026-07-22T18:47:30.913056+00:00",
+        "tool-rollback_wazuh_suricata_integration": "2026-07-22T18:47:55.129930+00:00",
+        "tool-wazuh_fim_realtime": "2026-07-22T18:48:21.308954+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-rollback_suricata_modbus_register_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T18:47:30.913056+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/0a3f0c1a-68e7-44a4-96e7-4fa69e3c39c0.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_suricata_ping_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T18:47:08.699684+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/0a3f0c1a-68e7-44a4-96e7-4fa69e3c39c0.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_wazuh_suricata_integration",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T18:47:55.129930+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/0a3f0c1a-68e7-44a4-96e7-4fa69e3c39c0.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-suricata",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T18:41:14.849140+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/0a3f0c1a-68e7-44a4-96e7-4fa69e3c39c0.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T18:43:28.318107+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/0a3f0c1a-68e7-44a4-96e7-4fa69e3c39c0.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_fim_realtime",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T18:48:21.308954+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/0a3f0c1a-68e7-44a4-96e7-4fa69e3c39c0.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "0a3f0c1a-68e7-44a4-96e7-4fa69e3c39c0",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-170d1618",
+      "instance_name": "PLC_Instance",
+      "node_type": "industrial_plc",
+      "desired_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "installed_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-suricata": "2026-07-23T01:23:14.536893+00:00",
+        "tool-wazuh_agent": "2026-07-23T01:25:29.276388+00:00",
+        "tool-rollback_suricata_ping_detection": "2026-07-23T01:29:07.392231+00:00",
+        "tool-rollback_suricata_modbus_register_detection": "2026-07-23T01:29:29.978409+00:00",
+        "tool-rollback_wazuh_suricata_integration": "2026-07-23T01:29:54.561780+00:00",
+        "tool-wazuh_fim_realtime": "2026-07-23T01:30:21.156341+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-rollback_suricata_modbus_register_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T01:29:29.978409+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/170d1618-c37b-47b2-bd54-cbeabc8c0d8d.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_suricata_ping_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T01:29:07.392231+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/170d1618-c37b-47b2-bd54-cbeabc8c0d8d.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_wazuh_suricata_integration",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T01:29:54.561780+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/170d1618-c37b-47b2-bd54-cbeabc8c0d8d.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-suricata",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T01:23:14.536893+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/170d1618-c37b-47b2-bd54-cbeabc8c0d8d.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T01:25:29.276388+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/170d1618-c37b-47b2-bd54-cbeabc8c0d8d.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_fim_realtime",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T01:30:21.156341+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/170d1618-c37b-47b2-bd54-cbeabc8c0d8d.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "170d1618-c37b-47b2-bd54-cbeabc8c0d8d",
+      "id_origin": "derived_from_existing_id"
     },
     {
       "instance_id": "inst-1b789fbf",
@@ -3339,6 +4257,108 @@
       "id_origin": "derived_from_existing_id"
     },
     {
+      "instance_id": "inst-2a17a394",
+      "instance_name": "PLC_Instance",
+      "node_type": "industrial_plc",
+      "desired_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "installed_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-suricata": "2026-07-22T07:50:50.501727+00:00",
+        "tool-wazuh_agent": "2026-07-22T07:53:03.363324+00:00",
+        "tool-rollback_suricata_ping_detection": "2026-07-22T07:56:39.552515+00:00",
+        "tool-rollback_suricata_modbus_register_detection": "2026-07-22T07:57:02.168367+00:00",
+        "tool-rollback_wazuh_suricata_integration": "2026-07-22T07:57:28.999107+00:00",
+        "tool-wazuh_fim_realtime": "2026-07-22T07:57:55.736181+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-rollback_suricata_modbus_register_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T07:57:02.168367+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/2a17a394-76b8-49a9-867e-0823517cc1db.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_suricata_ping_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T07:56:39.552515+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/2a17a394-76b8-49a9-867e-0823517cc1db.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_wazuh_suricata_integration",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T07:57:28.999107+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/2a17a394-76b8-49a9-867e-0823517cc1db.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-suricata",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T07:50:50.501727+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/2a17a394-76b8-49a9-867e-0823517cc1db.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T07:53:03.363324+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/2a17a394-76b8-49a9-867e-0823517cc1db.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_fim_realtime",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T07:57:55.736181+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/2a17a394-76b8-49a9-867e-0823517cc1db.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "2a17a394-76b8-49a9-867e-0823517cc1db",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
       "instance_id": "inst-310e923a",
       "instance_name": "PLC_Instance",
       "node_type": "industrial_plc",
@@ -3441,6 +4461,108 @@
       "id_origin": "derived_from_existing_id"
     },
     {
+      "instance_id": "inst-32a34ae8",
+      "instance_name": "PLC_Instance",
+      "node_type": "industrial_plc",
+      "desired_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "installed_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-suricata": "2026-07-22T23:05:05.165363+00:00",
+        "tool-wazuh_agent": "2026-07-22T23:07:19.786601+00:00",
+        "tool-rollback_suricata_ping_detection": "2026-07-22T23:10:55.837751+00:00",
+        "tool-rollback_suricata_modbus_register_detection": "2026-07-22T23:11:16.543788+00:00",
+        "tool-rollback_wazuh_suricata_integration": "2026-07-22T23:11:43.202888+00:00",
+        "tool-wazuh_fim_realtime": "2026-07-22T23:12:09.731506+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-rollback_suricata_modbus_register_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T23:11:16.543788+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/32a34ae8-49de-4fd9-8f9a-38ee2763643b.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_suricata_ping_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T23:10:55.837751+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/32a34ae8-49de-4fd9-8f9a-38ee2763643b.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_wazuh_suricata_integration",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T23:11:43.202888+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/32a34ae8-49de-4fd9-8f9a-38ee2763643b.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-suricata",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T23:05:05.165363+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/32a34ae8-49de-4fd9-8f9a-38ee2763643b.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T23:07:19.786601+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/32a34ae8-49de-4fd9-8f9a-38ee2763643b.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_fim_realtime",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T23:12:09.731506+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/32a34ae8-49de-4fd9-8f9a-38ee2763643b.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "32a34ae8-49de-4fd9-8f9a-38ee2763643b",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
       "instance_id": "inst-338e69f7",
       "instance_name": "PLC_Instance",
       "node_type": "industrial_plc",
@@ -3540,6 +4662,108 @@
         }
       ],
       "openstack_instance_id": "338e69f7-0f30-4e63-a3ae-06387fcad208",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-35620b8f",
+      "instance_name": "PLC_Instance",
+      "node_type": "industrial_plc",
+      "desired_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "installed_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-suricata": "2026-07-22T20:54:40.517423+00:00",
+        "tool-wazuh_agent": "2026-07-22T20:56:55.313644+00:00",
+        "tool-rollback_suricata_ping_detection": "2026-07-22T21:00:34.330531+00:00",
+        "tool-rollback_suricata_modbus_register_detection": "2026-07-22T21:00:54.813054+00:00",
+        "tool-rollback_wazuh_suricata_integration": "2026-07-22T21:01:19.400607+00:00",
+        "tool-wazuh_fim_realtime": "2026-07-22T21:01:47.939771+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-rollback_suricata_modbus_register_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T21:00:54.813054+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/35620b8f-d454-4efb-b116-77cde58ff630.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_suricata_ping_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T21:00:34.330531+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/35620b8f-d454-4efb-b116-77cde58ff630.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_wazuh_suricata_integration",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T21:01:19.400607+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/35620b8f-d454-4efb-b116-77cde58ff630.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-suricata",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T20:54:40.517423+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/35620b8f-d454-4efb-b116-77cde58ff630.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T20:56:55.313644+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/35620b8f-d454-4efb-b116-77cde58ff630.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_fim_realtime",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T21:01:47.939771+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/35620b8f-d454-4efb-b116-77cde58ff630.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "35620b8f-d454-4efb-b116-77cde58ff630",
       "id_origin": "derived_from_existing_id"
     },
     {
@@ -3744,6 +4968,108 @@
         }
       ],
       "openstack_instance_id": "6dee1e56-ff74-44b5-befd-0d0f9ca47b0f",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-7a3a1554",
+      "instance_name": "PLC_Instance",
+      "node_type": "industrial_plc",
+      "desired_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "installed_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-suricata": "2026-07-23T03:36:25.240729+00:00",
+        "tool-wazuh_agent": "2026-07-23T03:38:46.300559+00:00",
+        "tool-rollback_suricata_ping_detection": "2026-07-23T03:42:18.756305+00:00",
+        "tool-rollback_suricata_modbus_register_detection": "2026-07-23T03:42:41.652060+00:00",
+        "tool-rollback_wazuh_suricata_integration": "2026-07-23T03:43:08.264856+00:00",
+        "tool-wazuh_fim_realtime": "2026-07-23T03:43:34.942740+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-rollback_suricata_modbus_register_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T03:42:41.652060+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/7a3a1554-b709-4683-aa81-87b69ad4b066.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_suricata_ping_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T03:42:18.756305+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/7a3a1554-b709-4683-aa81-87b69ad4b066.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_wazuh_suricata_integration",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T03:43:08.264856+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/7a3a1554-b709-4683-aa81-87b69ad4b066.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-suricata",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T03:36:25.240729+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/7a3a1554-b709-4683-aa81-87b69ad4b066.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T03:38:46.300559+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/7a3a1554-b709-4683-aa81-87b69ad4b066.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_fim_realtime",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T03:43:34.942740+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/7a3a1554-b709-4683-aa81-87b69ad4b066.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "7a3a1554-b709-4683-aa81-87b69ad4b066",
       "id_origin": "derived_from_existing_id"
     },
     {
@@ -4767,6 +6093,108 @@
       "id_origin": "derived_from_existing_id"
     },
     {
+      "instance_id": "inst-cbda1409",
+      "instance_name": "PLC_Instance",
+      "node_type": "industrial_plc",
+      "desired_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "installed_tools": [
+        "tool-rollback_suricata_modbus_register_detection",
+        "tool-rollback_suricata_ping_detection",
+        "tool-rollback_wazuh_suricata_integration",
+        "tool-suricata",
+        "tool-wazuh_agent",
+        "tool-wazuh_fim_realtime"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-suricata": "2026-07-23T10:23:36.307869+00:00",
+        "tool-wazuh_agent": "2026-07-23T10:26:01.580795+00:00",
+        "tool-rollback_suricata_ping_detection": "2026-07-23T10:29:59.376351+00:00",
+        "tool-rollback_suricata_modbus_register_detection": "2026-07-23T10:30:20.129998+00:00",
+        "tool-rollback_wazuh_suricata_integration": "2026-07-23T10:30:46.863549+00:00",
+        "tool-wazuh_fim_realtime": "2026-07-23T10:31:13.645949+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-rollback_suricata_modbus_register_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T10:30:20.129998+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/cbda1409-ae12-4304-851f-6d3165808826.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_suricata_ping_detection",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T10:29:59.376351+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/cbda1409-ae12-4304-851f-6d3165808826.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-rollback_wazuh_suricata_integration",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T10:30:46.863549+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/cbda1409-ae12-4304-851f-6d3165808826.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-suricata",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T10:23:36.307869+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/cbda1409-ae12-4304-851f-6d3165808826.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T10:26:01.580795+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/cbda1409-ae12-4304-851f-6d3165808826.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_fim_realtime",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T10:31:13.645949+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/cbda1409-ae12-4304-851f-6d3165808826.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "cbda1409-ae12-4304-851f-6d3165808826",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
       "instance_id": "inst-d1fcce0f",
       "instance_name": "PLC_Instance",
       "node_type": "industrial_plc",
@@ -5175,7 +6603,7 @@
       "id_origin": "derived_from_existing_id"
     },
     {
-      "instance_id": "inst-d993d57b",
+      "instance_id": "inst-ee11abc3",
       "instance_name": "attack 22",
       "node_type": "attack",
       "desired_tools": [
@@ -5216,10 +6644,10 @@
         "tool-nmap": "tools-installer/logs/attack_22_nmap.log"
       },
       "installed_timestamps": {
-        "tool-caldera": "2026-07-19T08:59:10.205966+00:00",
-        "tool-caldera_ot_plugins": "2026-07-19T09:01:14.831684+00:00",
-        "tool-mbpoll": "2026-07-19T09:01:25.298691+00:00",
-        "tool-nmap": "2026-07-19T09:01:41.812391+00:00"
+        "tool-caldera": "2026-07-23T08:45:51.915335+00:00",
+        "tool-caldera_ot_plugins": "2026-07-23T08:47:49.177691+00:00",
+        "tool-mbpoll": "2026-07-23T08:48:02.080950+00:00",
+        "tool-nmap": "2026-07-23T08:48:50.889775+00:00"
       },
       "ip": "not_available",
       "ip_private": "not_available",
@@ -5229,9 +6657,9 @@
           "tool_id": "tool-caldera",
           "state": "installed",
           "current_state": "completed",
-          "installed_timestamp": "2026-07-19T08:59:10.205966+00:00",
+          "installed_timestamp": "2026-07-23T08:45:51.915335+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/d993d57b-1fc9-4e8c-ae73-4194d62969c5.json",
+          "installed_source": "tools-installer/installed/ee11abc3-bda7-4467-9307-d4dc1f9b323c.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         },
@@ -5239,9 +6667,9 @@
           "tool_id": "tool-caldera_ot_plugins",
           "state": "installed",
           "current_state": "completed",
-          "installed_timestamp": "2026-07-19T09:01:14.831684+00:00",
+          "installed_timestamp": "2026-07-23T08:47:49.177691+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/d993d57b-1fc9-4e8c-ae73-4194d62969c5.json",
+          "installed_source": "tools-installer/installed/ee11abc3-bda7-4467-9307-d4dc1f9b323c.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         },
@@ -5249,9 +6677,9 @@
           "tool_id": "tool-mbpoll",
           "state": "installed",
           "current_state": "completed",
-          "installed_timestamp": "2026-07-19T09:01:25.298691+00:00",
+          "installed_timestamp": "2026-07-23T08:48:02.080950+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/d993d57b-1fc9-4e8c-ae73-4194d62969c5.json",
+          "installed_source": "tools-installer/installed/ee11abc3-bda7-4467-9307-d4dc1f9b323c.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         },
@@ -5259,19 +6687,19 @@
           "tool_id": "tool-nmap",
           "state": "installed",
           "current_state": "completed",
-          "installed_timestamp": "2026-07-19T09:01:41.812391+00:00",
+          "installed_timestamp": "2026-07-23T08:48:50.889775+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/d993d57b-1fc9-4e8c-ae73-4194d62969c5.json",
+          "installed_source": "tools-installer/installed/ee11abc3-bda7-4467-9307-d4dc1f9b323c.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         }
       ],
-      "openstack_instance_id": "d993d57b-1fc9-4e8c-ae73-4194d62969c5",
+      "openstack_instance_id": "ee11abc3-bda7-4467-9307-d4dc1f9b323c",
       "id_origin": "derived_from_existing_id",
       "node_name": "attack 22"
     },
     {
-      "instance_id": "inst-903934d4",
+      "instance_id": "inst-d444673e",
       "instance_name": "attack 22",
       "node_type": "attack",
       "desired_tools": [
@@ -5298,22 +6726,22 @@
       "log_status_map": {},
       "log_sources": {},
       "installed_timestamps": {
-        "tool-caldera": "2026-07-22T07:40:52.824979+00:00",
-        "tool-caldera_ot_plugins": "2026-07-22T07:42:57.612157+00:00",
-        "tool-mbpoll": "2026-07-22T07:43:10.242922+00:00",
-        "tool-nmap": "2026-07-22T07:43:58.978367+00:00"
+        "tool-caldera": "2026-07-23T12:18:17.991788+00:00",
+        "tool-caldera_ot_plugins": "2026-07-23T12:20:18.927005+00:00",
+        "tool-mbpoll": "2026-07-23T12:20:29.649757+00:00",
+        "tool-nmap": "2026-07-23T12:21:23.861286+00:00"
       },
       "ip": "not_available",
-      "ip_private": "192.168.100.69",
-      "ip_floating": "10.0.2.107",
+      "ip_private": "192.168.100.140",
+      "ip_floating": "10.0.2.237",
       "tool_states": [
         {
           "tool_id": "tool-caldera",
           "state": "installed",
           "current_state": "installed",
-          "installed_timestamp": "2026-07-22T07:40:52.824979+00:00",
+          "installed_timestamp": "2026-07-23T12:18:17.991788+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/903934d4-5d2e-410b-ad7f-1f738c46325b.json",
+          "installed_source": "tools-installer/installed/d444673e-35d9-44f6-ba4e-e5e4f90efe2b.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         },
@@ -5321,9 +6749,9 @@
           "tool_id": "tool-caldera_ot_plugins",
           "state": "installed",
           "current_state": "installed",
-          "installed_timestamp": "2026-07-22T07:42:57.612157+00:00",
+          "installed_timestamp": "2026-07-23T12:20:18.927005+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/903934d4-5d2e-410b-ad7f-1f738c46325b.json",
+          "installed_source": "tools-installer/installed/d444673e-35d9-44f6-ba4e-e5e4f90efe2b.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         },
@@ -5331,9 +6759,9 @@
           "tool_id": "tool-mbpoll",
           "state": "installed",
           "current_state": "installed",
-          "installed_timestamp": "2026-07-22T07:43:10.242922+00:00",
+          "installed_timestamp": "2026-07-23T12:20:29.649757+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/903934d4-5d2e-410b-ad7f-1f738c46325b.json",
+          "installed_source": "tools-installer/installed/d444673e-35d9-44f6-ba4e-e5e4f90efe2b.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         },
@@ -5341,14 +6769,14 @@
           "tool_id": "tool-nmap",
           "state": "installed",
           "current_state": "installed",
-          "installed_timestamp": "2026-07-22T07:43:58.978367+00:00",
+          "installed_timestamp": "2026-07-23T12:21:23.861286+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/903934d4-5d2e-410b-ad7f-1f738c46325b.json",
+          "installed_source": "tools-installer/installed/d444673e-35d9-44f6-ba4e-e5e4f90efe2b.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         }
       ],
-      "openstack_instance_id": "903934d4-5d2e-410b-ad7f-1f738c46325b",
+      "openstack_instance_id": "d444673e-35d9-44f6-ba4e-e5e4f90efe2b",
       "id_origin": "derived_from_existing_id",
       "node_name": "attack 22"
     },
@@ -5502,6 +6930,234 @@
         }
       ],
       "openstack_instance_id": "0fc3dd96-6e63-42fc-b3d5-89060d27b386",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-14f1e8ec",
+      "instance_name": "attack 22",
+      "node_type": "attack",
+      "desired_tools": [
+        "tool-caldera",
+        "tool-caldera_ot_plugins",
+        "tool-mbpoll",
+        "tool-nmap"
+      ],
+      "installed_tools": [
+        "tool-caldera",
+        "tool-caldera_ot_plugins",
+        "tool-mbpoll",
+        "tool-nmap"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-caldera": "2026-07-23T10:14:25.307412+00:00",
+        "tool-caldera_ot_plugins": "2026-07-23T10:16:34.260106+00:00",
+        "tool-mbpoll": "2026-07-23T10:16:47.182792+00:00",
+        "tool-nmap": "2026-07-23T10:17:35.989865+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-caldera",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T10:14:25.307412+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/14f1e8ec-6fc9-4dff-9bfc-f3442baa868e.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-caldera_ot_plugins",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T10:16:34.260106+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/14f1e8ec-6fc9-4dff-9bfc-f3442baa868e.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-mbpoll",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T10:16:47.182792+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/14f1e8ec-6fc9-4dff-9bfc-f3442baa868e.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T10:17:35.989865+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/14f1e8ec-6fc9-4dff-9bfc-f3442baa868e.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "14f1e8ec-6fc9-4dff-9bfc-f3442baa868e",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-207dfaf8",
+      "instance_name": "attack 22",
+      "node_type": "attack",
+      "desired_tools": [
+        "tool-caldera",
+        "tool-caldera_ot_plugins",
+        "tool-mbpoll",
+        "tool-nmap"
+      ],
+      "installed_tools": [
+        "tool-caldera",
+        "tool-caldera_ot_plugins",
+        "tool-mbpoll",
+        "tool-nmap"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-caldera": "2026-07-23T03:27:58.923174+00:00",
+        "tool-caldera_ot_plugins": "2026-07-23T03:29:55.704350+00:00",
+        "tool-mbpoll": "2026-07-23T03:30:06.370400+00:00",
+        "tool-nmap": "2026-07-23T03:30:55.054689+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-caldera",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T03:27:58.923174+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/207dfaf8-5865-4ff2-9155-8257d4854c6e.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-caldera_ot_plugins",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T03:29:55.704350+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/207dfaf8-5865-4ff2-9155-8257d4854c6e.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-mbpoll",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T03:30:06.370400+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/207dfaf8-5865-4ff2-9155-8257d4854c6e.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T03:30:55.054689+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/207dfaf8-5865-4ff2-9155-8257d4854c6e.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "207dfaf8-5865-4ff2-9155-8257d4854c6e",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-232d9b00",
+      "instance_name": "attack 22",
+      "node_type": "attack",
+      "desired_tools": [
+        "tool-caldera",
+        "tool-caldera_ot_plugins",
+        "tool-mbpoll",
+        "tool-nmap"
+      ],
+      "installed_tools": [
+        "tool-caldera",
+        "tool-caldera_ot_plugins",
+        "tool-mbpoll",
+        "tool-nmap"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-caldera": "2026-07-23T05:44:29.970015+00:00",
+        "tool-caldera_ot_plugins": "2026-07-23T05:46:30.824606+00:00",
+        "tool-mbpoll": "2026-07-23T05:46:43.561018+00:00",
+        "tool-nmap": "2026-07-23T05:47:32.537245+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-caldera",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T05:44:29.970015+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/232d9b00-b145-4b78-9cb4-9ec2f2bab208.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-caldera_ot_plugins",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T05:46:30.824606+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/232d9b00-b145-4b78-9cb4-9ec2f2bab208.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-mbpoll",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T05:46:43.561018+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/232d9b00-b145-4b78-9cb4-9ec2f2bab208.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T05:47:32.537245+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/232d9b00-b145-4b78-9cb4-9ec2f2bab208.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "232d9b00-b145-4b78-9cb4-9ec2f2bab208",
       "id_origin": "derived_from_existing_id"
     },
     {
@@ -5730,6 +7386,82 @@
         }
       ],
       "openstack_instance_id": "446f16f1-3e84-4401-96db-b20b20cd9fa7",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-44a03c8a",
+      "instance_name": "attack 22",
+      "node_type": "attack",
+      "desired_tools": [
+        "tool-caldera",
+        "tool-caldera_ot_plugins",
+        "tool-mbpoll",
+        "tool-nmap"
+      ],
+      "installed_tools": [
+        "tool-caldera",
+        "tool-caldera_ot_plugins",
+        "tool-mbpoll",
+        "tool-nmap"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-caldera": "2026-07-22T22:56:00.238587+00:00",
+        "tool-caldera_ot_plugins": "2026-07-22T22:58:01.671218+00:00",
+        "tool-mbpoll": "2026-07-22T22:58:13.126408+00:00",
+        "tool-nmap": "2026-07-22T22:59:01.815415+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-caldera",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T22:56:00.238587+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/44a03c8a-be10-4f51-804d-c7d291a020bc.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-caldera_ot_plugins",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T22:58:01.671218+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/44a03c8a-be10-4f51-804d-c7d291a020bc.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-mbpoll",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T22:58:13.126408+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/44a03c8a-be10-4f51-804d-c7d291a020bc.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T22:59:01.815415+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/44a03c8a-be10-4f51-804d-c7d291a020bc.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "44a03c8a-be10-4f51-804d-c7d291a020bc",
       "id_origin": "derived_from_existing_id"
     },
     {
@@ -6189,6 +7921,82 @@
       "id_origin": "derived_from_existing_id"
     },
     {
+      "instance_id": "inst-660ea136",
+      "instance_name": "attack 22",
+      "node_type": "attack",
+      "desired_tools": [
+        "tool-caldera",
+        "tool-caldera_ot_plugins",
+        "tool-mbpoll",
+        "tool-nmap"
+      ],
+      "installed_tools": [
+        "tool-caldera",
+        "tool-caldera_ot_plugins",
+        "tool-mbpoll",
+        "tool-nmap"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-caldera": "2026-07-23T07:16:48.127329+00:00",
+        "tool-caldera_ot_plugins": "2026-07-23T07:18:46.480645+00:00",
+        "tool-mbpoll": "2026-07-23T07:18:59.332832+00:00",
+        "tool-nmap": "2026-07-23T07:19:47.860824+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-caldera",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T07:16:48.127329+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/660ea136-1379-4c68-9cbb-08412e288008.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-caldera_ot_plugins",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T07:18:46.480645+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/660ea136-1379-4c68-9cbb-08412e288008.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-mbpoll",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T07:18:59.332832+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/660ea136-1379-4c68-9cbb-08412e288008.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T07:19:47.860824+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/660ea136-1379-4c68-9cbb-08412e288008.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "660ea136-1379-4c68-9cbb-08412e288008",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
       "instance_id": "inst-663db087",
       "instance_name": "attack 22",
       "node_type": "attack",
@@ -6338,6 +8146,82 @@
         }
       ],
       "openstack_instance_id": "6d631438-a125-461f-b9b0-9b6c6f1d3618",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-75c39182",
+      "instance_name": "attack 22",
+      "node_type": "attack",
+      "desired_tools": [
+        "tool-caldera",
+        "tool-caldera_ot_plugins",
+        "tool-mbpoll",
+        "tool-nmap"
+      ],
+      "installed_tools": [
+        "tool-caldera",
+        "tool-caldera_ot_plugins",
+        "tool-mbpoll",
+        "tool-nmap"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-caldera": "2026-07-22T18:33:10.055775+00:00",
+        "tool-caldera_ot_plugins": "2026-07-22T18:35:06.669620+00:00",
+        "tool-mbpoll": "2026-07-22T18:35:18.855339+00:00",
+        "tool-nmap": "2026-07-22T18:36:11.703477+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-caldera",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T18:33:10.055775+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/75c39182-b353-4233-bead-b9faa03ed9c7.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-caldera_ot_plugins",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T18:35:06.669620+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/75c39182-b353-4233-bead-b9faa03ed9c7.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-mbpoll",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T18:35:18.855339+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/75c39182-b353-4233-bead-b9faa03ed9c7.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T18:36:11.703477+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/75c39182-b353-4233-bead-b9faa03ed9c7.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "75c39182-b353-4233-bead-b9faa03ed9c7",
       "id_origin": "derived_from_existing_id"
     },
     {
@@ -6797,6 +8681,82 @@
       "id_origin": "derived_from_existing_id"
     },
     {
+      "instance_id": "inst-903934d4",
+      "instance_name": "attack 22",
+      "node_type": "attack",
+      "desired_tools": [
+        "tool-caldera",
+        "tool-caldera_ot_plugins",
+        "tool-mbpoll",
+        "tool-nmap"
+      ],
+      "installed_tools": [
+        "tool-caldera",
+        "tool-caldera_ot_plugins",
+        "tool-mbpoll",
+        "tool-nmap"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-caldera": "2026-07-22T07:40:52.824979+00:00",
+        "tool-caldera_ot_plugins": "2026-07-22T07:42:57.612157+00:00",
+        "tool-mbpoll": "2026-07-22T07:43:10.242922+00:00",
+        "tool-nmap": "2026-07-22T07:43:58.978367+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-caldera",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T07:40:52.824979+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/903934d4-5d2e-410b-ad7f-1f738c46325b.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-caldera_ot_plugins",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T07:42:57.612157+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/903934d4-5d2e-410b-ad7f-1f738c46325b.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-mbpoll",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T07:43:10.242922+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/903934d4-5d2e-410b-ad7f-1f738c46325b.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T07:43:58.978367+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/903934d4-5d2e-410b-ad7f-1f738c46325b.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "903934d4-5d2e-410b-ad7f-1f738c46325b",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
       "instance_id": "inst-9920a59a",
       "instance_name": "attack 22",
       "node_type": "attack",
@@ -7177,6 +9137,234 @@
       "id_origin": "derived_from_existing_id"
     },
     {
+      "instance_id": "inst-d993d57b",
+      "instance_name": "attack 22",
+      "node_type": "attack",
+      "desired_tools": [
+        "tool-caldera",
+        "tool-caldera_ot_plugins",
+        "tool-mbpoll",
+        "tool-nmap"
+      ],
+      "installed_tools": [
+        "tool-caldera",
+        "tool-caldera_ot_plugins",
+        "tool-mbpoll",
+        "tool-nmap"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-caldera": "2026-07-19T08:59:10.205966+00:00",
+        "tool-caldera_ot_plugins": "2026-07-19T09:01:14.831684+00:00",
+        "tool-mbpoll": "2026-07-19T09:01:25.298691+00:00",
+        "tool-nmap": "2026-07-19T09:01:41.812391+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-caldera",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-19T08:59:10.205966+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/d993d57b-1fc9-4e8c-ae73-4194d62969c5.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-caldera_ot_plugins",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-19T09:01:14.831684+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/d993d57b-1fc9-4e8c-ae73-4194d62969c5.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-mbpoll",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-19T09:01:25.298691+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/d993d57b-1fc9-4e8c-ae73-4194d62969c5.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-19T09:01:41.812391+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/d993d57b-1fc9-4e8c-ae73-4194d62969c5.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "d993d57b-1fc9-4e8c-ae73-4194d62969c5",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-dc236ae3",
+      "instance_name": "attack 22",
+      "node_type": "attack",
+      "desired_tools": [
+        "tool-caldera",
+        "tool-caldera_ot_plugins",
+        "tool-mbpoll",
+        "tool-nmap"
+      ],
+      "installed_tools": [
+        "tool-caldera",
+        "tool-caldera_ot_plugins",
+        "tool-mbpoll",
+        "tool-nmap"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-caldera": "2026-07-23T01:13:51.393977+00:00",
+        "tool-caldera_ot_plugins": "2026-07-23T01:15:50.046936+00:00",
+        "tool-mbpoll": "2026-07-23T01:16:02.588933+00:00",
+        "tool-nmap": "2026-07-23T01:16:51.189402+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-caldera",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T01:13:51.393977+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/dc236ae3-a94c-4200-9506-68b8dfb06bfc.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-caldera_ot_plugins",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T01:15:50.046936+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/dc236ae3-a94c-4200-9506-68b8dfb06bfc.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-mbpoll",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T01:16:02.588933+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/dc236ae3-a94c-4200-9506-68b8dfb06bfc.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T01:16:51.189402+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/dc236ae3-a94c-4200-9506-68b8dfb06bfc.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "dc236ae3-a94c-4200-9506-68b8dfb06bfc",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-e96d0d82",
+      "instance_name": "attack 22",
+      "node_type": "attack",
+      "desired_tools": [
+        "tool-caldera",
+        "tool-caldera_ot_plugins",
+        "tool-mbpoll",
+        "tool-nmap"
+      ],
+      "installed_tools": [
+        "tool-caldera",
+        "tool-caldera_ot_plugins",
+        "tool-mbpoll",
+        "tool-nmap"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-caldera": "2026-07-22T20:45:36.439320+00:00",
+        "tool-caldera_ot_plugins": "2026-07-22T20:47:35.599934+00:00",
+        "tool-mbpoll": "2026-07-22T20:47:54.146475+00:00",
+        "tool-nmap": "2026-07-22T20:48:43.421855+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-caldera",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T20:45:36.439320+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/e96d0d82-a38b-41a9-bd14-778578f4cf8a.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-caldera_ot_plugins",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T20:47:35.599934+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/e96d0d82-a38b-41a9-bd14-778578f4cf8a.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-mbpoll",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T20:47:54.146475+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/e96d0d82-a38b-41a9-bd14-778578f4cf8a.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T20:48:43.421855+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/e96d0d82-a38b-41a9-bd14-778578f4cf8a.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "e96d0d82-a38b-41a9-bd14-778578f4cf8a",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
       "instance_id": "inst-fcca2542",
       "instance_name": "monitor 11",
       "node_type": "monitor",
@@ -7242,7 +9430,7 @@
       "node_name": "monitor 11"
     },
     {
-      "instance_id": "inst-f11dd453",
+      "instance_id": "inst-d5c84cf4",
       "instance_name": "monitor 11",
       "node_type": "monitor",
       "desired_tools": [
@@ -7263,20 +9451,20 @@
       "log_status_map": {},
       "log_sources": {},
       "installed_timestamps": {
-        "tool-wazuh": "2026-07-22T07:32:04.230510+00:00",
-        "tool-nmap": "2026-07-22T07:32:46.888966+00:00"
+        "tool-wazuh": "2026-07-23T12:09:44.526206+00:00",
+        "tool-nmap": "2026-07-23T12:10:23.842668+00:00"
       },
       "ip": "not_available",
-      "ip_private": "192.168.100.186",
-      "ip_floating": "10.0.2.63",
+      "ip_private": "192.168.100.136",
+      "ip_floating": "10.0.2.140",
       "tool_states": [
         {
           "tool_id": "tool-nmap",
           "state": "installed",
           "current_state": "installed",
-          "installed_timestamp": "2026-07-22T07:32:46.888966+00:00",
+          "installed_timestamp": "2026-07-23T12:10:23.842668+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/f11dd453-d523-48b7-973a-7ec6a64f757d.json",
+          "installed_source": "tools-installer/installed/d5c84cf4-df52-444c-bb05-eceaf70100e6.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         },
@@ -7284,14 +9472,14 @@
           "tool_id": "tool-wazuh",
           "state": "installed",
           "current_state": "installed",
-          "installed_timestamp": "2026-07-22T07:32:04.230510+00:00",
+          "installed_timestamp": "2026-07-23T12:09:44.526206+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/f11dd453-d523-48b7-973a-7ec6a64f757d.json",
+          "installed_source": "tools-installer/installed/d5c84cf4-df52-444c-bb05-eceaf70100e6.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         }
       ],
-      "openstack_instance_id": "f11dd453-d523-48b7-973a-7ec6a64f757d",
+      "openstack_instance_id": "d5c84cf4-df52-444c-bb05-eceaf70100e6",
       "id_origin": "derived_from_existing_id",
       "node_name": "monitor 11"
     },
@@ -7343,6 +9531,56 @@
         }
       ],
       "openstack_instance_id": "045b71d9-a9cf-4f7d-ae70-9d09d3243e3f",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-1895fafc",
+      "instance_name": "monitor 11",
+      "node_type": "monitor",
+      "desired_tools": [
+        "tool-nmap",
+        "tool-wazuh"
+      ],
+      "installed_tools": [
+        "tool-nmap",
+        "tool-wazuh"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-wazuh": "2026-07-23T01:05:50.716317+00:00",
+        "tool-nmap": "2026-07-23T01:06:17.307802+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T01:06:17.307802+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/1895fafc-3be0-4ac7-87da-40ce395452e8.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T01:05:50.716317+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/1895fafc-3be0-4ac7-87da-40ce395452e8.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "1895fafc-3be0-4ac7-87da-40ce395452e8",
       "id_origin": "derived_from_existing_id"
     },
     {
@@ -7493,6 +9731,56 @@
         }
       ],
       "openstack_instance_id": "3297798c-40a0-432e-a340-4feb22900b92",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-33f65f8a",
+      "instance_name": "monitor 11",
+      "node_type": "monitor",
+      "desired_tools": [
+        "tool-nmap",
+        "tool-wazuh"
+      ],
+      "installed_tools": [
+        "tool-nmap",
+        "tool-wazuh"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-wazuh": "2026-07-23T08:37:21.346781+00:00",
+        "tool-nmap": "2026-07-23T08:37:48.064568+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T08:37:48.064568+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/33f65f8a-b1cc-4c69-bf45-c43967c8fec9.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T08:37:21.346781+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/33f65f8a-b1cc-4c69-bf45-c43967c8fec9.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "33f65f8a-b1cc-4c69-bf45-c43967c8fec9",
       "id_origin": "derived_from_existing_id"
     },
     {
@@ -7896,6 +10184,106 @@
       "id_origin": "derived_from_existing_id"
     },
     {
+      "instance_id": "inst-75e6b82a",
+      "instance_name": "monitor 11",
+      "node_type": "monitor",
+      "desired_tools": [
+        "tool-nmap",
+        "tool-wazuh"
+      ],
+      "installed_tools": [
+        "tool-nmap",
+        "tool-wazuh"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-wazuh": "2026-07-22T22:48:29.001158+00:00",
+        "tool-nmap": "2026-07-22T22:48:55.582415+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T22:48:55.582415+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/75e6b82a-4f80-4995-b99a-031693aaa846.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T22:48:29.001158+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/75e6b82a-4f80-4995-b99a-031693aaa846.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "75e6b82a-4f80-4995-b99a-031693aaa846",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-796edfb7",
+      "instance_name": "monitor 11",
+      "node_type": "monitor",
+      "desired_tools": [
+        "tool-nmap",
+        "tool-wazuh"
+      ],
+      "installed_tools": [
+        "tool-nmap",
+        "tool-wazuh"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-wazuh": "2026-07-22T20:37:22.592642+00:00",
+        "tool-nmap": "2026-07-22T20:37:47.105407+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T20:37:47.105407+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/796edfb7-119f-4d6f-8eef-65f21165e79b.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T20:37:22.592642+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/796edfb7-119f-4d6f-8eef-65f21165e79b.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "796edfb7-119f-4d6f-8eef-65f21165e79b",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
       "instance_id": "inst-7cd15ec3",
       "instance_name": "monitor 11",
       "node_type": "monitor",
@@ -8093,6 +10481,56 @@
         }
       ],
       "openstack_instance_id": "872ea02f-3951-457c-ae75-3c0e3e15dae5",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-8f5d75db",
+      "instance_name": "monitor 11",
+      "node_type": "monitor",
+      "desired_tools": [
+        "tool-nmap",
+        "tool-wazuh"
+      ],
+      "installed_tools": [
+        "tool-nmap",
+        "tool-wazuh"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-wazuh": "2026-07-23T05:36:17.001391+00:00",
+        "tool-nmap": "2026-07-23T05:36:43.757790+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T05:36:43.757790+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/8f5d75db-6e9c-490b-8c49-0fc810d76ae8.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T05:36:17.001391+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/8f5d75db-6e9c-490b-8c49-0fc810d76ae8.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "8f5d75db-6e9c-490b-8c49-0fc810d76ae8",
       "id_origin": "derived_from_existing_id"
     },
     {
@@ -8296,6 +10734,56 @@
       "id_origin": "derived_from_existing_id"
     },
     {
+      "instance_id": "inst-c8a53a01",
+      "instance_name": "monitor 11",
+      "node_type": "monitor",
+      "desired_tools": [
+        "tool-nmap",
+        "tool-wazuh"
+      ],
+      "installed_tools": [
+        "tool-nmap",
+        "tool-wazuh"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-wazuh": "2026-07-22T18:24:19.929213+00:00",
+        "tool-nmap": "2026-07-22T18:24:44.119750+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T18:24:44.119750+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/c8a53a01-1a00-416a-a83b-133296205a43.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T18:24:19.929213+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/c8a53a01-1a00-416a-a83b-133296205a43.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "c8a53a01-1a00-416a-a83b-133296205a43",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
       "instance_id": "inst-d446f3fc",
       "instance_name": "monitor 11",
       "node_type": "monitor",
@@ -8393,6 +10881,56 @@
         }
       ],
       "openstack_instance_id": "e9b9d10e-1ae3-4d12-8a21-435e79433d85",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-f11dd453",
+      "instance_name": "monitor 11",
+      "node_type": "monitor",
+      "desired_tools": [
+        "tool-nmap",
+        "tool-wazuh"
+      ],
+      "installed_tools": [
+        "tool-nmap",
+        "tool-wazuh"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-wazuh": "2026-07-22T07:32:04.230510+00:00",
+        "tool-nmap": "2026-07-22T07:32:46.888966+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T07:32:46.888966+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/f11dd453-d523-48b7-973a-7ec6a64f757d.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T07:32:04.230510+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/f11dd453-d523-48b7-973a-7ec6a64f757d.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "f11dd453-d523-48b7-973a-7ec6a64f757d",
       "id_origin": "derived_from_existing_id"
     },
     {
@@ -8496,6 +11034,106 @@
       "id_origin": "derived_from_existing_id"
     },
     {
+      "instance_id": "inst-f6edf0b6",
+      "instance_name": "monitor 11",
+      "node_type": "monitor",
+      "desired_tools": [
+        "tool-nmap",
+        "tool-wazuh"
+      ],
+      "installed_tools": [
+        "tool-nmap",
+        "tool-wazuh"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-wazuh": "2026-07-23T07:08:32.214853+00:00",
+        "tool-nmap": "2026-07-23T07:08:58.885964+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T07:08:58.885964+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/f6edf0b6-6782-43c8-b35e-8c14ce0cef4b.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T07:08:32.214853+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/f6edf0b6-6782-43c8-b35e-8c14ce0cef4b.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "f6edf0b6-6782-43c8-b35e-8c14ce0cef4b",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-facf6cd3",
+      "instance_name": "monitor 11",
+      "node_type": "monitor",
+      "desired_tools": [
+        "tool-nmap",
+        "tool-wazuh"
+      ],
+      "installed_tools": [
+        "tool-nmap",
+        "tool-wazuh"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-wazuh": "2026-07-23T03:20:00.532149+00:00",
+        "tool-nmap": "2026-07-23T03:20:33.619147+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T03:20:33.619147+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/facf6cd3-ee64-434b-969e-bcf7513cde3b.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T03:20:00.532149+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/facf6cd3-ee64-434b-969e-bcf7513cde3b.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "facf6cd3-ee64-434b-969e-bcf7513cde3b",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
       "instance_id": "inst-ea7d32b2",
       "instance_name": "victim 33",
       "node_type": "victim",
@@ -8592,7 +11230,7 @@
       "node_name": "victim 33"
     },
     {
-      "instance_id": "inst-217ba28e",
+      "instance_id": "inst-d7e9cc37",
       "instance_name": "victim 33",
       "node_type": "victim",
       "desired_tools": [
@@ -8619,22 +11257,22 @@
       "log_status_map": {},
       "log_sources": {},
       "installed_timestamps": {
-        "tool-suricata": "2026-07-22T07:46:02.261245+00:00",
-        "tool-nmap": "2026-07-22T07:46:50.941771+00:00",
-        "tool-wazuh_agent": "2026-07-22T07:49:09.432161+00:00",
-        "tool-caldera_agent": "2026-07-22T07:49:26.732360+00:00"
+        "tool-suricata": "2026-07-23T12:23:01.256933+00:00",
+        "tool-nmap": "2026-07-23T12:23:58.685957+00:00",
+        "tool-wazuh_agent": "2026-07-23T12:26:16.855940+00:00",
+        "tool-caldera_agent": "2026-07-23T12:26:27.591501+00:00"
       },
       "ip": "not_available",
-      "ip_private": "192.168.100.148",
-      "ip_floating": "10.0.2.193",
+      "ip_private": "192.168.100.76",
+      "ip_floating": "10.0.2.97",
       "tool_states": [
         {
           "tool_id": "tool-caldera_agent",
           "state": "installed",
           "current_state": "installed",
-          "installed_timestamp": "2026-07-22T07:49:26.732360+00:00",
+          "installed_timestamp": "2026-07-23T12:26:27.591501+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/217ba28e-9ad9-4a5d-8118-e8c9e84ebf89.json",
+          "installed_source": "tools-installer/installed/d7e9cc37-fdf0-4de0-b422-01b9089be9c4.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         },
@@ -8642,9 +11280,9 @@
           "tool_id": "tool-nmap",
           "state": "installed",
           "current_state": "installed",
-          "installed_timestamp": "2026-07-22T07:46:50.941771+00:00",
+          "installed_timestamp": "2026-07-23T12:23:58.685957+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/217ba28e-9ad9-4a5d-8118-e8c9e84ebf89.json",
+          "installed_source": "tools-installer/installed/d7e9cc37-fdf0-4de0-b422-01b9089be9c4.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         },
@@ -8652,9 +11290,9 @@
           "tool_id": "tool-suricata",
           "state": "installed",
           "current_state": "installed",
-          "installed_timestamp": "2026-07-22T07:46:02.261245+00:00",
+          "installed_timestamp": "2026-07-23T12:23:01.256933+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/217ba28e-9ad9-4a5d-8118-e8c9e84ebf89.json",
+          "installed_source": "tools-installer/installed/d7e9cc37-fdf0-4de0-b422-01b9089be9c4.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         },
@@ -8662,16 +11300,168 @@
           "tool_id": "tool-wazuh_agent",
           "state": "installed",
           "current_state": "installed",
-          "installed_timestamp": "2026-07-22T07:49:09.432161+00:00",
+          "installed_timestamp": "2026-07-23T12:26:16.855940+00:00",
           "desired_source": "tools-installer-tmp",
-          "installed_source": "tools-installer/installed/217ba28e-9ad9-4a5d-8118-e8c9e84ebf89.json",
+          "installed_source": "tools-installer/installed/d7e9cc37-fdf0-4de0-b422-01b9089be9c4.json",
           "failed_source": "not_available",
           "recommended_action": "none"
         }
       ],
-      "openstack_instance_id": "217ba28e-9ad9-4a5d-8118-e8c9e84ebf89",
+      "openstack_instance_id": "d7e9cc37-fdf0-4de0-b422-01b9089be9c4",
       "id_origin": "derived_from_existing_id",
       "node_name": "victim 33"
+    },
+    {
+      "instance_id": "inst-1108a77e",
+      "instance_name": "victim 33",
+      "node_type": "victim",
+      "desired_tools": [
+        "tool-caldera_agent",
+        "tool-nmap",
+        "tool-suricata",
+        "tool-wazuh_agent"
+      ],
+      "installed_tools": [
+        "tool-caldera_agent",
+        "tool-nmap",
+        "tool-suricata",
+        "tool-wazuh_agent"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-suricata": "2026-07-22T20:50:21.604640+00:00",
+        "tool-nmap": "2026-07-22T20:51:08.101143+00:00",
+        "tool-wazuh_agent": "2026-07-22T20:53:00.959100+00:00",
+        "tool-caldera_agent": "2026-07-22T20:53:11.878072+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-caldera_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T20:53:11.878072+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/1108a77e-5211-429d-b323-45b227a90309.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T20:51:08.101143+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/1108a77e-5211-429d-b323-45b227a90309.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-suricata",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T20:50:21.604640+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/1108a77e-5211-429d-b323-45b227a90309.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T20:53:00.959100+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/1108a77e-5211-429d-b323-45b227a90309.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "1108a77e-5211-429d-b323-45b227a90309",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-1d641931",
+      "instance_name": "victim 33",
+      "node_type": "victim",
+      "desired_tools": [
+        "tool-caldera_agent",
+        "tool-nmap",
+        "tool-suricata",
+        "tool-wazuh_agent"
+      ],
+      "installed_tools": [
+        "tool-caldera_agent",
+        "tool-nmap",
+        "tool-suricata",
+        "tool-wazuh_agent"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-suricata": "2026-07-23T08:50:53.926179+00:00",
+        "tool-nmap": "2026-07-23T08:51:42.782745+00:00",
+        "tool-wazuh_agent": "2026-07-23T08:54:01.721799+00:00",
+        "tool-caldera_agent": "2026-07-23T08:54:14.433547+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-caldera_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T08:54:14.433547+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/1d641931-af9b-4f00-b094-6859eb3fde59.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T08:51:42.782745+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/1d641931-af9b-4f00-b094-6859eb3fde59.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-suricata",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T08:50:53.926179+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/1d641931-af9b-4f00-b094-6859eb3fde59.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T08:54:01.721799+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/1d641931-af9b-4f00-b094-6859eb3fde59.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "1d641931-af9b-4f00-b094-6859eb3fde59",
+      "id_origin": "derived_from_existing_id"
     },
     {
       "instance_id": "inst-209f5037",
@@ -8826,6 +11616,82 @@
       "id_origin": "derived_from_existing_id"
     },
     {
+      "instance_id": "inst-217ba28e",
+      "instance_name": "victim 33",
+      "node_type": "victim",
+      "desired_tools": [
+        "tool-caldera_agent",
+        "tool-nmap",
+        "tool-suricata",
+        "tool-wazuh_agent"
+      ],
+      "installed_tools": [
+        "tool-caldera_agent",
+        "tool-nmap",
+        "tool-suricata",
+        "tool-wazuh_agent"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-suricata": "2026-07-22T07:46:02.261245+00:00",
+        "tool-nmap": "2026-07-22T07:46:50.941771+00:00",
+        "tool-wazuh_agent": "2026-07-22T07:49:09.432161+00:00",
+        "tool-caldera_agent": "2026-07-22T07:49:26.732360+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-caldera_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T07:49:26.732360+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/217ba28e-9ad9-4a5d-8118-e8c9e84ebf89.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T07:46:50.941771+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/217ba28e-9ad9-4a5d-8118-e8c9e84ebf89.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-suricata",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T07:46:02.261245+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/217ba28e-9ad9-4a5d-8118-e8c9e84ebf89.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T07:49:09.432161+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/217ba28e-9ad9-4a5d-8118-e8c9e84ebf89.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "217ba28e-9ad9-4a5d-8118-e8c9e84ebf89",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
       "instance_id": "inst-37179c1f",
       "instance_name": "victim 33",
       "node_type": "victim",
@@ -8899,6 +11765,82 @@
         }
       ],
       "openstack_instance_id": "37179c1f-72e9-4ef3-8aba-78f96f0fa74c",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-415d45fc",
+      "instance_name": "victim 33",
+      "node_type": "victim",
+      "desired_tools": [
+        "tool-caldera_agent",
+        "tool-nmap",
+        "tool-suricata",
+        "tool-wazuh_agent"
+      ],
+      "installed_tools": [
+        "tool-caldera_agent",
+        "tool-nmap",
+        "tool-suricata",
+        "tool-wazuh_agent"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-suricata": "2026-07-22T23:00:36.592217+00:00",
+        "tool-nmap": "2026-07-22T23:01:25.153780+00:00",
+        "tool-wazuh_agent": "2026-07-22T23:03:45.953745+00:00",
+        "tool-caldera_agent": "2026-07-22T23:03:58.530774+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-caldera_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T23:03:58.530774+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/415d45fc-dfd8-4c23-b2a5-4ae5eece471f.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T23:01:25.153780+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/415d45fc-dfd8-4c23-b2a5-4ae5eece471f.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-suricata",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T23:00:36.592217+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/415d45fc-dfd8-4c23-b2a5-4ae5eece471f.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T23:03:45.953745+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/415d45fc-dfd8-4c23-b2a5-4ae5eece471f.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "415d45fc-dfd8-4c23-b2a5-4ae5eece471f",
       "id_origin": "derived_from_existing_id"
     },
     {
@@ -9054,6 +11996,82 @@
       "id_origin": "derived_from_existing_id"
     },
     {
+      "instance_id": "inst-53dffe93",
+      "instance_name": "victim 33",
+      "node_type": "victim",
+      "desired_tools": [
+        "tool-caldera_agent",
+        "tool-nmap",
+        "tool-suricata",
+        "tool-wazuh_agent"
+      ],
+      "installed_tools": [
+        "tool-caldera_agent",
+        "tool-nmap",
+        "tool-suricata",
+        "tool-wazuh_agent"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-suricata": "2026-07-23T07:20:55.581541+00:00",
+        "tool-nmap": "2026-07-23T07:21:44.367344+00:00",
+        "tool-wazuh_agent": "2026-07-23T07:23:33.369236+00:00",
+        "tool-caldera_agent": "2026-07-23T07:23:45.869933+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-caldera_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T07:23:45.869933+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/53dffe93-61a4-4e67-a9b2-dea325d46969.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T07:21:44.367344+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/53dffe93-61a4-4e67-a9b2-dea325d46969.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-suricata",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T07:20:55.581541+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/53dffe93-61a4-4e67-a9b2-dea325d46969.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T07:23:33.369236+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/53dffe93-61a4-4e67-a9b2-dea325d46969.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "53dffe93-61a4-4e67-a9b2-dea325d46969",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
       "instance_id": "inst-54596dfb",
       "instance_name": "victim 33",
       "node_type": "victim",
@@ -9203,6 +12221,82 @@
         }
       ],
       "openstack_instance_id": "5d0d3ec5-efa1-4f35-90b3-41cbd4cd41bf",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-61654474",
+      "instance_name": "victim 33",
+      "node_type": "victim",
+      "desired_tools": [
+        "tool-caldera_agent",
+        "tool-nmap",
+        "tool-suricata",
+        "tool-wazuh_agent"
+      ],
+      "installed_tools": [
+        "tool-caldera_agent",
+        "tool-nmap",
+        "tool-suricata",
+        "tool-wazuh_agent"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-suricata": "2026-07-23T05:48:46.558708+00:00",
+        "tool-nmap": "2026-07-23T05:49:34.065363+00:00",
+        "tool-wazuh_agent": "2026-07-23T05:51:53.632356+00:00",
+        "tool-caldera_agent": "2026-07-23T05:52:04.311257+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-caldera_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T05:52:04.311257+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/61654474-077a-41ea-89bb-4ca477b76677.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T05:49:34.065363+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/61654474-077a-41ea-89bb-4ca477b76677.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-suricata",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T05:48:46.558708+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/61654474-077a-41ea-89bb-4ca477b76677.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T05:51:53.632356+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/61654474-077a-41ea-89bb-4ca477b76677.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "61654474-077a-41ea-89bb-4ca477b76677",
       "id_origin": "derived_from_existing_id"
     },
     {
@@ -9431,6 +12525,82 @@
         }
       ],
       "openstack_instance_id": "7f935026-7c6e-4f98-99e4-0561be5af5bb",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-7fd7242b",
+      "instance_name": "victim 33",
+      "node_type": "victim",
+      "desired_tools": [
+        "tool-caldera_agent",
+        "tool-nmap",
+        "tool-suricata",
+        "tool-wazuh_agent"
+      ],
+      "installed_tools": [
+        "tool-caldera_agent",
+        "tool-nmap",
+        "tool-suricata",
+        "tool-wazuh_agent"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-suricata": "2026-07-23T01:18:51.907675+00:00",
+        "tool-nmap": "2026-07-23T01:19:38.566664+00:00",
+        "tool-wazuh_agent": "2026-07-23T01:21:59.293238+00:00",
+        "tool-caldera_agent": "2026-07-23T01:22:09.876419+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-caldera_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T01:22:09.876419+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/7fd7242b-8423-4320-9b86-28c35076f28d.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T01:19:38.566664+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/7fd7242b-8423-4320-9b86-28c35076f28d.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-suricata",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T01:18:51.907675+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/7fd7242b-8423-4320-9b86-28c35076f28d.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T01:21:59.293238+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/7fd7242b-8423-4320-9b86-28c35076f28d.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "7fd7242b-8423-4320-9b86-28c35076f28d",
       "id_origin": "derived_from_existing_id"
     },
     {
@@ -10194,6 +13364,82 @@
       "id_origin": "derived_from_existing_id"
     },
     {
+      "instance_id": "inst-ad281a1a",
+      "instance_name": "victim 33",
+      "node_type": "victim",
+      "desired_tools": [
+        "tool-caldera_agent",
+        "tool-nmap",
+        "tool-suricata",
+        "tool-wazuh_agent"
+      ],
+      "installed_tools": [
+        "tool-caldera_agent",
+        "tool-nmap",
+        "tool-suricata",
+        "tool-wazuh_agent"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-suricata": "2026-07-22T18:37:15.954816+00:00",
+        "tool-nmap": "2026-07-22T18:38:04.155998+00:00",
+        "tool-wazuh_agent": "2026-07-22T18:39:52.387438+00:00",
+        "tool-caldera_agent": "2026-07-22T18:40:04.657781+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-caldera_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T18:40:04.657781+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/ad281a1a-4b1a-4907-9886-647062219cf6.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T18:38:04.155998+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/ad281a1a-4b1a-4907-9886-647062219cf6.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-suricata",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T18:37:15.954816+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/ad281a1a-4b1a-4907-9886-647062219cf6.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-22T18:39:52.387438+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/ad281a1a-4b1a-4907-9886-647062219cf6.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "ad281a1a-4b1a-4907-9886-647062219cf6",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
       "instance_id": "inst-b4349a45",
       "instance_name": "victim 33",
       "node_type": "victim",
@@ -10343,6 +13589,82 @@
         }
       ],
       "openstack_instance_id": "be006b93-11bd-40a2-b3c3-e2a006363411",
+      "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-c38ac38e",
+      "instance_name": "victim 33",
+      "node_type": "victim",
+      "desired_tools": [
+        "tool-caldera_agent",
+        "tool-nmap",
+        "tool-suricata",
+        "tool-wazuh_agent"
+      ],
+      "installed_tools": [
+        "tool-caldera_agent",
+        "tool-nmap",
+        "tool-suricata",
+        "tool-wazuh_agent"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-suricata": "2026-07-23T10:19:37.028977+00:00",
+        "tool-nmap": "2026-07-23T10:20:28.364522+00:00",
+        "tool-wazuh_agent": "2026-07-23T10:22:16.557027+00:00",
+        "tool-caldera_agent": "2026-07-23T10:22:29.503160+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-caldera_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T10:22:29.503160+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/c38ac38e-40e2-47a6-8db9-a5a9b40e8ebf.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T10:20:28.364522+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/c38ac38e-40e2-47a6-8db9-a5a9b40e8ebf.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-suricata",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T10:19:37.028977+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/c38ac38e-40e2-47a6-8db9-a5a9b40e8ebf.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T10:22:16.557027+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/c38ac38e-40e2-47a6-8db9-a5a9b40e8ebf.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "c38ac38e-40e2-47a6-8db9-a5a9b40e8ebf",
       "id_origin": "derived_from_existing_id"
     },
     {
@@ -10496,9 +13818,85 @@
       ],
       "openstack_instance_id": "d0ba865a-a58a-42e3-9e1d-265c5979a373",
       "id_origin": "derived_from_existing_id"
+    },
+    {
+      "instance_id": "inst-d85c1c2c",
+      "instance_name": "victim 33",
+      "node_type": "victim",
+      "desired_tools": [
+        "tool-caldera_agent",
+        "tool-nmap",
+        "tool-suricata",
+        "tool-wazuh_agent"
+      ],
+      "installed_tools": [
+        "tool-caldera_agent",
+        "tool-nmap",
+        "tool-suricata",
+        "tool-wazuh_agent"
+      ],
+      "failed_tools": [],
+      "pending_tools": [],
+      "installation_logs": [],
+      "tool_status_map": {},
+      "log_status_map": {},
+      "log_sources": {},
+      "installed_timestamps": {
+        "tool-suricata": "2026-07-23T03:32:32.376659+00:00",
+        "tool-nmap": "2026-07-23T03:33:19.042469+00:00",
+        "tool-wazuh_agent": "2026-07-23T03:35:07.823010+00:00",
+        "tool-caldera_agent": "2026-07-23T03:35:20.498314+00:00"
+      },
+      "ip": "not_available",
+      "ip_private": "not_available",
+      "ip_floating": "not_available",
+      "tool_states": [
+        {
+          "tool_id": "tool-caldera_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T03:35:20.498314+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/d85c1c2c-c9b9-4a15-9e33-d3f8fa9edbea.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-nmap",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T03:33:19.042469+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/d85c1c2c-c9b9-4a15-9e33-d3f8fa9edbea.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-suricata",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T03:32:32.376659+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/d85c1c2c-c9b9-4a15-9e33-d3f8fa9edbea.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        },
+        {
+          "tool_id": "tool-wazuh_agent",
+          "state": "installed",
+          "current_state": "not_available",
+          "installed_timestamp": "2026-07-23T03:35:07.823010+00:00",
+          "desired_source": "tools-installer-tmp",
+          "installed_source": "tools-installer/installed/d85c1c2c-c9b9-4a15-9e33-d3f8fa9edbea.json",
+          "failed_source": "not_available",
+          "recommended_action": "none"
+        }
+      ],
+      "openstack_instance_id": "d85c1c2c-c9b9-4a15-9e33-d3f8fa9edbea",
+      "id_origin": "derived_from_existing_id"
     }
   ],
-  "active_nodes_count": 128,
+  "active_nodes_count": 171,
   "orphan_tool_artifacts": [],
   "historical_tool_artifacts": [
     {
@@ -10627,12 +14025,21 @@
     "tools-installer/installed/045b71d9-a9cf-4f7d-ae70-9d09d3243e3f.json",
     "tools-installer/installed/04de6c9e-c4f3-4f2a-870c-2794a5b246e2.json",
     "tools-installer/installed/05dca113-94be-46fa-a1c7-f72ab17e9482.json",
+    "tools-installer/installed/0a3f0c1a-68e7-44a4-96e7-4fa69e3c39c0.json",
     "tools-installer/installed/0fc3dd96-6e63-42fc-b3d5-89060d27b386.json",
+    "tools-installer/installed/1108a77e-5211-429d-b323-45b227a90309.json",
+    "tools-installer/installed/14f1e8ec-6fc9-4dff-9bfc-f3442baa868e.json",
     "tools-installer/installed/161fb4fa-73d9-41e8-825e-4b1074ddd853.json",
+    "tools-installer/installed/170d1618-c37b-47b2-bd54-cbeabc8c0d8d.json",
+    "tools-installer/installed/1895fafc-3be0-4ac7-87da-40ce395452e8.json",
+    "tools-installer/installed/19bcdfd9-ac0e-43b7-9308-15649db40e14.json",
+    "tools-installer/installed/1a90cedd-4693-4e3f-8db5-d9c919eddc49.json",
     "tools-installer/installed/1b789fbf-81cd-43aa-a1eb-f59e16eaadeb.json",
+    "tools-installer/installed/1d641931-af9b-4f00-b094-6859eb3fde59.json",
     "tools-installer/installed/1d9f0867-cfb2-41f7-b369-8a583e04028e.json",
     "tools-installer/installed/1e6bd95b-031c-4ec9-b710-a0a9e80ef453.json",
     "tools-installer/installed/1ed20558-9c61-4e7e-9674-0c341ce1a4e2.json",
+    "tools-installer/installed/207dfaf8-5865-4ff2-9155-8257d4854c6e.json",
     "tools-installer/installed/20857a61-48e6-41e2-9811-651430d3fa2b.json",
     "tools-installer/installed/209f5037-8979-4ac9-b6c6-dd9e7929d313.json",
     "tools-installer/installed/20a0a9c3-ca34-4204-8dcb-b876f6763c7b.json",
@@ -10640,29 +14047,37 @@
     "tools-installer/installed/217ba28e-9ad9-4a5d-8118-e8c9e84ebf89.json",
     "tools-installer/installed/21a05e6c-7a7e-49f0-a40a-1d6b9b52822c.json",
     "tools-installer/installed/22b4bbd2-812d-4bca-9ef4-df6617468540.json",
+    "tools-installer/installed/232d9b00-b145-4b78-9cb4-9ec2f2bab208.json",
     "tools-installer/installed/2a1062bc-6644-4260-afd3-5c2c040e384b.json",
     "tools-installer/installed/2a17a394-76b8-49a9-867e-0823517cc1db.json",
     "tools-installer/installed/2c02d89c-da66-4dff-81e3-3fa36c8e2f2e.json",
     "tools-installer/installed/2f9c62b1-cea7-4524-b95d-402d808847e1.json",
     "tools-installer/installed/310e923a-53da-4eff-8848-fc58e93e5f21.json",
     "tools-installer/installed/3297798c-40a0-432e-a340-4feb22900b92.json",
+    "tools-installer/installed/32a34ae8-49de-4fd9-8f9a-38ee2763643b.json",
     "tools-installer/installed/32ad1d35-3038-4c0e-bef7-5b5bce22c702.json",
     "tools-installer/installed/338e69f7-0f30-4e63-a3ae-06387fcad208.json",
+    "tools-installer/installed/33f65f8a-b1cc-4c69-bf45-c43967c8fec9.json",
+    "tools-installer/installed/35620b8f-d454-4efb-b116-77cde58ff630.json",
     "tools-installer/installed/37179c1f-72e9-4ef3-8aba-78f96f0fa74c.json",
     "tools-installer/installed/3989794b-124a-4042-a9cc-313caa6bf213.json",
     "tools-installer/installed/3cd1aa26-0bec-4b89-b7d6-c2d73c3532be.json",
     "tools-installer/installed/3e18c2a8-9384-4d9f-8d91-7eaf22dd9ebc.json",
     "tools-installer/installed/3e2519c1-4a56-44d4-8e11-0bce3d650bf8.json",
     "tools-installer/installed/408ef7d8-5956-4717-9335-64f9aa13fb2a.json",
+    "tools-installer/installed/41276663-65b9-451a-a976-c3ee0cc577ca.json",
+    "tools-installer/installed/415d45fc-dfd8-4c23-b2a5-4ae5eece471f.json",
     "tools-installer/installed/41746698-0243-4fa3-86e2-2b73deaad4c7.json",
     "tools-installer/installed/42fa955f-9ea7-452e-a818-8040644671d7.json",
     "tools-installer/installed/446f16f1-3e84-4401-96db-b20b20cd9fa7.json",
+    "tools-installer/installed/44a03c8a-be10-4f51-804d-c7d291a020bc.json",
     "tools-installer/installed/4653f3d9-d26d-4bbd-b131-f8f750096cfe.json",
     "tools-installer/installed/47479ae6-b764-43d6-814e-b8178132e99b.json",
     "tools-installer/installed/4bd77124-7591-4ebe-9ef8-af157846f4ff.json",
     "tools-installer/installed/4e73a46a-cdde-4e3f-ba03-e7a9a94b7cc1.json",
     "tools-installer/installed/5019503b-2e51-49e5-843e-e4156cbb8cdc.json",
     "tools-installer/installed/50f33ddd-e370-4fda-be9b-0a24cd7799a1.json",
+    "tools-installer/installed/53dffe93-61a4-4e67-a9b2-dea325d46969.json",
     "tools-installer/installed/54596dfb-9248-4662-8634-48e0ba6a3ded.json",
     "tools-installer/installed/57e72746-d535-4cdf-b382-29a05c622f72.json",
     "tools-installer/installed/5b793671-f01c-43b1-b5fc-ed24f7d84f14.json",
@@ -10671,11 +14086,13 @@
     "tools-installer/installed/5eaff39b-5996-4617-8994-4fe0cd24fcda.json",
     "tools-installer/installed/604640ed-7765-4d69-b6b6-08dcbab7070f.json",
     "tools-installer/installed/60896bef-bf10-40cf-a685-bccf51aab10f.json",
+    "tools-installer/installed/61654474-077a-41ea-89bb-4ca477b76677.json",
     "tools-installer/installed/6190415d-4887-4e30-967e-99e1fa253a35.json",
     "tools-installer/installed/6267935a-0686-4434-b612-b56e66cd8ae0.json",
     "tools-installer/installed/63a8fe13-edc9-4df6-afe0-c49c3c1eb9d7.json",
     "tools-installer/installed/640abbe6-bb91-4393-8274-7188435c827f.json",
     "tools-installer/installed/6527af60-b99b-400a-8fbe-19348a1e446e.json",
+    "tools-installer/installed/660ea136-1379-4c68-9cbb-08412e288008.json",
     "tools-installer/installed/663db087-de6c-4e0f-9e24-3575365b4032.json",
     "tools-installer/installed/67b044ef-6c21-4a71-8f9c-ac0b38c1ce95.json",
     "tools-installer/installed/6c9a1db3-7681-48a7-bdc5-302101d4ccb2.json",
@@ -10683,16 +14100,23 @@
     "tools-installer/installed/6d9f3034-8e9c-4fc1-94b1-ac2aefb8e8e0.json",
     "tools-installer/installed/6dee1e56-ff74-44b5-befd-0d0f9ca47b0f.json",
     "tools-installer/installed/71dc9287-c7f7-4f33-a34c-9fe794759e01.json",
+    "tools-installer/installed/71e5352b-9b59-4ec1-8c1e-28ddb717f64f.json",
+    "tools-installer/installed/75c39182-b353-4233-bead-b9faa03ed9c7.json",
+    "tools-installer/installed/75e6b82a-4f80-4995-b99a-031693aaa846.json",
     "tools-installer/installed/760b344b-2fbe-4a15-a8a2-893ba87d9344.json",
     "tools-installer/installed/76a0b037-90ce-490e-9ef3-72db38187a81.json",
     "tools-installer/installed/7805c8a5-5a11-40d3-9218-de27ecca5782.json",
     "tools-installer/installed/78a31852-c200-4fd6-afcf-f20a2ec941a2.json",
     "tools-installer/installed/78f7c6f6-f743-4a88-8470-ec1e6b77a568.json",
+    "tools-installer/installed/796edfb7-119f-4d6f-8eef-65f21165e79b.json",
+    "tools-installer/installed/7a3a1554-b709-4683-aa81-87b69ad4b066.json",
+    "tools-installer/installed/7a59cbd0-df2e-4617-9116-5e45f16fbb77.json",
     "tools-installer/installed/7bddb319-b977-48bf-83dc-6108b81ac887.json",
     "tools-installer/installed/7cd15ec3-769d-4a63-84d5-19bf62861241.json",
     "tools-installer/installed/7f361258-5167-4287-84cc-4fb0313140e7.json",
     "tools-installer/installed/7f406c0d-890c-415d-92cb-0286831f3a44.json",
     "tools-installer/installed/7f935026-7c6e-4f98-99e4-0561be5af5bb.json",
+    "tools-installer/installed/7fd7242b-8423-4320-9b86-28c35076f28d.json",
     "tools-installer/installed/806acb9b-b101-4f56-88da-e7816fc96c33.json",
     "tools-installer/installed/807da9f9-e94c-40e0-8239-48d9019238c4.json",
     "tools-installer/installed/81f4847c-0686-451c-a257-f314fc04aede.json",
@@ -10705,9 +14129,11 @@
     "tools-installer/installed/872ea02f-3951-457c-ae75-3c0e3e15dae5.json",
     "tools-installer/installed/87407e84-6e74-41cd-889e-f143318d0532.json",
     "tools-installer/installed/8795b5e3-355f-4b02-8434-77a621a3afc2.json",
+    "tools-installer/installed/899216fb-3f1f-452c-84d9-590c2baf3b8e.json",
     "tools-installer/installed/8aeb0b72-ce60-4131-8937-21fe7079b775.json",
     "tools-installer/installed/8e1a77d4-f206-433c-88d3-2240c390f832.json",
     "tools-installer/installed/8e50eaf0-256d-4d90-99af-c14737735d25.json",
+    "tools-installer/installed/8f5d75db-6e9c-490b-8c49-0fc810d76ae8.json",
     "tools-installer/installed/8f7476af-fe1c-459b-b4bf-c090944a06ae.json",
     "tools-installer/installed/903934d4-5d2e-410b-ad7f-1f738c46325b.json",
     "tools-installer/installed/9106c1f8-bd0f-4313-b8f3-3ee6421c5dec.json",
@@ -10716,11 +14142,13 @@
     "tools-installer/installed/951fc2b2-e41b-4e12-93ef-8ce83cf58371.json",
     "tools-installer/installed/98fa334f-ce18-4b3e-bf42-99e36aedcb97.json",
     "tools-installer/installed/9920a59a-fcb5-4501-a775-d6a46c577db5.json",
+    "tools-installer/installed/99bfab2f-6ca9-42ac-92ab-56b31120f745.json",
     "tools-installer/installed/9a31659e-a888-4c1e-b097-3ce7b2e28e96.json",
     "tools-installer/installed/a02974bb-6caa-47b1-b322-b79a1cb1d4b6.json",
     "tools-installer/installed/a2afef8d-c70c-4f5e-bc7a-023be06438e7.json",
     "tools-installer/installed/a557faa0-0664-4bfe-8890-559e22bcec8e.json",
     "tools-installer/installed/a8617e57-00f6-4fef-b3ae-150f5b2a5610.json",
+    "tools-installer/installed/ad281a1a-4b1a-4907-9886-647062219cf6.json",
     "tools-installer/installed/aff8fd47-ab63-4678-90a9-58395bc1863f.json",
     "tools-installer/installed/b4349a45-5805-43c1-b5a7-0992b72e8873.json",
     "tools-installer/installed/b6ba4d4a-352f-4ad2-a116-a5f30118e720.json",
@@ -10732,24 +14160,37 @@
     "tools-installer/installed/c14a72a0-a609-4862-ae23-dea7715423b8.json",
     "tools-installer/installed/c1e6c3ff-ea64-4070-8eef-e3c0b5330028.json",
     "tools-installer/installed/c2e179d7-e5d1-4a64-8a39-cbc556cbbbac.json",
+    "tools-installer/installed/c38ac38e-40e2-47a6-8db9-a5a9b40e8ebf.json",
     "tools-installer/installed/c3f80e15-2a49-43e4-8920-9b36ba8fdd1c.json",
     "tools-installer/installed/c4e5e5f3-ca04-4957-ac4e-12467f355846.json",
+    "tools-installer/installed/c8a53a01-1a00-416a-a83b-133296205a43.json",
     "tools-installer/installed/cb4c4bc5-2f21-4661-be4e-f08c7e681847.json",
     "tools-installer/installed/cb9d0594-ea6c-4812-8466-01aa45c76ab6.json",
+    "tools-installer/installed/cbda1409-ae12-4304-851f-6d3165808826.json",
     "tools-installer/installed/d0ba865a-a58a-42e3-9e1d-265c5979a373.json",
     "tools-installer/installed/d1fcce0f-cdf3-4363-be51-3179d796fafa.json",
+    "tools-installer/installed/d444673e-35d9-44f6-ba4e-e5e4f90efe2b.json",
     "tools-installer/installed/d446f3fc-629c-401e-900b-7541228032d6.json",
     "tools-installer/installed/d58cc856-8b38-4362-8664-c262b2ad9aa4.json",
+    "tools-installer/installed/d5c84cf4-df52-444c-bb05-eceaf70100e6.json",
+    "tools-installer/installed/d765af8f-4819-432c-8fb6-b72e38a264f2.json",
+    "tools-installer/installed/d7e9cc37-fdf0-4de0-b422-01b9089be9c4.json",
     "tools-installer/installed/d81230d9-ec8e-4815-8dd1-5280fe790f67.json",
+    "tools-installer/installed/d85c1c2c-c9b9-4a15-9e33-d3f8fa9edbea.json",
     "tools-installer/installed/d993d57b-1fc9-4e8c-ae73-4194d62969c5.json",
     "tools-installer/installed/dbfa59f7-2354-42ee-9350-8bfad5211969.json",
+    "tools-installer/installed/dc236ae3-a94c-4200-9506-68b8dfb06bfc.json",
+    "tools-installer/installed/e96d0d82-a38b-41a9-bd14-778578f4cf8a.json",
     "tools-installer/installed/e96dc3b9-4823-4fa3-8c1c-6520cff1625b.json",
     "tools-installer/installed/e9b9d10e-1ae3-4d12-8a21-435e79433d85.json",
     "tools-installer/installed/ea7d32b2-653b-4573-93b7-a0bef8cad241.json",
+    "tools-installer/installed/ee11abc3-bda7-4467-9307-d4dc1f9b323c.json",
     "tools-installer/installed/f11dd453-d523-48b7-973a-7ec6a64f757d.json",
     "tools-installer/installed/f1e08413-fa24-496e-afd4-c1d8f702ff8d.json",
     "tools-installer/installed/f53316d4-2fb8-48c1-9a44-dee3c4565d54.json",
+    "tools-installer/installed/f6edf0b6-6782-43c8-b35e-8c14ce0cef4b.json",
     "tools-installer/installed/f8e92e0a-3031-400e-b181-0cad5bc675c5.json",
+    "tools-installer/installed/facf6cd3-ee64-434b-969e-bcf7513cde3b.json",
     "tools-installer/installed/fcca2542-66ea-4640-b7c1-1a34f2794921.json",
     "tools-installer/logs/FUXA_Instance_rollback_suricata_modbus_register_detection.log",
     "tools-installer/logs/FUXA_Instance_rollback_suricata_ping_detection.log",

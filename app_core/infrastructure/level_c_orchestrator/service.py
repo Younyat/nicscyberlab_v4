@@ -639,7 +639,7 @@ def _phase_destroy(state: dict, job_dir: Path, rep_num: int) -> bool:
     # Each deploy cycle consumes floating IPs; without this cleanup they accumulate
     # and block PLC/FUXA from getting floating IPs on the next deploy.
     try:
-        fips_raw, _, _ = _run_cmd(
+        _rc, fips_raw, _ = _run_cmd(
             ["openstack", "floating", "ip", "list", "--format", "json"],
             cwd=PROJECT_ROOT, timeout=30,
         )
