@@ -68,6 +68,7 @@
     z-index: 0;
   }
 
+
   #appShell {
     position: relative;
     z-index: 1;
@@ -598,6 +599,29 @@
   #sliderContainer::after {
     right: 0;
     background: linear-gradient(270deg, rgba(2, 8, 23, 0.95), transparent);
+  }
+
+  /* Dedicated background layer, scoped strictly to this section (its parent
+     has overflow:hidden, so this can never bleed into other sections of the
+     page). Sits at z-index:0, below the cards (z-index:1) and below the left/
+     right edge fades above (z-index:4), so it never covers or competes with
+     them -- own opacity only fades the image itself, not the cards on top. */
+  #sliderContainer .my-space-bg-layer {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: url('/images/my_space.png');
+    background-repeat: no-repeat;
+    background-position: center center;
+    /* cover (not contain): fills the full width/height keeping the image's
+       own proportions, cropping only the minimal excess instead of leaving
+       empty space on the sides -- the existing left/right edge-fade
+       gradients above (z-index:4) already disguise that crop against the
+       page background, so no visible hard edge is introduced. */
+    background-size: cover;
+    opacity: 0.35;
+    z-index: 0;
   }
 
   .slider-wrapper {
@@ -1942,14 +1966,15 @@
     display: none;
     align-items: flex-start;
     justify-content: center;
-    padding: 40px 16vw 40px 24px;
+    padding: 40px 24px;
     overflow-y: auto;
     background: rgba(2,6,23,0.62);
     backdrop-filter: blur(10px);
   }
   #repDetailOverlay .exp-job-card {
     position: relative;
-    width: 820px;
+    width: 1600px;
+    max-width: 94vw;
   }
   #repDetailOverlay .lc-live-drag-handle {
     cursor: move;
@@ -2485,6 +2510,7 @@
         </section>
 
         <section id="sliderContainer">
+          <div class="my-space-bg-layer"></div>
           <div id="sliderWrapper" class="slider-wrapper">
 
             <div onclick="openView('index-scenario')" class="card-option flex flex-col items-center justify-center p-5">
@@ -2810,7 +2836,7 @@
 
   <script src="/js/theme-switcher.js"></script>
   <script>window.NicsThemeSwitcher.mount('#theme-switcher-mount');</script>
-  <script src="/js/repetition_process_tree.js?v=20260723-2"></script>
+  <script src="/js/repetition_process_tree.js?v=20260724-fix-rep1-and-pending-tools"></script>
   <script>
     let COPILOT_PENDING = false;
 
@@ -4123,6 +4149,27 @@
     }
 
     function _isSuricataAlert(a) {
+      // 2026-07-24: the platform only ever reads Suricata THROUGH the Wazuh
+      // SIEM pipeline (same architectural point already documented for the
+      // FOC causal-reconstruction e5 edge) -- every Suricata-origin alert
+      // arrives with top-level source:"wazuh" and alert_type set by whatever
+      // the attack/FIM/auth classifier decided (e.g. "[AUTH/ATAQUE]" for a
+      // Modbus write, not "[IDS/SURICATA]"), so the old checks against
+      // alert_type/source/top-level decoder never matched a single real
+      // Suricata alert -- confirmed live: every alert observed had
+      // raw.rule.groups containing "suricata" and raw.location pointing at
+      // suricata/eve.json, yet alert_type was "[AUTH/ATAQUE]" and source was
+      // "wazuh". User caught this as "Suricata never receives anything" when
+      // it was actually receiving alerts correctly, just never being
+      // recognized as the row to put them in. Check the real technical
+      // origin (raw.rule.groups / raw.location / raw.rule.description) first,
+      // keep the old surface-level checks as a harmless fallback for any
+      // other alert shape.
+      const raw = a?.raw || {};
+      const groups = raw?.rule?.groups;
+      if (Array.isArray(groups) && groups.some((g) => /suricata/i.test(String(g)))) return true;
+      if (/suricata/i.test(raw?.location || "")) return true;
+      if (/suricata/i.test(raw?.rule?.description || "")) return true;
       return /suricata/i.test(a?.alert_type || "") ||
              /suricata/i.test(a?.source || "") ||
              /suricata/i.test(a?.decoder?.name || "") ||
@@ -4281,9 +4328,39 @@
       }
     }
 
+    // 2026-07-24: the "Scenario Snapshot" sidebar item had a status badge
+    // (#wf-scenario-snapshot) in the markup from the start, but nothing ever
+    // updated it -- not part of homeRenderWorkflowStatus()'s data-driven list,
+    // and no dedicated refresh function like the Node Health item has. It was
+    // permanently stuck on the hardcoded "Unknown" placeholder. User caught
+    // it as the one badge in the sidebar that never changes. Wired up the
+    // same way Node Health already is: its own small poll against the real
+    // /api/scenario-snapshot/status endpoint.
+    async function refreshHomeScenarioSnapshotStatus(force = false) {
+      if (!force && document.hidden) return;
+      const el = document.getElementById("wf-scenario-snapshot");
+      if (!el) return;
+      try {
+        const payload = await homeFetchJson("/api/scenario-snapshot/status");
+        let state;
+        if (payload?.status === "COLLECTING") {
+          state = "running";
+        } else if (payload?.latest_snapshot) {
+          state = "available";
+        } else {
+          state = "not_started";
+        }
+        el.textContent = homeDisplayStatus(state);
+        el.className = `side-state ${homeStatusClass(state)}`;
+      } catch (_) {
+        // Preserve previous badge state if the status check fails.
+      }
+    }
+
     const HOME_FULL_REFRESH_MS = 45000;
     const HOME_ALERT_REFRESH_MS = 12000;
     const HOME_HEALTH_REFRESH_MS = 30000;
+    const HOME_SCENARIO_SNAPSHOT_REFRESH_MS = 30000;
     let homeSummaryInFlight = false;
     function expFormatDuration(seconds) {
       const num = Number(seconds);
@@ -5315,6 +5392,46 @@
           const slot = document.getElementById("repDetailTreeSlot");
           if (slot) slot.innerHTML = `<div style="color:#fca5a5;font-size:11px;">Process tree could not be built.</div>`;
         });
+        document.getElementById("repDetailShowCampaignBtn")?.addEventListener("click", (ev) => {
+          const btn = ev.currentTarget;
+          const myToken = (repDetailOpen._token = (repDetailOpen._token || 0) + 1);
+          btn.disabled = true;
+          btn.textContent = "Loading full campaign…";
+          const slot = document.getElementById("repDetailTreeSlot");
+          if (slot) slot.innerHTML = `<div style="color:rgba(148,163,184,0.6);font-size:11px;">Building full campaign tree (every repetition reached so far)…</div>`;
+          repTreeBuildLevelCCampaignTree(jobId, detail).then((root) => {
+            if (repDetailOpen._token !== myToken) return;
+            const slot2 = document.getElementById("repDetailTreeSlot");
+            if (slot2) slot2.innerHTML = repTreeRenderLines([root]);
+            btn.textContent = "Full campaign shown ✓";
+          }).catch(() => {
+            if (repDetailOpen._token !== myToken) return;
+            btn.disabled = false;
+            btn.textContent = "Show full campaign (all repetitions)";
+            const slot2 = document.getElementById("repDetailTreeSlot");
+            if (slot2) slot2.innerHTML = `<div style="color:#fca5a5;font-size:11px;">Full campaign tree could not be built.</div>`;
+          });
+        });
+        document.getElementById("repDetailShowCampaignSummaryBtn")?.addEventListener("click", (ev) => {
+          const btn = ev.currentTarget;
+          const myToken = (repDetailOpen._token = (repDetailOpen._token || 0) + 1);
+          btn.disabled = true;
+          btn.textContent = "Loading summary…";
+          const slot = document.getElementById("repDetailTreeSlot");
+          if (slot) slot.innerHTML = `<div style="color:rgba(148,163,184,0.6);font-size:11px;">Building campaign summary table (every repetition reached so far)…</div>`;
+          repTreeBuildCampaignSummaryHtml(jobId, detail).then((html) => {
+            if (repDetailOpen._token !== myToken) return;
+            const slot2 = document.getElementById("repDetailTreeSlot");
+            if (slot2) slot2.innerHTML = html;
+            btn.textContent = "Summary shown ✓";
+          }).catch(() => {
+            if (repDetailOpen._token !== myToken) return;
+            btn.disabled = false;
+            btn.textContent = "Show campaign summary (table)";
+            const slot2 = document.getElementById("repDetailTreeSlot");
+            if (slot2) slot2.innerHTML = `<div style="color:#fca5a5;font-size:11px;">Campaign summary could not be built.</div>`;
+          });
+        });
       } catch (_) {
         body.innerHTML = `<div style="color:#fca5a5;">Failed to load repetition detail.</div>`;
       }
@@ -5370,6 +5487,7 @@
               <span style="font-weight:800;color:rgba(241,245,249,0.9);">${lcLiveEsc(t.instance)}</span>
               <span style="color:rgba(148,163,184,0.8);"> ← ${lcLiveEsc(t.tool)}: </span>
               <span style="font-weight:900;color:${t.status === "installed" ? "#34d399" : "#f87171"};">${lcLiveEsc(t.status)}</span>
+              ${t.reason ? `<div style="margin-top:2px;color:#fca5a5;font-style:italic;">${lcLiveEsc(t.reason)}</div>` : ""}
             </div>
           `).join("");
           extra += lcLiveCollapsible("Tool installs", toolsHtml, { badge: String(d.tool_installs.length), badgeColor: "#a78bfa" });
@@ -5586,7 +5704,21 @@
       // a loading placeholder so the rest of this overlay isn't blocked on it.
       // 2026-07-23: user explicitly asked for this to live inside the existing
       // repBell -> overlay flow, not as a separate page or a new icon.
-      const treeHtml = `<div id="repDetailTreeSlot" style="color:rgba(148,163,184,0.6);font-size:11px;">Building process tree…</div>`;
+      // 2026-07-24: user explicitly asked to see ALL repetitions of a Level C
+      // campaign together (cases, installs, analysis, everything), not just
+      // the one repetition they clicked -- this button swaps the tree slot to
+      // repTreeBuildLevelCCampaignTree() instead, additive, single-repetition
+      // view untouched otherwise. Second button (same day, follow-up request)
+      // renders the same underlying data as a scannable summary TABLE instead
+      // -- one row per repetition -- for comparing cases/errors across many
+      // repetitions at a glance instead of expanding a deep tree for each one.
+      const campaignBtnHtml = level === "C"
+        ? `<div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+             <button type="button" id="repDetailShowCampaignBtn" style="padding:5px 10px;border-radius:8px;border:1px solid rgba(167,139,250,0.35);background:rgba(124,58,237,0.12);color:#c4b5fd;font-size:10.5px;font-weight:800;cursor:pointer;">Show full campaign (all repetitions)</button>
+             <button type="button" id="repDetailShowCampaignSummaryBtn" style="padding:5px 10px;border-radius:8px;border:1px solid rgba(56,189,248,0.35);background:rgba(14,165,233,0.12);color:#7dd3fc;font-size:10.5px;font-weight:800;cursor:pointer;">Show campaign summary (table)</button>
+           </div>`
+        : "";
+      const treeHtml = `${campaignBtnHtml}<div id="repDetailTreeSlot" style="color:rgba(148,163,184,0.6);font-size:11px;">Building process tree…</div>`;
       extra += lcLiveCollapsible("🌳 Full process tree", treeHtml, { open: true });
 
       return titleRow + actionBarHtml + stagesHtml + extra;
@@ -5876,7 +6008,19 @@
         homeRenderDetectionCoverage(data);
         homeRenderAttackCatalog(data);
         homeRenderForensicFoc(data);
-        if (latestAlert) homeRenderLiveAlert([latestAlert]);
+        // 2026-07-24: this used to also call homeRenderLiveAlert([latestAlert])
+        // here -- a SINGLE alert wrapped in a one-element array. Since the
+        // Live Alert Indicator widget shows Wazuh and Suricata as two
+        // independent rows (see homeRenderLiveAlert()), feeding it a list
+        // that can only ever contain ONE of the two types silently collapsed
+        // whichever type wasn't that single latest alert back to "No
+        // telemetry" -- caught live by the user as the widget flickering
+        // between "Wazuh has data" and "Suricata has data" every ~45s. This
+        // function (loadHomeOperationalSummary, on its own 45s timer) isn't
+        // the widget's owner; refreshHomeLiveAlert() already maintains it
+        // correctly on its own 12s timer with the real last-15-alerts list,
+        // so this call was redundant AND actively wrong -- removed, not
+        // replaced. `latestAlert` is still used above for attackCatalog.
       } catch (_) {
         // Preserve previous dashboard state if summary refresh fails.
       } finally {
@@ -5942,6 +6086,7 @@
       homeBindSidebarNavigation();
       loadHomeOperationalSummary(true).catch(() => {});
       refreshHomeNodeHealth(false).catch(() => {});
+      refreshHomeScenarioSnapshotStatus(false).catch(() => {});
       loadFviMetrics().catch(() => {});
 
       setInterval(() => {
@@ -5965,11 +6110,16 @@
         refreshHomeNodeHealth().catch(() => {});
       }, HOME_HEALTH_REFRESH_MS);
 
+      setInterval(() => {
+        refreshHomeScenarioSnapshotStatus().catch(() => {});
+      }, HOME_SCENARIO_SNAPSHOT_REFRESH_MS);
+
       document.addEventListener("visibilitychange", () => {
         if (!document.hidden) {
           loadHomeOperationalSummary(true).catch(() => {});
           refreshHomeLiveAlert(true).catch(() => {});
           refreshHomeNodeHealth(false).catch(() => {});
+          refreshHomeScenarioSnapshotStatus(false).catch(() => {});
         }
       });
     });

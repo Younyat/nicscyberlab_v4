@@ -1,0 +1,387 @@
+{
+  "job_id": "exp-c720e4fa15d9",
+  "job_type": "level_b_repetitions",
+  "title": "Run Level B repetitions for CMP-20260723-210541-1465",
+  "status": "running",
+  "requested_at": "2026-07-24T07:38:52.191573+00:00",
+  "started_at": "2026-07-24T07:38:52.192382+00:00",
+  "finished_at": null,
+  "current_phase": "generate_report",
+  "progress_percent": 90.0,
+  "warnings": [
+    "Unexpected repetition failure: Command '['ssh', '-i', '/home/younes/.ssh/my_key', '-o', 'StrictHostKeyChecking=no', 'ubuntu@10.0.2.44', \"REMOTE_DUMP='' bash -s\"]' timed out after 120 seconds"
+  ],
+  "errors": [
+    {
+      "message": "Command '['ssh', '-i', '/home/younes/.ssh/my_key', '-o', 'StrictHostKeyChecking=no', 'ubuntu@10.0.2.44', \"REMOTE_DUMP='' bash -s\"]' timed out after 120 seconds",
+      "repetition": 1
+    },
+    {
+      "message": "Repetition 1/1 failed. The Level B campaign is being closed immediately; no further attacks or acquisitions will be launched. Final reporting will be generated only from the repetitions already executed.",
+      "repetition": 1
+    }
+  ],
+  "generated_artifacts": [],
+  "meta": {
+    "campaign_id": "CMP-20260723-210541-1465",
+    "level": "B",
+    "attack_id": "T0831_MANIPULATION_OF_CONTROL_MODBUS",
+    "requested_repetitions": 1,
+    "nested_level_a_repetitions": 2,
+    "replaced_active_job": null
+  },
+  "job_path": "/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/evidence_store/repetition_campaigns/CMP-20260723-210541-1465/jobs/level-b-repetitions-2026-07-24T073852.191432_0000.json",
+  "updated_at": "2026-07-24T07:41:39.210623+00:00",
+  "current_phase_label": "Generate Level B report",
+  "current_phase_detail": "Aggregating per-repetition timing, acquisition, reconstruction, warnings, blockers, and case outputs into the final Level B validation report bundle.",
+  "phase_statuses": [
+    {
+      "phase_key": "starting",
+      "phase_label": "Starting",
+      "status": "running",
+      "detail": "Preparing experimentation job runner.",
+      "updated_at": "2026-07-24T07:38:52.192401+00:00",
+      "progress_percent": 1.0
+    },
+    {
+      "phase_key": "prepare_level_b_job",
+      "phase_label": "Prepare Level B job",
+      "status": "running",
+      "detail": "Preparing Level B batch execution, runtime workspace, and deterministic scientific progress plan.",
+      "updated_at": "2026-07-24T07:38:52.231190+00:00",
+      "progress_percent": 0.0
+    },
+    {
+      "phase_key": "prepare_level_b_job",
+      "phase_label": "Prepare Level B job",
+      "status": "completed",
+      "detail": "Prepared Level B batch job for campaign CMP-20260723-210541-1465.",
+      "updated_at": "2026-07-24T07:38:52.250516+00:00",
+      "progress_percent": 3.33
+    },
+    {
+      "phase_key": "optional_cleanup",
+      "phase_label": "Clean previous heavy cases",
+      "status": "running",
+      "detail": "Inspecting and deleting previous heavy forensic cases before launching the independent Level B repetitions. This is mandatory so two heavy cases never coexist.",
+      "updated_at": "2026-07-24T07:38:52.252194+00:00",
+      "progress_percent": 3.33
+    },
+    {
+      "phase_key": "optional_cleanup",
+      "phase_label": "Clean previous heavy cases",
+      "status": "completed",
+      "detail": "Mandatory cleanup completed. Estimated freed space: 0.00 B. Actual freed space: 0.00 B. Deleted cases: 0.",
+      "updated_at": "2026-07-24T07:39:04.373075+00:00",
+      "progress_percent": 6.67
+    },
+    {
+      "phase_key": "resolve_active_scenario",
+      "phase_label": "Resolve active scenario",
+      "status": "running",
+      "detail": "Resolving the already deployed scenario that will host all 1 independent Level B repetitions.",
+      "updated_at": "2026-07-24T07:39:04.377872+00:00",
+      "progress_percent": 6.67
+    },
+    {
+      "phase_key": "resolve_active_scenario",
+      "phase_label": "Resolve active scenario",
+      "status": "completed",
+      "detail": "Resolved target PLC_Instance (10.0.2.140) and monitor monitor 11 (10.0.2.156).",
+      "updated_at": "2026-07-24T07:39:05.227238+00:00",
+      "progress_percent": 10.0
+    },
+    {
+      "phase_key": "verify_plc_target",
+      "phase_label": "Verify PLC target",
+      "status": "running",
+      "detail": "Checking that the selected target is really the PLC node used by the controlled OT register-modification profile.",
+      "updated_at": "2026-07-24T07:39:05.228566+00:00",
+      "progress_percent": 10.0
+    },
+    {
+      "phase_key": "verify_plc_target",
+      "phase_label": "Verify PLC target",
+      "status": "completed",
+      "detail": "PLC target verified: PLC_Instance (10.0.2.140). Multi-host preservation scope resolved: fuxa=10.0.2.44, plc=10.0.2.140, victim=10.0.2.229.",
+      "updated_at": "2026-07-24T07:39:07.144240+00:00",
+      "progress_percent": 13.33
+    },
+    {
+      "phase_key": "enable_dfir_mode",
+      "phase_label": "Enable DFIR mode",
+      "status": "running",
+      "detail": "Verifying that DFIR mode is ON before the first OT attack is launched.",
+      "updated_at": "2026-07-24T07:39:07.145673+00:00",
+      "progress_percent": 13.33
+    },
+    {
+      "phase_key": "enable_dfir_mode",
+      "phase_label": "Enable DFIR mode",
+      "status": "completed",
+      "detail": "DFIR mode verified ON. Browser mode transitioned from on to on.",
+      "updated_at": "2026-07-24T07:39:07.146741+00:00",
+      "progress_percent": 16.67
+    },
+    {
+      "phase_key": "verify_disk_acquisition",
+      "phase_label": "Verify disk acquisition prerequisites",
+      "status": "running",
+      "detail": "Checking whether disk preservation can run in stable non-interactive mode for a long Level B batch.",
+      "updated_at": "2026-07-24T07:39:07.149501+00:00",
+      "progress_percent": 16.67
+    },
+    {
+      "phase_key": "verify_disk_acquisition",
+      "phase_label": "Verify disk acquisition prerequisites",
+      "status": "completed",
+      "detail": "Stable non-interactive disk acquisition prerequisites verified for Level B batch execution.",
+      "updated_at": "2026-07-24T07:39:07.179941+00:00",
+      "progress_percent": 20.0
+    },
+    {
+      "phase_key": "repetition_1_start",
+      "phase_label": "Start repetition 1/1",
+      "status": "running",
+      "detail": "Execution workspace EXEC-0006 created. Starting independent Level B repetition 1 of 1.",
+      "updated_at": "2026-07-24T07:39:07.199589+00:00",
+      "progress_percent": 20.0
+    },
+    {
+      "phase_key": "repetition_1_start",
+      "phase_label": "Start repetition 1/1",
+      "status": "completed",
+      "detail": "Independent Level B repetition 1 has started with execution EXEC-0006.",
+      "updated_at": "2026-07-24T07:39:07.205502+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.140 (attempt 1/10).",
+      "updated_at": "2026-07-24T07:39:07.209824+00:00",
+      "progress_percent": 27.0
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed",
+      "detail": "Attack completed successfully (attempt 1/10). Output directory: /home/younes/nicscyberlab_v3/app_core/infrastructure/attack/outputs/20260724T073907Z_T0831_MANIPULATION_OF_CONTROL_MODBUS.",
+      "updated_at": "2026-07-24T07:39:26.294410+00:00",
+      "progress_percent": 34.0
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "running",
+      "detail": "Watching monitor 10.0.2.156 for a HIGH/CRITICAL alert matching the OT attack profile (attempt 1/10).",
+      "updated_at": "2026-07-24T07:39:26.298147+00:00",
+      "progress_percent": 34.0
+    },
+    {
+      "phase_key": "repetition_1_alert",
+      "phase_label": "Wait for high-severity alert",
+      "status": "completed",
+      "detail": "Matched alert e6b1b6c2d1b94ff6a9c9482839c460ce with severity HIGH (attempt 1/10).",
+      "updated_at": "2026-07-24T07:39:33.243333+00:00",
+      "progress_percent": 41.0
+    },
+    {
+      "phase_key": "repetition_1_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "running",
+      "detail": "Verifying that the matched alert is eligible for forensic intervention and that automatic acquisition may start from this trigger (attempt 1/10).",
+      "updated_at": "2026-07-24T07:39:33.249296+00:00",
+      "progress_percent": 41.0
+    },
+    {
+      "phase_key": "repetition_1_trigger",
+      "phase_label": "Verify forensic intervention trigger",
+      "status": "completed",
+      "detail": "The matched high-severity alert is eligible for automatic forensic intervention and DFIR mode is ON (attempt 1/10).",
+      "updated_at": "2026-07-24T07:39:33.251265+00:00",
+      "progress_percent": 48.0
+    },
+    {
+      "phase_key": "repetition_1_acquisition",
+      "phase_label": "Run automatic acquisition",
+      "status": "running",
+      "detail": "Creating a fresh forensic case and starting volatility-first DFIR acquisition over fuxa, plc, and victim: memory first, rolling-PCAP context import second, disk third.",
+      "updated_at": "2026-07-24T07:39:33.252813+00:00",
+      "progress_percent": 48.0
+    },
+    {
+      "phase_key": "repetition_1_acquisition",
+      "phase_label": "Run automatic acquisition",
+      "status": "running",
+      "detail": "Stage: MEMORY (1/3) — acquiring volatile memory from fuxa (10.0.2.44).",
+      "updated_at": "2026-07-24T07:39:34.623230+00:00",
+      "progress_percent": 48.0
+    },
+    {
+      "phase_key": "repetition_1_close_campaign_after_error",
+      "phase_label": "Close campaign after failed repetition",
+      "status": "completed_with_degradation",
+      "detail": "Repetition 1/1 failed. The Level B campaign is being closed immediately; no further attacks or acquisitions will be launched. Final reporting will be generated only from the repetitions already executed.",
+      "updated_at": "2026-07-24T07:41:39.206467+00:00",
+      "progress_percent": 90.0
+    },
+    {
+      "phase_key": "generate_report",
+      "phase_label": "Generate Level B report",
+      "status": "running",
+      "detail": "Aggregating per-repetition timing, acquisition, reconstruction, warnings, blockers, and case outputs into the final Level B validation report bundle.",
+      "updated_at": "2026-07-24T07:41:39.209703+00:00",
+      "progress_percent": 90.0
+    }
+  ],
+  "report_output_path": "app_core/infrastructure/forensics/evidence_store/validation_reports/level_b_repetition_report_2026-07-24T073852.213012_0000",
+  "requested_repetitions": 1,
+  "level_b_cleanup_manifest_path": "runtime/level_b_repetitions/exp-c720e4fa15d9/cleanup_manifest.json",
+  "dfir_mode_before": "on",
+  "dfir_mode_after": "on",
+  "disk_preflight": {
+    "ok": true,
+    "blockers": [],
+    "warnings": [],
+    "privilege_mode": "user",
+    "sudo_noninteractive_ok": true,
+    "sudo_nopasswd_granted": true,
+    "docker_available": true,
+    "docker_access_ok": true,
+    "qemu_img_available": true,
+    "script_path": "/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/scripts/acquire_disk_kolla_libvirt.sh",
+    "container_name": "nova_libvirt",
+    "sudo_list_excerpt": "",
+    "helper_sudo_probe_ok": true
+  },
+  "current_execution_id": "EXEC-0006",
+  "current_case_id": "case-291b9358",
+  "current_attack_status": "completed",
+  "current_alert_status": "completed",
+  "current_acquisition_status": "running",
+  "current_preservation_status": "queued",
+  "current_analysis_status": "queued",
+  "current_reconstruction_status": "queued",
+  "current_repetition": 1,
+  "trigger_attempt": 1,
+  "per_repetition_results": [
+    {
+      "repetition_number": 1,
+      "campaign_id": "CMP-20260723-210541-1465",
+      "execution_id": "EXEC-UNKNOWN-1",
+      "execution_status": "failed",
+      "dfir_mode_before": "on",
+      "dfir_mode_after": "on",
+      "dfir_mode_enabled_successfully": true,
+      "dfir_mode_blocker": null,
+      "attack_profile_id": "T0831_MANIPULATION_OF_CONTROL_MODBUS",
+      "attack_name": "Modbus Register Manipulation",
+      "target_role": "PLC",
+      "target_node": "PLC_Instance",
+      "target_ip": null,
+      "protocol": "modbus_tcp",
+      "destination_port": 502,
+      "function_code": "unknown",
+      "register": "unknown",
+      "value": "unknown",
+      "attack_started_at": null,
+      "attack_completed_at": null,
+      "attack_output_path": null,
+      "trigger_alert_detected": false,
+      "trigger_alert_id": null,
+      "trigger_alert_rule": null,
+      "trigger_alert_severity": "unknown",
+      "trigger_alert_timestamp": null,
+      "trigger_alert_mitre": null,
+      "forensic_intervention_required": false,
+      "automatic_acquisition_started": false,
+      "case_id": null,
+      "case_path": null,
+      "memory_acquisition_status": "skipped",
+      "network_context_status": "skipped",
+      "pcap_segments_imported": 0,
+      "disk_acquisition_status": "skipped",
+      "ot_export_status": "skipped",
+      "alerts_preserved": 0,
+      "custody_status": "skipped",
+      "case_sealed_status": "skipped",
+      "analysis_status": "failed",
+      "layers_total": 0,
+      "layers_completed": 0,
+      "layers_partial": 0,
+      "layers_failed": 0,
+      "memory_analysis_status": "not_started",
+      "network_analysis_status": "not_started",
+      "disk_analysis_status": "not_started",
+      "ot_analysis_status": "not_started",
+      "alert_analysis_status": "not_started",
+      "timeline_status": "not_started",
+      "reconstruction_status": "failed",
+      "timing_metrics": {
+        "deploy_time_seconds": 0.0,
+        "teardown_redeploy_time_seconds": 0.0,
+        "network_mode": "continuous_rolling_pcap_with_case_bound_incident_window_import",
+        "alert_to_acquisition_start_seconds": null,
+        "alert_to_memory_start_seconds": null,
+        "alert_to_memory_preserved_seconds": null,
+        "alert_to_ot_export_preserved_seconds": null,
+        "alert_to_disk_snapshot_start_seconds": null,
+        "alert_to_disk_snapshot_preserved_seconds": null,
+        "alert_to_case_sealed_seconds": null,
+        "t_first_sealed_seconds": null,
+        "t_case_sealed_seconds": null,
+        "memory_acquisition_duration_seconds": null,
+        "pcap_import_duration_seconds": null,
+        "disk_acquisition_duration_seconds": null,
+        "case_sealed_to_analysis_completed_seconds": null,
+        "total_repetition_duration_seconds": null,
+        "pcap_periodic_context_size_gib": null,
+        "pcap_reactive_capture_size_bytes": 0,
+        "memory_dump_size_bytes": null,
+        "disk_snapshot_size_bytes": null,
+        "retries_or_failures_count": 0,
+        "ot_export_present_in_manifest": false,
+        "ot_export_paths": [],
+        "evidence_completeness_gate": "not_available"
+      },
+      "reconstruction_metrics": {
+        "expected_relations": 0,
+        "recovered_relations": 0,
+        "degraded_relations": 0,
+        "ambiguous_relations": 0,
+        "missing_relations": 0,
+        "recoverability_score": null,
+        "weighted_recoverability_score": null,
+        "reconstruction_confidence": null,
+        "recoverability_label": null,
+        "scientific_confidence_label": null,
+        "warnings": [
+          "Unexpected repetition failure: Command '['ssh', '-i', '/home/younes/.ssh/my_key', '-o', 'StrictHostKeyChecking=no', 'ubuntu@10.0.2.44', \"REMOTE_DUMP='' bash -s\"]' timed out after 120 seconds"
+        ],
+        "blockers": [
+          "Command '['ssh', '-i', '/home/younes/.ssh/my_key', '-o', 'StrictHostKeyChecking=no', 'ubuntu@10.0.2.44', \"REMOTE_DUMP='' bash -s\"]' timed out after 120 seconds"
+        ]
+      },
+      "comparison_family_id": null,
+      "scenario_fingerprint": null,
+      "final_case_status": "failed",
+      "scientific_case_status": "diagnostic_failed",
+      "critical_evidence_gate": {},
+      "nested_level_a": {},
+      "trigger_attempt_trace": [],
+      "trigger_attempts_total": 0,
+      "artifacts": {},
+      "warnings": [
+        "Unexpected repetition failure: Command '['ssh', '-i', '/home/younes/.ssh/my_key', '-o', 'StrictHostKeyChecking=no', 'ubuntu@10.0.2.44', \"REMOTE_DUMP='' bash -s\"]' timed out after 120 seconds"
+      ],
+      "blockers": [
+        "Command '['ssh', '-i', '/home/younes/.ssh/my_key', '-o', 'StrictHostKeyChecking=no', 'ubuntu@10.0.2.44', \"REMOTE_DUMP='' bash -s\"]' timed out after 120 seconds"
+      ]
+    }
+  ],
+  "execution_id": "EXEC-UNKNOWN-1",
+  "case_id": null,
+  "execution_status": "failed"
+}

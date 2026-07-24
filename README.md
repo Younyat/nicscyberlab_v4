@@ -564,6 +564,25 @@ This service is useful when specialized tools are executed outside the platform 
 
 ![Remote Lab Exchange Dashboard](Images_readme/LAB_EXCHANGE_DASHBOARD.png)
 
+Repeated execution across many repetitions requires its own dedicated visibility layer, described next.
+
+---
+
+### 4.14 Campaign Repetitions Center
+
+The **Campaign Repetitions Center** provides full execution transparency across repeated Level C, Level B, and Level A runs, accessed from the main dashboard's repetitions indicator.
+
+For any single repetition, it renders a hierarchical process tree — from scenario destruction and redeployment down to per-instance tool installation, monitoring verification, attack execution, detection, case sealing, and multilayer analysis — each stage carrying real start/end timestamps, elapsed duration, and, where available, the historical baseline duration for that exact stage. Nested Level B and Level A executions appear inline within their parent Level C repetition, preserving the true execution hierarchy rather than flattening it.
+
+Because a single repetition view is necessarily local, two complementary campaign-wide views are also available:
+
+- a combined process tree spanning every repetition reached so far in the campaign;
+- a summary table placing repetitions side by side, for comparing cases, tool-installation failures, detection outcomes, and blocking errors across the whole run.
+
+Every failure surfaces with a concrete reason drawn from the underlying execution record; when no specific cause was captured, the view says so explicitly rather than remaining silent. This supports rapid, evidence-grounded diagnosis of where and why a given repetition diverged, without manual log inspection.
+
+![Campaign Repetitions Center](Images_readme/Repetitions_Center_Rep_Level_c.png)
+
 The next section describes the evidence model used by the forensic services.
 
 ---

@@ -167,6 +167,7 @@ async function repTreeBuildLevelBTree(detail) {
   const attack = detail.attack;
   const detection = detail.detection;
   const acquisition = detail.acquisition;
+  const caseInfo = detail.case;
 
   for (const stage of detail.stages || []) {
     let extra = [];
@@ -203,18 +204,43 @@ async function repTreeBuildLevelBTree(detail) {
         ));
       }
     }
+    if (stage.stage_key === "lb.rep.trigger" && caseInfo && caseInfo.case_id) {
+      extra.push(repTreeNode(
+        `Case: ${repTreeUnk(caseInfo.case_real_name)}`,
+        "completed",
+        {
+          started_at: caseInfo.case_created_utc,
+          // Real folder name AND the short internal alias (sha1-based, see
+          // level_b_orchestrator.py::_case_id_for_case_dir) shown together --
+          // 2026-07-24: user was confused seeing only the alias and asked for
+          // both, since the system genuinely uses both for different things.
+          detail: [
+            `internal alias: ${repTreeUnk(caseInfo.case_id)}`,
+            caseInfo.case_path ? `path: ${caseInfo.case_path}` : null,
+          ].filter(Boolean).join(" — "),
+        }
+      ));
+    }
     if (stage.stage_key === "lb.rep.acquisition" && acquisition) {
       if (detail.stage_timeline && detail.stage_timeline.length) {
         for (const st of detail.stage_timeline) {
-          const sizeDetail = st.size_bytes ? `${(st.size_bytes / (1024 ** 3)).toFixed(2)} GiB` : null;
+          const sizeDetail = st.size_bytes ? `${(st.size_bytes / (1024 ** 3)).toFixed(2)} GiB preserved` : null;
+          // "usual" = real historical median for this exact stage
+          // (stage_timing_service._historical_median_seconds(), computed from
+          // OTHER still-on-disk cases -- never invented, "no history yet" if
+          // there simply isn't enough data). "delayed" flags when a still-
+          // running stage has already clearly exceeded that median.
+          // 2026-07-24: user explicitly asked for this baseline to appear in
+          // the tree, not just size/progress.
+          const usualDetail = st.expected_seconds != null ? `~${repTreeFmtElapsed(st.expected_seconds)} usual` : "no history yet";
           extra.push(repTreeNode(
             repTreeUnk(st.label),
             st.status,
             {
               started_at: st.started_at, finished_at: st.finished_at, elapsed_seconds: st.elapsed_seconds,
               target: st.target ? `${st.target}${st.target_ip ? " (" + st.target_ip + ")" : ""}` : null,
-              detail: [sizeDetail, st.progress_detail].filter(Boolean).join(" — ") || null,
-              error_detail: st.error_detail || null,
+              detail: [usualDetail, sizeDetail, st.progress_detail].filter(Boolean).join(" — ") || null,
+              error_detail: st.delayed ? "Running notably longer than usual for this stage." : (st.error_detail || null),
             }
           ));
         }
@@ -281,7 +307,7 @@ async function repTreeBuildLevelCTree(detail) {
       for (const [instance, tools] of Object.entries(toolsByInstance)) {
         const instNode = repTreeNode(instance, "completed", { children: [] });
         for (const t of tools) {
-          instNode.children.push(repTreeNode(t.tool, t.status === "installed" ? "installed" : "failed_or_skipped", { started_at: t.ts }));
+          instNode.children.push(repTreeNode(t.tool, t.status === "installed" ? "installed" : "failed_or_skipped", { started_at: t.ts, detail: t.reason || null }));
         }
         extra.push(instNode);
       }
@@ -348,6 +374,144 @@ async function repTreeBuildLevelCTree(detail) {
   }
 
   return root;
+}
+
+// ---------------------------------------------------------------------------
+// Whole-campaign tree (every Level C repetition reached so far, each with its
+// own full nested Level B / Level A sub-tree) -- 2026-07-24: user explicitly
+// asked for full transparency across ALL repetitions of a campaign, not just
+// the one repetition they happened to click on the repBell list. Purely
+// additive: reuses repTreeBuildLevelCTree() per repetition number, nothing
+// about the single-repetition view changes.
+// ---------------------------------------------------------------------------
+
+async function repTreeBuildLevelCCampaignTree(jobId, firstRepDetail) {
+  const total = firstRepDetail.total_repetitions || 1;
+  const root = repTreeNode(
+    `Level C campaign — ${repTreeUnk(jobId)} (${repTreeUnk(firstRepDetail.execution_label)})`,
+    "running",
+    { children: [] }
+  );
+  for (let rep = 1; rep <= total; rep++) {
+    // BUG FIXED 2026-07-24: this used to be `rep === 1 ? firstRepDetail : ...`,
+    // silently assuming the repetition the user happened to have open was
+    // repetition #1. If they opened the campaign view from, say, repetition
+    // 7, repetition 1 was never fetched at all and repetition 7's own detail
+    // got inserted in its place (wrong content AND wrong position) -- caught
+    // live by the user, who noticed repetition 7 appearing first and
+    // repetition 1 missing entirely. Now only reuses the already-fetched
+    // detail when it actually matches this loop iteration's repetition
+    // number; every other repetition is always freshly fetched.
+    const detail = firstRepDetail.repetition_number === rep
+      ? firstRepDetail
+      : await repTreeGetJson(`/api/campaign-repetitions/level-c/${encodeURIComponent(jobId)}/${rep}`);
+    if (!detail) {
+      root.children.push(repTreeNode(`Repetition ${rep}/${total}`, "unknown", { detail: "Detail could not be resolved for this repetition." }));
+      continue;
+    }
+    root.children.push(await repTreeBuildLevelCTree(detail));
+  }
+  // Real, not synthetic: "completed" only once every repetition actually
+  // reached a terminal status; "running" while any of them are still pending
+  // or in progress -- same pending/never-omitted rule as everywhere else in
+  // this module.
+  root.status = root.children.every((c) => !["pending", "running"].includes(c.status)) ? "completed" : "running";
+  return root;
+}
+
+// ---------------------------------------------------------------------------
+// Whole-campaign SUMMARY TABLE (one row per repetition, every level's key
+// facts side by side) -- 2026-07-24: user asked for a second, scannable view
+// next to the full-campaign tree: same underlying data, but laid out so every
+// repetition's case/errors/status can be compared at a glance instead of
+// having to expand a deep nested tree for each one. Purely additive, reuses
+// the exact same endpoints/fields as the tree builders above -- nothing here
+// is computed differently, just rendered differently.
+// ---------------------------------------------------------------------------
+
+function repTreeSummaryPill(status) {
+  const c = repTreeStatusColor(status);
+  return `<span style="font-size:10px;font-weight:900;text-transform:uppercase;color:${c};border:1px solid ${c}55;background:${c}15;border-radius:999px;padding:1px 7px;white-space:nowrap;">${repTreeEsc(status || "unknown")}</span>`;
+}
+
+async function repTreeBuildCampaignSummaryHtml(jobId, firstRepDetail) {
+  const total = firstRepDetail.total_repetitions || 1;
+  const rows = [];
+  for (let rep = 1; rep <= total; rep++) {
+    // Same fix as repTreeBuildLevelCCampaignTree() -- only reuse the
+    // already-fetched detail when it actually matches this repetition number.
+    const lc = firstRepDetail.repetition_number === rep
+      ? firstRepDetail
+      : await repTreeGetJson(`/api/campaign-repetitions/level-c/${encodeURIComponent(jobId)}/${rep}`);
+    if (!lc) {
+      rows.push({ rep, lcStatus: "unknown", cell: "<td colspan=\"7\" style=\"color:#f87171;\">Could not be resolved.</td>" });
+      continue;
+    }
+    const failedTools = (lc.tool_installs || []).filter((t) => t.status !== "installed");
+    let lb = null;
+    if (lc.level_b_job_id) {
+      const repNum = lc.level_b_live?.repetition_number || 1;
+      lb = await repTreeGetJson(`/api/campaign-repetitions/level-b/${encodeURIComponent(lc.level_b_job_id)}/${repNum}`);
+    }
+    const caseInfo = lb?.case;
+    const detection = lb?.detection;
+    const blockers = lb?.blockers || [];
+    const na = lb?.nested_level_a;
+    let laCell = "—";
+    if (na && na.job_id) {
+      const dr = na.dry_run_repetitions || {};
+      laCell = `${repTreeUnk(dr.completed, "0")}/${repTreeUnk(dr.requested, "?")} dry-runs ${repTreeSummaryPill(na.status || "unknown")}`;
+    }
+    rows.push({
+      rep,
+      lcStatus: lc.repetition_status,
+      cell: `
+        <td style="white-space:nowrap;font-weight:800;">Rep ${rep}/${total}</td>
+        <td>${repTreeSummaryPill(lc.repetition_status)}<div style="color:rgba(148,163,184,0.6);font-size:10px;margin-top:2px;">${lc.total_elapsed_seconds != null ? repTreeFmtElapsed(lc.total_elapsed_seconds) : "—"}</div></td>
+        <td>${(() => {
+          // BUG FIXED 2026-07-24: a repetition that hasn't reached the
+          // install-tools stage yet (pending, or still earlier in DESTROYING/
+          // DEPLOYING) also has an empty tool_installs list -- same as a
+          // repetition where every tool genuinely succeeded. Caught live by
+          // the user: pending repetitions 8/9/10 were showing "all OK" before
+          // a single tool had even been attempted. Distinguish "nothing
+          // attempted yet" from "attempted and all succeeded" explicitly.
+          if (failedTools.length) {
+            return `<span style="color:#f87171;font-weight:800;">${failedTools.length} failed</span><div style="color:rgba(148,163,184,0.6);font-size:10px;">${failedTools.map((t) => repTreeEsc(`${t.instance}←${t.tool}`)).join(", ")}</div>`;
+          }
+          if (!lc.tool_installs || !lc.tool_installs.length) {
+            return `<span style="color:rgba(148,163,184,0.6);">not started yet</span>`;
+          }
+          return `<span style="color:#22c55e;">all OK</span>`;
+        })()}</td>
+        <td>${caseInfo?.case_id ? `${repTreeEsc(caseInfo.case_real_name || "unknown")}<div style="color:rgba(148,163,184,0.55);font-size:10px;">${repTreeEsc(caseInfo.case_id)}</div>` : `<span style="color:rgba(148,163,184,0.6);">none created</span>`}</td>
+        <td>${lb ? repTreeSummaryPill(lb.repetition_status) : "—"}</td>
+        <td>${detection ? repTreeEsc(detection.outcome) : "—"}</td>
+        <td>${blockers.length ? `<span style="color:#f87171;">${blockers.map((b) => repTreeEsc(b)).join("; ")}</span>` : "—"}</td>
+        <td>${laCell}</td>
+      `,
+    });
+  }
+  const bodyRows = rows.map((r) => `<tr style="border-top:1px solid rgba(148,163,184,0.1);">${r.cell}</tr>`).join("");
+  return `
+    <div style="overflow-x:auto;">
+      <table style="border-collapse:collapse;width:100%;font-size:11.5px;">
+        <thead>
+          <tr style="text-align:left;color:rgba(148,163,184,0.7);font-size:10px;text-transform:uppercase;letter-spacing:.05em;">
+            <th style="padding:4px 8px 4px 0;">Repetition</th>
+            <th style="padding:4px 8px;">Level C</th>
+            <th style="padding:4px 8px;">Tool installs</th>
+            <th style="padding:4px 8px;">Case</th>
+            <th style="padding:4px 8px;">Level B</th>
+            <th style="padding:4px 8px;">Detection</th>
+            <th style="padding:4px 8px;">Error / blocker</th>
+            <th style="padding:4px 8px;">Level A</th>
+          </tr>
+        </thead>
+        <tbody>${bodyRows}</tbody>
+      </table>
+    </div>
+  `;
 }
 
 async function repTreeBuildTree(level, detail) {

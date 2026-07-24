@@ -17,6 +17,7 @@ Hard rules (do not violate when extending this module):
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from datetime import datetime, timezone
@@ -29,7 +30,7 @@ from ..foc_experimentation import job_runner
 from ..foc_experimentation import campaign_service as experimentation_campaign_service
 from ..foc_experimentation import execution_service
 from ..foc_experimentation import level_a_scientific_report_service
-from ..foc_experimentation.config import CAMPAIGNS_ROOT
+from ..foc_experimentation.config import CAMPAIGNS_ROOT, EVIDENCE_STORE_ROOT
 
 # Real per-level terminal status vocabularies — used by callers (frontend and
 # this module) to know which values are legitimate for which level. "pending"
@@ -182,6 +183,72 @@ _LC_PHASE_LABELS = dict(LC_REPETITION_PHASES)
 
 _LC_PHASE_LINE_RE = re.compile(r"^→ ([A-Z_]+)(?:\s+\(rep (\d+)/(\d+)\))?$")
 _LC_TOOL_INSTALL_RE = re.compile(r"^\s*(\S+)\s+←\s+(\S+):\s+(installed|failed/skipped)\s*$")
+_LC_TOOL_FAILURE_BANNER_RE = re.compile(r"(?im)^\s*((?:fallo|error)[^\n]{0,160})\s*$")
+# How stale tools-installer/logs/<instance>_<tool>.log's mtime is allowed to be,
+# relative to the job log's own failure timestamp, before it's rejected as
+# belonging to a LATER repetition's re-run of the same tool/instance rather than
+# the one being looked at. Every repetition takes at least many minutes end to
+# end, so a multi-minute tolerance can't accidentally accept a stale file while
+# still forgiving normal clock/logging skew between "script wrote its log" and
+# "orchestrator logged the OK/WARN status line".
+_LC_TOOL_LOG_STALENESS_TOLERANCE_SECONDS = 180
+
+
+def _lc_tool_install_reason(instance: str, tool: str, failure_ts: str | None) -> str | None:
+    """Real reason for a failed/skipped tool install, read from that install
+    script's own dedicated log file (tools-installer/logs/<instance>_<tool>.log --
+    written fresh by _install_tool_on_instance() every single run, see
+    level_c_orchestrator/service.py). Deliberately does NOT parse the job's own
+    combined log for this: that log interleaves/batches STDOUT from several tools
+    together out of order relative to their OK/WARN status lines (confirmed live,
+    2026-07-24 -- a naive nearby-lines scan mis-attributed one tool's failure
+    banner to a completely different tool). The per-tool log file has no such
+    ambiguity, but IS overwritten by the next repetition that installs the same
+    tool on the same instance role -- so this only trusts the file if its mtime
+    is close to the failure being looked at (see staleness tolerance above);
+    otherwise the evidence for THIS specific historical failure is genuinely gone,
+    and this returns None rather than risk showing a later run's unrelated reason.
+    """
+    if not failure_ts:
+        return None
+    try:
+        failure_epoch = datetime.fromisoformat(str(failure_ts).replace("Z", "+00:00")).timestamp()
+    except Exception:
+        return None
+    safe = re.sub(r"[^a-zA-Z0-9_-]", "_", instance.lower())
+    log_path = PROJECT_ROOT / "tools-installer" / "logs" / f"{safe}_{tool}.log"
+    try:
+        if abs(log_path.stat().st_mtime - failure_epoch) > _LC_TOOL_LOG_STALENESS_TOLERANCE_SECONDS:
+            return None
+        text = log_path.read_text(encoding="utf-8", errors="ignore")
+    except Exception:
+        return None
+    m = _LC_TOOL_FAILURE_BANNER_RE.search(text)
+    return m.group(1).strip() if m else None
+
+
+def _lc_tool_failure_seen_before(instance: str, tool: str, exclude_job_id: str) -> bool:
+    """Whether this exact instance/tool combination has ever failed to install in
+    ANY other preserved Level C job log -- used only to phrase an honest "first time
+    seen" vs "recurring, still uncaptured" fallback when no banner text was found
+    (see _lc_tool_install_reason). Scans real job_state.json logs on disk, nothing
+    cached or invented; bounded to whatever jobs are actually still on disk.
+    """
+    needle = f"{tool}: failed/skipped"
+    try:
+        for job_dir in level_c_service.JOBS_DIR.iterdir():
+            if job_dir.name == exclude_job_id or not job_dir.is_dir():
+                continue
+            state = _json_load(job_dir / "job_state.json")
+            if not isinstance(state, dict):
+                continue
+            for entry in state.get("log") or []:
+                msg = str(entry.get("msg") or "")
+                if instance in msg and needle in msg:
+                    return True
+    except Exception:
+        pass
+    return False
 
 
 def _lc_load_state(job_id: str) -> dict | None:
@@ -429,17 +496,34 @@ def get_level_c_repetition_detail(job_id: str, rep_num: int) -> dict | None:
     snapshot_id = snapshot_ids[rep_num - 1] if len(snapshot_ids) >= rep_num else None
 
     tool_installs = []
-    for e in window_log:
+    for idx, e in enumerate(window_log):
         if e.get("level") not in ("OK", "WARN"):
             continue
         m = _LC_TOOL_INSTALL_RE.match(str(e.get("msg") or ""))
         if not m:
             continue
+        install_status = "installed" if m.group(3) == "installed" else "failed_or_skipped"
+        reason = None
+        # 2026-07-24: user explicitly asked that any failure always come with SOME
+        # explanation -- never a bare status with nothing else. Real reason first
+        # (that tool's own dedicated log file, if it's still fresh enough to
+        # trust); if genuinely not captured/recoverable, an honest, explicit
+        # fallback instead of silence -- distinguishing "never seen before" from
+        # "seen before but still uncaptured", both true statements, never a
+        # guessed root cause.
+        if install_status == "failed_or_skipped":
+            reason = _lc_tool_install_reason(m.group(1), m.group(2), e.get("ts"))
+            if not reason:
+                if _lc_tool_failure_seen_before(m.group(1), m.group(2), job_id):
+                    reason = "Unknown reason — this failure has occurred before for this tool, but no specific error text was captured in the log."
+                else:
+                    reason = "Unknown reason — first time this type of failure has been observed for this tool in this lab."
         tool_installs.append({
             "instance": m.group(1),
             "tool": m.group(2),
-            "status": "installed" if m.group(3) == "installed" else "failed_or_skipped",
+            "status": install_status,
             "ts": e.get("ts"),
+            "reason": reason,
         })
 
     monitoring_verification = []
@@ -711,6 +795,25 @@ def get_level_b_repetition_detail(job_id: str, repetition_number: int) -> dict |
                     }
             except Exception:
                 pass
+        # 2026-07-24: the case's real, human-readable folder name
+        # (CASE-YYYYMMDD-HHMMSS) was never exposed while a repetition is
+        # still running -- only the short internal alias (case_id, a sha1
+        # hash of that folder name -- see level_b_orchestrator.py's
+        # _case_id_for_case_dir()) was shown, which the user correctly found
+        # confusing ("dos nombres, y el sistema usa dos??"). Resolves the
+        # real name via the SAME canonical alias resolver the rest of the FOC
+        # reconstruction module already uses (get_case_entry()) -- no new
+        # alias logic invented here, and this only reads, it doesn't touch
+        # the live pipeline's job state at all.
+        live_case_real_name = None
+        if live_case_id:
+            try:
+                from ..foc_reconstruction.foc_case_analysis import get_case_entry
+                live_entry = get_case_entry(live_case_id)
+                if live_entry:
+                    live_case_real_name = live_entry.get("source_case_name")
+            except Exception:
+                pass
         return {
             "job_id": job_id,
             "execution_label": execution_label,
@@ -720,7 +823,7 @@ def get_level_b_repetition_detail(job_id: str, repetition_number: int) -> dict |
             "total_elapsed_seconds": total_elapsed,
             "stages": stages,
             "attack": None, "detection": None,
-            "case": {"case_id": live_case_id, "case_path": None, "case_created_utc": None} if live_case_id else None,
+            "case": {"case_id": live_case_id, "case_real_name": live_case_real_name, "case_path": None, "case_created_utc": None} if live_case_id else None,
             "acquisition": None,
             "between_lb_and_la": None, "nested_level_a": live_nested_level_a,
             "analysis_layers": live_analysis_layers, "stage_timeline": live_stage_timeline, "reconstruction": None,
@@ -808,6 +911,7 @@ def get_level_b_repetition_detail(job_id: str, repetition_number: int) -> dict |
         },
         "case": {
             "case_id": case_id,
+            "case_real_name": Path(result.get("case_path")).name if result.get("case_path") else None,
             "case_path": result.get("case_path"),
             "case_created_utc": case_created_utc,
         },
