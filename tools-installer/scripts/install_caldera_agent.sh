@@ -28,7 +28,7 @@ mkdir -p "$BASE_DIR"
 # Corregimos el inventario para que Ansible no falle con los espacios del nombre
 cat > "$BASE_DIR/hosts.ini" <<EOF
 [victim]
-$VICTIM_IP ansible_user=$SSH_USER_VICTIM ansible_ssh_private_key_file=$SSH_KEY ansible_ssh_extra_args='-o StrictHostKeyChecking=no'
+$VICTIM_IP ansible_user=$SSH_USER_VICTIM ansible_ssh_private_key_file=$SSH_KEY ansible_ssh_extra_args='-o StrictHostKeyChecking=no -o IdentitiesOnly=yes'
 EOF
 
 cat > "$BASE_DIR/install_agent.yml" <<EOF

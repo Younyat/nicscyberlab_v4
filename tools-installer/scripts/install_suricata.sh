@@ -31,7 +31,7 @@ echo "===================================================="
 # Generar Inventario Dinámico
 cat > "$BASE_DIR/inventory/hosts.ini" <<EOF
 [suricata]
-$TARGET_IP ansible_user=$SSH_USER ansible_ssh_private_key_file=$SSH_KEY ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+$TARGET_IP ansible_user=$SSH_USER ansible_ssh_private_key_file=$SSH_KEY ansible_ssh_common_args='-o StrictHostKeyChecking=no -o IdentitiesOnly=yes'
 EOF
 
 echo "[2/3] GENERANDO PLAYBOOK DE INSTALACIÓN"

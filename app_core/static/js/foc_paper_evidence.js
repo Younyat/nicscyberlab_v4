@@ -1443,6 +1443,12 @@ const LevelCMonitor = (() => {
 
   async function stopJob() {
     if (!jobId) return;
+    // 2026-07-27: this button had no confirmation at all -- a single
+    // misclick stopped a live campaign instantly. User asked that a stop
+    // is never considered real without an explicit OK, matching the
+    // confirm() guard already used by the Campaign Repetitions Center's
+    // own Stop button (index.html::repStopJob).
+    if (!window.confirm("Stop this Level C campaign? It will stop at the next safe checkpoint (or immediately if its background thread is already gone). Nothing already produced is deleted.")) return;
     const btn = $("lc-stop-btn");
     if (btn) { btn.disabled = true; btn.textContent = "Stopping…"; }
     try {

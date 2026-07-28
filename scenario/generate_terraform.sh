@@ -201,10 +201,11 @@ resource "openstack_networking_port_v2" "${safe_id}_port" {
 }
 
 resource "openstack_compute_instance_v2" "${safe_id}_instance" {
-  name      = "${name}"
-  image_id  = data.openstack_images_image_v2.${safe_id}_image.id
-  flavor_id = data.openstack_compute_flavor_v2.${safe_id}_flavor.id
-  key_pair  = openstack_compute_keypair_v2.${safe_id}_keypair.name
+  name         = "${name}"
+  image_id     = data.openstack_images_image_v2.${safe_id}_image.id
+  flavor_id    = data.openstack_compute_flavor_v2.${safe_id}_flavor.id
+  key_pair     = openstack_compute_keypair_v2.${safe_id}_keypair.name
+  config_drive = true
 
   network {
     port = openstack_networking_port_v2.${safe_id}_port.id

@@ -662,6 +662,47 @@ def _phase_destroy(state: dict, job_dir: Path, rep_num: int) -> bool:
     except Exception as exc:
         _log(state, "WARN", f"Could not release orphaned floating IPs: {exc}")
 
+    # Step 5: release orphaned Neutron ports (no device attached) to prevent
+    # the private subnet's IP pool from silently filling up.
+    # 2026-07-26: confirmed live -- when an instance is destroyed, its Neutron
+    # port does not always get cleaned up automatically. These leftover ports
+    # keep holding a private-subnet address forever (device_id="" and
+    # device_owner="" -- never a DHCP/router/floating-ip-gateway port, those
+    # always have a device_owner starting with "network:"). Found the private
+    # subnet (192.168.100.0/24, 253 usable addresses) at 254/253 ports --
+    # completely full, with `openstack server list` showing ZERO real
+    # instances -- meaning every single occupied address was a zombie. This
+    # silently blocked ANY new instance from getting a private IP at all
+    # (confirmed and fixed live with the user's explicit authorization: "si
+    # ves que son mi puesro... borralos... y pon mecanismo de limpieza").
+    # Only ever targets ports with BOTH device_id and device_owner empty --
+    # never touches a port that's actually in use or a special network port.
+    try:
+        _rc2, ports_raw, _ = _run_cmd(
+            ["openstack", "port", "list", "--format", "json"],
+            cwd=PROJECT_ROOT, timeout=30,
+        )
+        ports = _json.loads(ports_raw) if ports_raw else []
+        orphaned_ports = [
+            p for p in ports
+            if not p.get("Device ID") and not p.get("Device Owner")
+        ]
+        released_ports = 0
+        for p in orphaned_ports:
+            rc3, _, _ = _run_cmd(
+                ["openstack", "port", "delete", p["ID"]],
+                cwd=PROJECT_ROOT, timeout=15,
+            )
+            if rc3 == 0:
+                released_ports += 1
+        if orphaned_ports:
+            _log(state, "INFO",
+                 f"[Rep {rep_num}] Released {released_ports}/{len(orphaned_ports)} orphaned network ports → private IP pool freed.")
+        else:
+            _log(state, "INFO", f"[Rep {rep_num}] No orphaned network ports found.")
+    except Exception as exc:
+        _log(state, "WARN", f"Could not release orphaned network ports: {exc}")
+
     # Reset tool deployment state so the dashboard shows a clean slate.
     # tools-installer-tmp/ holds per-run pending/error entries; stale files
     # from previous runs cause the index to display phantom "pending" counts.
@@ -841,6 +882,21 @@ def _phase_deploy_ot(state: dict, job_dir: Path, rep_num: int) -> bool:
                 _log(state, "INFO", f"{component.upper()} deployed OK.")
                 results[component] = "ok"
             else:
+                # 2026-07-26: this only ever logged stderr -- a real PLC+FUXA
+                # simultaneous deploy failure (LC-20260725-223404-85DF, rep 3)
+                # showed up as "FUXA deploy failed (rc=1): " with literally
+                # nothing after the colon, because these deploy scripts (like
+                # deploy_it_scenario above) print their real error text to
+                # STDOUT, not stderr -- it was captured in `stdout` here but
+                # never logged anywhere, so it was permanently unrecoverable
+                # after the fact. Now logs the stdout tail too, same pattern
+                # _phase_deploy_it already uses above.
+                if stdout:
+                    for line in stdout.strip().splitlines()[-20:]:
+                        _log(state, "STDOUT", line)
+                if stderr:
+                    for line in stderr.strip().splitlines()[-10:]:
+                        _log(state, "STDERR", line)
                 _log(state, "WARN", f"{component.upper()} deploy failed (rc={rc}): {stderr[:200]}")
                 results[component] = f"failed_rc_{rc}"
 
@@ -1140,7 +1196,7 @@ def _phase_wait_nodes(state: dict, job_dir: Path, rep_num: int, timeout_seconds:
             if not ip:
                 continue
             rc, _, _ = _run_cmd(
-                ["ssh", "-i", SSH_KEY, "-o", "StrictHostKeyChecking=no",
+                ["ssh", "-i", SSH_KEY, "-o", "IdentitiesOnly=yes", "-o", "StrictHostKeyChecking=no",
                  "-o", "UserKnownHostsFile=/dev/null", "-o", "ConnectTimeout=5",
                  f"{user}@{ip}", "echo ok"],
                 cwd=PROJECT_ROOT,
@@ -1689,7 +1745,7 @@ def _phase_verify_monitoring(state: dict, job_dir: Path, rep_num: int) -> bool:
         for node in monitor_nodes:
             ip, user, name = node["ip"], node["user"], node["name"]
             _, out, _ = _run_cmd(
-                ["ssh", "-i", SSH_KEY, "-o", "StrictHostKeyChecking=no",
+                ["ssh", "-i", SSH_KEY, "-o", "IdentitiesOnly=yes", "-o", "StrictHostKeyChecking=no",
                  "-o", "ConnectTimeout=5", f"{user}@{ip}",
                  "systemctl is-active wazuh-manager 2>/dev/null"],
                 cwd=PROJECT_ROOT, timeout=15,
@@ -1709,7 +1765,7 @@ def _phase_verify_monitoring(state: dict, job_dir: Path, rep_num: int) -> bool:
             # ossec.log is owned root:wazuh (mode 660) — unreadable by ssh user.
             # Use sudo grep; all lab nodes have NOPASSWD sudo configured.
             _, out_w, _ = _run_cmd(
-                ["ssh", "-i", SSH_KEY, "-o", "StrictHostKeyChecking=no",
+                ["ssh", "-i", SSH_KEY, "-o", "IdentitiesOnly=yes", "-o", "StrictHostKeyChecking=no",
                  "-o", "ConnectTimeout=5", f"{user}@{ip}",
                  "bash -c 'systemctl is-active wazuh-agent 2>/dev/null && "
                  "sudo grep -qEi \"Connected to the server|Agent connected\" "
@@ -1720,7 +1776,7 @@ def _phase_verify_monitoring(state: dict, job_dir: Path, rep_num: int) -> bool:
             wazuh_conn   = "CONN_OK" in (out_w or "")
 
             _, out_s, _ = _run_cmd(
-                ["ssh", "-i", SSH_KEY, "-o", "StrictHostKeyChecking=no",
+                ["ssh", "-i", SSH_KEY, "-o", "IdentitiesOnly=yes", "-o", "StrictHostKeyChecking=no",
                  "-o", "ConnectTimeout=5", f"{user}@{ip}",
                  "systemctl is-active suricata 2>/dev/null"],
                 cwd=PROJECT_ROOT, timeout=15,

@@ -1,0 +1,313 @@
+{
+  "job_id": "exp-8e040b734a10",
+  "job_type": "paper_evidence_level_b",
+  "title": "Generate Level B Paper Evidence Report",
+  "status": "failed",
+  "requested_at": "2026-07-26T13:59:21.054635+00:00",
+  "started_at": "2026-07-26T13:59:21.055428+00:00",
+  "finished_at": "2026-07-26T14:02:41.671475+00:00",
+  "current_phase": "failed",
+  "progress_percent": 100.0,
+  "warnings": [],
+  "errors": [
+    {
+      "message": "nested_level_b_workflow_stopped",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/younes/nicscyberlab_v3/app_core/infrastructure/foc_experimentation/job_runner.py\", line 437, in runner\n    target(job_id, job_path)\n  File \"/home/younes/nicscyberlab_v3/app_core/infrastructure/foc_paper_evidence/service.py\", line 1455, in <lambda>\n    return start_job(job, lambda job_id, job_path: runner(job_id, job_path, body))\n                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/younes/nicscyberlab_v3/app_core/infrastructure/foc_paper_evidence/service.py\", line 1344, in _run_level_b_paper_evidence_job\n    raise RuntimeError(f\"nested_level_b_workflow_{str(child_payload.get('status') or 'failed')}\")\nRuntimeError: nested_level_b_workflow_stopped\n"
+    }
+  ],
+  "generated_artifacts": [],
+  "meta": {
+    "report_id": "paper-b-2026-07-26T135921.054395_0000",
+    "level": "B",
+    "case_id": null,
+    "scenario_id": null,
+    "n_repetitions": 6,
+    "workflow": "paper_evidence"
+  },
+  "job_path": "/home/younes/nicscyberlab_v3/app_core/infrastructure/forensics/paper_evidence/paper-b-2026-07-26T135921.054395_0000/paper-b-2026-07-26T135921.054395_0000-job.json",
+  "updated_at": "2026-07-26T14:02:41.672148+00:00",
+  "current_phase_label": "Run nested Level B scientific workflow",
+  "current_phase_detail": "Repetition 1/6 failed. The Level B campaign is being closed immediately; no further attacks or acquisitions will be launched. Final reporting will be generated only from the repetitions already executed.",
+  "phase_statuses": [
+    {
+      "phase_key": "starting",
+      "phase_label": "Starting",
+      "status": "running",
+      "detail": "Preparing experimentation job runner.",
+      "updated_at": "2026-07-26T13:59:21.055447+00:00",
+      "progress_percent": 1.0
+    },
+    {
+      "phase_key": "audit_existing_capabilities",
+      "phase_label": "Audit existing scientific capabilities",
+      "status": "running",
+      "detail": "Recording what the existing FOC views, endpoints, artifacts, and metrics already support before the paper-evidence run starts.",
+      "updated_at": "2026-07-26T13:59:21.063170+00:00",
+      "progress_percent": 5.0
+    },
+    {
+      "phase_key": "prepare_level_b_batch",
+      "phase_label": "Prepare Level B batch",
+      "status": "running",
+      "detail": "Launching the existing Level B repetition workflow for campaign CMP-20260726-114056-17F0 with 6 requested repetitions and 6 nested Level A repetitions per case.",
+      "updated_at": "2026-07-26T13:59:22.589744+00:00",
+      "progress_percent": 10.0
+    },
+    {
+      "phase_key": "level_a_runtime",
+      "phase_label": "Run nested Level B scientific workflow",
+      "status": "stopped",
+      "detail": "Repetition 1/6 failed. The Level B campaign is being closed immediately; no further attacks or acquisitions will be launched. Final reporting will be generated only from the repetitions already executed.",
+      "updated_at": "2026-07-26T14:02:41.664929+00:00",
+      "progress_percent": 37.17
+    }
+  ],
+  "report_id": "paper-b-CMP-20260726-114056-17F0-2026-07-26T135921.062793_0000",
+  "report_output_path": "app_core/infrastructure/forensics/paper_evidence/paper-b-CMP-20260726-114056-17F0-2026-07-26T135921.062793_0000",
+  "current_child_job_id": "exp-0e0b83ac0fb6",
+  "nested_phase_statuses": [
+    {
+      "phase_key": "starting",
+      "phase_label": "Starting",
+      "status": "running",
+      "detail": "Preparing experimentation job runner.",
+      "updated_at": "2026-07-26T13:59:22.681684+00:00",
+      "progress_percent": 1.0
+    },
+    {
+      "phase_key": "prepare_level_b_job",
+      "phase_label": "Prepare Level B job",
+      "status": "running",
+      "detail": "Preparing Level B batch execution, runtime workspace, and deterministic scientific progress plan.",
+      "updated_at": "2026-07-26T13:59:22.684381+00:00",
+      "progress_percent": 0.0
+    },
+    {
+      "phase_key": "prepare_level_b_job",
+      "phase_label": "Prepare Level B job",
+      "status": "completed",
+      "detail": "Prepared Level B batch job for campaign CMP-20260726-114056-17F0.",
+      "updated_at": "2026-07-26T13:59:22.685192+00:00",
+      "progress_percent": 3.33
+    },
+    {
+      "phase_key": "optional_cleanup",
+      "phase_label": "Clean previous heavy cases",
+      "status": "running",
+      "detail": "Inspecting and deleting previous heavy forensic cases before launching the independent Level B repetitions. This is mandatory so two heavy cases never coexist.",
+      "updated_at": "2026-07-26T13:59:22.686104+00:00",
+      "progress_percent": 3.33
+    },
+    {
+      "phase_key": "optional_cleanup",
+      "phase_label": "Clean previous heavy cases",
+      "status": "completed",
+      "detail": "Mandatory cleanup completed. Estimated freed space: 0.00 B. Actual freed space: 0.00 B. Deleted cases: 0.",
+      "updated_at": "2026-07-26T13:59:22.693163+00:00",
+      "progress_percent": 6.67
+    },
+    {
+      "phase_key": "resolve_active_scenario",
+      "phase_label": "Resolve active scenario",
+      "status": "running",
+      "detail": "Resolving the already deployed scenario that will host all 6 independent Level B repetitions.",
+      "updated_at": "2026-07-26T13:59:22.694067+00:00",
+      "progress_percent": 6.67
+    },
+    {
+      "phase_key": "resolve_active_scenario",
+      "phase_label": "Resolve active scenario",
+      "status": "completed",
+      "detail": "Resolved target PLC_Instance (10.0.2.51) and monitor monitor 11 (10.0.2.92).",
+      "updated_at": "2026-07-26T13:59:23.383642+00:00",
+      "progress_percent": 10.0
+    },
+    {
+      "phase_key": "verify_plc_target",
+      "phase_label": "Verify PLC target",
+      "status": "running",
+      "detail": "Checking that the selected target is really the PLC node used by the controlled OT register-modification profile.",
+      "updated_at": "2026-07-26T13:59:23.384968+00:00",
+      "progress_percent": 10.0
+    },
+    {
+      "phase_key": "verify_plc_target",
+      "phase_label": "Verify PLC target",
+      "status": "completed",
+      "detail": "PLC target verified: PLC_Instance (10.0.2.51). Multi-host preservation scope resolved: fuxa=10.0.2.209, plc=10.0.2.51, victim=10.0.2.9.",
+      "updated_at": "2026-07-26T13:59:24.091688+00:00",
+      "progress_percent": 13.33
+    },
+    {
+      "phase_key": "enable_dfir_mode",
+      "phase_label": "Enable DFIR mode",
+      "status": "running",
+      "detail": "Verifying that DFIR mode is ON before the first OT attack is launched.",
+      "updated_at": "2026-07-26T13:59:24.096481+00:00",
+      "progress_percent": 13.33
+    },
+    {
+      "phase_key": "enable_dfir_mode",
+      "phase_label": "Enable DFIR mode",
+      "status": "completed",
+      "detail": "DFIR mode verified ON. Browser mode transitioned from unknown to on.",
+      "updated_at": "2026-07-26T13:59:24.097674+00:00",
+      "progress_percent": 16.67
+    },
+    {
+      "phase_key": "verify_disk_acquisition",
+      "phase_label": "Verify disk acquisition prerequisites",
+      "status": "running",
+      "detail": "Checking whether disk preservation can run in stable non-interactive mode for a long Level B batch.",
+      "updated_at": "2026-07-26T13:59:24.098724+00:00",
+      "progress_percent": 16.67
+    },
+    {
+      "phase_key": "verify_disk_acquisition",
+      "phase_label": "Verify disk acquisition prerequisites",
+      "status": "completed",
+      "detail": "Stable non-interactive disk acquisition prerequisites verified for Level B batch execution.",
+      "updated_at": "2026-07-26T13:59:24.120486+00:00",
+      "progress_percent": 20.0
+    },
+    {
+      "phase_key": "repetition_1_start",
+      "phase_label": "Start repetition 1/6",
+      "status": "running",
+      "detail": "Execution workspace EXEC-0003 created. Starting independent Level B repetition 1 of 6.",
+      "updated_at": "2026-07-26T13:59:24.126508+00:00",
+      "progress_percent": 20.0
+    },
+    {
+      "phase_key": "repetition_1_start",
+      "phase_label": "Start repetition 1/6",
+      "status": "completed",
+      "detail": "Independent Level B repetition 1 has started with execution EXEC-0003.",
+      "updated_at": "2026-07-26T13:59:24.127736+00:00",
+      "progress_percent": 21.17
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.51 (attempt 1/10).",
+      "updated_at": "2026-07-26T13:59:24.129204+00:00",
+      "progress_percent": 21.17
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed_with_degradation",
+      "detail": "Attack execution failed. (attempt 1/10).",
+      "updated_at": "2026-07-26T14:00:10.075005+00:00",
+      "progress_percent": 22.33
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.51 (attempt 2/10).",
+      "updated_at": "2026-07-26T14:00:27.936764+00:00",
+      "progress_percent": 21.17
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed_with_degradation",
+      "detail": "Attack execution failed. (attempt 2/10).",
+      "updated_at": "2026-07-26T14:01:38.495368+00:00",
+      "progress_percent": 22.33
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.51 (attempt 3/10).",
+      "updated_at": "2026-07-26T14:01:48.500333+00:00",
+      "progress_percent": 21.17
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed_with_degradation",
+      "detail": "No attacker instance with a floating IP was found. (attempt 3/10).",
+      "updated_at": "2026-07-26T14:01:48.750176+00:00",
+      "progress_percent": 22.33
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.51 (attempt 4/10).",
+      "updated_at": "2026-07-26T14:01:58.752843+00:00",
+      "progress_percent": 21.17
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed_with_degradation",
+      "detail": "No attacker instance with a floating IP was found. (attempt 4/10).",
+      "updated_at": "2026-07-26T14:01:58.989441+00:00",
+      "progress_percent": 22.33
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.51 (attempt 5/10).",
+      "updated_at": "2026-07-26T14:02:08.991813+00:00",
+      "progress_percent": 21.17
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed_with_degradation",
+      "detail": "No attacker instance with a floating IP was found. (attempt 5/10).",
+      "updated_at": "2026-07-26T14:02:09.215550+00:00",
+      "progress_percent": 22.33
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.51 (attempt 6/10).",
+      "updated_at": "2026-07-26T14:02:19.217842+00:00",
+      "progress_percent": 21.17
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed_with_degradation",
+      "detail": "No attacker instance with a floating IP was found. (attempt 6/10).",
+      "updated_at": "2026-07-26T14:02:19.428922+00:00",
+      "progress_percent": 22.33
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "running",
+      "detail": "Launching T0831_MANIPULATION_OF_CONTROL_MODBUS against PLC target 10.0.2.51 (attempt 7/10).",
+      "updated_at": "2026-07-26T14:02:29.431485+00:00",
+      "progress_percent": 21.17
+    },
+    {
+      "phase_key": "repetition_1_attack",
+      "phase_label": "Execute OT register-modification attack",
+      "status": "completed_with_degradation",
+      "detail": "No attacker instance with a floating IP was found. (attempt 7/10).",
+      "updated_at": "2026-07-26T14:02:29.486198+00:00",
+      "progress_percent": 22.33
+    },
+    {
+      "phase_key": "repetition_1_close_campaign_after_error",
+      "phase_label": "Close campaign after failed repetition",
+      "status": "completed_with_degradation",
+      "detail": "Repetition 1/6 failed. The Level B campaign is being closed immediately; no further attacks or acquisitions will be launched. Final reporting will be generated only from the repetitions already executed.",
+      "updated_at": "2026-07-26T14:02:39.493745+00:00",
+      "progress_percent": 31.67
+    }
+  ],
+  "nested_current_phase_label": "Close campaign after failed repetition",
+  "nested_current_phase_detail": "Repetition 1/6 failed. The Level B campaign is being closed immediately; no further attacks or acquisitions will be launched. Final reporting will be generated only from the repetitions already executed.",
+  "nested_progress_percent": 31.67
+}

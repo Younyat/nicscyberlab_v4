@@ -118,7 +118,20 @@ def _campaign_id_for_case(case_dir: Path, case_id: str) -> str:
                 break
     except Exception:
         found = ""
-    _live_case_campaign_cache[case_id] = found
+    # 2026-07-24: only cache a REAL resolution, never the empty/"unassigned"
+    # result. A case looked up while its Level B job hasn't finished writing
+    # per_repetition_results yet (i.e. still mid-repetition) genuinely has no
+    # campaign_id YET -- that's a temporary state, not the permanent one the
+    # docstring above assumed ("immutable once sealed" is true of the real
+    # answer, but caching a not-yet-known answer as if it were final is not
+    # the same thing). Caching "" here meant a case that got looked up too
+    # early stayed stuck showing "unassigned" in this worker process forever,
+    # even minutes later once the real campaign_id was written -- confirmed
+    # live: a fresh process resolved every one of 53 cases correctly, while
+    # the already-running gunicorn worker (which had looked at least one of
+    # them up while its repetition was still finishing) kept it cached empty.
+    if found:
+        _live_case_campaign_cache[case_id] = found
     return found
 
 

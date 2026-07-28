@@ -22,7 +22,7 @@ mkdir -p "$TEMP_WORK_DIR"
 # --- 1. GENERACION DE INVENTARIO ---
 cat > "$TEMP_WORK_DIR/hosts.ini" <<EOF
 [caldera_host]
-$TARGET_IP ansible_user=$SSH_USER ansible_ssh_private_key_file=$SSH_KEY ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+$TARGET_IP ansible_user=$SSH_USER ansible_ssh_private_key_file=$SSH_KEY ansible_ssh_common_args='-o StrictHostKeyChecking=no -o IdentitiesOnly=yes'
 EOF
 
 # --- 2. PLAYBOOK MEJORADO CON TU LOGICA ---

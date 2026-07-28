@@ -1,21 +1,21 @@
 {
-  "generated_at": "2026-07-24T16:03:12.423563+00:00",
+  "generated_at": "2026-07-28T11:14:07.657685+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
-  "total_correlation_records": 552958,
-  "total_alerts": 167211,
-  "relevant_alerts": 130244,
-  "correlated_alerts": 465520,
-  "confirmed_correlations": 465520,
+  "total_correlation_records": 628214,
+  "total_alerts": 242641,
+  "relevant_alerts": 204930,
+  "correlated_alerts": 529920,
+  "confirmed_correlations": 529920,
   "weak_correlations": 0,
-  "unresolved_alerts": 87400,
+  "unresolved_alerts": 98256,
   "noise_alerts": 0,
   "false_positive_candidates": 0,
   "missing_expected_alerts_total": 61,
   "bucket_counts": {
-    "correlated": 465520,
-    "uncorrelated": 128979,
-    "noise": 36967,
+    "correlated": 529920,
+    "uncorrelated": 203650,
+    "noise": 37711,
     "false_positive_candidate": 0,
     "missing_expected_alert": 61,
     "weak_candidate": 0,
@@ -25,23 +25,23 @@
   "top_signatures": [
     {
       "label": "NICS CyberLab ICS Modbus write multiple registers",
-      "count": 465520
+      "count": 529920
     },
     {
       "label": "/etc/shadow_backup",
-      "count": 26496
+      "count": 29808
     },
     {
       "label": "Jul 14 12:50:23 plc-instance sshd[42092]: Invalid user debian from 10.0.2.1 port 51432",
-      "count": 23552
+      "count": 26496
     },
     {
       "label": "Jul 14 12:50:23 plc-instance sshd[42092]: Disconnecting invalid user debian 10.0.2.1 port 51432: Too many authentication failures [preauth]",
-      "count": 23552
+      "count": 26496
     },
     {
       "label": "Jul 14 12:50:23 plc-instance sshd[42092]: error: maximum authentication attempts exceeded for invalid user debian from 10.0.2.1 port 51432 ssh2 [preauth]",
-      "count": 13248
+      "count": 14904
     },
     {
       "label": "NICS CyberLab ICS Modbus write single register",
@@ -55,107 +55,95 @@
   "top_rule_ids": [
     {
       "label": "86601",
-      "count": 466072
+      "count": 530472
     },
     {
       "label": "5710",
-      "count": 47104
+      "count": 52992
     },
     {
       "label": "5758",
-      "count": 13248
+      "count": 14904
     },
     {
       "label": "554",
-      "count": 13248
+      "count": 14904
     },
     {
       "label": "550",
-      "count": 13248
+      "count": 14904
     }
   ],
   "top_nodes": [
     {
+      "label": "node-c800d431",
+      "count": 11178
+    },
+    {
       "label": "node-f400bb36",
-      "count": 1104
+      "count": 828
     },
     {
       "label": "node-53087541",
-      "count": 1104
-    },
-    {
-      "label": "node-4e09b076",
-      "count": 368
-    },
-    {
-      "label": "node-c800d431",
-      "count": 368
+      "count": 414
     }
   ],
   "severity_distribution": [
     {
       "label": "HIGH",
-      "count": 74615
+      "count": 131813
     },
     {
       "label": "MEDIUM",
-      "count": 55749
+      "count": 73237
     },
     {
       "label": "LOW",
-      "count": 36847
+      "count": 37591
     }
   ],
   "alerts_by_node": [
     {
-      "label": "node-f400bb36",
-      "count": 129
+      "label": "node-c800d431",
+      "count": 27
     },
     {
-      "label": "node-4e09b076",
-      "count": 94
+      "label": "node-f400bb36",
+      "count": 2
     },
     {
       "label": "node-53087541",
-      "count": 48
-    },
-    {
-      "label": "node-45d20749",
-      "count": 18
-    },
-    {
-      "label": "node-c800d431",
       "count": 1
     }
   ],
   "alerts_by_mitre_technique": [
     {
       "label": "T1692.001",
-      "count": 1349
+      "count": 1364
     },
     {
       "label": "T0836",
-      "count": 1349
+      "count": 1364
     }
   ],
   "alerts_by_original_sensor": [
     {
       "label": "wazuh",
-      "count": 129015
+      "count": 203686
     },
     {
       "label": "suricata",
-      "count": 38196
+      "count": 38955
     }
   ],
   "alerts_by_collector": [
     {
       "label": "wazuh",
-      "count": 167211
+      "count": 242641
     }
   ],
-  "unique_confirmed_attack_pairs": 5,
-  "unique_correlation_candidates": 35,
+  "unique_confirmed_attack_pairs": 4,
+  "unique_correlation_candidates": 34,
   "confirmed_attack_ids": 1,
   "weak_attack_ids": 0,
   "observable_attack_ids": 1,

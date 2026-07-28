@@ -2836,7 +2836,7 @@
 
   <script src="/js/theme-switcher.js"></script>
   <script>window.NicsThemeSwitcher.mount('#theme-switcher-mount');</script>
-  <script src="/js/repetition_process_tree.js?v=20260724-fix-rep1-and-pending-tools"></script>
+  <script src="/js/repetition_process_tree.js?v=20260726-stage-warnings"></script>
   <script>
     let COPILOT_PENDING = false;
 
@@ -5199,6 +5199,16 @@
         const targetStr = s.target ? ` <span style="color:rgba(148,163,184,0.7);">(${lcLiveEsc(s.target)})</span>` : "";
         const detailHtml = s.detail ? `<div style="margin-top:3px;font-size:11px;color:rgba(203,213,225,0.8);line-height:1.4;">${lcLiveEsc(s.detail)}</div>` : "";
         const errHtml = s.error_detail ? `<div style="margin-top:3px;font-size:11px;color:#fca5a5;line-height:1.4;">${lcLiveEsc(s.error_detail)}</div>` : "";
+        // 2026-07-26: a stage can show "completed" while real WARN-level
+        // problems happened inside it (e.g. a PLC/FUXA deploy failure during
+        // "Deploying OT infrastructure" is a warning, not a hard stage
+        // failure -- the orchestrator proceeds anyway, but it's very often
+        // the actual root cause the repetition failed downstream). User
+        // explicitly asked for this after exactly that happened and the tree
+        // showed the stage as "completed" with no hint anything was wrong.
+        const warningsHtml = (s.warnings && s.warnings.length)
+          ? `<div style="margin-top:3px;">${s.warnings.map((w) => `<div style="font-size:11px;color:#fbbf24;line-height:1.4;">⚠ ${lcLiveEsc(w)}</div>`).join("")}</div>`
+          : "";
         const dim = s.status === "pending" ? "opacity:0.5;" : "";
         return `
           <div style="padding:8px 0;border-bottom:1px solid rgba(148,163,184,0.10);${dim}">
@@ -5208,6 +5218,7 @@
             </div>
             ${detailHtml}
             ${errHtml}
+            ${warningsHtml}
           </div>
         `;
       }).join("");
@@ -5317,24 +5328,34 @@
       });
     }
 
-    // Stop / Force Stop for a running Level B or Level A job, reusing the
-    // exact same backend endpoints js/foc_repetition_manager.js already
-    // uses (cancel = cooperative, force-stop = immediate) — NOT
-    // reimplemented, just called from here too. 2026-07-19: user reported
-    // this center (and the screen with the Level C launch button) had no
-    // way to stop a running Level B/A job at all — the controls existed,
-    // just on a different screen the user wasn't on. Level C has its own
-    // separate stop endpoint/button already and is intentionally not
-    // included here.
+    // Stop for a running Level C/B/A job. B/A reuse the exact same backend
+    // endpoints js/foc_repetition_manager.js already uses (cancel =
+    // cooperative, force-stop = immediate) — NOT reimplemented, just called
+    // from here too. 2026-07-19: user reported this center had no way to
+    // stop a running Level B/A job at all — the controls existed, just on a
+    // different screen the user wasn't on. Level C uses its own single
+    // endpoint (level_c_orchestrator.service.stop_job(), see actionBarHtml
+    // above) — added 2026-07-27 after finding it was never actually wired
+    // to any button anywhere in the UI, despite an earlier comment here
+    // claiming it was.
     async function repStopJob(level, jobId, repNum, force) {
-      if (level !== "B" && level !== "A") return;
-      const verb = force ? "force-stop" : "cancel";
-      const confirmMsg = force
-        ? `Force-stop this Level ${level} job now? This immediately releases the job and asks nested work to stop too. Some backend threads may take a short time to actually finish.`
-        : `Stop this Level ${level} job? It will stop cooperatively at the next safe checkpoint, not necessarily instantly.`;
+      if (level !== "B" && level !== "A" && level !== "C") return;
+      let url, confirmMsg;
+      if (level === "C") {
+        // level_c_orchestrator.service.stop_job() -- single endpoint, no
+        // separate force action (it already self-detects a dead thread).
+        url = `/api/level-c/stop/${encodeURIComponent(jobId)}`;
+        confirmMsg = "Stop this Level C campaign? It will stop at the next safe checkpoint (or immediately if its background thread is already gone). Nothing already produced is deleted.";
+      } else {
+        const verb = force ? "force-stop" : "cancel";
+        url = `/api/foc/experimentation/jobs/${encodeURIComponent(jobId)}/${verb}`;
+        confirmMsg = force
+          ? `Force-stop this Level ${level} job now? This immediately releases the job and asks nested work to stop too. Some backend threads may take a short time to actually finish.`
+          : `Stop this Level ${level} job? It will stop cooperatively at the next safe checkpoint, not necessarily instantly.`;
+      }
       if (!window.confirm(confirmMsg)) return;
       try {
-        const res = await fetch(`/api/foc/experimentation/jobs/${encodeURIComponent(jobId)}/${verb}`, { method: "POST" });
+        const res = await fetch(url, { method: "POST" });
         if (!res.ok) {
           window.alert(`Request failed (HTTP ${res.status}).`);
           return;
@@ -5456,11 +5477,26 @@
         <div style="font-size:10px;color:rgba(148,163,184,0.55);margin-bottom:6px;">${lcLiveEsc(d.job_id)}${d.campaign_id ? " · campaign container " + lcLiveEsc(d.campaign_id) : ""}</div>
         <div style="font-size:13px;font-weight:900;color:#a78bfa;margin-bottom:10px;">Total elapsed: ${totalElapsedStr}</div>
       `;
-      // Stop / Force Stop -- only for a genuinely running Level B/A job, and
-      // only for B/A (Level C has its own separate stop button/endpoint
-      // already). 2026-07-19: user reported no way to stop a running B/A
-      // job from anywhere they were actually looking.
-      const actionBarHtml = (level === "B" || level === "A") && d.repetition_status === "running"
+      // Stop / Force Stop -- only for a genuinely running job.
+      // 2026-07-19: user reported no way to stop a running B/A job from
+      // anywhere they were actually looking. Level B/A get two buttons
+      // (cooperative cancel vs immediate force-stop, via
+      // js/foc_repetition_manager.js's existing endpoints).
+      // 2026-07-27: Level C was deliberately excluded here on the assumption
+      // its own stop button lived somewhere else -- it didn't; the real
+      // backend endpoint (POST /api/level-c/stop/<job_id>, level_c_orchestrator
+      // service.stop_job()) was never wired to any button anywhere in the UI.
+      // Added a single "Stop" button for Level C -- unlike B/A, stop_job()
+      // already auto-detects a dead background thread (updated_at > 60s) and
+      // seals the job immediately in that case, so there is no separate
+      // "force" action to expose; a second button would be cosmetic, not real.
+      const actionBarHtml = level === "C" && d.repetition_status === "running"
+        ? `
+          <div style="display:flex;gap:8px;margin-bottom:12px;">
+            <button type="button" class="rep-stop-btn" data-stop-level="C" data-stop-job="${lcLiveEsc(d.job_id)}" data-stop-rep="${d.repetition_number ?? ""}" data-stop-force="0" style="flex:1;padding:8px 10px;border-radius:10px;border:1px solid rgba(248,113,113,0.35);background:rgba(127,29,29,0.15);color:#fca5a5;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;">Stop campaign</button>
+          </div>
+        `
+        : (level === "B" || level === "A") && d.repetition_status === "running"
         ? `
           <div style="display:flex;gap:8px;margin-bottom:12px;">
             <button type="button" class="rep-stop-btn" data-stop-level="${level}" data-stop-job="${lcLiveEsc(d.job_id)}" data-stop-rep="${d.repetition_number ?? ""}" data-stop-force="0" style="flex:1;padding:8px 10px;border-radius:10px;border:1px solid rgba(248,113,113,0.35);background:rgba(127,29,29,0.15);color:#fca5a5;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;">Stop</button>

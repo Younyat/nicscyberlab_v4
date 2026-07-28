@@ -64,6 +64,7 @@ for ip in $CANDIDATE_IPS; do
     if ssh -i "$SSH_KEY" \
         -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
+        -o IdentitiesOnly=yes \
         -o ConnectTimeout=5 \
         "${MANAGER_SSH_USER}@${ip}" "echo ok" >/dev/null 2>&1; then
         MANAGER_IP="$ip"
@@ -89,6 +90,7 @@ REMOTE_HOSTNAME="$(
     ssh -i "$SSH_KEY" \
         -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
+        -o IdentitiesOnly=yes \
         "${SSH_USER_VICTIM}@${VICTIM_IP}" "hostname" 2>/dev/null || true
 )"
 
@@ -110,6 +112,7 @@ WAIT_OSSEC_MAX=900  # 15 min máx
 until ssh -i "$SSH_KEY" \
          -o StrictHostKeyChecking=no \
          -o UserKnownHostsFile=/dev/null \
+        -o IdentitiesOnly=yes \
          -o ConnectTimeout=5 \
          "${MANAGER_SSH_USER}@${MANAGER_IP}" \
          "sudo test -f /var/ossec/etc/ossec.conf && sudo systemctl is-active wazuh-manager | grep -q active" \
@@ -132,6 +135,7 @@ echo "[INFO] Corrigiendo configuración de enrollment en el manager..."
 ssh -i "$SSH_KEY" \
     -o StrictHostKeyChecking=no \
     -o UserKnownHostsFile=/dev/null \
+        -o IdentitiesOnly=yes \
     "${MANAGER_SSH_USER}@${MANAGER_IP}" "bash -s" <<'EOF'
 set -euo pipefail
 
@@ -198,6 +202,7 @@ OLD_AGENT_ID="$(
     ssh -i "$SSH_KEY" \
         -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
+        -o IdentitiesOnly=yes \
         "${MANAGER_SSH_USER}@${MANAGER_IP}" \
         "sudo /var/ossec/bin/manage_agents -l" 2>/dev/null \
     | awk -F',' -v host="$REMOTE_HOSTNAME" '
@@ -218,12 +223,14 @@ if [[ -n "${OLD_AGENT_ID:-}" ]]; then
     ssh -i "$SSH_KEY" \
         -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
+        -o IdentitiesOnly=yes \
         "${MANAGER_SSH_USER}@${MANAGER_IP}" \
         "sudo /var/ossec/bin/manage_agents -r ${OLD_AGENT_ID}"
 
     ssh -i "$SSH_KEY" \
         -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
+        -o IdentitiesOnly=yes \
         "${MANAGER_SSH_USER}@${MANAGER_IP}" \
         "sudo systemctl restart wazuh-manager"
 
@@ -240,7 +247,7 @@ mkdir -p "$BASE_DIR"
 
 cat > "$BASE_DIR/hosts.ini" <<EOF
 [victim]
-$VICTIM_IP ansible_user=$SSH_USER_VICTIM ansible_ssh_private_key_file=$SSH_KEY ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+$VICTIM_IP ansible_user=$SSH_USER_VICTIM ansible_ssh_private_key_file=$SSH_KEY ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes'
 EOF
 
 cat > "$BASE_DIR/install_agent.yml" <<EOF

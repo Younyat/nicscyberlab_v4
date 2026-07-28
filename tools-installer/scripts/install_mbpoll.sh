@@ -16,7 +16,7 @@ mkdir -p "$BASE_DIR"
 
 cat > "$BASE_DIR/hosts.ini" <<EOF
 [mbpoll_host]
-$TARGET_IP ansible_user=$SSH_USER ansible_ssh_private_key_file=$SSH_KEY ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+$TARGET_IP ansible_user=$SSH_USER ansible_ssh_private_key_file=$SSH_KEY ansible_ssh_common_args='-o StrictHostKeyChecking=no -o IdentitiesOnly=yes'
 EOF
 
 cat > "$BASE_DIR/mbpoll-install.yml" <<'EOF'

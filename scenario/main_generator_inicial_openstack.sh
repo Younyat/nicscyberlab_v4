@@ -169,6 +169,7 @@ while read -r node; do
         --flavor "$flavor" \
         --key-name "$DEFAULT_KEYPAIR" \
         --nic port-id="$PORT_ID" \
+        --config-drive true \
         -f value -c id)
 
   echo "    Instancia creada, ID: $SERVER_ID"

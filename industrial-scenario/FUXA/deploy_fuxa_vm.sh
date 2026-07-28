@@ -62,6 +62,7 @@ wait_for_ssh() {
   until ssh -o BatchMode=yes \
             -o StrictHostKeyChecking=no \
             -o ConnectTimeout=5 \
+            -o IdentitiesOnly=yes \
             -i "$KEY_PATH" \
             "${user}@${ip}" "echo OK" >/dev/null 2>&1; do
     sleep 5
@@ -76,6 +77,7 @@ stream_cloud_init_logs() {
 
   ssh -o StrictHostKeyChecking=no \
       -o ServerAliveInterval=10 \
+      -o IdentitiesOnly=yes \
       -i "$KEY_PATH" \
       "${user}@${ip}" \
       "sudo -n tail -f /var/log/cloud-init-output.log" &
@@ -84,6 +86,7 @@ stream_cloud_init_logs() {
 
   until ssh -o StrictHostKeyChecking=no \
             -o ConnectTimeout=5 \
+            -o IdentitiesOnly=yes \
             -i "$KEY_PATH" \
             "${user}@${ip}" \
             "test -f /opt/FUXA_READY" >/dev/null 2>&1; do
@@ -174,6 +177,7 @@ if ! openstack server show "$VM_NAME" >/dev/null 2>&1; then
     --network "$PRIVATE_NET" \
     --security-group "$SG_FUXA" \
     --user-data "$CLOUD_INIT" \
+    --config-drive true \
     "$VM_NAME" >/dev/null
 fi
 

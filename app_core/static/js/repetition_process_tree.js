@@ -45,7 +45,7 @@ function repTreeStatusColor(status) {
   const s = String(status || "").toLowerCase();
   if (["completed", "recovered", "installed", "ok", "completed_with_degradation"].includes(s)) return "#22c55e";
   if (["running", "waiting", "started"].includes(s)) return "#38bdf8";
-  if (["partial", "ambiguous", "wait"].includes(s)) return "#eab308";
+  if (["partial", "ambiguous", "wait", "warning"].includes(s)) return "#eab308";
   if (["failed", "stopped", "cancelled", "completed_with_failures", "failed_or_skipped", "error"].includes(s)) return "#ef4444";
   if (["pending", "unknown"].includes(s)) return "#64748b";
   return "#64748b";
@@ -81,13 +81,24 @@ function repTreeNode(label, status, opts = {}) {
 }
 
 function repTreeStageToNode(stage, extraChildren = []) {
+  // 2026-07-26: a stage can show "completed" while real WARN-level problems
+  // happened inside it (e.g. Level C's "Deploying OT infrastructure" -- a
+  // PLC/FUXA deploy failure is a warning, not a hard stage failure, so the
+  // orchestrator proceeds anyway; it's very often the actual root cause a
+  // repetition failed downstream, and used to be completely invisible here).
+  // User explicitly asked for this after exactly that happened. Each real
+  // warning becomes its own small leaf node under the stage, same as any
+  // other sub-event -- nothing invented, only what the backend already
+  // scoped to this stage's own time window (see campaign_repetitions
+  // service.py::get_level_c_repetition_detail()).
+  const warningNodes = (stage.warnings || []).map((w) => repTreeNode(w, "warning", {}));
   return repTreeNode(stage.label || stage.stage_key || "stage", stage.status, {
     started_at: stage.started_at,
     finished_at: stage.finished_at,
     elapsed_seconds: stage.elapsed_seconds,
     detail: stage.detail,
     error_detail: stage.error_detail,
-    children: extraChildren,
+    children: [...warningNodes, ...extraChildren],
   });
 }
 

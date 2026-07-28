@@ -1,56 +1,56 @@
 \begin{table}[ht]
 \centering
-\caption{FORGE-VI Level C Workflow Verification Summary ($N_C = 45$ accepted redeployment-aware executions)}
+\caption{FORGE-VI Level C Workflow Verification Summary ($N_C = 68$ accepted redeployment-aware executions)}
 \label{tab:forge-vi-workflow}
 \begin{tabular}{llr}
 \hline
 \textbf{Phase} & \textbf{Verified Condition} & \textbf{Result} \\
 \hline
 \multirow{3}{*}{\textbf{Deploy/Redeploy}} & Teardown completed & \textit{N/A} (Level~B, standing scenario) \\
- & Same topology instantiated & 45/45$^{\dagger}$ \\
- & Effective inventory recorded & 45/45$^{\dagger}$ \\
+ & Same topology instantiated & 68/68$^{\dagger}$ \\
+ & Effective inventory recorded & 68/68$^{\dagger}$ \\
 \hline
-\multirow{5}{*}{\textbf{Validate}} & Validation gate passed$^{\dagger}$ & 45/45 \\
- & Segmentation verified$^{\dagger}$ & 43/45 \\
- & Sensor liveness verified$^{\dagger}$ & 45/45 \\
- & PLC/SCADA reachable$^{\dagger}$ & 45/45 \\
- & Time reference coherent & 39/45 \\
+\multirow{5}{*}{\textbf{Validate}} & Validation gate passed$^{\dagger}$ & 68/68 \\
+ & Segmentation verified$^{\dagger}$ & 65/68 \\
+ & Sensor liveness verified$^{\dagger}$ & 68/68 \\
+ & PLC/SCADA reachable$^{\dagger}$ & 68/68 \\
+ & Time reference coherent & 62/68 \\
 \hline
-\multirow{3}{*}{\textbf{Execute}} & Attack profile executed & 45/45 \\
- & Ground truth available & 45/45 \\
+\multirow{3}{*}{\textbf{Execute}} & Attack profile executed & 68/68 \\
+ & Ground truth available & 68/68 \\
  & Attack duration & 20~s \pm 2~s \\
 \hline
-\multirow{3}{*}{\textbf{Detect}} & Alert observed & 45/45 \\
- & Trigger alert bound & 45/45 \\
- & Attack-to-alert latency & 17~s \pm 28~s \\
+\multirow{3}{*}{\textbf{Detect}} & Alert observed & 68/68 \\
+ & Trigger alert bound & 68/68 \\
+ & Attack-to-alert latency & 16~s \pm 22~s \\
 \hline
-\multirow{5}{*}{\textbf{Acquire}} & Memory acquired first & 45/45 \\
- & Acquisition order valid (mem$\to$net$\to$disk) & 45/45 \\
- & Alert-to-memory-start (neg.=preemptive) & 21~s \pm 29~s \\
- & Alert-to-memory-sealed & 531~s \pm 165~s \\
- & Alert-to-case-sealed (all artifacts) & 1721~s \pm 496~s \\
+\multirow{5}{*}{\textbf{Acquire}} & Memory acquired first & 68/68 \\
+ & Acquisition order valid (mem$\to$net$\to$disk) & 68/68 \\
+ & Alert-to-memory-start (neg.=preemptive) & 20~s \pm 24~s \\
+ & Alert-to-memory-sealed & 588~s \pm 172~s \\
+ & Alert-to-case-sealed (all artifacts) & 1681~s \pm 430~s \\
 \hline
-\multirow{5}{*}{\textbf{Preserve}} & Required artifacts preserved & 45/45 \\
- & Manifest verified & 45/45 \\
- & Custody chain present & 45/45 \\
- & Memory (LiME) & 6.75~GiB \pm 1.97~GiB \\
- & Disk (RAW) & 59.11~GiB \pm 19.29~GiB \\
- & Network (PCAP) & 2.14~GiB \pm 1.54~GiB \\
+\multirow{5}{*}{\textbf{Preserve}} & Required artifacts preserved & 68/68 \\
+ & Manifest verified & 68/68 \\
+ & Custody chain present & 68/68 \\
+ & Memory (LiME) & 7.17~GiB \pm 1.70~GiB \\
+ & Disk (RAW) & 62.79~GiB \pm 16.47~GiB \\
+ & Network (PCAP) & 1.82~GiB \pm 1.45~GiB \\
 \hline
 \multirow{5}{*}{\textbf{Analyze}} & Layers completed / expected & 9--12/14 \\
  & Layers partial (output present, caveated) & 29 (total layer-run instances) \\
  & Useful layers (completed + partial) & 11--12/14 \\
- & Memory analysis status & completed (38/45), partial (7/45) \\
- & Timeline generated & 45/45 \\
- & Cross-layer findings & 45/45 \\
+ & Memory analysis status & completed (61/68), partial (7/68) \\
+ & Timeline generated & 68/68 \\
+ & Cross-layer findings & 68/68 \\
 \hline
 \multirow{3}{*}{\textbf{Reconstruct (CPR)}} & CPR (diagnostic only) & 0.5 \\
  & Edge state & R=4, D=2, M=2, A=0 \\
  & Recoverability & partially_recoverable \\
 \hline
-\multirow{3}{*}{\textbf{Compare}} & FSR invariants stable & 0/45 \\
- & CPR stable & 0/45 \\
- & Edge-state pattern stable & 0/45 \\
+\multirow{3}{*}{\textbf{Compare}} & FSR invariants stable & 0/68 \\
+ & CPR stable & 0/68 \\
+ & Edge-state pattern stable & 0/68 \\
 \hline
 \end{tabular}
 \begin{flushleft}

@@ -144,6 +144,7 @@ def _stage(
     target: str | None = None,
     detail: str | None = None,
     error_detail: str | None = None,
+    warnings: list[str] | None = None,
 ) -> dict:
     return {
         "stage_key": stage_key,
@@ -155,6 +156,19 @@ def _stage(
         "target": target,
         "detail": detail,
         "error_detail": error_detail,
+        # 2026-07-26: a stage can genuinely finish "completed" while real
+        # WARN-level problems happened inside it (e.g. Level C's
+        # DEPLOYING_OT: a PLC/FUXA deploy failure is a WARN, not a hard stage
+        # failure, so the orchestrator proceeds anyway -- the stage still
+        # shows "completed" even though it's the actual reason the
+        # repetition failed downstream). User explicitly asked for more
+        # transparency after exactly this happened and the tree showed
+        # "Deploying OT infrastructure: completed" with no hint anything had
+        # gone wrong. Never invented -- only real WARN log lines already
+        # written by the orchestrator, scoped to this stage's own time
+        # window, excluding whatever a more specific parser (tool installs,
+        # monitoring verification) already surfaces elsewhere.
+        "warnings": warnings or [],
     }
 
 
@@ -479,10 +493,26 @@ def get_level_c_repetition_detail(job_id: str, rep_num: int) -> dict | None:
         if status in ("failed", "stopped"):
             err_lines = [str(e.get("msg")) for e in log[this_idx:window_end_idx] if e.get("level") == "ERROR"]
             error_detail = err_lines[-1] if err_lines else state.get("error")
+        # Real WARN-level lines from inside this stage's own time window that
+        # aren't already surfaced by a more specific parser below (tool
+        # installs, monitoring verification) -- see _stage()'s docstring
+        # comment for why this exists. Scoped to [this stage's start, next
+        # stage's start) exactly like error_detail above, just without
+        # requiring the stage itself to have failed.
+        stage_end_idx = later[0]["idx"] if later else window_end_idx
+        stage_warnings = [
+            str(e.get("msg")).strip()
+            for e in log[this_idx:stage_end_idx]
+            if e.get("level") == "WARN"
+            and not _LC_TOOL_INSTALL_RE.match(str(e.get("msg") or ""))
+            and "wazuh-manager=" not in str(e.get("msg") or "")
+            and "wazuh-agent=" not in str(e.get("msg") or "")
+        ]
         stages.append(_stage(
             stage_key, label, status,
             started_at=started_at, finished_at=finished_at,
             elapsed_seconds=elapsed, error_detail=error_detail,
+            warnings=stage_warnings,
         ))
 
     level_b_job_id = None
