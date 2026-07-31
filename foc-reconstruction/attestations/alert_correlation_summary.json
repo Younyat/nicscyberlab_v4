@@ -1,21 +1,21 @@
 {
-  "generated_at": "2026-07-28T11:14:07.657685+00:00",
+  "generated_at": "2026-07-30T22:57:49.755659+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
-  "total_correlation_records": 628214,
-  "total_alerts": 242641,
-  "relevant_alerts": 204930,
-  "correlated_alerts": 529920,
-  "confirmed_correlations": 529920,
+  "total_correlation_records": 679730,
+  "total_alerts": 242719,
+  "relevant_alerts": 204954,
+  "correlated_alerts": 575064,
+  "confirmed_correlations": 575064,
   "weak_correlations": 0,
-  "unresolved_alerts": 98256,
+  "unresolved_alerts": 104628,
   "noise_alerts": 0,
   "false_positive_candidates": 0,
   "missing_expected_alerts_total": 61,
   "bucket_counts": {
-    "correlated": 529920,
+    "correlated": 575064,
     "uncorrelated": 203650,
-    "noise": 37711,
+    "noise": 37765,
     "false_positive_candidate": 0,
     "missing_expected_alert": 61,
     "weak_candidate": 0,
@@ -25,23 +25,23 @@
   "top_signatures": [
     {
       "label": "NICS CyberLab ICS Modbus write multiple registers",
-      "count": 529920
+      "count": 575064
     },
     {
       "label": "/etc/shadow_backup",
-      "count": 29808
+      "count": 31752
     },
     {
       "label": "Jul 14 12:50:23 plc-instance sshd[42092]: Invalid user debian from 10.0.2.1 port 51432",
-      "count": 26496
+      "count": 28224
     },
     {
       "label": "Jul 14 12:50:23 plc-instance sshd[42092]: Disconnecting invalid user debian 10.0.2.1 port 51432: Too many authentication failures [preauth]",
-      "count": 26496
+      "count": 28224
     },
     {
       "label": "Jul 14 12:50:23 plc-instance sshd[42092]: error: maximum authentication attempts exceeded for invalid user debian from 10.0.2.1 port 51432 ssh2 [preauth]",
-      "count": 14904
+      "count": 15876
     },
     {
       "label": "NICS CyberLab ICS Modbus write single register",
@@ -55,43 +55,47 @@
   "top_rule_ids": [
     {
       "label": "86601",
-      "count": 530472
+      "count": 575616
     },
     {
       "label": "5710",
-      "count": 52992
+      "count": 56448
     },
     {
       "label": "5758",
-      "count": 14904
+      "count": 15876
     },
     {
       "label": "554",
-      "count": 14904
+      "count": 15876
     },
     {
       "label": "550",
-      "count": 14904
+      "count": 15876
     }
   ],
   "top_nodes": [
     {
       "label": "node-c800d431",
-      "count": 11178
+      "count": 441
+    },
+    {
+      "label": "node-45d20749",
+      "count": 441
     },
     {
       "label": "node-f400bb36",
-      "count": 828
+      "count": 441
     },
     {
       "label": "node-53087541",
-      "count": 414
+      "count": 441
     }
   ],
   "severity_distribution": [
     {
       "label": "HIGH",
-      "count": 131813
+      "count": 131837
     },
     {
       "label": "MEDIUM",
@@ -99,31 +103,35 @@
     },
     {
       "label": "LOW",
-      "count": 37591
+      "count": 37645
     }
   ],
   "alerts_by_node": [
     {
+      "label": "node-53087541",
+      "count": 34
+    },
+    {
       "label": "node-c800d431",
-      "count": 27
+      "count": 1
+    },
+    {
+      "label": "node-45d20749",
+      "count": 1
     },
     {
       "label": "node-f400bb36",
-      "count": 2
-    },
-    {
-      "label": "node-53087541",
       "count": 1
     }
   ],
   "alerts_by_mitre_technique": [
     {
       "label": "T1692.001",
-      "count": 1364
+      "count": 1388
     },
     {
       "label": "T0836",
-      "count": 1364
+      "count": 1388
     }
   ],
   "alerts_by_original_sensor": [
@@ -133,17 +141,17 @@
     },
     {
       "label": "suricata",
-      "count": 38955
+      "count": 39033
     }
   ],
   "alerts_by_collector": [
     {
       "label": "wazuh",
-      "count": 242641
+      "count": 242719
     }
   ],
-  "unique_confirmed_attack_pairs": 4,
-  "unique_correlation_candidates": 34,
+  "unique_confirmed_attack_pairs": 5,
+  "unique_correlation_candidates": 35,
   "confirmed_attack_ids": 1,
   "weak_attack_ids": 0,
   "observable_attack_ids": 1,

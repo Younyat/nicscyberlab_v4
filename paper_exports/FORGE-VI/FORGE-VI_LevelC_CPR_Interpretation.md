@@ -1,9 +1,9 @@
 # FORGE-VI Level C — CPR Edge Matrix Interpretation
 
-**Campaign:** `CMP-20260727-131230-51C4`  
+**Campaign:** `CMP-20260729-130859-8DE7`  
 **Paper level:** Level C (provisional — using Level B standing-scenario repetitions)  
-**Executions accepted:** 10/6  
-**Generated:** 2026-07-28T11:36:05Z
+**Executions accepted:** 15/6  
+**Generated:** 2026-07-30T23:19:07Z
 
 ---
 
@@ -19,8 +19,8 @@
 | CPR | 0.875 (= 7/8) |
 | Weighted CPR | 0.8767 |
 | Recoverability | mostly_recoverable |
-| Reconstruction confidence | 0.876 |
-| CPR stable across runs | True (identical in all 10 runs) |
+| Reconstruction confidence | 0.8768 |
+| CPR stable across runs | True (identical in all 15 runs) |
 
 ---
 

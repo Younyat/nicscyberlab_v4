@@ -298,6 +298,7 @@ echo "Suricata YAML    : /etc/suricata/suricata.yaml"
 echo "Wazuh            : not modified"
 export ANSIBLE_HOST_KEY_CHECKING=False
 export ANSIBLE_BECOME_TIMEOUT=60
+export ANSIBLE_TIMEOUT=60
 
 if ansible-playbook -i "$BASE_DIR/hosts.ini" "$BASE_DIR/suricata-modbus-register-detection.yml"; then
     echo "----------------------------------------------------"

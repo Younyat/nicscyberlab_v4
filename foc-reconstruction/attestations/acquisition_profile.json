@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-07-28T11:14:07.657685+00:00",
+  "generated_at": "2026-07-30T22:57:49.755659+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
   "case_count": 1,
   "cases": [
     {
-      "case_id": "case-1e22cfa9",
-      "case_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260728-100039",
-      "trigger_alert_id": "alr-81508638",
+      "case_id": "case-d06e2c7c",
+      "case_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260730-215205",
+      "trigger_alert_id": "alr-97caa69b",
       "trigger_signature": "NICS CyberLab ICS Modbus write multiple registers",
       "triggering_alert_name": "NICS CyberLab ICS Modbus write multiple registers",
       "triggering_alert_rule_id": "910836102",
@@ -24,7 +24,7 @@
       "trigger_selection_method": "fallback_prior_alert",
       "trigger_selection_score": 455,
       "trigger_selection_reason": "confirmed_correlation,high_severity,target_node_match,target_instance_match,ot_write_signal,forensics_recommended,original_suricata,network_protocol",
-      "candidate_triggers_evaluated": 242641,
+      "candidate_triggers_evaluated": 242719,
       "stronger_trigger_available": false,
       "profile_used": "preservation_only",
       "target_nodes": [],
@@ -76,86 +76,86 @@
         "unified_forensic_timeline.json",
         "vol3_execution_report.json"
       ],
-      "artifact_count": 407,
+      "artifact_count": 530,
       "start_time": null,
-      "end_time": "2026-07-28T10:30:25Z",
+      "end_time": "2026-07-30T22:22:52Z",
       "latency_alert_to_start_seconds": null,
       "latency_start_to_sealed_seconds": null,
       "result": "completed",
       "pipeline_event_references": [
-        "app_core/infrastructure/forensics/evidence_store/CASE-20260728-100039/metadata/pipeline_events.jsonl"
+        "app_core/infrastructure/forensics/evidence_store/CASE-20260730-215205/metadata/pipeline_events.jsonl"
       ]
     }
   ],
   "primary_evidence": [
     {
-      "artifact_id": "art-2426a2a2",
+      "artifact_id": "art-0b56b72e",
       "artifact_type": "memory_lime",
-      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260728-100039/memory/memdump_10.0.2.182_20260728_100048Z.lime",
-      "case_id": "case-1e22cfa9",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260730-215205/memory/memdump_10.0.2.234_20260730_215214Z.lime",
+      "case_id": "case-d06e2c7c",
       "related_node_id": "unresolved",
       "related_instance_id": "unresolved",
-      "sha256": "d4618e0d838057a3b520828570b3e8089e10ec42ba9684eb4eb7f3d6ce2abc97",
+      "sha256": "2ce0910889840df496cbacdca79feb88a6af5dee1cc79594ebb69f7e4b3d538d",
       "is_primary_evidence": true
     },
     {
-      "artifact_id": "art-cd9e536a",
+      "artifact_id": "art-d61e0356",
       "artifact_type": "memory_lime",
-      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260728-100039/memory/memdump_10.0.2.69_20260728_100346Z.lime",
-      "case_id": "case-1e22cfa9",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260730-215205/memory/memdump_10.0.2.215_20260730_215502Z.lime",
+      "case_id": "case-d06e2c7c",
       "related_node_id": "unresolved",
       "related_instance_id": "unresolved",
-      "sha256": "9b5f5a83685cc6f901c05338bd04b4ee3e448a03a286c809f5b6d8e51d0ee479",
+      "sha256": "aeffe86f3db7f44423312a800c3009b6a21ed06b8432d2c95cefecb26d7676c7",
       "is_primary_evidence": true
     },
     {
-      "artifact_id": "art-a5926741",
+      "artifact_id": "art-a24d1d73",
       "artifact_type": "memory_lime",
-      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260728-100039/memory/memdump_10.0.2.189_20260728_100613Z.lime",
-      "case_id": "case-1e22cfa9",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260730-215205/memory/memdump_10.0.2.186_20260730_215723Z.lime",
+      "case_id": "case-d06e2c7c",
       "related_node_id": "unresolved",
       "related_instance_id": "unresolved",
-      "sha256": "0615acc9189bdfd7151e383277c23495601f71f2bdef8c2c2bbe7d199603fd5b",
+      "sha256": "f38dba7bfe5426ab93ba64835b5e47250ff6ed52c0a6f2b24707abf8eaf1e42d",
       "is_primary_evidence": true
     },
     {
-      "artifact_id": "art-4ec5775f",
+      "artifact_id": "art-f17aa4b0",
       "artifact_type": "industrial_ot_export_modbus_tcp",
-      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260728-100039/industrial/ot_export_rolling_EXEC-0010_20260728_101047Z.json",
-      "case_id": "case-1e22cfa9",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260730-215205/industrial/ot_export_rolling_EXEC-0015_20260730_220241Z.json",
+      "case_id": "case-d06e2c7c",
       "related_node_id": "unresolved",
       "related_instance_id": "unresolved",
-      "sha256": "4ae0263dda28d0e0c2fac8374740253afc68427b3584c976b55b11c101dd74d1",
+      "sha256": "2d499ab9ae3dfa5139de34862af14b498761d471173de8fd2311d3804e44bc85",
       "is_primary_evidence": true
     },
     {
-      "artifact_id": "art-f0f27861",
+      "artifact_id": "art-07d362e7",
       "artifact_type": "disk_raw",
-      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260728-100039/disk/da37e784-0d1d-49a1-951d-0048687d7c8e_20260728_102143Z.disk.final.raw",
-      "case_id": "case-1e22cfa9",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260730-215205/disk/915e2e6c-fca3-4d22-af12-17399d6b2be9_20260730_221414Z.disk.final.raw",
+      "case_id": "case-d06e2c7c",
       "related_node_id": "unresolved",
       "related_instance_id": "unresolved",
-      "sha256": "5f2e0aea81316b7446de8bfe0f90cc1f40d4dc658a8aa0f69d744bc772665c63",
+      "sha256": "bc84051c8922185ffcb238807d75d411d462025fbf334282638cb481b97b0dec",
       "is_primary_evidence": true
     },
     {
-      "artifact_id": "art-e0984933",
+      "artifact_id": "art-022420a9",
       "artifact_type": "disk_raw",
-      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260728-100039/disk/f1c6e3aa-a5b3-4e9d-8154-a1fc8117e1b4_20260728_102358Z.disk.final.raw",
-      "case_id": "case-1e22cfa9",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260730-215205/disk/3dadc7b1-2ee6-430b-927a-8d0f6a543315_20260730_221638Z.disk.final.raw",
+      "case_id": "case-d06e2c7c",
       "related_node_id": "unresolved",
       "related_instance_id": "unresolved",
-      "sha256": "945c88a3b6cdda48309423bbb6133b22256c84b287c13c70bdf2db47cd8d4b90",
+      "sha256": "725decbf2626ad2690fbb5864c2882efb818919bea55894b385f36c78bec011a",
       "is_primary_evidence": true
     },
     {
-      "artifact_id": "art-25063a89",
+      "artifact_id": "art-1ae30639",
       "artifact_type": "disk_raw",
-      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260728-100039/disk/c50c42c3-5301-47d0-bd8e-673138e1614a_20260728_102602Z.disk.final.raw",
-      "case_id": "case-1e22cfa9",
+      "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260730-215205/disk/415a394e-8bb5-434f-a295-f5ff7d93a97c_20260730_221841Z.disk.final.raw",
+      "case_id": "case-d06e2c7c",
       "related_node_id": "unresolved",
       "related_instance_id": "unresolved",
-      "sha256": "234ba3eaf99b5e886c5430c1ac2fa4238585a9529e3ae0356ac75951a8d7e96a",
+      "sha256": "aca05c828571f45cca9bdfdc5ab19fd1c2974e7d0074bbf99d26714c14a5da28",
       "is_primary_evidence": true
     }
   ],
@@ -163,8 +163,8 @@
     "network": 9,
     "disk": 10,
     "memory": 11,
-    "logs": 722,
-    "ot_state": 2107
+    "logs": 776,
+    "ot_state": 2242
   },
   "trigger_quality_summary": {
     "strong": 1

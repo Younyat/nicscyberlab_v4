@@ -112,6 +112,7 @@ echo " ACTIVANDO FIM REALTIME EN WAZUH"
 echo "===================================================="
 export ANSIBLE_HOST_KEY_CHECKING=False
 export ANSIBLE_BECOME_TIMEOUT=60
+export ANSIBLE_TIMEOUT=60
 
 if ansible-playbook -i "$BASE_DIR/hosts.ini" "$BASE_DIR/wazuh-fim-realtime.yml"; then
     echo "----------------------------------------------------"
