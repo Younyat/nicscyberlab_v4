@@ -1154,11 +1154,34 @@ Regenerated artifacts are not assumed to be byte-identical to those produced in 
 
 Small reference artifacts can be included when their purpose is documented, they contain no sensitive information, and their size is compatible with normal repository distribution.
 
+The next section describes where the full evidentiary package for the reported campaign can be obtained.
+
+---
+
+## 14. Verification Dataset
+
+The large artifacts excluded from this repository under Section 13 — the complete sealed forensic case and the full campaign-level evidence backing the reported experimental results — are distributed separately as a standalone verification dataset.
+
+The verification dataset contains:
+
+- one complete sealed forensic case;
+- campaign-level records for the ten reported executions;
+- manifests and integrity records;
+- reconstruction outputs and cross-run summaries.
+
+This allows independent inspection and verification of the reported campaign without requiring redeployment of the infrastructure or re-execution of the experiment.
+
+| | |
+|---|---|
+| **Archive** | [nics.uma.es OwnCloud — FORGE-VI verification dataset](https://www.nics.uma.es:8081/owncloud/index.php/s/XzZ2cKZAfV5Nifb) |
+| **Dataset version** | 1.0 |
+| **Access** | Public, read-only |
+
 The next section acknowledges the funding and institutional support behind the project.
 
 ---
 
-## 14. Acknowledgments
+## 15. Acknowledgments
 
 This repository is part of the project **“CiberIA: Investigación e Innovación para la Integración de Ciberseguridad e Inteligencia Artificial”** (Proyecto C079/23), financed by the European Union NextGeneration-EU, the Recovery Plan, Transformation and Resilience, through INCIBE.
 
