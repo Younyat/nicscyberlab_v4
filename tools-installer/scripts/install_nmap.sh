@@ -44,6 +44,7 @@ cat > "$BASE_DIR/playbooks/nmap-install.yml" <<'EOF'
   tasks:
     - name: 1. Instalar Nmap, Ncat y Ndiff
       apt:
+        lock_timeout: 120
         name: 
           - nmap
           - ncat
@@ -54,6 +55,7 @@ cat > "$BASE_DIR/playbooks/nmap-install.yml" <<'EOF'
 
     - name: 2. Descargar dependencias para scripts NSE
       apt:
+        lock_timeout: 120
         name: [lua-lpeg, libblas3]
         state: present
 

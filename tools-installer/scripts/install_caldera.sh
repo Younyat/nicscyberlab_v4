@@ -35,17 +35,55 @@ cat > "$TEMP_WORK_DIR/caldera-install.yml" <<'EOF'
     - name: 1. Instalar dependencias base y Node.js 20
       shell: |
         curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-        apt-get install -y python3 python3-pip git build-essential nodejs libmagic-dev jq
+        apt-get -o DPkg::Lock::Timeout=120 install -y python3 python3-pip git build-essential nodejs libmagic-dev jq
       args:
         executable: /bin/bash
 
-    - name: 2. Clonar Caldera recursivamente
-      git:
-        repo: 'https://github.com/mitre/caldera.git'
-        dest: /opt/caldera
-        version: 'master'
-        recursive: yes
-        force: yes
+    # 2026-09-02: replaced Ansible's `git:` module (recursive clone, 17
+    # submodules) with plain HTTPS tarball downloads via codeload.github.com.
+    # Root cause: github.com's git-upload-pack smart-HTTP endpoint was found
+    # to fail intermittently ("could not read Username ... HTTP 401") on
+    # roughly half of all requests -- confirmed via direct repeated testing
+    # from both the orchestrator host and a lab VM, ruling out network/DNS/
+    # protocol-version as the cause. A `recursive: yes` clone needs ~18
+    # separate git-upload-pack round-trips (1 main repo + 17 submodules) to
+    # all succeed, which at ~50% per-request reliability explains why this
+    # task specifically was timing out (900s) rather than failing fast like
+    # a single-repo clone (see tools-installer/README.md 2026-09-02 for the
+    # wazuh-ansible incident this was first found in). Tarball downloads
+    # bypass git-upload-pack entirely and were 48/48 reliable across 3 full
+    # end-to-end runs (main repo + all 16 currently-tracked submodules) in
+    # verification testing. Submodule commits are read from one GitHub Trees
+    # API call (mode 160000 entries), not 17 separate calls, to stay well
+    # inside the unauthenticated API's 60/hour rate limit. Any submodule
+    # listed in .gitmodules but no longer present in the tree (e.g.
+    # `caltack` at write time) is skipped -- exactly what a real
+    # `git clone --recursive` would also do, not a regression.
+    - name: 2. Descargar Caldera y submodulos (sin protocolo git)
+      shell: |
+        set -e
+        rm -rf /opt/caldera
+        mkdir -p /opt/caldera
+        cd /tmp
+        for attempt in 1 2 3; do
+          rm -f caldera.tar.gz
+          if curl -fsSL --max-time 120 -o caldera.tar.gz \
+              "https://codeload.github.com/mitre/caldera/tar.gz/refs/heads/master" \
+            && tar xzf caldera.tar.gz -C /opt/caldera --strip-components=1; then
+            break
+          fi
+          echo "[WARN] main repo download failed (attempt ${attempt}/3)."
+          rm -rf /opt/caldera && mkdir -p /opt/caldera
+          if [ "$attempt" -eq 3 ]; then
+            echo "[ERROR] main repo download failed after 3 attempts."
+            exit 1
+          fi
+          sleep 10
+        done
+
+        echo "aW1wb3J0IGpzb24sIHJlLCBzdWJwcm9jZXNzLCBvcywgc3lzLCB1cmxsaWIucmVxdWVzdAoKZGVmIGdldCh1cmwpOgogICAgcmVxID0gdXJsbGliLnJlcXVlc3QuUmVxdWVzdCh1cmwsIGhlYWRlcnM9eyJVc2VyLUFnZW50IjogIm5pY3MtY3liZXJsYWIifSkKICAgIHdpdGggdXJsbGliLnJlcXVlc3QudXJsb3BlbihyZXEsIHRpbWVvdXQ9MzApIGFzIHI6CiAgICAgICAgcmV0dXJuIHIucmVhZCgpCgpnbSA9IG9wZW4oIi9vcHQvY2FsZGVyYS8uZ2l0bW9kdWxlcyIpLnJlYWQoKQplbnRyaWVzID0gcmUuZmluZGFsbChyJ1xbc3VibW9kdWxlICIoW14iXSspIlxdXHMqXG5ccypwYXRoXHMqPVxzKihcUyspXHMqXG5ccyp1cmxccyo9XHMqKFxTKyknLCBnbSkKcGF0aF90b191cmwgPSB7cGF0aDogdXJsIGZvciBfLCBwYXRoLCB1cmwgaW4gZW50cmllc30KCnRyZWUgPSBqc29uLmxvYWRzKGdldCgiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy9taXRyZS9jYWxkZXJhL2dpdC90cmVlcy9tYXN0ZXI/cmVjdXJzaXZlPTEiKSkKc3VicyA9IFt0IGZvciB0IGluIHRyZWUuZ2V0KCJ0cmVlIiwgW10pIGlmIHQuZ2V0KCJtb2RlIikgPT0gIjE2MDAwMCJdCgpmYWlsZWQgPSBbXQpmb3IgdCBpbiBzdWJzOgogICAgcGF0aCwgc2hhID0gdFsicGF0aCJdLCB0WyJzaGEiXQogICAgdXJsID0gcGF0aF90b191cmwuZ2V0KHBhdGgpCiAgICBtID0gcmUubWF0Y2gocidodHRwczovL2dpdGh1YlwuY29tLyhbXi9dKykvKFteLy5dKykoPzpcLmdpdCk/JCcsIHVybCkgaWYgdXJsIGVsc2UgTm9uZQogICAgaWYgbm90IG06CiAgICAgICAgcHJpbnQoZiJbV0FSTl0ge3BhdGh9OiBubyBtYXRjaGluZyAuZ2l0bW9kdWxlcyBlbnRyeSAtLSB0cmVhdGluZyBhcyBmYWlsZWQuIikKICAgICAgICBmYWlsZWQuYXBwZW5kKHBhdGgpCiAgICAgICAgY29udGludWUKICAgIG93bmVyLCByZXBvID0gbS5ncm91cCgxKSwgbS5ncm91cCgyKQogICAgb2sgPSBGYWxzZQogICAgZm9yIGF0dGVtcHQgaW4gcmFuZ2UoMyk6CiAgICAgICAgdGd6ID0gZiIvdG1wL3tyZXBvfS50YXIuZ3oiCiAgICAgICAgcmMgPSBzdWJwcm9jZXNzLnJ1bihbImN1cmwiLCAiLWZzU0wiLCAiLS1tYXgtdGltZSIsICI2MCIsICItbyIsIHRneiwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgZiJodHRwczovL2NvZGVsb2FkLmdpdGh1Yi5jb20ve293bmVyfS97cmVwb30vdGFyLmd6L3tzaGF9Il0pLnJldHVybmNvZGUKICAgICAgICBpZiByYyA9PSAwOgogICAgICAgICAgICBkZXN0ID0gb3MucGF0aC5qb2luKCIvb3B0L2NhbGRlcmEiLCBwYXRoKQogICAgICAgICAgICBzdWJwcm9jZXNzLnJ1bihbInJtIiwgIi1yZiIsIGRlc3RdKQogICAgICAgICAgICBvcy5tYWtlZGlycyhkZXN0LCBleGlzdF9vaz1UcnVlKQogICAgICAgICAgICByYzIgPSBzdWJwcm9jZXNzLnJ1bihbInRhciIsICJ4emYiLCB0Z3osICItQyIsIGRlc3QsICItLXN0cmlwLWNvbXBvbmVudHM9MSJdKS5yZXR1cm5jb2RlCiAgICAgICAgICAgIG9zLnJlbW92ZSh0Z3opCiAgICAgICAgICAgIGlmIHJjMiA9PSAwOgogICAgICAgICAgICAgICAgb2sgPSBUcnVlCiAgICAgICAgICAgICAgICBicmVhawogICAgICAgIHByaW50KGYiW1dBUk5dIHtwYXRofTogc3VibW9kdWxlIGRvd25sb2FkIGZhaWxlZCAoYXR0ZW1wdCB7YXR0ZW1wdCsxfS8zKS4iKQogICAgaWYgbm90IG9rOgogICAgICAgIGZhaWxlZC5hcHBlbmQocGF0aCkKCnByaW50KGYiU3VibW9kdWxlczoge2xlbihzdWJzKSAtIGxlbihmYWlsZWQpfS97bGVuKHN1YnMpfSBvay4iKQppZiBmYWlsZWQ6CiAgICBwcmludCgiRkFJTEVEIHN1Ym1vZHVsZXM6IiwgZmFpbGVkKQogICAgc3lzLmV4aXQoMSkK" | base64 -d | python3 -
+      args:
+        executable: /bin/bash
 
     - name: 3. Corregir dependencias de Magma (npm)
       shell: |

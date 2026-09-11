@@ -549,6 +549,7 @@ def delete_generated_case_artifacts(
     operator: str = "foc_experimentation",
     action_type: str = "delete_case_directory",
     confirmation: str = "",
+    archive_destination: Path | None = None,
 ) -> dict:
     if confirmation != "OK":
         return {"error": "confirmation_required", "message": "Type exactly OK to confirm generated-case cleanup."}
@@ -637,8 +638,16 @@ def delete_generated_case_artifacts(
     lightweight_case_audit_path = None
     case_shell_path = None
     if action_type == "archive_case_directory":
-        ARCHIVED_CASES_ROOT.mkdir(parents=True, exist_ok=True)
-        archive_target = ARCHIVED_CASES_ROOT / f"{original_case_path.name}__archived_{utc_now().replace(':', '').replace('-', '')}"
+        # 2026-09-01: archive_destination lets a caller (level_b_repetition_runner's
+        # final-sample preservation) place the archived case somewhere other than the
+        # shared ARCHIVED_CASES_ROOT -- e.g. inside its own campaign folder. Default
+        # behavior (archive_destination=None) is completely unchanged.
+        if archive_destination is not None:
+            archive_target = archive_destination
+            archive_target.parent.mkdir(parents=True, exist_ok=True)
+        else:
+            ARCHIVED_CASES_ROOT.mkdir(parents=True, exist_ok=True)
+            archive_target = ARCHIVED_CASES_ROOT / f"{original_case_path.name}__archived_{utc_now().replace(':', '').replace('-', '')}"
         shutil.move(str(original_case_path), str(archive_target))
     else:
         shutil.rmtree(original_case_path)
@@ -761,5 +770,9 @@ def delete_generated_case_artifacts(
         "lightweight_case_bundle_manifest_path": lightweight_bundle.get("manifest_path"),
         "lightweight_case_shell_path": relative_path(case_shell_path) if case_shell_path else None,
         "lightweight_case_audit_path": relative_path(lightweight_case_audit_path) if lightweight_case_audit_path else None,
-        "message": "Heavy generated-case artifacts were cleaned up. A lightweight audit-only case shell and scientific comparison memory were preserved.",
+        "message": (
+            f"Full case artifacts were archived intact to {relative_path(archive_target)}."
+            if action_type == "archive_case_directory"
+            else "Heavy generated-case artifacts were cleaned up. A lightweight audit-only case shell and scientific comparison memory were preserved."
+        ),
     }

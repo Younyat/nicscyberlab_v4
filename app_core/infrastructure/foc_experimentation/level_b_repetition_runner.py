@@ -17,7 +17,7 @@ from pathlib import Path
 from .campaign_service import create_campaign
 from .comparability_service import compare_executions
 from .config import CAMPAIGNS_ROOT, EVIDENCE_STORE_ROOT, campaign_config_path, campaign_dir, campaign_manifest_path, execution_dir, rel
-from .execution_service import aggregate_campaign_state, attach_real_case_to_execution, create_execution_from_campaign, load_execution
+from .execution_service import aggregate_campaign_state, attach_real_case_to_execution, comparable_execution_ids_for_campaign, create_execution_from_campaign, load_execution
 from .job_runner import append_job_list, append_phase, get_job, job_cancel_requested, new_job, raise_if_cancelled, request_cancel, request_force_stop, start_job, update_job
 from .level_a_scientific_report_service import start_level_a_scientific_report_job
 from .retention_service import delete_generated_case_artifacts
@@ -41,6 +41,7 @@ from ..forensics.forensics_api import (
     _add_artifact_fast,
     _active_preservation_guard,
     _append_case_event,
+    _append_custody_entry,
     _case_preservation_in_progress,
     _clear_active_preservation_state,
     _dfir_create_case_internal,
@@ -1877,6 +1878,54 @@ def _latest_event_time(events: list[dict], event_name: str) -> str | None:
     return matching[-1] if matching else None
 
 
+# 2026-09-10: these paths are each rewritten a second time later in the
+# pipeline (a richer per-node time-sync aggregation overwrites the early
+# time_sync.json; acquisition finalization overwrites acquisition_profile.json;
+# the analysis inventory/integrity-custody reports and the workflow phase
+# summary are all regenerated once analysis completes) by code paths that
+# update the file's content but never call _add_artifact_fast() again -- so
+# the manifest's recorded digest for these paths is an earlier version, not
+# the final one. Confirmed real (not tampering): every affected file's
+# on-disk mtime predates case sealing, in the original live run.
+_MANIFEST_REFRESH_TARGETS = (
+    ("metadata/time_sync.json", "time_sync"),
+    ("metadata/acquisition_profile.json", "acquisition_profile"),
+    ("analysis/00_inventory/evidence_inventory.json", "evidence_inventory"),
+    ("analysis/01_integrity_custody/integrity_custody_report.json", "integrity_custody_report"),
+    ("metadata/workflow_phase_summary.json", "workflow_phase_summary"),
+)
+
+
+def _refresh_manifest_hash_if_stale(case_dir: Path, rel_path: str, artifact_type: str) -> None:
+    """Best-effort, purely additive: if rel_path's current content hash
+    differs from the most recent manifest entry already on record for it,
+    registers one fresh entry (and a matching custody entry) reflecting the
+    real current content. Never rewrites or removes any existing entry, and
+    never touches the artifact's own content -- mirrors the append-only
+    pattern already used for chain_of_custody.log/case_digest.json, whose
+    manifest history already has multiple entries by design."""
+    try:
+        abs_path = case_dir / rel_path
+        if not abs_path.is_file():
+            return
+        current_hash = _sha256_path(abs_path)
+        manifest_path = case_dir / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.is_file() else {}
+        entries = [a for a in (manifest.get("artifacts") or []) if a.get("rel_path") == rel_path]
+        if entries and entries[-1].get("sha256") == current_hash:
+            return
+        _add_artifact_fast(str(case_dir), rel_path, artifact_type, sha256=current_hash, size=abs_path.stat().st_size)
+        _append_custody_entry(
+            str(case_dir),
+            "artifact_manifest_refreshed",
+            "level_b_repetition_runner",
+            artifact_rel=rel_path,
+            details={"reason": "artifact content changed after its last manifest registration"},
+        )
+    except Exception:
+        pass
+
+
 def _repetition_result_from_case(
     *,
     repetition_number: int,
@@ -1965,6 +2014,18 @@ def _repetition_result_from_case(
         repetition_status = "partial"
     if not case_id or not attach_result:
         repetition_status = "failed"
+
+    # Durable per-case C1-C5/E1-E4/IR-gate snapshot (metadata/fsr/fsr_eval_<execution_id>.json),
+    # mirroring the sibling metadata/ir/ir_snapshot.json write. Best-effort: must never
+    # break repetition result assembly if evidence is partial or the case dir is gone.
+    if case_dir:
+        try:
+            from ..forensics.fsr_verdict import write_fsr_verdict
+            write_fsr_verdict(case_dir, run_id=execution_id)
+        except Exception:
+            pass
+        for rel_path, artifact_type in _MANIFEST_REFRESH_TARGETS:
+            _refresh_manifest_hash_if_stale(case_dir, rel_path, artifact_type)
 
     return {
         "repetition_number": repetition_number,
@@ -2937,6 +2998,7 @@ def _run_single_repetition(
     dfir_mode_before: str,
     dfir_mode_after: str,
     nested_level_a_repetitions: int,
+    preserve_as_final_sample: bool = False,
 ) -> dict:
     raise_if_cancelled(job_id, job_path, phase_key=f"repetition_{repetition_number}_start", phase_label=f"Start repetition {repetition_number}/{total_repetitions}", detail="Level B repetition batch cancellation was requested before starting the next repetition.")
     phase_extra = {"current_repetition": repetition_number, "requested_repetitions": total_repetitions}
@@ -3773,14 +3835,40 @@ def _run_single_repetition(
         ACTIVE_CASE_PTR.write_text("", encoding="utf-8")
     except Exception:
         pass
-    _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_cleanup", phase_label="Clean heavy generated case", status="running", detail=f"Cleaning heavy artifacts for case {case_id} after nested Level A analysis so the next Level B repetition can create a fresh case without coexisting heavy cases.", category="repetition", index=8, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_preservation_status": "cleanup_running", **phase_extra})
-    cleanup_after_report = delete_generated_case_artifacts(
-        execution_id,
-        campaign_id=campaign_id,
-        case_id=case_id,
-        confirmation="OK",
-        operator="level_b_repetition_runner",
-    )
+    # 2026-09-01: when this is the final repetition of the whole requested
+    # campaign (standalone Level B's own last rep, or -- when wrapped by
+    # Level C -- the last Level C repetition specifically, not just the last
+    # inner Level B rep of every batch), keep this ONE case fully intact
+    # instead of reducing it to the lightweight bundle like every other
+    # repetition. Reuses delete_generated_case_artifacts's existing
+    # action_type="archive_case_directory" path (already does a plain
+    # shutil.move of the untouched case directory, no new deletion/parsing
+    # logic), just pointed at this campaign's own folder instead of the
+    # shared ARCHIVED_CASES_ROOT, via archive_destination. Placed under
+    # campaign_dir() (not directly under EVIDENCE_STORE_ROOT), so it is
+    # permanently outside the "CASE-*" glob _cleanup_candidates() scans --
+    # no future campaign's mandatory cleanup can ever find or touch it.
+    if preserve_as_final_sample:
+        archive_destination = campaign_dir(campaign_id) / "final_sample_case" / case_dir.name
+        _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_cleanup", phase_label="Preserve final case as full sample", status="running", detail=f"This is the final repetition of the campaign -- preserving case {case_id} fully intact (raw disk, memory, network, everything) as a real, complete result sample, instead of reducing it to the lightweight bundle.", category="repetition", index=8, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_preservation_status": "final_sample_preserving", **phase_extra})
+        cleanup_after_report = delete_generated_case_artifacts(
+            execution_id,
+            campaign_id=campaign_id,
+            case_id=case_id,
+            confirmation="OK",
+            operator="level_b_repetition_runner_final_sample",
+            action_type="archive_case_directory",
+            archive_destination=archive_destination,
+        )
+    else:
+        _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_cleanup", phase_label="Clean heavy generated case", status="running", detail=f"Cleaning heavy artifacts for case {case_id} after nested Level A analysis so the next Level B repetition can create a fresh case without coexisting heavy cases.", category="repetition", index=8, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_preservation_status": "cleanup_running", **phase_extra})
+        cleanup_after_report = delete_generated_case_artifacts(
+            execution_id,
+            campaign_id=campaign_id,
+            case_id=case_id,
+            confirmation="OK",
+            operator="level_b_repetition_runner",
+        )
     if cleanup_after_report.get("error"):
         _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_cleanup", phase_label="Clean heavy generated case", status="failed", detail=f"Heavy-case cleanup failed for {case_id}: {cleanup_after_report.get('error')}", category="repetition", index=8, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_preservation_status": "cleanup_failed", **phase_extra})
         result.setdefault("warnings", []).append(
@@ -3799,10 +3887,16 @@ def _run_single_repetition(
             "lightweight_case_bundle_manifest_path": cleanup_after_report.get("lightweight_case_bundle_manifest_path"),
         }
         result["warnings"] = list(result.get("warnings") or [])
-        result["warnings"].append("Heavy generated case artifacts were cleaned after nested Level A reporting so the next Level B repetition could create a fresh case without accumulating heavy storage.")
+        if preserve_as_final_sample:
+            result["warnings"].append(f"This was the final repetition of the campaign -- case {case_id} was kept fully intact as a complete result sample instead of being reduced to the lightweight bundle.")
+        else:
+            result["warnings"].append("Heavy generated case artifacts were cleaned after nested Level A reporting so the next Level B repetition could create a fresh case without accumulating heavy storage.")
         cleanup_manifest_path = str((result.get("post_report_case_cleanup") or {}).get("lightweight_case_bundle_manifest_path") or "")
         if cleanup_manifest_path:
-            _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_cleanup", phase_label="Clean heavy generated case", status="completed", detail=f"Heavy generated case {case_id} was cleaned after nested Level A analysis. Lightweight retained bundle: {cleanup_manifest_path}.", category="repetition", index=8, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_preservation_status": "cleanup_completed", **phase_extra})
+            if preserve_as_final_sample:
+                _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_cleanup", phase_label="Preserve final case as full sample", status="completed", detail=f"Final case {case_id} preserved intact at {cleanup_after_report.get('archive_target')}.", category="repetition", index=8, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_preservation_status": "final_sample_preserved", **phase_extra})
+            else:
+                _emit_phase(job_id, job_path, phase_key=f"repetition_{rep_idx}_cleanup", phase_label="Clean heavy generated case", status="completed", detail=f"Heavy generated case {case_id} was cleaned after nested Level A analysis. Lightweight retained bundle: {cleanup_manifest_path}.", category="repetition", index=8, repetition_number=rep_idx, total_repetitions=total_repetitions, extra={"current_preservation_status": "cleanup_completed", **phase_extra})
             post_case_free_space_cleanup = _run_level_b_free_space_cleanup(acquisition_targets)
             result["post_case_free_space_cleanup"] = post_case_free_space_cleanup
             post_cleanup_status = "completed" if post_case_free_space_cleanup.get("status") == "completed" else "completed_with_degradation"
@@ -3843,6 +3937,7 @@ def _run_level_b_repetitions_job(
     dfir_mode_before: str,
     dfir_mode_after: str,
     nested_level_a_repetitions: int,
+    preserve_final_case: bool = True,
 ) -> None:
     raise_if_cancelled(job_id, job_path, phase_key="prepare_level_b_job", phase_label="Prepare Level B job", detail="Level B repetition batch was cancelled before startup.")
     manifest, config = _load_campaign(campaign_id)
@@ -4047,6 +4142,7 @@ def _run_level_b_repetitions_job(
                 dfir_mode_before=dfir_mode_before,
                 dfir_mode_after=dfir_mode_after,
                 nested_level_a_repetitions=nested_level_a_repetitions,
+                preserve_as_final_sample=(preserve_final_case and repetition_number == requested_repetitions),
             )
         except Exception as exc:
             result = _failed_repetition_result(
@@ -4105,7 +4201,11 @@ def _run_level_b_repetitions_job(
 
     raise_if_cancelled(job_id, job_path, phase_key="generate_report", phase_label="Generate Level B report", detail="Level B repetition batch cancellation was requested before final report generation.")
     _emit_phase(job_id, job_path, phase_key="generate_report", phase_label="Generate Level B report", status="running", detail="Aggregating per-repetition timing, acquisition, reconstruction, warnings, blockers, and case outputs into the final Level B validation report bundle.", category="final", index=0, total_repetitions=requested_repetitions)
-    comparable_execution_ids = [str(item.get("execution_id") or "") for item in results if item.get("execution_id") and (item.get("artifacts") or {}).get("forensic_comparison_profile")]
+    # 2026-09-04: compare across the WHOLE campaign (comparable_execution_ids_for_campaign),
+    # not just this job's own local `results` -- see that function's docstring for why a
+    # local-only comparison silently never reached >= 2 executions for Level C-launched campaigns.
+    local_comparable_ids = [str(item.get("execution_id") or "") for item in results if item.get("execution_id") and (item.get("artifacts") or {}).get("forensic_comparison_profile")]
+    comparable_execution_ids = list(dict.fromkeys(comparable_execution_ids_for_campaign(campaign_id, level="B") + local_comparable_ids))
     higher_level_comparison = compare_executions(comparable_execution_ids, campaign_id=campaign_id) if len(comparable_execution_ids) >= 2 else {
         "status": "Insufficient Data",
         "reason": "not_enough_completed_level_b_executions_for_direct_comparison",
@@ -4126,6 +4226,41 @@ def _run_level_b_repetitions_job(
     _persist_report_in_campaign(campaign_id, report_meta)
     _write_json(Path.cwd() / report_meta["report_dir"] / "job_status.json", get_job(job_id) or {})
     _emit_phase(job_id, job_path, phase_key="generate_report", phase_label="Generate Level B report", status="completed", detail=f"Level B report bundle written to {report_meta['report_dir']}.", category="final", index=0, total_repetitions=requested_repetitions, extra={"level_b_report_dir": report_meta["report_dir"], "level_b_report_path": report_meta["main_report_path"]})
+
+    # 2026-09-04: rebuild the consolidated forensic package after EVERY job
+    # invocation, not just the final one -- at the user's explicit request
+    # ("que se haga de forma automatizada al acabar la campaña o mientras
+    # que la campaña está dando vueltas"), so the package folder updates
+    # incrementally as repetitions complete instead of only appearing once
+    # at the very end. Safe to call this often: build_campaign_forensic_package
+    # is idempotent (copytree with dirs_exist_ok=True, and it simply finds
+    # nothing to move for final_sample_case/ until the truly final
+    # repetition creates it -- see `preserve_final_case` above). The one
+    # invocation where `preserve_final_case` is True is the real end of the
+    # outer campaign (its own last repetition for a standalone Level B
+    # batch, or the last Level C repetition specifically when wrapped by
+    # Level C -- see level_c_orchestrator._phase_run_level_b's
+    # is_final_level_c_rep) -- that's the run where the preserved case
+    # actually gets moved in. Best-effort throughout: a package-build
+    # failure must never fail the campaign it's reporting on.
+    try:
+        from .campaign_package_builder import build_campaign_forensic_package
+
+        package_summary = build_campaign_forensic_package(campaign_id)
+        stage = "Final" if preserve_final_case else "Incremental"
+        append_job_list(
+            job_id, job_path, "warnings",
+            f"{stage} consolidated forensic package update at {package_summary['package_dir']} "
+            f"({package_summary['execution_count']} Level B executions, "
+            f"{package_summary['nested_level_a_count']} nested Level A reports, "
+            f"dashboard capture: {package_summary['dashboard_capture_included']}, "
+            f"final case included: {package_summary['final_sample_case_included']}).",
+        )
+    except Exception as exc:
+        append_job_list(
+            job_id, job_path, "warnings",
+            f"Consolidated forensic package update failed (non-fatal, campaign result is unaffected): {exc}",
+        )
 
     completed = sum(1 for item in results if item.get("execution_status") == "completed")
     partial = sum(1 for item in results if item.get("execution_status") == "partial")
@@ -4267,6 +4402,7 @@ def start_level_b_repetitions_job(
     dfir_mode_before: str = "unknown",
     dfir_mode_after: str = "unknown",
     force_replace_active: bool = False,
+    preserve_final_case: bool = True,
 ) -> dict:
     if str(confirmation or "").strip() != CONFIRMATION_TOKEN:
         return {"error": "confirmation_required", "message": 'Type exactly "OK" to confirm the Level B repetition batch. This launches real OT attacks, waits for real alerts, creates new forensic cases, and runs real acquisition and analysis.'}
@@ -4334,6 +4470,7 @@ def start_level_b_repetitions_job(
             dfir_mode_before=str(dfir_mode_before or "unknown").strip().lower() or "unknown",
             dfir_mode_after=str(dfir_mode_after or "unknown").strip().lower() or "unknown",
             nested_level_a_repetitions=nested_level_a_repetitions,
+            preserve_final_case=bool(preserve_final_case),
         ),
     )
 

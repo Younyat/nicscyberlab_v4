@@ -276,8 +276,8 @@ cat > "$BASE_DIR/install_agent.yml" <<EOF
 
     - name: Eliminar instalación previa del agente
       shell: |
-        apt-get purge -y wazuh-agent || true
-        apt-get autoremove -y || true
+        apt-get -o DPkg::Lock::Timeout=120 purge -y wazuh-agent || true
+        apt-get -o DPkg::Lock::Timeout=120 autoremove -y || true
         rm -rf /var/ossec
         rm -rf /etc/wazuh-agent
       args:
@@ -285,16 +285,17 @@ cat > "$BASE_DIR/install_agent.yml" <<EOF
 
     - name: Instalar dependencias y repositorio
       shell: |
-        apt-get update
-        apt-get install -y curl apt-transport-https gnupg
+        apt-get -o DPkg::Lock::Timeout=120 update
+        apt-get -o DPkg::Lock::Timeout=120 install -y curl apt-transport-https gnupg
         curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH | apt-key add -
         echo "deb https://packages.wazuh.com/4.x/apt/ stable main" > /etc/apt/sources.list.d/wazuh.list
-        apt-get update
+        apt-get -o DPkg::Lock::Timeout=120 update
       args:
         executable: /bin/bash
 
     - name: Instalar Wazuh Agent
       apt:
+        lock_timeout: 120
         name: "wazuh-agent={{ wazuh_version }}-1"
         state: present
         force: true

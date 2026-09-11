@@ -1,56 +1,56 @@
 \begin{table}[ht]
 \centering
-\caption{FORGE-VI Level C Workflow Verification Summary ($N_C = 92$ accepted redeployment-aware executions)}
+\caption{FORGE-VI Level C Workflow Verification Summary ($N_C = 103$ accepted redeployment-aware executions)}
 \label{tab:forge-vi-workflow}
 \begin{tabular}{llr}
 \hline
 \textbf{Phase} & \textbf{Verified Condition} & \textbf{Result} \\
 \hline
 \multirow{3}{*}{\textbf{Deploy/Redeploy}} & Teardown completed & \textit{N/A} (Level~B, standing scenario) \\
- & Same topology instantiated & 92/92$^{\dagger}$ \\
- & Effective inventory recorded & 92/92$^{\dagger}$ \\
+ & Same topology instantiated & 103/103$^{\dagger}$ \\
+ & Effective inventory recorded & 103/103$^{\dagger}$ \\
 \hline
-\multirow{5}{*}{\textbf{Validate}} & Validation gate passed$^{\dagger}$ & 92/92 \\
- & Segmentation verified$^{\dagger}$ & 82/92 \\
- & Sensor liveness verified$^{\dagger}$ & 92/92 \\
- & PLC/SCADA reachable$^{\dagger}$ & 92/92 \\
- & Time reference coherent & 86/92 \\
+\multirow{5}{*}{\textbf{Validate}} & Validation gate passed$^{\dagger}$ & 102/103 \\
+ & Segmentation verified$^{\dagger}$ & 90/103 \\
+ & Sensor liveness verified$^{\dagger}$ & 103/103 \\
+ & PLC/SCADA reachable$^{\dagger}$ & 103/103 \\
+ & Time reference coherent & 97/103 \\
 \hline
-\multirow{3}{*}{\textbf{Execute}} & Attack profile executed & 92/92 \\
- & Ground truth available & 92/92 \\
- & Attack duration & 20~s \pm 6~s \\
+\multirow{3}{*}{\textbf{Execute}} & Attack profile executed & 103/103 \\
+ & Ground truth available & 103/103 \\
+ & Attack duration & 20~s \pm 5~s \\
 \hline
-\multirow{3}{*}{\textbf{Detect}} & Alert observed & 92/92 \\
- & Trigger alert bound & 92/92 \\
- & Attack-to-alert latency & 15~s \pm 20~s \\
+\multirow{3}{*}{\textbf{Detect}} & Alert observed & 103/103 \\
+ & Trigger alert bound & 103/103 \\
+ & Attack-to-alert latency & 15~s \pm 19~s \\
 \hline
-\multirow{5}{*}{\textbf{Acquire}} & Memory acquired first & 92/92 \\
- & Acquisition order valid (mem$\to$net$\to$disk) & 92/92 \\
- & Alert-to-memory-start (neg.=preemptive) & 21~s \pm 22~s \\
- & Alert-to-memory-sealed & 596~s \pm 152~s \\
- & Alert-to-case-sealed (all artifacts) & 1636~s \pm 397~s \\
+\multirow{5}{*}{\textbf{Acquire}} & Memory acquired first & 103/103 \\
+ & Acquisition order valid (mem$\to$net$\to$disk) & 103/103 \\
+ & Alert-to-memory-start (neg.=preemptive) & 20~s \pm 21~s \\
+ & Alert-to-memory-sealed & 607~s \pm 156~s \\
+ & Alert-to-case-sealed (all artifacts) & 1612~s \pm 389~s \\
 \hline
-\multirow{5}{*}{\textbf{Preserve}} & Required artifacts preserved & 92/92 \\
- & Manifest verified & 92/92 \\
- & Custody chain present & 92/92 \\
- & Memory (LiME) & 7.39~GiB \pm 1.50~GiB \\
- & Disk (RAW) & 64.67~GiB \pm 14.48~GiB \\
- & Network (PCAP) & 1.67~GiB \pm 1.34~GiB \\
+\multirow{5}{*}{\textbf{Preserve}} & Required artifacts preserved & 103/103 \\
+ & Manifest verified & 103/103 \\
+ & Custody chain present & 103/103 \\
+ & Memory (LiME) & 7.45~GiB \pm 1.44~GiB \\
+ & Disk (RAW) & 65.24~GiB \pm 13.78~GiB \\
+ & Network (PCAP) & 1.57~GiB \pm 1.33~GiB \\
 \hline
 \multirow{5}{*}{\textbf{Analyze}} & Layers completed / expected & 9--12/14 \\
  & Layers partial (output present, caveated) & 29 (total layer-run instances) \\
  & Useful layers (completed + partial) & 11--12/14 \\
- & Memory analysis status & completed (85/92), partial (7/92) \\
- & Timeline generated & 92/92 \\
- & Cross-layer findings & 92/92 \\
+ & Memory analysis status & completed (95/103), partial (7/103), skipped_no_memory_dump (1/103) \\
+ & Timeline generated & 103/103 \\
+ & Cross-layer findings & 103/103 \\
 \hline
 \multirow{3}{*}{\textbf{Reconstruct (CPR)}} & CPR (diagnostic only) & 0.5 \\
  & Edge state & R=4, D=2, M=2, A=0 \\
  & Recoverability & partially_recoverable \\
 \hline
-\multirow{3}{*}{\textbf{Compare}} & FSR invariants stable & 0/92 \\
- & CPR stable & 0/92 \\
- & Edge-state pattern stable & 0/92 \\
+\multirow{3}{*}{\textbf{Compare}} & FSR invariants stable & 0/103 \\
+ & CPR stable & 0/103 \\
+ & Edge-state pattern stable & 0/103 \\
 \hline
 \end{tabular}
 \begin{flushleft}

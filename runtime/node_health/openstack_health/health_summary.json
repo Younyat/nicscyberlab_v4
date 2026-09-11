@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-27T10:38:59.267505Z",
+  "generated_at": "2026-09-02T13:23:04.624659Z",
   "overall_state": "failed",
   "openstack": {
     "state": "completed",
@@ -13,131 +13,131 @@
   },
   "host": {
     "hostname": "nics-lab-VMware20-1",
-    "date_utc": "2026-07-27T10:38:40Z",
-    "loadavg": "7.71 8.78 9.44",
-    "cpu_load_ratio": 0.964,
-    "cpu_severity": "ok",
+    "date_utc": "2026-09-02T13:22:59Z",
+    "loadavg": "10.58 9.07 8.48",
+    "cpu_load_ratio": 1.323,
+    "cpu_severity": "warning",
     "mem_total_mb": 64298,
-    "mem_used_mb": 41561,
-    "mem_avail_mb": 22737,
-    "memory_usage_pct": 64.64,
+    "mem_used_mb": 35499,
+    "mem_avail_mb": 28799,
+    "memory_usage_pct": 55.21,
     "memory_severity": "ok",
     "root_total_bytes": 631876841472,
-    "root_used_bytes": 159517523968,
-    "root_avail_bytes": 444486553600,
-    "root_use_pct": "27%",
+    "root_used_bytes": 175784833024,
+    "root_avail_bytes": 428219244544,
+    "root_use_pct": "30%",
     "disk_severity": "ok",
-    "overall_severity": "ok"
+    "overall_severity": "warning"
   },
   "nodes": [
     {
-      "id": "73cbd073-488b-47fd-bd13-12a041799ac0",
+      "id": "915e2e6c-fca3-4d22-af12-17399d6b2be9",
       "name": "FUXA_Instance",
       "role": "scada",
       "status": "ACTIVE",
-      "ssh_target_ip": "10.0.2.203",
+      "ssh_target_ip": "10.0.2.234",
       "source": "live_probe",
       "stale": false,
       "error": null,
-      "generated_at": "2026-07-27T10:38:45.424748Z",
-      "cache_age_seconds": 0.01,
-      "cpu_usage_pct": 18.8,
+      "generated_at": "2026-09-02T13:23:02.892880Z",
+      "cache_age_seconds": 0.0,
+      "cpu_usage_pct": 27.8,
       "cpu_severity": "ok",
-      "memory_usage_pct": 16.51,
-      "memory_available_mb": 1442,
+      "memory_usage_pct": 18.39,
+      "memory_available_mb": 1404,
       "memory_severity": "ok",
-      "disk_root_use_pct": 34,
-      "disk_root_avail_bytes": 10202144768,
+      "disk_root_use_pct": 30,
+      "disk_root_avail_bytes": 10906271744,
       "disk_severity": "ok",
       "overall_severity": "ok"
     },
     {
-      "id": "aa991b84-073b-4089-b38c-9320b8cab0f9",
+      "id": "3dadc7b1-2ee6-430b-927a-8d0f6a543315",
       "name": "PLC_Instance",
       "role": "plc",
       "status": "ACTIVE",
-      "ssh_target_ip": "10.0.2.228",
+      "ssh_target_ip": "10.0.2.215",
       "source": "live_probe",
       "stale": false,
       "error": null,
-      "generated_at": "2026-07-27T10:38:44.632296Z",
-      "cache_age_seconds": 0.01,
-      "cpu_usage_pct": 25.0,
+      "generated_at": "2026-09-02T13:23:03.030477Z",
+      "cache_age_seconds": 0.0,
+      "cpu_usage_pct": 23.5,
       "cpu_severity": "ok",
-      "memory_usage_pct": 15.18,
-      "memory_available_mb": 1463,
+      "memory_usage_pct": 16.56,
+      "memory_available_mb": 1432,
       "memory_severity": "ok",
-      "disk_root_use_pct": 29,
-      "disk_root_avail_bytes": 10969944064,
+      "disk_root_use_pct": 25,
+      "disk_root_avail_bytes": 11690295296,
       "disk_severity": "ok",
       "overall_severity": "ok"
     },
     {
-      "id": "c23c5874-d17e-40a6-8845-34c6bf35e370",
+      "id": "92511d1b-897a-40e8-a8f6-d6b0479aaf6e",
       "name": "attack 22",
       "role": "attacker",
       "status": "ACTIVE",
-      "ssh_target_ip": "10.0.2.50",
+      "ssh_target_ip": "10.0.2.167",
       "source": "live_probe",
       "stale": false,
       "error": null,
-      "generated_at": "2026-07-27T10:38:42.948756Z",
-      "cache_age_seconds": 0.01,
+      "generated_at": "2026-09-02T13:23:01.056205Z",
+      "cache_age_seconds": 0.0,
       "cpu_usage_pct": 100.0,
       "cpu_severity": "critical",
-      "memory_usage_pct": 17.43,
-      "memory_available_mb": 1634,
+      "memory_usage_pct": 18.75,
+      "memory_available_mb": 1608,
       "memory_severity": "ok",
       "disk_root_use_pct": 21,
-      "disk_root_avail_bytes": 15995920384,
+      "disk_root_avail_bytes": 15844585472,
       "disk_severity": "ok",
       "overall_severity": "critical"
     },
     {
-      "id": "10ade44d-e1da-4c0c-8d5a-7a7462f5e3c5",
+      "id": "e4a0a22f-8e5d-495c-b944-180ecf7a0c83",
       "name": "monitor 11",
       "role": "monitor",
       "status": "ACTIVE",
-      "ssh_target_ip": "10.0.2.243",
+      "ssh_target_ip": "10.0.2.15",
       "source": "live_probe",
       "stale": false,
       "error": null,
-      "generated_at": "2026-07-27T10:38:45.652186Z",
+      "generated_at": "2026-09-02T13:23:03.398323Z",
       "cache_age_seconds": 0.0,
-      "cpu_usage_pct": 1.6,
+      "cpu_usage_pct": 6.2,
       "cpu_severity": "ok",
-      "memory_usage_pct": 63.47,
-      "memory_available_mb": 2586,
+      "memory_usage_pct": 66.36,
+      "memory_available_mb": 2357,
       "memory_severity": "ok",
       "disk_root_use_pct": 8,
-      "disk_root_avail_bytes": 77050310656,
+      "disk_root_avail_bytes": 77117235200,
       "disk_severity": "ok",
       "overall_severity": "ok"
     },
     {
-      "id": "59f3db80-a785-41d5-846c-79fd7437e00e",
+      "id": "415a394e-8bb5-434f-a295-f5ff7d93a97c",
       "name": "victim 33",
       "role": "victim",
       "status": "ACTIVE",
-      "ssh_target_ip": "10.0.2.170",
+      "ssh_target_ip": "10.0.2.186",
       "source": "live_probe",
       "stale": false,
       "error": null,
-      "generated_at": "2026-07-27T10:38:43.002518Z",
+      "generated_at": "2026-09-02T13:23:01.431922Z",
       "cache_age_seconds": 0.0,
-      "cpu_usage_pct": 66.7,
-      "cpu_severity": "ok",
-      "memory_usage_pct": 11.26,
-      "memory_available_mb": 3485,
+      "cpu_usage_pct": 100.0,
+      "cpu_severity": "critical",
+      "memory_usage_pct": 13.29,
+      "memory_available_mb": 3404,
       "memory_severity": "ok",
-      "disk_root_use_pct": 15,
-      "disk_root_avail_bytes": 34632187904,
+      "disk_root_use_pct": 19,
+      "disk_root_avail_bytes": 32956600320,
       "disk_severity": "ok",
-      "overall_severity": "ok"
+      "overall_severity": "critical"
     }
   ],
   "floating_ips": {
-    "generated_at": "2026-07-27T10:38:46.580729Z",
+    "generated_at": "2026-09-02T13:23:03.952317Z",
     "quota_limit": 50,
     "quota_error": null,
     "allocated_total": 5,
@@ -150,47 +150,47 @@
     "below_threshold": false,
     "ips": [
       {
-        "id": "03735c40-bebd-4fa4-a112-5c0cb37c48e9",
-        "floating_ip_address": "10.0.2.243",
-        "fixed_ip_address": "192.168.100.192",
+        "id": "9acc64c7-ba98-470e-bb72-f045117b1269",
+        "floating_ip_address": "10.0.2.234",
+        "fixed_ip_address": "192.168.100.158",
         "status": "ACTIVE",
-        "port_id": "e9e85077-ba28-4395-91ff-a576d451f5f0",
+        "port_id": "35348da1-146c-431a-a03a-85e51b656744",
         "attached": true,
         "description": null
       },
       {
-        "id": "34d029ea-cc27-4c8f-948c-36455adb468b",
-        "floating_ip_address": "10.0.2.170",
-        "fixed_ip_address": "192.168.100.196",
+        "id": "aca2fcf5-8898-412f-86e9-7995f1d0e41c",
+        "floating_ip_address": "10.0.2.167",
+        "fixed_ip_address": "192.168.100.126",
         "status": "ACTIVE",
-        "port_id": "3344cb6b-e741-4d29-8202-c82cda27d96e",
+        "port_id": "81547b1b-a022-4c8b-b275-9f5b1625ea2d",
         "attached": true,
         "description": null
       },
       {
-        "id": "781cec80-f9dc-4137-98af-b81567c13f49",
-        "floating_ip_address": "10.0.2.203",
-        "fixed_ip_address": "192.168.100.160",
+        "id": "ce9eb4dc-8988-432c-b699-0d3099367b40",
+        "floating_ip_address": "10.0.2.15",
+        "fixed_ip_address": "192.168.100.242",
         "status": "ACTIVE",
-        "port_id": "18e5d49c-6f2e-4374-8eaf-31339f605a51",
+        "port_id": "0f5503bd-1e62-42c3-9317-f8c88230a060",
         "attached": true,
         "description": null
       },
       {
-        "id": "9688b4de-4cc7-4caa-b4fa-6179535ec5fc",
-        "floating_ip_address": "10.0.2.50",
-        "fixed_ip_address": "192.168.100.211",
+        "id": "f2c13f0e-8368-4c9b-9608-0a031294df37",
+        "floating_ip_address": "10.0.2.186",
+        "fixed_ip_address": "192.168.100.7",
         "status": "ACTIVE",
-        "port_id": "3009818e-0df2-4339-afee-be4ba799f6b8",
+        "port_id": "b8829cc4-72dc-4170-8372-29806cf5d84a",
         "attached": true,
         "description": null
       },
       {
-        "id": "f85c3d41-22be-4e37-adda-c6745d71e412",
-        "floating_ip_address": "10.0.2.228",
-        "fixed_ip_address": "192.168.100.228",
+        "id": "f9ca1492-41c3-4519-9331-0f7e0d739880",
+        "floating_ip_address": "10.0.2.215",
+        "fixed_ip_address": "192.168.100.109",
         "status": "ACTIVE",
-        "port_id": "2b66c094-2ba3-48d4-82b3-09eee2364a71",
+        "port_id": "cc890061-3dd4-40a2-b1e5-b81b2d32a501",
         "attached": true,
         "description": null
       }
@@ -198,41 +198,61 @@
   },
   "alerts": [
     {
-      "alert_id": "health-node-cpu-c23c5874-d17e-40a6-8845-34c6bf35e370",
+      "alert_id": "health-node-cpu-92511d1b-897a-40e8-a8f6-d6b0479aaf6e",
       "severity": "critical",
       "scope": "node",
       "target": "attack 22",
       "title": "Node CPU usage is elevated",
       "detail": "Node attack 22 reports CPU usage 100.0%.",
       "recommendation": "Review the node process list from Node Health before launching additional tasks.",
-      "generated_at": "2026-07-27T10:38:46.580824Z"
+      "generated_at": "2026-09-02T13:23:03.952411Z"
+    },
+    {
+      "alert_id": "health-node-cpu-415a394e-8bb5-434f-a295-f5ff7d93a97c",
+      "severity": "critical",
+      "scope": "node",
+      "target": "victim 33",
+      "title": "Node CPU usage is elevated",
+      "detail": "Node victim 33 reports CPU usage 100.0%.",
+      "recommendation": "Review the node process list from Node Health before launching additional tasks.",
+      "generated_at": "2026-09-02T13:23:03.952423Z"
+    },
+    {
+      "alert_id": "health-host-cpu",
+      "severity": "warning",
+      "scope": "host",
+      "target": "nics-lab-VMware20-1",
+      "title": "Host CPU load is elevated",
+      "detail": "Host nics-lab-VMware20-1 reports loadavg 10.58 9.07 8.48.",
+      "recommendation": "Reduce concurrent load or wait for the host to stabilize before starting new preservation or OpenStack operations.",
+      "generated_at": "2026-09-02T13:23:03.952390Z"
     }
   ],
-  "alert_count": 1,
+  "alert_count": 3,
   "inventory_nodes": [
     {
-      "id": "aa991b84-073b-4089-b38c-9320b8cab0f9",
+      "id": "3dadc7b1-2ee6-430b-927a-8d0f6a543315",
       "name": "PLC_Instance",
       "status": "ACTIVE",
       "role": "plc",
       "os": "Ubuntu Linux",
       "image_name": "ubuntu-22.04",
       "ssh_user": "ubuntu",
-      "ip_private": "192.168.100.228",
-      "ip_floating": "10.0.2.228",
-      "ssh_target_ip": "10.0.2.228",
+      "ip_private": "192.168.100.109",
+      "ip_floating": "10.0.2.215",
+      "ssh_target_ip": "10.0.2.215",
       "networks": [
         {
           "network": "net_private_01",
-          "ip": "192.168.100.228",
+          "ip": "192.168.100.109",
           "type": "fixed",
-          "mac": "fa:16:3e:cc:f4:52"
+          "mac": "fa:16:3e:29:ae:c6"
         },
         {
           "network": "net_private_01",
-          "ip": "10.0.2.228",
+          "ip": "10.0.2.215",
           "type": "floating",
-          "mac": "fa:16:3e:cc:f4:52"
+          "mac": "fa:16:3e:29:ae:c6"
         }
       ],
       "availability_zone": "nova",
@@ -240,7 +260,7 @@
       "tool_inventory": {
         "source_files": [
           "tools-installer-tmp/plc_instance_tools.json",
-          "tools-installer/installed/aa991b84-073b-4089-b38c-9320b8cab0f9.json"
+          "tools-installer/installed/3dadc7b1-2ee6-430b-927a-8d0f6a543315.json"
         ],
         "tools": [
           {
@@ -248,7 +268,7 @@
             "display_name": "Wazuh Agent",
             "category": "agent",
             "inventory_status": "installed",
-            "installed_at": "2026-07-27T09:56:10.409493+00:00",
+            "installed_at": "2026-07-30T21:44:14.225161+00:00",
             "expected_artifacts": []
           },
           {
@@ -256,7 +276,7 @@
             "display_name": "Wazuh FIM Realtime",
             "category": "fim",
             "inventory_status": "installed",
-            "installed_at": "2026-07-27T10:01:41.800083+00:00",
+            "installed_at": "2026-07-30T21:49:09.949835+00:00",
             "expected_artifacts": [
               "/var/ossec/etc/ossec.conf"
             ]
@@ -266,7 +286,7 @@
             "display_name": "Suricata IDS",
             "category": "ids",
             "inventory_status": "installed",
-            "installed_at": "2026-07-27T09:53:58.156666+00:00",
+            "installed_at": "2026-07-30T21:41:58.855814+00:00",
             "expected_artifacts": []
           },
           {
@@ -274,7 +294,7 @@
             "display_name": "Wazuh-Suricata Integration",
             "category": "integration",
             "inventory_status": "installed",
-            "installed_at": "2026-07-27T10:01:15.548940+00:00",
+            "installed_at": "2026-07-30T21:48:44.068896+00:00",
             "expected_artifacts": [
               "/var/ossec/etc/ossec.conf",
               "/var/ossec/logs/ossec.log"
@@ -285,7 +305,7 @@
             "display_name": "Suricata Modbus Register Rules",
             "category": "rule_pack",
             "inventory_status": "installed",
-            "installed_at": "2026-07-27T10:00:51.323800+00:00",
+            "installed_at": "2026-07-30T21:48:07.864822+00:00",
             "expected_artifacts": [
               "nics-modbus-register-manipulation.rules"
             ]
@@ -295,7 +315,7 @@
             "display_name": "Suricata Ping Detection Rules",
             "category": "rule_pack",
             "inventory_status": "installed",
-            "installed_at": "2026-07-27T10:00:31.101043+00:00",
+            "installed_at": "2026-07-30T21:47:48.027400+00:00",
             "expected_artifacts": [
               "nics-ping.rules"
             ]
@@ -312,28 +332,28 @@
       }
     },
     {
-      "id": "73cbd073-488b-47fd-bd13-12a041799ac0",
+      "id": "915e2e6c-fca3-4d22-af12-17399d6b2be9",
       "name": "FUXA_Instance",
       "status": "ACTIVE",
       "role": "scada",
       "os": "Ubuntu Linux",
       "image_name": "ubuntu-22.04",
       "ssh_user": "ubuntu",
-      "ip_private": "192.168.100.160",
-      "ip_floating": "10.0.2.203",
-      "ssh_target_ip": "10.0.2.203",
+      "ip_private": "192.168.100.158",
+      "ip_floating": "10.0.2.234",
+      "ssh_target_ip": "10.0.2.234",
       "networks": [
         {
           "network": "net_private_01",
-          "ip": "192.168.100.160",
+          "ip": "192.168.100.158",
           "type": "fixed",
-          "mac": "fa:16:3e:58:74:d2"
+          "mac": "fa:16:3e:d1:75:81"
         },
         {
           "network": "net_private_01",
-          "ip": "10.0.2.203",
+          "ip": "10.0.2.234",
           "type": "floating",
-          "mac": "fa:16:3e:58:74:d2"
+          "mac": "fa:16:3e:d1:75:81"
         }
       ],
       "availability_zone": "nova",
@@ -341,7 +361,7 @@
       "tool_inventory": {
         "source_files": [
           "tools-installer-tmp/fuxa_instance_tools.json",
-          "tools-installer/installed/73cbd073-488b-47fd-bd13-12a041799ac0.json"
+          "tools-installer/installed/915e2e6c-fca3-4d22-af12-17399d6b2be9.json"
         ],
         "tools": [
           {
@@ -349,7 +369,7 @@
             "display_name": "Wazuh Agent",
             "category": "agent",
             "inventory_status": "installed",
-            "installed_at": "2026-07-27T09:59:46.893291+00:00",
+            "installed_at": "2026-07-30T21:47:02.775104+00:00",
             "expected_artifacts": []
           },
           {
@@ -357,7 +377,7 @@
             "display_name": "Wazuh FIM Realtime",
             "category": "fim",
             "inventory_status": "installed",
-            "installed_at": "2026-07-27T10:03:06.642727+00:00",
+            "installed_at": "2026-07-30T21:50:58.764374+00:00",
             "expected_artifacts": [
               "/var/ossec/etc/ossec.conf"
             ]
@@ -367,7 +387,7 @@
             "display_name": "Suricata IDS",
             "category": "ids",
             "inventory_status": "installed",
-            "installed_at": "2026-07-27T09:57:28.633996+00:00",
+            "installed_at": "2026-07-30T21:44:55.397543+00:00",
             "expected_artifacts": []
           },
           {
@@ -375,7 +395,7 @@
             "display_name": "Wazuh-Suricata Integration",
             "category": "integration",
             "inventory_status": "installed",
-            "installed_at": "2026-07-27T10:02:40.428308+00:00",
+            "installed_at": "2026-07-30T21:50:31.774215+00:00",
             "expected_artifacts": [
               "/var/ossec/etc/ossec.conf",
               "/var/ossec/logs/ossec.log"
@@ -386,7 +406,7 @@
             "display_name": "Suricata Modbus Register Rules",
             "category": "rule_pack",
             "inventory_status": "installed",
-            "installed_at": "2026-07-27T10:02:16.234754+00:00",
+            "installed_at": "2026-07-30T21:50:07.767603+00:00",
             "expected_artifacts": [
               "nics-modbus-register-manipulation.rules"
             ]
@@ -396,7 +416,7 @@
             "display_name": "Suricata Ping Detection Rules",
             "category": "rule_pack",
             "inventory_status": "installed",
-            "installed_at": "2026-07-27T10:01:56.032844+00:00",
+            "installed_at": "2026-07-30T21:49:38.226037+00:00",
             "expected_artifacts": [
               "nics-ping.rules"
             ]
@@ -413,28 +433,28 @@
       }
     },
     {
-      "id": "59f3db80-a785-41d5-846c-79fd7437e00e",
+      "id": "415a394e-8bb5-434f-a295-f5ff7d93a97c",
       "name": "victim 33",
       "status": "ACTIVE",
       "role": "victim",
       "os": "Debian Linux",
       "image_name": "debian-12",
       "ssh_user": "debian",
-      "ip_private": "192.168.100.196",
-      "ip_floating": "10.0.2.170",
-      "ssh_target_ip": "10.0.2.170",
+      "ip_private": "192.168.100.7",
+      "ip_floating": "10.0.2.186",
+      "ssh_target_ip": "10.0.2.186",
       "networks": [
         {
           "network": "net_private_01",
-          "ip": "192.168.100.196",
+          "ip": "192.168.100.7",
           "type": "fixed",
-          "mac": "fa:16:3e:87:b0:59"
+          "mac": "fa:16:3e:90:14:f3"
         },
         {
           "network": "net_private_01",
-          "ip": "10.0.2.170",
+          "ip": "10.0.2.186",
           "type": "floating",
-          "mac": "fa:16:3e:87:b0:59"
+          "mac": "fa:16:3e:90:14:f3"
         }
       ],
       "availability_zone": "nova",
@@ -442,7 +462,7 @@
       "tool_inventory": {
         "source_files": [
           "tools-installer-tmp/victim_33_tools.json",
-          "tools-installer/installed/59f3db80-a785-41d5-846c-79fd7437e00e.json"
+          "tools-installer/installed/415a394e-8bb5-434f-a295-f5ff7d93a97c.json"
         ],
         "tools": [
           {
@@ -450,7 +470,7 @@
             "display_name": "Caldera Agent",
             "category": "agent",
             "inventory_status": "installed",
-            "installed_at": "2026-07-27T09:52:49.937661+00:00",
+            "installed_at": "2026-07-30T21:40:51.406294+00:00",
             "expected_artifacts": []
           },
           {
@@ -458,7 +478,7 @@
             "display_name": "Wazuh Agent",
             "category": "agent",
             "inventory_status": "installed",
-            "installed_at": "2026-07-27T09:52:39.732899+00:00",
+            "installed_at": "2026-07-30T21:40:40.367560+00:00",
             "expected_artifacts": []
           },
           {
@@ -466,7 +486,7 @@
             "display_name": "Suricata IDS",
             "category": "ids",
             "inventory_status": "installed",
-            "installed_at": "2026-07-27T09:49:54.787275+00:00",
+            "installed_at": "2026-07-30T21:37:37.890350+00:00",
             "expected_artifacts": []
           },
           {
@@ -474,7 +494,7 @@
             "display_name": "Nmap",
             "category": "other",
             "inventory_status": "installed",
-            "installed_at": "2026-07-27T09:50:50.449465+00:00",
+            "installed_at": "2026-07-30T21:38:24.977952+00:00",
             "expected_artifacts": []
           }
         ],
@@ -487,28 +507,28 @@
       }
     },
     {
-      "id": "c23c5874-d17e-40a6-8845-34c6bf35e370",
+      "id": "92511d1b-897a-40e8-a8f6-d6b0479aaf6e",
       "name": "attack 22",
       "status": "ACTIVE",
       "role": "attacker",
       "os": "Debian Linux",
       "image_name": "debian-12",
       "ssh_user": "debian",
-      "ip_private": "192.168.100.211",
-      "ip_floating": "10.0.2.50",
-      "ssh_target_ip": "10.0.2.50",
+      "ip_private": "192.168.100.126",
+      "ip_floating": "10.0.2.167",
+      "ssh_target_ip": "10.0.2.167",
       "networks": [
         {
           "network": "net_private_01",
-          "ip": "192.168.100.211",
+          "ip": "192.168.100.126",
           "type": "fixed",
-          "mac": "fa:16:3e:91:32:10"
+          "mac": "fa:16:3e:58:ee:d8"
         },
         {
           "network": "net_private_01",
-          "ip": "10.0.2.50",
+          "ip": "10.0.2.167",
           "type": "floating",
-          "mac": "fa:16:3e:91:32:10"
+          "mac": "fa:16:3e:58:ee:d8"
         }
       ],
       "availability_zone": "nova",
@@ -516,7 +536,7 @@
       "tool_inventory": {
         "source_files": [
           "tools-installer-tmp/attack_22_tools.json",
-          "tools-installer/installed/c23c5874-d17e-40a6-8845-34c6bf35e370.json"
+          "tools-installer/installed/92511d1b-897a-40e8-a8f6-d6b0479aaf6e.json"
         ],
         "tools": [
           {
@@ -524,7 +544,7 @@
             "display_name": "Caldera OT Plugins",
             "category": "orchestrator",
             "inventory_status": "installed",
-            "installed_at": "2026-07-27T09:47:18.613350+00:00",
+            "installed_at": "2026-07-30T21:34:50.217033+00:00",
             "expected_artifacts": []
           },
           {
@@ -532,7 +552,7 @@
             "display_name": "MITRE Caldera",
             "category": "orchestrator",
             "inventory_status": "installed",
-            "installed_at": "2026-07-27T09:45:14.338248+00:00",
+            "installed_at": "2026-07-30T21:32:48.913900+00:00",
             "expected_artifacts": []
           },
           {
@@ -540,7 +560,7 @@
             "display_name": "mbpoll",
             "category": "other",
             "inventory_status": "installed",
-            "installed_at": "2026-07-27T09:47:28.798996+00:00",
+            "installed_at": "2026-07-30T21:35:01.250380+00:00",
             "expected_artifacts": []
           },
           {
@@ -548,7 +568,7 @@
             "display_name": "Nmap",
             "category": "other",
             "inventory_status": "installed",
-            "installed_at": "2026-07-27T09:48:17.007904+00:00",
+            "installed_at": "2026-07-30T21:35:50.411654+00:00",
             "expected_artifacts": []
           }
         ],
@@ -560,28 +580,28 @@
       }
     },
     {
-      "id": "10ade44d-e1da-4c0c-8d5a-7a7462f5e3c5",
+      "id": "e4a0a22f-8e5d-495c-b944-180ecf7a0c83",
       "name": "monitor 11",
       "status": "ACTIVE",
       "role": "monitor",
       "os": "Ubuntu Linux",
       "image_name": "ubuntu-22.04",
       "ssh_user": "ubuntu",
-      "ip_private": "192.168.100.192",
-      "ip_floating": "10.0.2.243",
-      "ssh_target_ip": "10.0.2.243",
+      "ip_private": "192.168.100.242",
+      "ip_floating": "10.0.2.15",
+      "ssh_target_ip": "10.0.2.15",
       "networks": [
         {
           "network": "net_private_01",
-          "ip": "192.168.100.192",
+          "ip": "192.168.100.242",
           "type": "fixed",
-          "mac": "fa:16:3e:14:59:91"
+          "mac": "fa:16:3e:7e:cc:9d"
         },
         {
           "network": "net_private_01",
-          "ip": "10.0.2.243",
+          "ip": "10.0.2.15",
           "type": "floating",
-          "mac": "fa:16:3e:14:59:91"
+          "mac": "fa:16:3e:7e:cc:9d"
         }
       ],
       "availability_zone": "nova",
@@ -589,7 +609,7 @@
       "tool_inventory": {
         "source_files": [
           "tools-installer-tmp/monitor_11_tools.json",
-          "tools-installer/installed/10ade44d-e1da-4c0c-8d5a-7a7462f5e3c5.json"
+          "tools-installer/installed/e4a0a22f-8e5d-495c-b944-180ecf7a0c83.json"
         ],
         "tools": [
           {
@@ -597,7 +617,7 @@
             "display_name": "Nmap",
             "category": "other",
             "inventory_status": "installed",
-            "installed_at": "2026-07-27T09:37:49.307607+00:00",
+            "installed_at": "2026-07-30T21:25:21.020666+00:00",
             "expected_artifacts": []
           },
           {
@@ -605,7 +625,7 @@
             "display_name": "Wazuh Manager",
             "category": "siem",
             "inventory_status": "installed",
-            "installed_at": "2026-07-27T09:37:04.936394+00:00",
+            "installed_at": "2026-07-30T21:24:55.953782+00:00",
             "expected_artifacts": []
           }
         ],

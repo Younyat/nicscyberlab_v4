@@ -125,7 +125,11 @@ def main(argv: list[str]) -> int:
     pre_state = collect_state(context, VARIABLES, source_ip=attacker["source_ip"], source_user=attacker["source_user"])
     original = pre_state["variables"].get("level_max", {}).get("value")
     if original is None:
+        level_max_state = pre_state["variables"].get("level_max", {})
         print("[FAIL] Could not read pre-state level_max")
+        print(f"[FAIL]   status={level_max_state.get('status')} reason={level_max_state.get('reason')}")
+        print(f"[FAIL]   mbpoll stderr: {level_max_state.get('stderr')!r}")
+        print(f"[FAIL]   mbpoll stdout: {level_max_state.get('stdout')!r}")
         return 2
 
     write_result = mbpoll_write(

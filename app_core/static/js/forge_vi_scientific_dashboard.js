@@ -109,7 +109,7 @@ function renderKpis() {
     kpiCard(a.n,             "Executions",             "evaluated runs",        "#38bdf8"),
     kpiCard(a.cases_sealed,  "Cases sealed",           "intervention_status=completed", "#22c55e"),
     kpiCard(pct(a.mean_integrity_ratio), "SHA-256 coverage", "primary artifacts",  "#a78bfa"),
-    kpiCard(cprPct,          "CPR",                    `${a.n} runs`,             cprColor),
+    kpiCard(cprPct,          "Mean CPR",               `across ${a.n} runs`,      cprColor),
     kpiCard(r0.expected_edges ?? 8, "Expected edges",  "causal relations",       "#94a3b8"),
     kpiCard(a.edge_aggregate ? Object.values(a.edge_aggregate).filter(e=>e.recovered===a.n).length : "—",
             "Stable rec.",   "edges: 100% recovered",   "#22c55e"),
@@ -363,8 +363,8 @@ function renderEdgeTable() {
 
   const rows = edgeMeta.map(e => {
     const ea = agg[e.label] || {};
-    const dominant = ["recovered","ambiguous","degraded","missing"].find(s => (ea[s]||0) === (DATA.aggregate.n)) || "mixed";
-    const sup = dominant !== "mixed" ? dominant : "ambiguous";
+    const stateCounts = { recovered: ea.recovered||0, ambiguous: ea.ambiguous||0, degraded: ea.degraded||0, missing: ea.missing||0, unknown: ea.unknown||0 };
+    const sup = Object.entries(stateCounts).sort((a,b) => b[1]-a[1])[0][0];
     const stable = ea.stable;
 
     // First run sample for temporal + required_evidence
@@ -385,42 +385,6 @@ function renderEdgeTable() {
   $("edge-table").innerHTML = rows;
 }
 
-// ── ROOT CAUSE REFERENCE ────────────────────────────────────────────────────
-// 2026-07-22: static, code-sourced explanations for edges with a recurring
-// degraded/ambiguous pattern (see _EDGE_ROOT_CAUSES in
-// forge_vi_dashboard/endpoints.py for the full investigation trail). Only
-// rendered for edges the backend actually attaches a root_cause to — most
-// edges have none and the section stays hidden if the current campaign has
-// no edges with a documented root cause.
-const ROOT_CAUSE_BADGE = {
-  architectural_limitation: { label: "Architectural limitation", color: "var(--info)" },
-  fixed_forward:             { label: "Root-caused & fixed",      color: "var(--ok)" },
-  open_investigation:        { label: "Under investigation",      color: "var(--amb)" },
-};
-
-function renderRootCauseSection() {
-  const edgeMeta = (DATA.edge_meta || []).filter(e => e.root_cause);
-  const section = $("root-cause-section");
-  if (!edgeMeta.length) {
-    section.style.display = "none";
-    return;
-  }
-  section.style.display = "";
-  $("root-cause-list").innerHTML = edgeMeta.map(e => {
-    const rc = e.root_cause;
-    const badge = ROOT_CAUSE_BADGE[rc.status] || { label: rc.status, color: "var(--muted)" };
-    return `<div class="glass2 rounded-[18px] p-5">
-      <div class="flex flex-wrap items-center gap-2 mb-2">
-        <span class="mono text-xs font-black" style="color:var(--info);">${esc(e.label)}</span>
-        <span style="font-size:14px;color:var(--muted);">${esc(e.desc)}</span>
-        <span class="tag-pill" style="color:${badge.color};border-color:${badge.color}40;background:${badge.color}12;">${esc(badge.label)}</span>
-      </div>
-      <div style="font-size:15px;font-weight:800;margin-bottom:4px;">${esc(rc.title)}</div>
-      <div style="font-size:14px;color:var(--muted);line-height:1.55;">${esc(rc.explanation)}</div>
-    </div>`;
-  }).join("");
-}
-
 // ── EDGE MODAL ───────────────────────────────────────────────────────────────
 function openEdgeModal(label) {
   const edgeMeta = (DATA.edge_meta || []).find(e => e.label === label) || {};
@@ -429,18 +393,6 @@ function openEdgeModal(label) {
   const ea = agg[label] || {};
 
   $("edge-modal-title").textContent = `${label} — ${edgeMeta.desc || ""}`;
-
-  const rc = edgeMeta.root_cause;
-  const rootCauseBlock = rc ? (() => {
-    const badge = ROOT_CAUSE_BADGE[rc.status] || { label: rc.status, color: "var(--muted)" };
-    return `<div class="glass2 rounded-[14px] p-4 mb-3" style="border-color:${badge.color}40;">
-      <div class="flex items-center gap-2 mb-2">
-        <span class="tag-pill" style="color:${badge.color};border-color:${badge.color}40;background:${badge.color}12;">${esc(badge.label)}</span>
-        <span style="font-size:14px;font-weight:800;">${esc(rc.title)}</span>
-      </div>
-      <div style="font-size:13px;color:var(--muted);line-height:1.5;">${esc(rc.explanation)}</div>
-    </div>`;
-  })() : "";
 
   const runRows = runs.map(r => {
     const st = (r.edge_states || {})[label] || {};
@@ -459,7 +411,6 @@ function openEdgeModal(label) {
   }).join("");
 
   $("edge-modal-body").innerHTML = `
-    ${rootCauseBlock}
     <div class="glass2 rounded-[14px] p-4 mb-3">
       <div class="text-xs font-black uppercase tracking-[.18em] text-slate-400 mb-2">Required Evidence</div>
       <div class="text-sm">${esc((edgeMeta.required_evidence || []).join(", ") || "—")}</div>
@@ -580,24 +531,39 @@ function renderM3() {
     const mem  = r.volumes?.memory_gib || 0;
     const disk = r.volumes?.disk_gib   || 0;
     const pcap = r.volumes?.pcap_gib   || 0;
-    const nDisk = r.volumes?.n_disk_images || 0;
-    const nMem  = r.volumes?.n_memory_dumps || 0;
+    const memSizes  = r.volumes?.memory_sizes_gib || [];
+    const diskSizes = r.volumes?.disk_sizes_gib   || [];
+    const breakdown = sizes => sizes.length > 1 ? ` (${sizes.map(s => fmt(s,1)).join("+")})` : "";
+    const memKept  = !!r.volumes?.memory_bytes_retained;
+    const diskKept = !!r.volumes?.disk_bytes_retained;
+    const pcapKept = !!r.volumes?.pcap_bytes_retained;
+    const hatch = kept => kept ? "" : "opacity:.35;background-image:repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(0,0,0,.35) 3px,rgba(0,0,0,.35) 6px);";
+    const notKept = ' <span style="opacity:.55;font-weight:400;" title="Recorded and hash-verified at acquisition time; the raw bytes were purged afterward under this platform\'s single-full-case retention policy and are not physically present in this bundle.">(recorded, not retained)</span>';
     return `<div class="mb-2">
       <div class="text-xs text-slate-500 mb-1">${esc(r.exec_id)}</div>
       <div class="flex gap-3 items-center">
         <div class="flex-1">
-          <div class="bar-track mb-1"><div class="bar-fill" style="width:${(mem/maxMemGib*100).toFixed(1)}%;background:#7c3aed;"></div></div>
-          ${disk > 0 ? `<div class="bar-track mb-1"><div class="bar-fill" style="width:${(disk/maxDiskGib*100).toFixed(1)}%;background:#0ea5e9;"></div></div>` : ""}
-          <div class="bar-track mb-1"><div class="bar-fill" style="width:${(pcap/maxPcapGib*100).toFixed(1)}%;background:#2563eb;"></div></div>
+          <div class="bar-track mb-1"><div class="bar-fill" style="width:${(mem/maxMemGib*100).toFixed(1)}%;background:#7c3aed;${hatch(memKept)}"></div></div>
+          ${disk > 0 ? `<div class="bar-track mb-1"><div class="bar-fill" style="width:${(disk/maxDiskGib*100).toFixed(1)}%;background:#0ea5e9;${hatch(diskKept)}"></div></div>` : ""}
+          <div class="bar-track mb-1"><div class="bar-fill" style="width:${(pcap/maxPcapGib*100).toFixed(1)}%;background:#2563eb;${hatch(pcapKept)}"></div></div>
         </div>
-        <div class="text-xs mono" style="white-space:nowrap;min-width:180px;">
-          <span style="color:#7c3aed;">mem ${fmt(mem,2)} GiB</span> (${nMem}×)<br>
-          ${disk > 0 ? `<span style="color:#0ea5e9;">disk ${fmt(disk,1)} GiB</span> (${nDisk}×)<br>` : ""}
-          <span style="color:#2563eb;">pcap ${fmt(pcap,2)} GiB</span>
+        <div class="text-xs mono" style="white-space:nowrap;min-width:220px;">
+          <span style="color:#7c3aed;">mem Σ${fmt(mem,2)} GiB</span>${esc(breakdown(memSizes))}${memKept ? "" : notKept}<br>
+          ${disk > 0 ? `<span style="color:#0ea5e9;">disk Σ${fmt(disk,1)} GiB</span>${esc(breakdown(diskSizes))}${diskKept ? "" : notKept}<br>` : ""}
+          <span style="color:#2563eb;">pcap ${fmt(pcap,2)} GiB</span>${pcapKept ? "" : notKept}
         </div>
       </div>
     </div>`;
   }).join("");
+
+  const anyPurged = runs.some(r =>
+    !r.volumes?.memory_bytes_retained ||
+    (r.volumes?.disk_gib > 0 && !r.volumes?.disk_bytes_retained) ||
+    (r.volumes?.pcap_gib > 0 && !r.volumes?.pcap_bytes_retained)
+  );
+  const purgedNote = anyPurged
+    ? `<div class="text-xs mb-3" style="opacity:.65;">Solid bars: raw bytes physically present in this bundle. Hatched bars: size recorded and hash-verified at acquisition; raw bytes were purged afterward under this platform's single-full-case retention policy.</div>`
+    : "";
 
   $("m3-panel").innerHTML = `
     <div class="flex gap-4 text-xs mb-3">
@@ -605,6 +571,7 @@ function renderM3() {
       <span style="color:#0ea5e9;">■ Disk</span>
       <span style="color:#2563eb;">■ Network/PCAP</span>
     </div>
+    ${purgedNote}
     <div class="mb-3 p-2 rounded" style="background:rgba(255,255,255,.04);">
       ${aggRow("Memory (mean ± σ)", aggMem, "#7c3aed")}
       ${aggRow("Disk (mean ± σ)", aggDisk, "#0ea5e9")}
@@ -613,18 +580,15 @@ function renderM3() {
     ${runBars}`;
 }
 
+// M1 — Infrastructure reproducibility precondition gate (paper Table 11):
+// same topology, target roles present, segmentation verified, monitoring
+// liveness, time reference coherent, baseline service health.
 function renderM1() {
   const runs = DATA.runs;
-  const checks = [
-    ["Topology match",  "validation_gate_passed"],
-    ["Manifest",        "manifest_ok"],
-    ["Custody chain",   "custody_ok"],
-  ];
+  const gateMeta = DATA.ir_gate_meta || [];
   const items = runs.map(r => {
-    const gate = r.validation_gate_passed;
-    const mani = (r.sha256_covered || 0) > 0;
-    const cust = (r.custody_entries || 0) > 0;
-    const vals = [gate, mani, cust];
+    const gate = r.ir_gate || {};
+    const vals = gateMeta.map(m => !!gate[m.key]);
     const ok = vals.filter(Boolean).length;
     const total = vals.length;
     const c = ok === total ? "#22c55e" : ok > 0 ? "#eab308" : "#ef4444";
@@ -632,26 +596,33 @@ function renderM1() {
       <span class="text-xs">${esc(r.exec_id)}</span>
       <div class="flex gap-2 text-xs">
         ${vals.map((v,i) => `<span class="has-tooltip" style="color:${v?'#22c55e':'#ef4444'};cursor:default;">${v?'✓':'✗'}
-          <div class="tooltip">${esc(["Topology","Manifest","Custody"][i])}: ${v?'pass':'fail'}</div>
+          <div class="tooltip">${esc(gateMeta[i]?.name || '')}: ${v?'pass':'fail'}</div>
         </span>`).join("")}
         <span style="color:${c};font-weight:900;">${ok}/${total}</span>
       </div>
     </div>`;
   }).join("");
-  $("m1-panel").innerHTML = items;
+  const legend = gateMeta.map(m =>
+    `<div class="py-2 border-t border-slate-800/40" style="font-size:12px;"><strong style="color:var(--info);">${esc(m.name)}</strong> <span style="color:var(--muted);">— ${esc(m.description)}</span></div>`
+  ).join("");
+  $("m1-panel").innerHTML = items + `<div class="mt-3">${legend}</div>`;
 }
 
+// M4 — Recoverable trigger retry/failure events (paper Table 18): a
+// repetition needed more than one trigger attempt before obtaining the
+// alert that activated forensic acquisition. This is a recoverable
+// workflow event, not an evidence-quality failure (see E1-E4).
 function renderM4() {
   const runs = DATA.runs;
   const items = runs.map(r => {
-    const diskFailed = !(r.evidence_layers?.disk);
-    const failures = diskFailed ? 1 : 0;
-    const c = failures === 0 ? "#22c55e" : "#ef4444";
+    const attempts = r.trigger_attempts_total || 1;
+    const retries = Math.max(0, attempts - 1);
+    const c = retries === 0 ? "#22c55e" : "#eab308";
     return `<div class="flex items-center justify-between py-2 border-t border-slate-800/40">
       <span class="text-xs">${esc(r.exec_id)}</span>
       <div class="flex gap-3 items-center">
-        ${diskFailed ? '<span style="font-size:14px;color:#ef4444;">disk ✗</span>' : '<span style="font-size:14px;color:#22c55e;">no failures</span>'}
-        <span style="color:${c};font-weight:900;font-size:15px;">${failures}</span>
+        ${retries === 0 ? '<span style="font-size:14px;color:#22c55e;">no retry</span>' : `<span style="font-size:14px;color:#eab308;">${attempts} trigger attempts</span>`}
+        <span style="color:${c};font-weight:900;font-size:15px;">${retries}</span>
       </div>
     </div>`;
   }).join("");
@@ -806,8 +777,8 @@ function renderFocPanel() {
   </div>`;
 
   const col3 = `<div class="glass2 rounded-[18px] p-5">
-    <div class="text-xs uppercase tracking-[.2em] text-slate-400 font-black mb-3">Reconstruction State</div>
-    ${row("CPR",                `<span style="color:${r.cpr>=0.875?'#22c55e':r.cpr>=0.625?'#eab308':'#ef4444'};font-weight:900;">${pct(r.cpr)}</span>`)}
+    <div class="text-xs uppercase tracking-[.2em] text-slate-400 font-black mb-3">Reconstruction State — ${esc(r.exec_id)} only</div>
+    ${row("CPR (this run)",     `<span style="color:${r.cpr>=0.875?'#22c55e':r.cpr>=0.625?'#eab308':'#ef4444'};font-weight:900;">${pct(r.cpr)}</span>`)}
     ${row("Recoverability",     stPill(r.recoverability_label || "unknown", r.recoverability_label || "—"))}
     ${row("Temporal confidence",stPill(r.temporal_confidence_state === "limited" ? "partial" : r.temporal_confidence_state || "unknown", r.temporal_confidence_state || "—"))}
     ${row("Analysis coverage",  r.analysis_coverage_ratio != null ? pct(r.analysis_coverage_ratio) : "—")}
@@ -825,7 +796,6 @@ function render() {
   renderCprDonut();
   renderCausalHeatmap();
   renderEdgeTable();
-  renderRootCauseSection();
   renderEvidenceMatrix();
   renderM1();
   renderM2();
@@ -839,6 +809,11 @@ function render() {
 
   $("loading-overlay").style.display = "none";
   $("app").style.display = "block";
+  // 2026-09-04: explicit, unambiguous "render finished" signal for headless
+  // capture (campaign_package_builder's dashboard screenshot step) to poll
+  // for via CDP -- more reliable than inferring completion from CSS display
+  // values.
+  document.body.setAttribute("data-render-complete", "1");
 }
 
 // ── PUBLICATION MODE ──────────────────────────────────────────────────────────
@@ -854,12 +829,19 @@ function togglePubMode() {
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
+  // 2026-09-04: URL params so a specific campaign's view (and Publication
+  // Mode's print-friendly styling) can be deep-linked / driven headlessly
+  // for an automated screenshot capture, instead of always landing on
+  // whichever campaign the backend picks as "most recently active."
+  const initParams = new URLSearchParams(location.search);
+  if (initParams.get("pub_mode") === "1") togglePubMode();
+
   $("btn-pub-mode")?.addEventListener("click", togglePubMode);
   $("btn-refresh")?.addEventListener("click", () => { $("loading-overlay").style.display="flex"; $("app").style.display="none"; load($("campaign-selector")?.value).catch(e => { alert("Error loading data: " + e.message); }); });
   $("campaign-selector")?.addEventListener("change", (e) => { load(e.target.value).catch(err => alert("Error loading data: " + err.message)); });
   $("edge-modal-close")?.addEventListener("click", () => { $("edge-modal").style.display = "none"; });
   $("edge-modal")?.addEventListener("click", e => { if (e.target === $("edge-modal")) $("edge-modal").style.display = "none"; });
-  load().catch(err => {
+  load(initParams.get("campaign_id") || undefined).catch(err => {
     $("loading-overlay").innerHTML = `<div style="text-align:center;color:#ef4444;"><div style="font-size:1.3rem;font-weight:900;">Error loading dashboard</div><div style="font-size:13px;margin-top:8px;">${esc(String(err))}</div><button onclick="location.reload()" style="margin-top:20px;padding:10px 24px;background:#1e293b;border:1px solid #334155;border-radius:14px;color:#fff;cursor:pointer;font-weight:900;">Retry</button></div>`;
   });
 });

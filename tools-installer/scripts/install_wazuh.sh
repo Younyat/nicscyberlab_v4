@@ -27,10 +27,37 @@ ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no -o IdentitiesOnly=yes "$SSH_USER@$
     echo "$SSH_USER ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/ansible_nopasswd
 EOF
 
-echo "[2/5] CLONANDO REPOSITORIO WAZUH-ANSIBLE"
+echo "[2/5] DESCARGANDO REPOSITORIO WAZUH-ANSIBLE"
 cd "$BASE_DIR"
 if [ ! -d "wazuh-ansible" ]; then
-    git clone --depth 1 -b v4.7.3 https://github.com/wazuh/wazuh-ansible.git
+    # 2026-09-02: `git clone` of this repo was measured to fail intermittently
+    # against github.com -- "could not read Username ... HTTP 401" from git's
+    # smart-HTTP protocol negotiation, on roughly half of all attempts (6/12
+    # failed in direct testing, both from this host and from a lab VM; ruled
+    # out network/DNS/auth/protocol-version as the cause -- github.com itself
+    # and api.github.com were reachable every time, and forcing
+    # protocol.version=1 did not help). A plain HTTPS tarball download of the
+    # same tag via codeload.github.com -- which bypasses the flaky
+    # git-upload-pack negotiation entirely -- was 24/24 reliable in the same
+    # conditions, so that replaces `git clone` here. Nothing later in this
+    # script uses git metadata (no `git log`/`git pull`/.git access), only the
+    # extracted playbook/role files, so a tarball snapshot is equivalent.
+    for attempt in 1 2 3; do
+        if curl -fsSL --max-time 60 -o wazuh-ansible.tar.gz \
+                "https://codeload.github.com/wazuh/wazuh-ansible/tar.gz/refs/tags/v4.7.3" \
+            && tar xzf wazuh-ansible.tar.gz \
+            && mv wazuh-ansible-4.7.3 wazuh-ansible; then
+            rm -f wazuh-ansible.tar.gz
+            break
+        fi
+        echo "[WARN] wazuh-ansible download failed (attempt ${attempt}/3)."
+        rm -rf wazuh-ansible.tar.gz wazuh-ansible wazuh-ansible-4.7.3
+        if [ "$attempt" -eq 3 ]; then
+            echo "[ERROR] wazuh-ansible download failed after 3 attempts."
+            exit 1
+        fi
+        sleep 10
+    done
 fi
 cd wazuh-ansible
 
@@ -99,7 +126,7 @@ echo "[5b/5] INSTALANDO UTILIDADES DE MONITORIZACIÓN (jq, stdbuf)"
 # jq es necesario para que monitor_ataques.sh pueda parsear alerts.json remotamente.
 # stdbuf (coreutils) ya viene en Ubuntu, pero lo aseguramos.
 ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no -o IdentitiesOnly=yes "$SSH_USER@$TARGET_IP" \
-    "sudo apt-get install -y jq coreutils 2>&1 | tail -3"
+    "sudo apt-get -o DPkg::Lock::Timeout=120 install -y jq coreutils 2>&1 | tail -3"
 
 echo "===================================================="
 echo "  WAZUH DESPLEGADO Y REPARADO EN: $TARGET_IP"

@@ -469,10 +469,30 @@ def _collect_forensics(scenario_id: str | None, warnings: list) -> dict:
             "message": "Evidence store directory not found.",
         }
     try:
-        case_dirs = sorted([
-            p for p in EVIDENCE_STORE.iterdir()
-            if p.is_dir() and p.name.startswith("CASE-")
-        ])
+        # 2026-09-04: also scan the two nested locations a "final sample"
+        # case can live at -- the "preserve final case as full sample"
+        # feature (2026-07-22) deliberately archives a Level B campaign's
+        # last repetition's case to repetition_campaigns/<id>/final_sample_case/
+        # specifically so evidence_store/'s top-level CASE-* glob (used by
+        # _cleanup_candidates() to wipe old cases) can never find and delete
+        # it, and campaign_package_builder.py (2026-09-04) later MOVES that
+        # same case into campaign_packages/<id>_package/final_sample_case/
+        # for portability. But this function used that exact same
+        # top-level-only glob to COUNT existing cases, so the very feature
+        # built to protect that case's evidence made it invisible here too
+        # -- confirmed live: a real campaign's 10th-repetition snapshot
+        # (captured right after the archival step runs) failed its "at
+        # least one forensic case created" check with "0 forensic case(s)
+        # found", even though the campaign had 10 real, preserved cases (by
+        # the time this was found, the case had already moved again, into
+        # campaign_packages/ -- had to widen for both locations, not just
+        # the first one checked). Read-only widening (never deletes/moves
+        # anything), so safe regardless of what else reads this output.
+        case_dirs = sorted(set(
+            [p for p in EVIDENCE_STORE.iterdir() if p.is_dir() and p.name.startswith("CASE-")]
+            + [p for p in (EVIDENCE_STORE / "repetition_campaigns").glob("*/final_sample_case/CASE-*") if p.is_dir()]
+            + [p for p in (EVIDENCE_STORE / "campaign_packages").glob("*/final_sample_case/CASE-*") if p.is_dir()]
+        ))
         cases = []
         for case_dir in case_dirs:
             manifest = _load_json(case_dir / "manifest.json") or {}

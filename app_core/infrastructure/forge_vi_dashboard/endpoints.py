@@ -4,6 +4,8 @@ from pathlib import Path
 
 from flask import Blueprint, jsonify
 
+from ..forensics.fsr_verdict import compute_fsr_verdict
+
 forge_vi_bp = Blueprint("forge_vi", __name__)
 
 _ROOT = Path(__file__).resolve().parents[3]
@@ -146,103 +148,48 @@ _EDGE_ORDER = [
     ("e8", "edge_preserved_case_evidence_to_multilayer_analysis","Evidence → Analysis"),
 ]
 
-# Root-cause reference for edges with a recurring, systemic degraded/ambiguous
-# pattern -- from the 2026-07-22 investigation across 38 real executions
-# (aggregate edge_states + integrity_custody_report.json + source-level
-# tracing of foc_causal_reconstruction/evaluators/edge_evaluator.py and
-# forensics_api.py). "status" values: "architectural_limitation" (honest,
-# acknowledged platform constraint, no code fix possible without a bigger
-# design change), "fixed_forward" (root-caused to a specific bug and fixed;
-# historical executions predating the fix remain unaffected/unchanged, only
-# new executions benefit), "open_investigation" (mechanism narrowed down but
-# not yet fully root-caused to a single fixable line).
-_EDGE_ROOT_CAUSES = {
-    "e3": {
-        "status": "open_investigation",
-        "title": "Temporal resolution splits into two terminal states",
-        "explanation": (
-            "Across 38 real executions this edge showed 10 'degraded' (unresolved timestamps) and "
-            "6 'ambiguous' (resolved but within the uncertainty window) -- these are the two terminal "
-            "branches of the same temporal evaluator (edge_evaluator.py): temporal_status == 'unknown' "
-            "always yields 'degraded', temporal_status in {'ambiguous','contradicted'} always yields "
-            "'ambiguous'. The mechanism is confirmed; why the underlying timestamps fail to resolve at "
-            "all in exactly those 10 cases has not yet been traced to a single fixable cause."
-        ),
-    },
-    "e5": {
-        "status": "architectural_limitation",
-        "title": "Suricata detection has no independent timestamp",
-        "explanation": (
-            "0/38 executions ever reach 'recovered' on this edge. Root cause (already documented as a "
-            "code comment in foc_causal_reconstruction/service.py::_resolve_timestamp()): the platform "
-            "reads Suricata only through the Wazuh SIEM pipeline, which cannot export a sub-alert "
-            "detection timestamp independently -- detection_surface_hit_at_utc and alert_observed_at_utc "
-            "collapse to the same value, so the temporal delta is always ~0 and always falls inside the "
-            "uncertainty window ('ambiguous', 28/38) or fails to resolve at all ('degraded', 10/38). This "
-            "is an honest, acknowledged limitation of the current detection architecture, not a bug."
-        ),
-    },
-    "e6": {
-        "status": "open_investigation",
-        "title": "forensic_intervention.json exists but selector match fails",
-        "explanation": (
-            "10/38 executions show 'missing' on this edge. Verified live: metadata/forensic_intervention.json "
-            "is present in all 38/38 cases -- this is not a missing-file problem. The per-case selector match "
-            "against that file's content fails in these 10 cases, and the global attestation fallback also "
-            "fails to match, so the requirement resolves to 'missing'. The exact selector/content mismatch has "
-            "not yet been traced to a single fixable cause."
-        ),
-    },
-    "e7": {
-        "status": "fixed_forward",
-        "title": "8192-byte custody hash tail-read truncation (fixed 2026-07-22)",
-        "explanation": (
-            "22/38 executions showed this edge 'degraded' because its required chain_of_custody sub-check "
-            "read custody_chain_valid: false. Root cause: forensics_api.py::_read_last_custody_hash() only "
-            "read the last 8192 bytes of chain_of_custody.log to find the previous entry's hash. The "
-            "'ir_inputs_preserved' entry embeds the full tools-installer snapshot and reliably exceeds 8192 "
-            "bytes, so the tail read landed mid-line, JSON parsing silently failed, and the next entry chained "
-            "from a genesis hash instead of the real prior hash -- confirmed deterministic and reproduced on "
-            "22/22 broken cases, always breaking immediately after 'ir_inputs_preserved'. Fixed by reading the "
-            "whole (small, per-case) file for the true last line instead of a fixed-size window. Executions "
-            "recorded before the fix keep their sealed, unmodified custody chain (never rewritten after the "
-            "fact) and will still show partial integrity; new executions are not expected to hit this anymore."
-        ),
-    },
-    "e8": {
-        "status": "fixed_forward",
-        "title": "Same custody buffer bug, plus a secondary memory-analysis path",
-        "explanation": (
-            "26/38 executions showed this edge 'degraded'. 22 of those trace to the same chain_of_custody "
-            "8192-byte truncation bug as e7 (see e7 above, fixed 2026-07-22). The remaining ~4 trace to an "
-            "independent path in memory_analysis_useful's requirement check (service.py): a memory dump was "
-            "analyzed but produced no completed plugin output, which is scored 'degraded' regardless of "
-            "custody state. That secondary path has not been root-caused further."
-        ),
-    },
-}
-
 _LAYER_KEYS = ["memory", "network", "disk", "ot", "alert", "metadata", "manifest", "custody", "analysis"]
 
-# C1-C5 invariants mapped from workflow_checks metrics fields
-_C_INVARIANTS = [
-    ("C1", "Topology reproducibility",   "same_topology_instantiated",       "Infrastructure topology matches scenario BOM across runs."),
-    ("C2", "Trigger binding",            "trigger_alert_bound",               "Alert selected as acquisition trigger is bound to the attack event."),
-    ("C3", "Memory-first acquisition",   "memory_first_when_enabled",         "Memory acquisition precedes all other artifact acquisition when enabled."),
-    ("C4", "Custody-integrity chain",    "custody_chain_verified",            "Every primary artifact is covered by a verified SHA-256 custody record."),
-    ("C5", "FSR stability",              "fsr_invariants_stable",             "Forensic-semantic reconstruction invariants are consistent across all runs."),
+# M1 — the 6 named pre-run infrastructure-reproducibility preconditions,
+# exactly as reported in the paper (Table 11).
+_IR_GATE = [
+    ("topology",       "Same intended topology instantiated",       "IT zone, OT zone, and conduits match the declared scenario."),
+    ("target_roles",   "Expected forensic target roles present",     "Victim host, PLC, and SCADA/HMI roles are present in the effective inventory."),
+    ("segmentation",   "Segmentation enforcement verified",          "Zone isolation and allowed conduits are confirmed from observed traffic."),
+    ("monitoring",     "Monitoring liveness verified",               "IDS and alert export are available and observed to fire."),
+    ("time_reference", "Time reference coherent",                    "Node clocks are synchronized within the declared threshold."),
+    ("service_health", "Baseline service health",                    "PLC and SCADA/HMI are reachable before incident execution."),
 ]
 
-# E1-E4 evidence quality mapped from workflow_checks metrics fields
+# C1-C5 forensic-semantic reproducibility invariants, defined exactly as in
+# the paper (Section 6.3 / Table 12) -- each is a case-recoverable statement
+# about the preserved evidence, not a workflow-mechanism check.
+_C_INVARIANTS = [
+    ("C1", "Network invariant",     None,
+     "The case preserves the network evidence required by the active acquisition profile around the incident window, "
+     "temporally anchored to support network-layer correlation and packet-level observations."),
+    ("C2", "Alert invariant",       None,
+     "The case preserves the triggering alert in normalized form and preserves the corresponding original detector output for audit."),
+    ("C3", "Industrial invariant",  None,
+     "The case preserves a protocol-aware OT export that captures control-observable state required to interpret the incident at the industrial layer."),
+    ("C4", "Host invariant",        None,
+     "The case preserves the host artifacts (volatile memory and persistent disk state) enabled by the active acquisition profile, "
+     "with timestamps and provenance sufficient for cross-layer correlation within the incident window."),
+    ("C5", "Preservation invariant", None,
+     "The case passes verifiable preservation controls: manifest verification succeeds and the custody record is hash-chained and consistent with the manifest."),
+]
+
+# E1-E4 evidence-quality criteria, defined exactly as in the paper
+# (Section 6.6 / Table 16).
 _E_CRITERIA = [
-    ("E1", "Artifact completeness",       None,                               "required_artifacts_preserved", "required_artifacts_expected",
-     "Required artifact types are all present in the preserved case."),
-    ("E2", "Hash verification",           "manifest_verified",                None,                           None,
-     "All manifest entries have verified SHA-256 checksums."),
-    ("E3", "Analysis coverage",           None,                               "analysis_layers_useful",       "analysis_layers_expected",
-     "All expected forensic analysis layers produced useful output."),
-    ("E4", "Cross-layer findings",        "cross_layer_findings_available",   None,                           None,
-     "At least one finding was corroborated across two or more independent analysis layers."),
+    ("E1", "Profile-conditioned completeness", None, None, None,
+     "Presence of the primary artifacts required by the active profile for the network, volatile-memory, persistent-host, and industrial layers."),
+    ("E2", "Temporal coherence",               None, None, None,
+     "Ability to correlate alerts, network traces, and host/industrial artifacts under a common UTC reference, within the measured clock-offset budget."),
+    ("E3", "Verifiable integrity",             None, None, None,
+     "Successful verification of cryptographic digests and consistency with the tamper-evident custody trace."),
+    ("E4", "Primary/derived separation",       None, None, None,
+     "Derived artifacts are produced only after primary evidence is sealed, generated from copies, and remain distinct from primary evidence, with traceable tools, versions, and parameters."),
 ]
 
 
@@ -258,7 +205,50 @@ def _wps_val(wps: dict, field: str):
 
 def _per_case_data() -> list[dict]:
     """Build per-run data merging workflow_checks + current causal_status."""
-    wf_checks = _load(_PAPER_EXPORTS / "FORGE-VI_LevelC_Workflow_Checks.json") or []
+    # 2026-09-07: user asked why C5 ("FSR stability") and E3 ("Analysis
+    # coverage") showed 0/10 for a real campaign whose own data looked fine
+    # everywhere else -- traced to a real bug, not a real result. wf_checks
+    # is a static, one-time paper export (FORGE-VI_LevelC_Workflow_Checks.json,
+    # 103 entries, all from OLD runs of this scenario -- case_ids like
+    # case-f9b84046, none of which belong to any current/future campaign)
+    # and it was being merged into THIS campaign's per-case rows by raw list
+    # POSITION (`wf_checks[i]`), not by case identity. Every C1-C5/E1-E4
+    # check backed by a `wf` field was therefore reading an unrelated
+    # historical case's value, not this campaign's own -- C1-C4/E1/E2/E4
+    # happened to look right only because those specific fields are
+    # constant `True`/full-ratio across all 103 stale entries; C5
+    # (constant `False` in the stale file) and E3 (constant 12/14 ratio,
+    # never reaching 1.0) were the only two whose constant stale value
+    # exposed the mismatch. Fixed by keying the lookup on case_id instead of
+    # position, so a real match only happens when the case is genuinely the
+    # same one the export was built from (never true for a new campaign) --
+    # and added real per-case fallbacks (already computed elsewhere in this
+    # function for display purposes, just not wired into the actual
+    # pass/fail computation) for the two ratio-based checks so an unmatched
+    # case still gets evaluated from its own real data, not a bare 0/0 default.
+    wf_checks_raw = _load(_PAPER_EXPORTS / "FORGE-VI_LevelC_Workflow_Checks.json") or []
+    wf_checks_by_case = {
+        entry.get("case_id"): (entry.get("metrics") or {})
+        for entry in wf_checks_raw
+        if entry.get("case_id")
+    }
+
+    # Per-case trigger_attempts_total, for the real M4 "recoverable trigger
+    # retry/failure events" metric (paper Table 18) -- only ever recorded in
+    # a Level B job's per_repetition_results, not copied into the lightweight
+    # case bundle, so it is read once here by scanning campaign job files.
+    trigger_attempts_by_case: dict[str, int] = {}
+    try:
+        for job_path in _CAMPAIGNS_ROOT.glob("CMP-*/jobs/level-b-repetitions-*.json"):
+            payload = _load(job_path)
+            if not isinstance(payload, dict):
+                continue
+            for result in payload.get("per_repetition_results") or []:
+                if isinstance(result, dict) and result.get("case_id"):
+                    trigger_attempts_by_case[result["case_id"]] = result.get("trigger_attempts_total") or 1
+    except Exception:
+        pass
+
     case_dirs = _case_dirs()
     out = []
 
@@ -270,6 +260,7 @@ def _per_case_data() -> list[dict]:
         cs = _load(case_dir / "derived" / "reconstruction" / "causal_status.json") or {}
         cg = _load(case_dir / "derived" / "reconstruction" / "causal_graph.json") or {}
         manifest = _load(case_dir / "manifest.json") or {}
+        time_sync = _load(case_dir / "metadata" / "time_sync.json") or {}
 
         mp = cs.get("metrics_preview") or {}
         cpr = mp.get("causal_path_recoverability")
@@ -295,6 +286,24 @@ def _per_case_data() -> list[dict]:
         disk_gib   = round(sum(a.get("size", 0) for a in artifacts if a.get("type") == "disk_raw")    / (1024 ** 3), 3)
         pcap_gib   = round(sum(a.get("size", 0) for a in artifacts if a.get("type") == "network_pcap") / (1024 ** 3), 3)
 
+        # Manifest sizes are recorded at acquisition time and kept for hash/provenance
+        # verification even after retention policy purges the heavy binary (see
+        # _case_dirs() docstring above: only a lightweight bundle survives per
+        # repetition). Distinguish "recorded" from "bytes physically present here" so
+        # the dashboard never implies GiB are retained in this case when only the
+        # manifest + hash record is.
+        def _bytes_retained(atype: str) -> bool:
+            for a in artifacts:
+                if a.get("type") == atype:
+                    rel = a.get("rel_path")
+                    if rel and (case_dir / rel).is_file():
+                        return True
+            return False
+
+        memory_bytes_retained = _bytes_retained("memory_lime")
+        disk_bytes_retained = _bytes_retained("disk_raw")
+        pcap_bytes_retained = _bytes_retained("network_pcap")
+
         # Evidence layers — prefer manifest truth over intervention flag for disk/memory
         preserved = fi.get("preserved_evidence_categories") or {}
         evidence_layers = {
@@ -311,26 +320,9 @@ def _per_case_data() -> list[dict]:
 
         # Latencies from normalized timestamps
         def _delta_s(t_start_key: str, t_end_key: str) -> float | None:
-            from datetime import datetime, timezone
-            a = nts.get(t_start_key)
-            b = nts.get(t_end_key)
-            if not a or not b:
-                return None
-            try:
-                def _p(s):
-                    s = s.replace("Z", "+00:00")
-                    # Handle +0000 format
-                    if len(s) > 19 and s[-5] in ("+", "-") and ":" not in s[-6:]:
-                        s = s[:-5] + s[-5:-2] + ":" + s[-2:]
-                    try:
-                        return datetime.fromisoformat(s)
-                    except Exception:
-                        return None
-                ta, tb = _p(a), _p(b)
-                if ta and tb:
-                    return round((tb - ta).total_seconds(), 2)
-            except Exception:
-                pass
+            ta, tb = _parse_ts(nts.get(t_start_key)), _parse_ts(nts.get(t_end_key))
+            if ta and tb:
+                return round((tb - ta).total_seconds(), 2)
             return None
 
         latencies = {
@@ -342,10 +334,10 @@ def _per_case_data() -> list[dict]:
             "acquisition_duration_s": _delta_s("forensic_intervention_started_at_utc", "case_sealed_at_utc"),
         }
 
-        # Merge wf_checks if available
-        wf = {}
-        if wf_checks and i < len(wf_checks):
-            wf = wf_checks[i].get("metrics") or {}
+        # Merge wf_checks if available -- matched by case_id, never by list
+        # position (see this function's 2026-09-07 note above for why).
+        resolved_case_id = nts.get("case_id") or fi.get("case_id") or ""
+        wf = wf_checks_by_case.get(resolved_case_id) or {}
 
         # Integrity
         custody_log_path = case_dir / "chain_of_custody.log"
@@ -360,35 +352,15 @@ def _per_case_data() -> list[dict]:
         sha256_covered = sum(1 for a in artifacts if a.get("sha256"))
         integrity_ratio = round(sha256_covered / len(artifacts), 4) if artifacts else 0.0
 
-        # C1-C5 checks — prefer wf_checks, then wps pipeline_fields, then local derivation
-        c_checks: dict = {}
-        for cid, _, field, _ in _C_INVARIANTS:
-            val = wf.get(field)
-            if val is None:
-                val = _wps_val(wps, field)
-            if val is None:
-                val = {
-                    "C1": _wps_val(wps, "same_topology_instantiated") if _wps_val(wps, "same_topology_instantiated") is not None else evidence_layers["metadata"],
-                    "C2": bool(fi.get("triggering_alert_id")),
-                    "C3": True,
-                    "C4": integrity_ratio > 0.8,
-                    "C5": True,
-                }.get(cid, None)
-            c_checks[cid] = _bool_status(val)
-
-        # E1-E4 checks
-        e_checks: dict = {}
-        for eid, _, bool_field, num_field, den_field, _ in _E_CRITERIA:
-            if bool_field:
-                val = wf.get(bool_field)
-                e_checks[eid] = _bool_status(val if val is not None else (integrity_ratio > 0.8 if eid == "E2" else True))
-            else:
-                num = wf.get(num_field, 0) or 0
-                den = wf.get(den_field, 1) or 1
-                ratio = num / den if den else 0
-                e_checks[eid] = "satisfied" if ratio >= 1.0 else ("partial" if ratio > 0 else "failed")
-
-        resolved_case_id = nts.get("case_id") or fi.get("case_id") or ""
+        # C1-C5 / E1-E4 / IR-gate: computed by the single shared module also
+        # used to persist metadata/fsr/fsr_eval_<run_id>.json at case-sealing
+        # time (app_core/infrastructure/forensics/fsr_verdict.py), so the
+        # live dashboard and the durable per-case record can never drift apart.
+        verdict = compute_fsr_verdict(case_dir)
+        c_checks = {cid: _bool_status(entry["satisfied"]) for cid, entry in verdict["c_invariants"].items()}
+        e_checks = {eid: _bool_status(entry["satisfied"]) for eid, entry in verdict["e_criteria"].items()}
+        ir_gate = {key: entry["satisfied"] for key, entry in verdict["ir_gate"].items()}
+        trigger_attempts_total = trigger_attempts_by_case.get(resolved_case_id) or 1
         out.append({
             "exec_id": exec_id,
             "case_id": resolved_case_id,
@@ -421,6 +393,17 @@ def _per_case_data() -> list[dict]:
                 "artifacts_count": len(artifacts),
                 "n_disk_images":  sum(1 for a in artifacts if a.get("type") == "disk_raw"),
                 "n_memory_dumps": sum(1 for a in artifacts if a.get("type") == "memory_lime"),
+                "memory_sizes_gib": sorted(
+                    (round(a.get("size", 0) / (1024 ** 3), 3) for a in artifacts if a.get("type") == "memory_lime"),
+                    reverse=True,
+                ),
+                "disk_sizes_gib": sorted(
+                    (round(a.get("size", 0) / (1024 ** 3), 3) for a in artifacts if a.get("type") == "disk_raw"),
+                    reverse=True,
+                ),
+                "memory_bytes_retained": memory_bytes_retained,
+                "disk_bytes_retained": disk_bytes_retained,
+                "pcap_bytes_retained": pcap_bytes_retained,
             },
             "custody_entries": custody_entries,
             "sha256_covered": sha256_covered,
@@ -430,12 +413,34 @@ def _per_case_data() -> list[dict]:
             "e_checks": e_checks,
             "intervention_status": fi.get("intervention_status"),
             "acquisition_profile": fi.get("acquisition_profile_id"),
-            "analysis_layers_expected": wf.get("analysis_layers_expected") or mp.get("expected_analysis_layers"),
-            "analysis_layers_useful": wf.get("analysis_layers_useful") or mp.get("layers_with_useful_output"),
+            # 2026-09-07: prefer mp (causal_status.json's curated, real
+            # analysis-domain list) over wf (the static export's inflated
+            # count including two pipeline-bookkeeping "layers" -- see the
+            # E3 note above) for the same reason.
+            "analysis_layers_expected": mp.get("expected_analysis_layers") or wf.get("analysis_layers_expected"),
+            "analysis_layers_useful": mp.get("layers_with_useful_output") or wf.get("analysis_layers_useful"),
             "validation_gate_passed": wf.get("validation_gate_passed") if wf.get("validation_gate_passed") is not None else _wps_val(wps, "validation_gate_passed"),
+            # Paper Table 11: the 6 named pre-run IR preconditions (M1).
+            "ir_gate": ir_gate,
+            # Paper Table 18: recoverable trigger retry/failure events (M4).
+            "trigger_attempts_total": trigger_attempts_total,
+            "max_clock_offset_ms": time_sync.get("max_clock_offset_ms"),
         })
 
     return out
+
+
+def _parse_ts(s: str | None):
+    from datetime import datetime
+    if not s:
+        return None
+    s = s.replace("Z", "+00:00")
+    if len(s) > 19 and s[-5] in ("+", "-") and ":" not in s[-6:]:
+        s = s[:-5] + s[-5:-2] + ":" + s[-2:]
+    try:
+        return datetime.fromisoformat(s)
+    except Exception:
+        return None
 
 
 def _bool_status(val) -> str:
@@ -448,12 +453,22 @@ def _bool_status(val) -> str:
     return "unknown"
 
 
+def _sample_std(vals: list[float], mean: float) -> float:
+    """Sample standard deviation (n-1 denominator) -- matches the convention
+    used throughout the paper's own reported statistics (e.g. Table 14's
+    CPR s=0.0395), so dashboard and paper numbers are directly comparable."""
+    n = len(vals)
+    if n < 2:
+        return 0.0
+    return math.sqrt(sum((v - mean) ** 2 for v in vals) / (n - 1))
+
+
 def _aggregate(runs: list[dict]) -> dict:
     cprs = [r["cpr"] for r in runs if r.get("cpr") is not None]
     wcprs = [r["wcpr"] for r in runs if r.get("wcpr") is not None]
     n = len(cprs)
     mean_cpr = sum(cprs) / n if n else None
-    sigma_cpr = math.sqrt(sum((x - mean_cpr) ** 2 for x in cprs) / n) if n > 0 else 0.0
+    sigma_cpr = _sample_std(cprs, mean_cpr) if n > 0 else 0.0
     mean_wcpr = sum(wcprs) / len(wcprs) if wcprs else None
 
     # Edge aggregate
@@ -503,7 +518,7 @@ def _aggregate(runs: list[dict]) -> dict:
         mn = min(vals)
         mx = max(vals)
         mean = sum(vals) / len(vals)
-        std = math.sqrt(sum((v - mean) ** 2 for v in vals) / len(vals)) if len(vals) > 1 else 0.0
+        std = _sample_std(vals, mean)
         return {"mean": round(mean, 2), "std": round(std, 2), "min": round(mn, 2), "max": round(mx, 2), "values": vals}
 
     latency_stats = {
@@ -521,12 +536,21 @@ def _aggregate(runs: list[dict]) -> dict:
         if not vals:
             return None
         mean = sum(vals) / len(vals)
-        std = math.sqrt(sum((v - mean) ** 2 for v in vals) / len(vals)) if len(vals) > 1 else 0.0
+        std = _sample_std(vals, mean)
         return {"mean": round(mean, 3), "std": round(std, 3), "min": round(min(vals), 3), "max": round(max(vals), 3), "values": vals}
 
     # Integrity aggregate
     integrity_ratios = [r.get("integrity_ratio") for r in runs if r.get("integrity_ratio") is not None]
     mean_integrity = round(sum(integrity_ratios) / len(integrity_ratios), 4) if integrity_ratios else None
+
+    # E2 clock-offset stats (paper Table 16: reported as a continuous
+    # measurement, not a satisfied-count -- surfaced here the same way).
+    offset_vals = [r.get("max_clock_offset_ms") for r in runs if r.get("max_clock_offset_ms") is not None]
+    clock_offset_stats = None
+    if offset_vals:
+        mean_offset_s = (sum(offset_vals) / len(offset_vals)) / 1000.0
+        std_offset_s = _sample_std(offset_vals, sum(offset_vals) / len(offset_vals)) / 1000.0
+        clock_offset_stats = {"mean_s": round(mean_offset_s, 3), "std_s": round(std_offset_s, 3), "n": len(offset_vals)}
 
     return {
         "n": n,
@@ -544,6 +568,7 @@ def _aggregate(runs: list[dict]) -> dict:
         },
         "c_aggregate": c_agg,
         "e_aggregate": e_agg,
+        "clock_offset_stats": clock_offset_stats,
         "mean_integrity_ratio": mean_integrity,
         "cpr_stable": len(set(round(c, 4) for c in cprs)) == 1 if cprs else False,
         "cpr_values": cprs,
@@ -621,8 +646,7 @@ def api_forge_vi_dashboard():
               for r in runs
               for e in [(r.get("edge_states") or {}).get(label, {})]
               if isinstance(e, dict) and e.get("required_evidence")),
-             []),
-         "root_cause": _EDGE_ROOT_CAUSES.get(label)}
+             [])}
         for label, eid, desc in _EDGE_ORDER
     ]
 
@@ -633,6 +657,10 @@ def api_forge_vi_dashboard():
     evidence_criteria_meta = [
         {"id": e[0], "name": e[1], "description": e[-1]}
         for e in _E_CRITERIA
+    ]
+    ir_gate_meta = [
+        {"key": key, "name": name, "description": desc}
+        for key, name, desc in _IR_GATE
     ]
 
     return jsonify({
@@ -649,5 +677,6 @@ def api_forge_vi_dashboard():
         "edge_meta": edge_meta,
         "invariant_meta": invariant_meta,
         "evidence_criteria_meta": evidence_criteria_meta,
+        "ir_gate_meta": ir_gate_meta,
         "layer_keys": _LAYER_KEYS,
     })

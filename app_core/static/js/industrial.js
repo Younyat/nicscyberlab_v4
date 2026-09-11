@@ -76,13 +76,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     /* ===============================
-       LÓGICA → CREAR / CONECTAR
+       LOGIC -> CREATE / CONNECT
     =============================== */
     cy.on("select", "node", evt => {
 
         const node = evt.target;
 
-        /* === CREAR COMPONENTE INDUSTRIAL === */
+        /* === CREATE INDUSTRIAL COMPONENT === */
         if (industrialMode) {
             addIndustrialComponent(industrialMode);
             industrialMode = null;
@@ -90,7 +90,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        /* === MODO CONEXIÓN === */
+        /* === CONNECTION MODE === */
         if (!connectionMode) return;
 
         selectedNodes.push(node);
@@ -98,7 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
             connectNodes(selectedNodes[0], selectedNodes[1]);
             selectedNodes = [];
             connectionMode = false;
-            toast("Modo conexión desactivado");
+            toast("Connection mode disabled");
         }
     });
 
@@ -196,7 +196,7 @@ function renderIndustrialPanel(node) {
 
     panel.innerHTML = `
         <p class="text-gray-400 text-center">
-            Selecciona un componente industrial para configurarlo
+            Select an industrial component to configure it
         </p>
     `;
 }
@@ -243,7 +243,7 @@ function renderIndustrialAction(component, status) {
         case "installing":
         case "pending":
             return `<span class="text-yellow-400 font-bold text-xs animate-pulse">
-                        INSTALANDO…
+                        INSTALLING…
                     </span>`;
 
         case "error":
@@ -254,7 +254,7 @@ function renderIndustrialAction(component, status) {
                 <button
                     onclick="deployIndustrial('${component}')"
                     class="px-4 py-2 bg-green-700 hover:bg-green-600 rounded text-white font-bold">
-                    Instalar
+                    Install
                 </button>
             `;
     }
@@ -288,14 +288,14 @@ async function addIndustrialTool(nodeId, toolName) {
 
         if (!res.ok) throw new Error("Error backend");
 
-        toast(`Tool ${toolName} añadida`);
+        toast(`Tool ${toolName} added`);
         logAction(
             "ACTION",
             `Tool ${toolName} registrada para ${node.data("name")}`
         );
 
     } catch (err) {
-        toast("Error añadiendo tool");
+        toast("Error adding tool");
         logAction("ERROR", err.message);
     }
 }
@@ -312,8 +312,8 @@ async function loadScenario() {
         const res = await fetch("http://127.0.0.1:5001/api/get_active_scenario");
 
         if (res.status === 404) {
-            toast("No hay escenario creado todavía");
-            logAction("INFO", "No existe escenario previo");
+            toast("No scenario created yet");
+            logAction("INFO", "No previous scenario exists");
             return;
         }
 
@@ -347,13 +347,13 @@ async function loadScenario() {
         centerScenarioLeft();
         updateStats();
 
-        toast("Escenario cargado");
-        logAction("SUCCESS", "Escenario cargado correctamente");
+        toast("Scenario loaded");
+        logAction("SUCCESS", "Scenario loaded successfully");
 
     } catch (err) {
         console.error(err);
-        toast("Error cargando escenario");
-        logAction("ERROR", "Error cargando escenario");
+        toast("Error loading scenario");
+        logAction("ERROR", "Error loading scenario");
     }
 }
 
@@ -374,23 +374,23 @@ function centerScenarioLeft() {
 ========================= */
 function setIndustrialMode(type) {
     industrialMode = type;
-    toast("Modo industrial activado");
-    logAction("ACTION", `Modo industrial activado: ${type}`);
+    toast("Industrial mode activated");
+    logAction("ACTION", `Industrial mode activated: ${type}`);
 }
 
 
 function addIndustrialComponent(type) {
 
     if (isIndustrialAlreadyInstalled(type)) {
-        toast("Este componente ya existe");
-        logAction("WARNING", `Intento de crear componente duplicado: ${type}`);
+        toast("This component already exists");
+        logAction("WARNING", `Attempted to create a duplicate component: ${type}`);
         return;
     }
 
     const selected = cy.$("node:selected");
     if (selected.length !== 1) {
-        toast("Selecciona un nodo base");
-        logAction("WARNING", "Intento de añadir componente sin nodo base");
+        toast("Select a base node");
+        logAction("WARNING", "Attempted to add a component without a base node");
         return;
     }
 
@@ -425,10 +425,10 @@ function addIndustrialComponent(type) {
     ]);
 
     updateStats();
-    toast("Componente industrial añadido");
+    toast("Industrial component added");
     logAction(
         "ACTION",
-        `Componente ${type} añadido y enlazado a ${base.data("name")}`
+        `Component ${type} added and linked to ${base.data("name")}`
     );
 }
 
@@ -438,8 +438,8 @@ async function deleteIndustrialScenario() {
     try {
         const res = await fetch("http://127.0.0.1:5001/api/get_active_scenario");
         if (!res.ok) {
-            toast("No hay escenario para eliminar");
-            logAction("INFO", "Intento de eliminar escenario inexistente");
+            toast("No scenario to delete");
+            logAction("INFO", "Attempted to delete a non-existent scenario");
             return;
         }
 
@@ -450,10 +450,10 @@ async function deleteIndustrialScenario() {
             dep?.plc_instance?.state === "created" ||
             dep?.scada_instance?.state === "created"
         ) {
-            toast("No se puede eliminar: PLC o SCADA creados");
+            toast("Cannot delete: PLC or SCADA already created");
             logAction(
                 "WARNING",
-                "Eliminación bloqueada por estado created en PLC o SCADA"
+                "Deletion blocked because PLC or SCADA is in 'created' state"
             );
             return;
         }
@@ -464,19 +464,19 @@ async function deleteIndustrialScenario() {
         );
 
         if (!delRes.ok) {
-            throw new Error("Error backend eliminando escenario");
+            throw new Error("Backend error deleting scenario");
         }
 
         cy.elements().remove();
         updateStats();
 
-        toast("Escenario industrial eliminado");
-        logAction("ACTION", "Escenario industrial eliminado");
+        toast("Industrial scenario deleted");
+        logAction("ACTION", "Industrial scenario deleted");
 
     } catch (err) {
         console.error(err);
-        toast("Error eliminando escenario");
-        logAction("ERROR", "Error eliminando escenario industrial");
+        toast("Error deleting scenario");
+        logAction("ERROR", "Error deleting industrial scenario");
     }
 }
 
@@ -484,7 +484,7 @@ function logAction(level, message) {
     const terminal = document.getElementById("feedback-terminal");
     if (!terminal) return;
 
-    // Crear el contenedor de la línea
+    // Create the line container
     const line = document.createElement("div");
     line.className = "mb-1 flex gap-2 font-mono text-[11px]";
 
@@ -492,14 +492,14 @@ function logAction(level, message) {
     const now = new Date();
     const timeStr = now.toLocaleTimeString('es-ES', { hour12: false });
 
-    // Definir colores según el nivel (usando clases de Tailwind)
+    // Set colors based on level (using Tailwind classes)
     let colorClass = "text-green-400"; // Por defecto
     if (level === "ERROR") colorClass = "text-red-500 font-bold";
     if (level === "WARNING") colorClass = "text-yellow-500";
     if (level === "SUCCESS") colorClass = "text-cyan-400 font-bold";
     if (level === "ACTION") colorClass = "text-purple-400";
 
-    // Construir el HTML de la línea
+    // Build the line HTML
     line.innerHTML = `
         <span class="text-gray-500">[${timeStr}]</span>
         <span class="${colorClass}">[${level}]</span>
@@ -547,10 +547,10 @@ function markIndustrialInstalled(type) {
 function toggleConnectionMode() {
     connectionMode = !connectionMode;
     selectedNodes = [];
-    toast(connectionMode ? "Modo conexión activo" : "Modo conexión desactivado");
+    toast(connectionMode ? "Connection mode active" : "Connection mode disabled");
     logAction(
         "ACTION",
-        connectionMode ? "Modo conexión activado" : "Modo conexión desactivado"
+        connectionMode ? "Connection mode activated" : "Connection mode disabled"
     );
 }
 
@@ -574,8 +574,8 @@ function deleteSelected() {
     const selected = cy.$(":selected");
 
     if (selected.length === 0) {
-        toast("No hay selección");
-        logAction("WARNING", "Intento de eliminar sin selección");
+        toast("Nothing selected");
+        logAction("WARNING", "Attempted to delete without a selection");
         return;
     }
 
@@ -585,16 +585,16 @@ function deleteSelected() {
     );
 
     if (forbidden.length > 0) {
-        toast("No se pueden eliminar nodos base");
-        logAction("WARNING", "Intento de eliminar nodo base");
+        toast("Base nodes cannot be deleted");
+        logAction("WARNING", "Attempted to delete a base node");
         return;
     }
 
     selected.remove();
     updateStats();
 
-    toast("Elemento eliminado");
-    logAction("ACTION", "Elemento eliminado del escenario");
+    toast("Element deleted");
+    logAction("ACTION", "Element deleted from the scenario");
 }
 
 
@@ -609,8 +609,8 @@ function clearScenario() {
     industrialNodes.remove();
 
     updateStats();
-    toast("Componentes industriales eliminados");
-    logAction("ACTION", "Todos los componentes industriales eliminados");
+    toast("Industrial components deleted");
+    logAction("ACTION", "All industrial components deleted");
 }
 
 /* =========================
@@ -635,13 +635,13 @@ async function saveIndustrialScenario() {
                         name: n.data("name"),
                         type: type,
 
-                        /* ===== ESTADO INDUSTRIAL ===== */
+                        /* ===== INDUSTRIAL STATE ===== */
                         industrial: isIndustrial,
 
-                        /* 
-                           Reglas:
-                           - PLC / SCADA → no instalados hasta despliegue
-                           - resto → ya instalados, prohibido reinstalar
+                        /*
+                           Rules:
+                           - PLC / SCADA -> not installed until deployment
+                           - rest -> already installed, reinstall forbidden
                         */
                         installed: isPLC || isSCADA
                             ? (n.data("installed") ?? false)
@@ -651,7 +651,7 @@ async function saveIndustrialScenario() {
 
                         linked_to: n.data("linked_to") || null,
 
-                        /* ===== POSICIÓN ===== */
+                        /* ===== POSITION ===== */
                         position: n.position()
                     };
                 }),
@@ -690,18 +690,18 @@ async function saveIndustrialScenario() {
         );
 
         if (!res.ok) {
-            throw new Error("Error guardando escenario industrial");
+            throw new Error("Error saving industrial scenario");
         }
 
-        toast(" Escenario industrial guardado correctamente");
+        toast(" Industrial scenario saved successfully");
 
     } catch (err) {
         console.error(err);
-        toast(" Error al guardar el escenario industrial");
+        toast(" Error saving the industrial scenario");
     }
 }
 
-function freezeUI_install(mensaje) {
+function freezeUI_install(message) {
     const overlay = document.createElement("div");
     overlay.id = "ui-freeze";
 
@@ -717,10 +717,10 @@ function freezeUI_install(mensaje) {
                         border-t-4 border-b-4 border-green-400 mx-auto">
             </div>
             <p class="mt-4 text-lg font-bold text-white">
-                ${mensaje}
+                ${message}
             </p>
             <p class="mt-2 text-sm text-gray-300">
-                No cierres ni recargues la página
+                Do not close or reload the page
             </p>
         </div>
     `;
@@ -737,12 +737,12 @@ function unfreezeUI_install() {
 async function deployIndustrial(component) {
 
     const label = component === "plc"
-        ? "Instalando PLC (OpenPLC)..."
-        : "Instalando SCADA (FUXA)...";
+        ? "Installing PLC (OpenPLC)..."
+        : "Installing SCADA (FUXA)...";
 
     freezeUI_install(label);
 
-    logAction("ACTION", `Iniciando instalación ${component.toUpperCase()}`);
+    logAction("ACTION", `Starting ${component.toUpperCase()} installation`);
 
     try {
         const res = await fetch(
@@ -774,7 +774,7 @@ async function deployIndustrial(component) {
             });
         }
 
-        logAction("SUCCESS", "Instalación finalizada");
+        logAction("SUCCESS", "Installation finished");
 
     } catch (err) {
         logAction("ERROR", err.message);

@@ -1088,6 +1088,16 @@ wget-log
 
 A FORGE-VI execution can generate large forensic artifacts, including memory images, disk images or snapshots, network captures, industrial evidence exports, case evidence collections, analysis outputs, and execution-event records.
 
+Typical storage consumption for a completed case, per artifact type:
+
+| Component | Average size | Content |
+|---|---|---|
+| `disk_raw` | 70.00 GB | Full raw disk images of the preserved nodes |
+| `network_pcap` | 12.38 GB | Continuous rolling network captures spanning the attack window — the only component that varies with capture duration |
+| `memory_lime` | 8.00 GB | Volatile memory dump(s) in LiME format |
+| Metadata, logs, and manifests | < 0.01 GB combined | Chain of custody, hashes, IR inputs, acquisition profile, and related records |
+| **Total per case** | **≈ 90.4 GB** | |
+
 These generated artifacts are retained outside normal Git version control when their size is not compatible with public repository distribution. GitHub blocks individual files larger than 100 MiB in regular Git repositories.
 
 Common excluded artifacts and locations include:

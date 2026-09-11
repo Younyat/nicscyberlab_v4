@@ -4730,6 +4730,13 @@ def api_dfir_orchestrator_trigger():
     _append_custody_entry(case_dir, "dfir_orchestration_done", "forensics_api", run_id=run_id, details={"targets_count": len(targets_ok)})
     _register_custody_artifact(case_dir)
     _write_case_digest(case_dir, run_id=run_id)
+    # 2026-09-10: the global active-case pointer (_active_case.txt) was previously
+    # only ever cleared when a case was deleted, never when it sealed normally --
+    # so it kept pointing at whichever case was created last, permanently blocking
+    # corrective time sync (_time_sync_policy) for every subsequently-created VM,
+    # even freshly-deployed ones unrelated to that stale pointer. Clear it here,
+    # right where the case is actually sealed.
+    _clear_active_case_pointer_if_matches(case_dir)
 
     return jsonify({
         "result": "ok",
@@ -5428,6 +5435,11 @@ def api_dfir_orchestrator_auto_stream():
                 _register_custody_artifact(case_dir)
                 _write_case_digest(case_dir, run_id=run_id)
                 _clear_active_preservation_state(case_dir, run_id=run_id, final_state="completed", reason="dfir_orchestration_done")
+                # 2026-09-10: see the matching comment in the non-streaming DFIR
+                # orchestration endpoint above -- the global active-case pointer
+                # must be cleared here too, or corrective time sync stays blocked
+                # for every VM created after this case, forever.
+                _clear_active_case_pointer_if_matches(case_dir)
                 preservation_released = True
 
                 elapsed = round(time.time() - start_ts, 3)

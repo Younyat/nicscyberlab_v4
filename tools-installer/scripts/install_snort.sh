@@ -36,6 +36,7 @@ cat > "$BASE_DIR/snort-install.yml" <<'EOF'
   tasks:
     - name: 1. Instalar todas las dependencias (incluyendo PCRE2 y UUID)
       apt:
+        lock_timeout: 120
         update_cache: true
         name:
           - build-essential

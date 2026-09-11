@@ -94,6 +94,30 @@ def _execution_scientific_limitations(payload: dict, manifest_path: Path) -> lis
     return limitations
 
 
+def comparable_execution_ids_for_campaign(campaign_id: str, level: str = "B") -> list[str]:
+    # 2026-09-04: a Level C launch runs one Level B job per Level C
+    # repetition against the same campaign_id (see level_c_orchestrator
+    # README, `_phase_run_level_b`), so a single job's own `results` list
+    # only ever contains that job's own (usually 1) repetition -- never
+    # enough to reach compare_executions()'s `>= 2` threshold, even though
+    # the campaign as a whole accumulates plenty of comparable executions
+    # across jobs. Scanning the campaign's own execution_manifest.json files
+    # directly (durable on disk, independent of any single job's in-memory
+    # results) gives the full, real set instead.
+    root = campaign_dir(campaign_id) / campaign_level_dir(level)
+    if not root.is_dir():
+        return []
+    ids: list[str] = []
+    for manifest_path in sorted(root.glob("EXEC-*/execution_manifest.json")):
+        payload = _json_load(manifest_path)
+        if not isinstance(payload, dict):
+            continue
+        if not (payload.get("artifacts") or {}).get("forensic_comparison_profile"):
+            continue
+        ids.append(str(payload.get("execution_id") or manifest_path.parent.name))
+    return ids
+
+
 def aggregate_campaign_state(campaign_id: str, manifest: dict | None = None) -> dict:
     manifest = dict(manifest or (_json_load(campaign_manifest_path(campaign_id)) or {}))
     if not manifest:

@@ -169,9 +169,77 @@ def _write_json(path: Path, data: Any) -> None:
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False, default=str))
 
 
-def _log(state: dict, level: str, msg: str) -> None:
+def _log(state: dict, level: str, msg: str, extra: dict | None = None) -> None:
     entry = {"ts": _utc_now(), "level": level, "msg": msg}
+    if extra:
+        entry["extra"] = extra
     state.setdefault("log", []).append(entry)
+
+
+def _host_resource_snapshot() -> dict:
+    """Cheap, pure-Python snapshot of load/memory/swap/disk on this host.
+
+    2026-09-03: added after a real incident (PLC deploy timing out at 1800s)
+    whose root cause -- this host being simultaneously the user's desktop and
+    the OpenStack compute node, under load average 8.14 / 8 vCPUs and 68%
+    swap at the time -- could only be found by manually running `free`/
+    `uptime` after the fact. Reads /proc and statvfs directly instead of
+    shelling out to free/uptime/df -- no subprocess spawn, no risk of this
+    call itself hanging the orchestrator thread. Failure of any individual
+    read is swallowed (returns None for that field) rather than raising --
+    a diagnostic snapshot must never be able to break the campaign it is
+    trying to help diagnose.
+    """
+    snap: dict = {}
+    try:
+        with open("/proc/loadavg") as f:
+            parts = f.read().split()
+        snap["load_1m"], snap["load_5m"], snap["load_15m"] = (float(parts[0]), float(parts[1]), float(parts[2]))
+    except Exception:
+        pass
+    try:
+        snap["cpu_count"] = os.cpu_count()
+    except Exception:
+        pass
+    try:
+        meminfo = {}
+        with open("/proc/meminfo") as f:
+            for line in f:
+                key, _, rest = line.partition(":")
+                meminfo[key] = int(rest.strip().split()[0])  # kB
+        total_kb = meminfo.get("MemTotal", 0)
+        avail_kb = meminfo.get("MemAvailable", 0)
+        swap_total_kb = meminfo.get("SwapTotal", 0)
+        swap_free_kb = meminfo.get("SwapFree", 0)
+        snap["mem_total_gb"] = round(total_kb / 1024 / 1024, 1)
+        snap["mem_available_gb"] = round(avail_kb / 1024 / 1024, 1)
+        snap["mem_used_pct"] = round(100 * (1 - avail_kb / total_kb), 1) if total_kb else None
+        snap["swap_total_gb"] = round(swap_total_kb / 1024 / 1024, 1)
+        snap["swap_used_pct"] = round(100 * (1 - swap_free_kb / swap_total_kb), 1) if swap_total_kb else 0.0
+    except Exception:
+        pass
+    try:
+        st = os.statvfs(str(PROJECT_ROOT))
+        free_gb = (st.f_bavail * st.f_frsize) / 1024 / 1024 / 1024
+        snap["disk_free_gb"] = round(free_gb, 1)
+    except Exception:
+        pass
+    return snap
+
+
+def _host_snapshot_summary(snap: dict) -> str:
+    """One-line human-readable summary of _host_resource_snapshot(), for
+    inline log messages (the full dict is still attached as `extra` on the
+    log entry for anything that wants the raw numbers)."""
+    if not snap:
+        return "host snapshot unavailable"
+    load = snap.get("load_1m")
+    cpus = snap.get("cpu_count")
+    load_part = f"load={load}/{cpus}cpu" if load is not None and cpus else "load=?"
+    mem_part = f"mem={snap.get('mem_used_pct', '?')}%"
+    swap_part = f"swap={snap.get('swap_used_pct', '?')}%"
+    disk_part = f"disk_free={snap.get('disk_free_gb', '?')}GB"
+    return f"{load_part} {mem_part} {swap_part} {disk_part}"
 
 
 def _save_state(job_dir: Path, state: dict) -> None:
@@ -377,6 +445,20 @@ def _run_cmd(
                 stdout, stderr = _drain()
                 return -1, stdout or "", f"Command timed out after {timeout}s\n{stderr or ''}"
             if _is_stop_requested(job_dir):
+                # 2026-09-03: found live -- a tool install (ansible-playbook)
+                # that finished successfully at almost the exact same instant
+                # a stop was requested got its real rc=0/full clean output
+                # discarded here and reported as "failed/skipped", because
+                # this branch always returned -2 unconditionally. Re-check
+                # proc.poll() right here: if the process already exited on
+                # its own between the top-of-loop check and this line,
+                # _kill_group() is a no-op on a dead pid and its real
+                # returncode/output is what should be honoured, not a
+                # synthetic "stopped" result that throws away a genuine
+                # success (or a genuine, differently-diagnosable failure).
+                if proc.poll() is not None:
+                    stdout, stderr = _drain(timeout_s=30)
+                    return proc.returncode, stdout or "", stderr or ""
                 _kill_group()
                 stdout, stderr = _drain()
                 return -2, stdout or "", "Process killed: stop requested by user."
@@ -556,6 +638,15 @@ def _openstack_sweep_delete(state: dict, rep_num: int, env: dict) -> None:
         )
         if rc == 0:
             _log(state, "INFO", f"  [Sweep] Deleted {srv['name']} OK.")
+        elif "No Server found" in (stderr or ""):
+            # 2026-09-03: this is not a real failure -- it means the instance
+            # was already gone (deleted by the standard destroy step itself,
+            # or by a concurrent cleanup) by the time this forced-delete ran;
+            # the "survived standard destroy" listing above is a snapshot
+            # that can race with reality by a few seconds. Logged as INFO,
+            # not WARN, so this stops reading as an error when nothing was
+            # actually left over to clean up.
+            _log(state, "INFO", f"  [Sweep] {srv['name']} was already gone by the time of the forced delete — nothing to do.")
         else:
             _log(state, "WARN", f"  [Sweep] Delete {srv['name']} returned rc={rc}: {stderr[:120]}")
 
@@ -871,10 +962,24 @@ def _phase_deploy_ot(state: dict, job_dir: Path, rep_num: int) -> bool:
                 results[component] = "script_missing"
             return
         _log(state, "INFO", f"Deploying {component.upper()} via {script.name}...")
+        # 2026-09-03: PLC compiles OpenPLC from source (CPU-heavy) while FUXA
+        # only pulls a Docker image (~3min) -- both shared one 1800s timeout.
+        # Root-caused a real Level B attack failure to this: PLC deploy hit
+        # 1800s and was killed mid-script, *after* the VM existed and was
+        # SSH-reachable (later tool installs on it succeeded) but *before*
+        # the actual OpenPLC ladder-logic program got loaded -- leaving a PLC
+        # with no Modbus registers to read/write, so every attack attempt
+        # failed with "Could not read pre-state level_max". Host was measured
+        # at load average 8.14 / 8 vCPUs and 68% swap at the time -- this
+        # host doubles as the user's desktop, so its available compute for
+        # compiling PLC varies. Widened PLC's own timeout to give it real
+        # margin under current host conditions; left FUXA's short so a
+        # genuine FUXA hang is still caught quickly.
+        deploy_timeout = 3600 if component == "plc" else 1800
         rc, stdout, stderr = _run_cmd(
             ["bash", str(script)],
             cwd=PROJECT_ROOT,
-            timeout=1800,  # 30 min — PLC compiles from source; FUXA pulls Docker image
+            timeout=deploy_timeout,
             job_dir=job_dir,
         )
         with lock:
@@ -897,7 +1002,19 @@ def _phase_deploy_ot(state: dict, job_dir: Path, rep_num: int) -> bool:
                 if stderr:
                     for line in stderr.strip().splitlines()[-10:]:
                         _log(state, "STDERR", line)
-                _log(state, "WARN", f"{component.upper()} deploy failed (rc={rc}): {stderr[:200]}")
+                # 2026-09-03: attach a host resource snapshot to this exact
+                # failure (extra field only, message text untouched -- other
+                # code scans WARN message strings for specific substrings,
+                # e.g. campaign_repetitions.service's stage_warnings, so
+                # nothing is appended to the text itself). This is the exact
+                # failure class root-caused today to host load/swap
+                # (LC-20260902-202836-5170: PLC deploy timed out at load
+                # 8.14/8cpu, 68% swap) -- next time this happens the
+                # correlation is right there instead of needing a manual
+                # `free`/`uptime` check after the fact.
+                snap = _host_resource_snapshot()
+                _log(state, "WARN", f"{component.upper()} deploy failed (rc={rc}): {stderr[:200]}", extra={"host_snapshot": snap})
+                _log(state, "INFO", f"  [Host] at failure: {_host_snapshot_summary(snap)}")
                 results[component] = f"failed_rc_{rc}"
 
     components = [("plc", DEPLOY_PLC_SCRIPT), ("fuxa", DEPLOY_FUXA_SCRIPT)]
@@ -1822,6 +1939,12 @@ def _phase_run_level_b(state: dict, job_dir: Path, rep_num: int, config: dict) -
     campaign_id = config["campaign_id"]
     requested_reps = int(config.get("level_b_repetitions") or 10)
     nested_a_reps = int(config.get("level_a_repetitions") or requested_reps)
+    # 2026-09-01: only the case from the campaign's true final repetition should
+    # ever be kept intact as a full result sample -- not every Level C repetition's
+    # own (usually single) inner Level B batch, which would otherwise each look
+    # like "the last one" from level_b_repetition_runner's own local point of view.
+    level_c_total_reps = int(config.get("level_c_repetitions") or 1)
+    is_final_level_c_rep = rep_num >= level_c_total_reps
 
     try:
         from app_core.infrastructure.foc_experimentation.level_b_repetition_runner import (
@@ -1855,7 +1978,8 @@ def _phase_run_level_b(state: dict, job_dir: Path, rep_num: int, config: dict) -
             time.sleep(30)
 
         _log(state, "INFO",
-             f"[Rep {rep_num}] Launching Level B: campaign={campaign_id} reps={requested_reps} nested_A={nested_a_reps}")
+             f"[Rep {rep_num}] Launching Level B: campaign={campaign_id} reps={requested_reps} nested_A={nested_a_reps}"
+             + (f" — final repetition ({rep_num}/{level_c_total_reps}): its case will be preserved fully intact as a result sample." if is_final_level_c_rep else ""))
         result = start_level_b_repetitions_job(
             campaign_id=campaign_id,
             confirmation="OK",
@@ -1864,6 +1988,7 @@ def _phase_run_level_b(state: dict, job_dir: Path, rep_num: int, config: dict) -
             cleanup_old_cases=True,
             dfir_mode_before="on",
             dfir_mode_after="on",
+            preserve_final_case=is_final_level_c_rep,
         )
         if result.get("error"):
             _log(state, "ERROR", f"Level B launch error: {result.get('message')}")
@@ -2211,6 +2336,20 @@ def _run_level_c_job(job_id: str, job_dir: Path, config: dict) -> None:
         state["phase_key"] = re.sub(r"\s*\(rep\s+\d+/\d+\)\s*$", "", phase).strip()
         state["phase_started_at"] = _utc_now()
         _log(state, "PHASE", f"→ {phase}")
+        # 2026-09-03: host resource snapshot on every phase transition (see
+        # _host_resource_snapshot's own docstring for why) — gives a full,
+        # free timeline of host load/mem/swap/disk across a repetition
+        # without anyone needing to SSH in and run free/uptime by hand after
+        # the fact, which is how every host-load-caused failure this session
+        # was actually root-caused. Cheap (pure /proc reads), never blocks.
+        # Logged as its own INFO entry, deliberately NOT appended to the
+        # "→ {phase}" message above — campaign_repetitions.service parses
+        # that exact string with an anchored regex ($ at the end); anything
+        # trailing it would silently break the whole repetitions tree/table
+        # view (caught before shipping by re-checking every consumer of
+        # level=="PHASE" log entries, not just eyeballing the format).
+        snap = _host_resource_snapshot()
+        _log(state, "INFO", f"  [Host] {_host_snapshot_summary(snap)}", extra={"host_snapshot": snap})
         _save()
 
     def _check_stop() -> bool:

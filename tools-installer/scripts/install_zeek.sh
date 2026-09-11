@@ -63,6 +63,7 @@ cat > "$BASE_DIR/playbooks/zeek-install.yml" <<'EOF'
     # ------------------------------------------------------------------------
     - name: 2️⃣ Actualizar cache de apt (limpio)
       apt:
+        lock_timeout: 120
         update_cache: yes
         cache_valid_time: 3600
       retries: 3
@@ -70,6 +71,7 @@ cat > "$BASE_DIR/playbooks/zeek-install.yml" <<'EOF'
       
     - name: 2️⃣.1 Instalar dependencias de compilación
       apt:
+        lock_timeout: 120
         name:
           - cmake
           - make

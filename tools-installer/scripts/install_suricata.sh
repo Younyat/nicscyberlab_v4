@@ -52,18 +52,20 @@ cat > "$BASE_DIR/playbooks/suricata-aio.yml" <<'EOF'
 
     - name: 0b. Actualizar caché apt tras añadir backports (solo Debian)
       apt:
+        lock_timeout: 120
         update_cache: true
       when: ansible_distribution == "Debian"
       ignore_errors: true
 
     - name: 0c. Instalar libhtp2 desde backports (solo Debian — suricata 7.x)
-      command: apt-get install -y -t bookworm-backports libhtp2
+      command: apt-get -o DPkg::Lock::Timeout=120 install -y -t bookworm-backports libhtp2
       become: true
       when: ansible_distribution == "Debian"
       ignore_errors: true
 
     - name: 1. Instalar Suricata y utilidades
       apt:
+        lock_timeout: 120
         name: [suricata, jq, curl, net-tools]
         state: present
         update_cache: true

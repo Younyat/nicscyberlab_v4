@@ -1,5 +1,5 @@
 // =======================
-// VARIABLES GLOBALES
+// GLOBAL VARIABLES
 // =======================
 let cy;
 let nodeCounter = 0;
@@ -8,7 +8,7 @@ let selectedNodes = [];
 let connectionMode = false;
 
 // =======================
-// MODAL DE CONFIRMACIÓN
+// CONFIRMATION MODAL
 // =======================
 function showConfirmationModal(title, message, onConfirmCallback) {
   const modal = document.getElementById('customModal');
@@ -16,7 +16,7 @@ function showConfirmationModal(title, message, onConfirmCallback) {
   const modalMessage = document.getElementById('modalMessage');
 
   if (!modal) {
-    console.error('Modal no encontrado');
+    console.error('Modal not found');
     if (onConfirmCallback) onConfirmCallback();
     return;
   }
@@ -37,7 +37,7 @@ function showConfirmationModal(title, message, onConfirmCallback) {
   };
   const handleCancel = () => closeModal();
 
-  // limpiar listeners previos
+  // clean up previous listeners
   const modalConfirm = document.getElementById('modalConfirm');
   const modalCancel = document.getElementById('modalCancel');
   modalConfirm.replaceWith(modalConfirm.cloneNode(true));
@@ -52,15 +52,15 @@ function showConfirmationModal(title, message, onConfirmCallback) {
 
 function showClearConfirmation() {
   showConfirmationModal(
-    'Confirmar Limpieza de Lienzo',
-    '¿Estás absolutamente seguro de que quieres eliminar todos los nodos y conexiones?',
+    'Confirm Canvas Clear',
+    'Are you absolutely sure you want to remove all nodes and connections?',
     clearAll
   );
 }
 function destruirScenarioConfirmation() {
   showConfirmationModal(
-    '¿Destruir el escenario actual?',
-    ' Esta acción eliminará todos los recursos desplegados. No podrás revertirla.',
+    'Destroy the current scenario?',
+    'This action will remove all deployed resources. It cannot be undone.',
     destruirScenario
   );
 }
@@ -68,18 +68,18 @@ function destruirScenarioConfirmation() {
 
 function newScenarioConfirmation() {
   showConfirmationModal(
-    'Crear un nuevo escenario?',
-    '¿Estás absolutamente seguro de que quieres crear el escenario?',
+    'Create a new scenario?',
+    'Are you absolutely sure you want to create the scenario?',
     createScenario
   );
 }
 // =======================
-// INICIALIZAR CYTOSCAPE
+// INITIALIZE CYTOSCAPE
 // =======================
 function initCytoscape() {
   const cyContainer = document.getElementById('cy');
   if (!cyContainer || typeof cytoscape === 'undefined') {
-    console.warn('Cytoscape no disponible');
+    console.warn('Cytoscape not available');
     return;
   }
 
@@ -90,27 +90,28 @@ function initCytoscape() {
       {
         selector: 'node',
         style: {
-          width: 60,
-          height: 60,
+          width: 64,
+          height: 64,
           label: 'data(name)',
           'text-valign': 'bottom',
-          'text-margin-y': 5,
-          color: '#f0f0f0',
+          'text-margin-y': 7,
+          color: '#e2e8f0',
           'text-outline-width': 2,
-          'text-outline-color': 'var(--bg-dark)',
+          'text-outline-color': '#0c1020',
           'border-width': 4,
-          'border-opacity': 0.8,
+          'border-opacity': 0.9,
           cursor: 'grab',
           'font-size': '12px',
-          'font-weight': 'bold'
+          'font-weight': 'bold',
+          'font-family': 'Inter, sans-serif'
         }
       },
-      { selector: 'node[type="monitor"]', style: { 'background-color': '#388e3c', 'border-color': '#66bb6a', 'shape': 'round-rectangle' } },
-      { selector: 'node[type="attack"]', style: { 'background-color': '#e53935', 'border-color': '#ef9a9a', 'shape': 'triangle' } },
-      { selector: 'node[type="victim"]', style: { 'background-color': '#1976d2', 'border-color': '#64b5f6', 'shape': 'ellipse' } },
-      { selector: 'node:selected', style: { 'border-width': 5, 'border-color': 'var(--secondary-color)' } },
-      { selector: 'edge', style: { width: 2, 'line-color': '#999', 'target-arrow-color': '#999', 'target-arrow-shape': 'triangle', 'curve-style': 'bezier' } },
-      { selector: 'edge:selected', style: { 'line-color': '#f97316', 'target-arrow-color': '#f97316', width: 3 } }
+      { selector: 'node[type="monitor"]', style: { 'background-color': '#16a34a', 'border-color': '#4ade80', 'shape': 'round-rectangle' } },
+      { selector: 'node[type="attack"]', style: { 'background-color': '#dc2626', 'border-color': '#f87171', 'shape': 'triangle' } },
+      { selector: 'node[type="victim"]', style: { 'background-color': '#2563eb', 'border-color': '#60a5fa', 'shape': 'ellipse' } },
+      { selector: 'node:selected', style: { 'border-width': 5, 'border-color': '#6366f1' } },
+      { selector: 'edge', style: { width: 2.5, 'line-color': '#475569', 'target-arrow-color': '#475569', 'target-arrow-shape': 'triangle', 'curve-style': 'bezier' } },
+      { selector: 'edge:selected', style: { 'line-color': '#f97316', 'target-arrow-color': '#f97316', width: 3.5 } }
     ],
     layout: { name: 'preset' },
     wheelSensitivity: 0.2
@@ -119,7 +120,7 @@ function initCytoscape() {
 
   cy.on('dblclick', 'node', evt => {
     const node = evt.target;
-    requestConsole(node.data('name')); // nombre del nodo
+    requestConsole(node.data('name')); // node name
   });
 
 
@@ -167,12 +168,12 @@ function initCytoscape() {
 }
 
 // =======================
-// CRUD DE NODOS Y EDGES
+// NODE AND EDGE CRUD
 // =======================
 function addNodeMode(type) {
   currentMode = type;
   if (connectionMode) toggleConnectionMode();
-  showToast(`Modo activo: añadir ${type}`);
+  showToast(`Active mode: add ${type}`);
 }
 
 function addNode(x, y) {
@@ -195,7 +196,7 @@ function addNode(x, y) {
   cy.add({ group: 'nodes', data: nodeData, position: { x, y } });
   currentMode = 'select';
   updateStats();
-  showToast('Nodo añadido');
+  showToast('Node added');
 }
 
 function toggleConnectionMode() {
@@ -205,13 +206,13 @@ function toggleConnectionMode() {
   const btn = document.querySelector('.btn-connect');
   if (btn) {
     if (connectionMode) {
-      btn.innerHTML = '<i class="fas fa-times mr-1"></i> Cancelar';
+      btn.innerHTML = '<i class="fas fa-times"></i><span>Cancel</span>';
       btn.style.background = '#dc2626';
-      showToast('Modo conexión activo');
+      showToast('Connection mode active');
     } else {
-      btn.innerHTML = '<i class="fas fa-link text-lg"></i> <span class="mt-1">Conectar</span>';
+      btn.innerHTML = '<i class="fas fa-link"></i><span>Connect</span>';
       btn.style.background = '#ea580c';
-      showToast('Modo conexión desactivado');
+      showToast('Connection mode disabled');
     }
   }
 }
@@ -219,24 +220,24 @@ function toggleConnectionMode() {
 function connectNodes(node1, node2) {
   const currentEdgeId = `edge_${node1.id()}_${node2.id()}`;
   if (cy.getElementById(currentEdgeId).length > 0) {
-    showToast('La conexión ya existe');
+    showToast('The connection already exists');
     return;
   }
   cy.add({ group: 'edges', data: { id: currentEdgeId, source: node1.id(), target: node2.id() } });
   updateStats();
-  showToast('Nodos conectados');
+  showToast('Nodes connected');
 }
 
 function deleteSelected() {
   const selected = cy.$(':selected');
   if (selected.length === 0) {
-    showToast('Selecciona algo para eliminar');
+    showToast('Select something to delete');
     return;
   }
   selected.remove();
   updateStats();
   clearNodeProperties();
-  showToast('Eliminado');
+  showToast('Deleted');
 }
 
 function clearAll() {
@@ -244,7 +245,7 @@ function clearAll() {
   nodeCounter = 0;
   updateStats();
   clearNodeProperties();
-  showToast('Escenario limpiado');
+  showToast('Scenario cleared');
 }
 
 // =======================
@@ -271,7 +272,7 @@ function clearNodeProperties() {
 function updateNodeProperties(showToastMsg = true) {
   const selected = cy.$('node:selected');
   if (selected.length === 0) {
-    if (showToastMsg) showToast('Selecciona un nodo');
+    if (showToastMsg) showToast('Select a node');
     return;
   }
   const node = selected[0];
@@ -281,11 +282,11 @@ function updateNodeProperties(showToastMsg = true) {
   node.data('image', document.getElementById('nodeImage').value);
   node.data('security_group', document.getElementById('nodeSecurityGroup').value);
   node.data('keypair', document.getElementById('nodeSSHKey').value);
-  if (showToastMsg) showToast('Nodo actualizado');
+  if (showToastMsg) showToast('Node updated');
 }
 
 // =======================
-// ESTADÍSTICAS Y TOAST
+// STATISTICS AND TOAST
 // =======================
 function updateStats() {
   document.getElementById('nodeCount').textContent = cy.nodes().length;
@@ -304,23 +305,23 @@ async function requestConsole(nodeName) {
         if (data.output) {
             const url = data.output.trim();
             if (/^http?:\/\//i.test(url)) {
-                // Abrir nueva ventana con tamaño fijo
+                // Open a new window with a fixed size
                 window.open(
                     url,
                     '_blank',
                     'toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=1024,height=768'
                 );
             } else {
-                showToast('La URL devuelta no es válida: ' + url);
-                console.warn('URL inválida:', url);
+                showToast('The returned URL is not valid: ' + url);
+                console.warn('Invalid URL:', url);
             }
         } else {
-            showToast(data.message || data.error || 'No se recibió URL');
-            console.warn('Respuesta backend:', data);
+            showToast(data.message || data.error || 'No URL received');
+            console.warn('Backend response:', data);
         }
     } catch (e) {
         console.error(e);
-        showToast('Error al solicitar la consola');
+        showToast('Error requesting the console');
     }
 }
 
@@ -336,7 +337,7 @@ function showToast(message) {
 }
 
 // =======================
-// INTEGRACIÓN BACKEND
+// BACKEND INTEGRATION
 // =======================
 function getScenarioData() {
   const nodes = cy.nodes().map(node => ({
@@ -368,17 +369,17 @@ function getScenarioData() {
 function showOverlay(show) {
   const overlay = document.getElementById('overlay');
   if (!overlay) {
-    console.warn(' Overlay no encontrado en el DOM.');
+    console.warn(' Overlay not found in the DOM.');
     return;
   }
   overlay.classList.toggle('hidden', !show);
 }
 
 // =======================
-// CREACIÓN DE ESCENARIO (CON BLOQUEO DE BOTONES Y MONITOREO)
+// SCENARIO CREATION (WITH BUTTON LOCKING AND MONITOREO)
 // =======================
 // =======================
-// CREACIÓN DE ESCENARIO (CON OVERLAY Y MONITOREO)
+// SCENARIO CREATION (WITH OVERLAY AND MONITORING)
 // =======================
 async function createScenario() {
   updateNodeProperties(false);
@@ -392,8 +393,8 @@ async function createScenario() {
   });
   showOverlay(true);
 
-  showToast(' Escenario en proceso... esto puede tardar varios minutos.');
-  appendToTerminal('$  Iniciando creación de escenario...', 'text-yellow-400');
+  showToast(' Scenario in progress... this can take several minutes.');
+  appendToTerminal('$  Starting scenario creation...', 'text-yellow-400');
 
   try {
     const res = await fetch('http://127.0.0.1:5001/api/create_scenario', {
@@ -403,8 +404,8 @@ async function createScenario() {
     });
 
     if (!res.ok) {
-      showToast(' Error al enviar el escenario.');
-      appendToTerminal('$  Error al enviar el escenario al backend.', 'text-red-400');
+      showToast(' Error sending the scenario.');
+      appendToTerminal('$  Error sending the scenario to the backend.', 'text-red-400');
       desbloquearBotones();
       showOverlay(false);
       return;
@@ -412,35 +413,35 @@ async function createScenario() {
 
     const info = await res.json();
     appendToTerminal(`$ ${info.message}`, 'text-yellow-300');
-    showToast(' Despliegue iniciado. Monitoreando progreso...');
+    showToast(' Deployment started. Monitoring progress...');
 
     if (info.status === 'running') {
       monitorDeploymentProgress();
     } else {
-      appendToTerminal(' Estado inesperado del backend.', 'text-orange-400');
+      appendToTerminal(' Unexpected backend status.', 'text-orange-400');
       desbloquearBotones();
       showOverlay(false);
     }
 
   } catch (e) {
-    showToast(' Error de conexión con el backend.');
-    appendToTerminal(`$  Error de conexión: ${e}`, 'text-red-400');
+    showToast(' Error connecting to the backend.');
+    appendToTerminal(`$  Connection error: ${e}`, 'text-red-400');
     desbloquearBotones();
     showOverlay(false);
   }
 }
 
 // =======================
-// MONITOREO DE ESTADO DEL BACKEND
+// BACKEND STATUS MONITORING
 // =======================
 async function monitorDeploymentProgress() {
-  appendToTerminal(' Monitoreando progreso del despliegue...', 'text-gray-400');
+  appendToTerminal(' Monitoring deployment progress...', 'text-gray-400');
 
   const checkStatus = async () => {
     try {
       const res = await fetch('http://127.0.0.1:5001/api/deployment_status');
       if (!res.ok) {
-        appendToTerminal(' No se pudo leer el estado del despliegue.', 'text-red-400');
+        appendToTerminal(' Could not read the deployment status.', 'text-red-400');
         desbloquearBotones();
         return;
       }
@@ -448,31 +449,31 @@ async function monitorDeploymentProgress() {
       const statusData = await res.json();
 
       if (statusData.status === 'running') {
-        appendToTerminal(' Despliegue aún en curso...', 'text-yellow-300');
-        setTimeout(checkStatus, 10000); // vuelve a revisar cada 10s
+        appendToTerminal(' Deployment still in progress...', 'text-yellow-300');
+        setTimeout(checkStatus, 10000); // check again every 10s
       } else if (statusData.status === 'success') {
-        appendToTerminal(' Despliegue completado con éxito.', 'text-green-400');
-        showToast(' Escenario creado correctamente.');
+        appendToTerminal(' Deployment completed successfully.', 'text-green-400');
+        showToast(' Scenario created successfully.');
         desbloquearBotones();
       } else if (statusData.status === 'error') {
-        appendToTerminal(' Error durante el despliegue.', 'text-red-400');
+        appendToTerminal(' Error during deployment.', 'text-red-400');
         if (statusData.stderr)
           appendToTerminal(statusData.stderr, 'text-red-300');
-        showToast(' Fallo en el despliegue.');
+        showToast(' Deployment failed.');
         desbloquearBotones();
       }
     } catch (err) {
-      appendToTerminal(` Error al consultar estado: ${err}`, 'text-red-400');
+      appendToTerminal(` Error checking status: ${err}`, 'text-red-400');
       desbloquearBotones();
     }
   };
 
-  // Inicia la primera comprobación con un pequeño retardo
+  // Starts the first check after a short delay
   setTimeout(checkStatus, 8000);
 }
 
 // =======================
-// DESBLOQUEAR BOTONES
+// UNLOCK BUTTONS
 // =======================
 function desbloquearBotones() {
   const buttons = document.querySelectorAll("button");
@@ -480,7 +481,7 @@ function desbloquearBotones() {
     btn.disabled = false;
     btn.classList.remove("opacity-50", "cursor-not-allowed");
   });
-  showOverlay(false); //  Cierra overlay al desbloquear
+  showOverlay(false); // Closes the overlay when unlocking
 }
 
 
@@ -489,7 +490,7 @@ function desbloquearBotones() {
 
 
 
-// Función para agregar mensajes al terminal
+// Function to add messages to the terminal
 function appendToTerminal(message, className = 'text-white') {
     const terminalOutput = document.getElementById('terminal-output');
     const p = document.createElement('p');
@@ -500,19 +501,19 @@ function appendToTerminal(message, className = 'text-white') {
 }
 
 // =======================
-//  DESTRUIR ESCENARIO (NUEVA VERSION)
+//  DESTROY SCENARIO (NEW VERSION)
 // =======================
 async function destruirScenario___() {
   const buttons = document.querySelectorAll("button");
-  
-  // Bloquear UI
+
+  // Lock UI
   buttons.forEach(btn => {
     btn.disabled = true;
     btn.classList.add("opacity-50", "cursor-not-allowed");
   });
   showOverlay(true);
 
-  appendToTerminal('$  Iniciando destrucción del escenario...', 'text-yellow-400');
+  appendToTerminal('$  Starting scenario destruction...', 'text-yellow-400');
 
   try {
     const response = await fetch("http://localhost:5001/api/destroy_scenario", {
@@ -523,18 +524,18 @@ async function destruirScenario___() {
     try { data = await response.json(); } catch {}
 
     if (response.ok && data.status === "success") {
-      appendToTerminal(" Destrucción iniciada en segundo plano.", "text-green-400");
+      appendToTerminal(" Destruction started in the background.", "text-green-400");
       appendToTerminal(data.message || "", "text-gray-300");
     } else {
-      appendToTerminal('$  Error al iniciar la destrucción.', 'text-orange-400');
+      appendToTerminal('$  Error starting the destruction.', 'text-orange-400');
       if (data.message) appendToTerminal(data.message, 'text-red-300');
     }
 
   } catch (err) {
-    appendToTerminal(`$  Error al conectar con el backend: ${err}`, 'text-red-400');
+    appendToTerminal(`$  Error connecting to the backend: ${err}`, 'text-red-400');
 
   } finally {
-    // Desbloquear UI
+    // Unlock UI
     buttons.forEach(btn => {
       btn.disabled = false;
       btn.classList.remove("opacity-50", "cursor-not-allowed");
@@ -578,7 +579,7 @@ async function monitorDestroyProgress() {
         const status = await res.json();
 
         if (status.status === "running") {
-            appendToTerminal(' Destrucción en curso...', 'text-yellow-400');
+            appendToTerminal(' Destruction in progress...', 'text-yellow-400');
             setTimeout(check, 5000);
         } else {
             appendToTerminal(' Scenario destroyed.', 'text-green-400');

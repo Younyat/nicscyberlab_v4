@@ -27,10 +27,12 @@ cat > "$BASE_DIR/mbpoll-install.yml" <<'EOF'
   tasks:
     - name: Actualizar cache de apt
       apt:
+        lock_timeout: 120
         update_cache: true
 
     - name: Instalar mbpoll
       apt:
+        lock_timeout: 120
         name: mbpoll
         state: present
 

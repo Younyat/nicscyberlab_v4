@@ -45,7 +45,7 @@ manifest_present,manifest.json,exists,available_in_all_cases
 manifest_verified,manifest.json,artifacts,available_in_all_cases
 memory_analysis_status,analysis/forensic_analysis_report.json,layer_status.memory_analysis.status,available_in_all_cases
 memory_first_when_enabled,metadata/normalized_causal_timestamps.json,memory_acquisition_started_at_utc ≤ forensic_intervention_started_at_utc,available_in_all_cases
-memory_size_gib,manifest.json,artifacts[type=memory_lime].size,available_in_all_cases
+memory_size_gib,manifest.json,artifacts[type=memory_lime].size,partial
 missing_edges,derived/reconstruction/reconstruction_metrics.json,missing_edges,available_in_all_cases
 pcap_size_gib,manifest.json,artifacts[type=network_pcap].size,available_in_all_cases
 plc_scada_reachable,metadata/time_sync.json AND industrial/ot_export_*.json,pipeline_fields.plc_scada_reachable.value,available_in_all_cases

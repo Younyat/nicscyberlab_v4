@@ -3,22 +3,22 @@
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
   "created_at": "2026-06-10T10:46:25.396668+00:00",
-  "updated_at": "2026-07-30T23:14:10.645164+00:00",
-  "reconstructed_at": "2026-07-30T23:14:10.645190+00:00",
+  "updated_at": "2026-09-03T22:34:51.497624+00:00",
+  "reconstructed_at": "2026-09-03T22:34:51.497648+00:00",
   "lifecycle_state": "active",
   "read_only_reconstruction": true,
   "bootstrap_mode": true,
   "scenario_bom": {
     "path": "foc-reconstruction/scenario_bom.json",
-    "sha256": "f034d19cf78697d186500f9b69b25b8ef9c868a99b620653a7de12a979b4ce33"
+    "sha256": "67befaf56cbb3e2e99e855e1d41b878ba51143f8bc2094af2993d54d0268c173"
   },
   "tools_bom": {
     "path": "foc-reconstruction/tools_bom.json",
-    "sha256": "098046e668e6de67c0904ac70a731941a6edd6c537076ccd468bf96ad09c67ef"
+    "sha256": "4861fc38155d9da7489f047f072564cc3bb30854f79797c6bff5a81172bac041"
   },
   "timeline": {
     "path": "foc-reconstruction/timeline.json",
-    "sha256": "0265c6549495355b25a1a4eb688ec7bcbdc9628d337bc5d4cd64a8d29d5d0566"
+    "sha256": "a0fea7bf5035e89f2a5300f408e7227f2340e9fe20b35568f7077654f615dbce"
   },
   "id_mapping_path": "foc-reconstruction/indexes/id_mapping.json",
   "source_indexes": {
@@ -41,13 +41,6 @@
     "foc_context_summary": "foc-reconstruction/attestations/foc_context_summary.json",
     "foc_readiness_report": "foc-reconstruction/validation/foc_readiness_report.json"
   },
-  "warnings": [
-    {
-      "kind": "jsonl_line_error",
-      "path": "app_core/infrastructure/forensics/alerts_store/ALERTS-20260707-000055Z/alerts.jsonl",
-      "line": 337,
-      "message": "Expecting ',' delimiter: line 1 column 2366 (char 2365)"
-    }
-  ],
-  "generation_status": "warnings"
+  "warnings": [],
+  "generation_status": "ok"
 }

@@ -1,7 +1,7 @@
 {
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
-  "generated_at": "2026-07-30T22:32:32.437619+00:00",
+  "generated_at": "2026-09-03T22:34:28.200528+00:00",
   "base_scenario_path": "scenario/scenario_file.json",
   "nodes": [
     {
@@ -78,8 +78,8 @@
         "x": 1200,
         "y": 280
       },
-      "ip_floating": "10.0.2.215",
-      "ip_private": "192.168.100.109",
+      "ip_floating": "10.0.2.249",
+      "ip_private": "192.168.100.190",
       "node_id": "node-53087541",
       "source_node_id": "plc1",
       "id_origin": "derived_from_existing_id"
@@ -92,8 +92,8 @@
         "x": 1200,
         "y": 160
       },
-      "ip_floating": "10.0.2.234",
-      "ip_private": "192.168.100.158",
+      "ip_floating": "10.0.2.57",
+      "ip_private": "192.168.100.91",
       "node_id": "node-f400bb36",
       "source_node_id": "scada1",
       "id_origin": "derived_from_existing_id"
@@ -246,8 +246,8 @@
         "x": 1200,
         "y": 280
       },
-      "ip_floating": "10.0.2.215",
-      "ip_private": "192.168.100.109",
+      "ip_floating": "10.0.2.249",
+      "ip_private": "192.168.100.190",
       "node_id": "node-53087541",
       "source_node_id": "plc1",
       "id_origin": "derived_from_existing_id"
@@ -260,8 +260,8 @@
         "x": 1200,
         "y": 160
       },
-      "ip_floating": "10.0.2.234",
-      "ip_private": "192.168.100.158",
+      "ip_floating": "10.0.2.57",
+      "ip_private": "192.168.100.91",
       "node_id": "node-f400bb36",
       "source_node_id": "scada1",
       "id_origin": "derived_from_existing_id"
@@ -368,10 +368,10 @@
       "plc": {
         "instance": {
           "status": "created",
-          "instance_id": "3dadc7b1-2ee6-430b-927a-8d0f6a543315",
+          "instance_id": "11960c03-292d-4f8a-8d3d-730a8921cc28",
           "name": "PLC_Instance",
-          "ip_floating": "10.0.2.215",
-          "ip_private": "192.168.100.109",
+          "ip_floating": "10.0.2.249",
+          "ip_private": "192.168.100.190",
           "last_error": null
         },
         "tool": {
@@ -383,10 +383,10 @@
       "scada": {
         "instance": {
           "status": "created",
-          "instance_id": "915e2e6c-fca3-4d22-af12-17399d6b2be9",
+          "instance_id": "5ce127a0-331c-4d25-afc2-913d931025e7",
           "name": "FUXA_Instance",
-          "ip_floating": "10.0.2.234",
-          "ip_private": "192.168.100.158",
+          "ip_floating": "10.0.2.57",
+          "ip_private": "192.168.100.91",
           "last_error": null
         },
         "tool": {
@@ -399,17 +399,17 @@
     "industrial_deployment": {
       "plc_instance": {
         "state": "created",
-        "instance_id": "3dadc7b1-2ee6-430b-927a-8d0f6a543315",
+        "instance_id": "11960c03-292d-4f8a-8d3d-730a8921cc28",
         "name": "PLC_Instance",
-        "ip_floating": "10.0.2.215",
-        "ip_private": "192.168.100.109"
+        "ip_floating": "10.0.2.249",
+        "ip_private": "192.168.100.190"
       },
       "scada_instance": {
         "state": "created",
-        "instance_id": "915e2e6c-fca3-4d22-af12-17399d6b2be9",
+        "instance_id": "5ce127a0-331c-4d25-afc2-913d931025e7",
         "name": "FUXA_Instance",
-        "ip_floating": "10.0.2.234",
-        "ip_private": "192.168.100.158"
+        "ip_floating": "10.0.2.57",
+        "ip_private": "192.168.100.91"
       }
     }
   },

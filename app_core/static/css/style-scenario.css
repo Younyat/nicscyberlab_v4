@@ -1,94 +1,480 @@
+/* ============================================================
+   IT Scenario Editor — visual theme
+   Dark / indigo design system. Pure presentation layer: no rule
+   here changes any element id, JS-toggled class name, or DOM
+   structure the app depends on (script.js keeps working as-is).
+   ============================================================ */
 
-        /* Custom Variables */
-        :root {
-            --primary-color: #0d9488; /* Teal-600 */
-            --secondary-color: #f97316; /* Orange-500 */
-            --accent-warning: #facc15; /* Yellow-400 */
-            --bg-dark: #1f2937; /* Gray-800 */
-            --border-color-light: #4b5563; /* Gray-600 */
-            --font-sans: 'Inter', sans-serif;
-            --font-mono: 'Fira Mono', monospace;
-        }
+:root {
+    --primary-color: #6366f1;       /* indigo-500 — accent, replaces old teal */
+    --primary-color-hover: #4f46e5; /* indigo-600 */
+    --primary-color-soft: rgba(99, 102, 241, 0.16);
+    --secondary-color: #f97316;     /* orange-500 — connect / selection accent */
+    --accent-warning: #f59e0b;      /* amber-500 — "unsaved change" state */
+    --accent-danger: #ef4444;       /* red-500 */
+    --accent-success: #22c55e;      /* green-500 */
 
-        body {
-            font-family: var(--font-sans);
-            background-color: var(--bg-dark);
-            color: #f3f4f6;
-            overflow: hidden; /* Evitar scroll en el body principal */
-        }
+    --bg-app: #0a0e1a;              /* page background */
+    --bg-dark: #10152488;
+    --bg-panel: #12172a;            /* card / panel background */
+    --bg-panel-soft: #161c33;       /* nested / secondary surface */
+    --bg-canvas: #0c1020;
+    --bg-input: #0d1122;
 
-        #app-container {
-            height: 100vh;
-            display: flex;
-        }
+    --border-color-light: rgba(148, 163, 184, 0.14);
+    --border-color-strong: rgba(148, 163, 184, 0.24);
 
-        #cy {
-            flex-grow: 1;
-            height: 100%;
-            background-color: #111827; /* Gray-900 */
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
-        }
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
 
-        /* Estilo para el panel lateral de controles */
-        #controls-panel {
-            width: 380px;
-            min-width: 380px;
-            background-color: var(--bg-dark);
-            border-left: 1px solid var(--border-color-light);
-            overflow-y: auto;
-            padding: 1.5rem;
-        }
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'Fira Mono', 'JetBrains Mono', ui-monospace, monospace;
 
-        /* Estilo para los botones principales (modos) */
-        .btn-mode {
-            @apply flex flex-col items-center justify-center p-3 rounded-xl transition duration-200 ease-in-out font-semibold text-sm;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-        }
+    --radius-lg: 18px;
+    --radius-md: 12px;
+    --radius-sm: 8px;
+    --shadow-panel: 0 10px 30px -12px rgba(0, 0, 0, 0.55);
+    --shadow-btn: 0 6px 16px -6px rgba(0, 0, 0, 0.45);
+}
 
-        /* Estilo para el Toast */
-        #toast {
-            visibility: hidden;
-            min-width: 250px;
-            background-color: var(--primary-color);
-            color: #fff;
-            text-align: center;
-            border-radius: 12px;
-            padding: 16px;
-            position: fixed;
-            z-index: 1000;
-            left: 50%;
-            transform: translateX(-50%);
-            bottom: 30px;
-            font-size: 14px;
-            opacity: 0;
-            transition: opacity 0.5s, bottom 0.5s;
-        }
+* {
+    box-sizing: border-box;
+}
 
-        #toast.show {
-            visibility: visible;
-            opacity: 1;
-            bottom: 50px;
-        }
+html, body {
+    height: 100%;
+}
 
-        /* Estilo del modal (reemplazo de confirm) */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-        }
-        .modal-content {
-            background: var(--bg-dark);
-            border: 1px solid var(--border-color-light);
-            padding: 2rem;
-            border-radius: 1rem;
-            max-width: 400px;
-            text-align: center;
-        }
-  
+body {
+    font-family: var(--font-sans);
+    background-color: var(--bg-app);
+    color: var(--text-primary);
+    overflow: hidden; /* Evitar scroll en el body principal */
+}
+
+/* ------------------------------------------------------------
+   Layout shell
+   ------------------------------------------------------------ */
+#app-container {
+    height: 100vh;
+    display: flex;
+    gap: 1rem;
+    background:
+        radial-gradient(circle at 15% 0%, rgba(99, 102, 241, 0.08), transparent 45%),
+        radial-gradient(circle at 100% 100%, rgba(99, 102, 241, 0.05), transparent 40%),
+        var(--bg-app);
+}
+
+/* Top header bar */
+.scenario-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.9rem 1.25rem;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-panel);
+    margin-bottom: 1rem;
+}
+
+.scenario-header .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.scenario-header .brand-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, var(--primary-color), #8b5cf6);
+    color: #fff;
+    font-size: 1.05rem;
+    box-shadow: 0 6px 18px -6px rgba(99, 102, 241, 0.65);
+    flex-shrink: 0;
+}
+
+.scenario-header .brand-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.scenario-header .brand-subtitle {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.scenario-header .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.header-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid transparent;
+    transition: all 0.15s ease;
+}
+
+.header-icon-btn:hover {
+    background: var(--bg-panel-soft);
+    border-color: var(--border-color-light);
+    color: var(--text-primary);
+}
+
+/* Main canvas column */
+.editor-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    min-width: 0;
+}
+
+#cy {
+    flex-grow: 1;
+    background-color: var(--bg-canvas);
+    background-image:
+        radial-gradient(rgba(148, 163, 184, 0.16) 1px, transparent 1px);
+    background-size: 22px 22px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color-light);
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.35), var(--shadow-panel);
+}
+
+/* Terminal panel */
+#terminal {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-panel);
+    padding: 1rem 1.1rem 1.1rem;
+    margin-top: 1rem;
+}
+
+.terminal-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
+.terminal-titlebar .terminal-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.terminal-dots {
+    display: flex;
+    gap: 6px;
+}
+
+.terminal-dots span {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.terminal-dots span:nth-child(1) { background: #ef4444; }
+.terminal-dots span:nth-child(2) { background: #f59e0b; }
+.terminal-dots span:nth-child(3) { background: #22c55e; }
+
+#terminal-output {
+    background: var(--bg-canvas);
+    border: 1px solid var(--border-color-light);
+    border-radius: var(--radius-sm);
+    padding: 0.85rem;
+    font-family: var(--font-mono);
+}
+
+#terminal-output p {
+    line-height: 1.55;
+    margin: 0 0 2px 0;
+}
+
+/* ------------------------------------------------------------
+   Right controls panel
+   ------------------------------------------------------------ */
+#controls-panel {
+    width: 400px;
+    min-width: 400px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-panel);
+    overflow-y: auto;
+    padding: 1.5rem;
+}
+
+.panel-card {
+    background: var(--bg-panel-soft);
+    border: 1px solid var(--border-color-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-panel);
+}
+
+.panel-section-title {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+/* Statistics card */
+.stat-block {
+    text-align: center;
+}
+
+.stat-value {
+    font-family: var(--font-mono);
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.stat-value.stat-nodes { color: var(--secondary-color); }
+.stat-value.stat-edges { color: var(--primary-color); }
+
+.stat-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+/* Estilo para los botones principales (modos) — Quick Add grid */
+.btn-mode {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.95rem 0.5rem;
+    border-radius: var(--radius-md);
+    font-weight: 700;
+    font-size: 0.78rem;
+    border: 1px solid var(--border-color-light);
+    box-shadow: var(--shadow-btn);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-mode i {
+    font-size: 1.05rem;
+}
+
+.btn-mode:hover {
+    border-color: rgba(255, 255, 255, 0.28);
+}
+
+.btn-mode.is-active {
+    outline: 2px solid rgba(255, 255, 255, 0.55);
+    outline-offset: 2px;
+}
+
+/* Inputs / selects */
+.field-label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.35rem;
+    letter-spacing: 0.02em;
+}
+
+.field-select,
+.field-input {
+    width: 100%;
+    padding: 0.55rem 0.7rem;
+    border-radius: var(--radius-sm);
+    background: var(--bg-input);
+    border: 1px solid var(--border-color-strong);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.field-select:focus,
+.field-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-color-soft);
+}
+
+/* Generic action buttons */
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    font-weight: 700;
+    font-size: 0.88rem;
+    border: 1px solid transparent;
+    box-shadow: var(--shadow-btn);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.btn-action:hover {
+    filter: brightness(1.08);
+}
+
+.btn-action:active {
+    transform: translateY(1px);
+}
+
+.btn-action.btn-neutral {
+    background: var(--bg-input);
+    border-color: var(--border-color-strong);
+    color: var(--text-primary);
+}
+
+.btn-action.btn-danger-soft {
+    background: rgba(239, 68, 68, 0.14);
+    border-color: rgba(239, 68, 68, 0.35);
+    color: #fca5a5;
+}
+
+.btn-action.btn-primary {
+    background: linear-gradient(135deg, var(--primary-color), #8b5cf6);
+    color: #fff;
+}
+
+.btn-action.btn-primary-dim {
+    background: var(--primary-color-hover);
+    color: #fff;
+}
+
+.btn-action.btn-danger {
+    background: transparent;
+    border-color: rgba(239, 68, 68, 0.55);
+    color: #f87171;
+}
+
+.btn-action.btn-danger:hover {
+    background: rgba(239, 68, 68, 0.12);
+}
+
+.btn-action:disabled,
+.btn-action[disabled] {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* Scrollbars */
+#controls-panel::-webkit-scrollbar,
+.editor-main::-webkit-scrollbar,
+#terminal-output::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+#controls-panel::-webkit-scrollbar-thumb,
+.editor-main::-webkit-scrollbar-thumb,
+#terminal-output::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.28);
+    border-radius: 999px;
+}
+
+#controls-panel::-webkit-scrollbar-track,
+.editor-main::-webkit-scrollbar-track,
+#terminal-output::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* ------------------------------------------------------------
+   Toast
+   ------------------------------------------------------------ */
+#toast {
+    visibility: hidden;
+    display: inline-flex;
+    align-items: center;
+    width: max-content;
+    max-width: min(90vw, 420px);
+    background: linear-gradient(135deg, var(--primary-color), #8b5cf6);
+    border: none;
+    color: #fff;
+    text-align: center;
+    border-radius: 999px;
+    padding: 10px 22px;
+    position: fixed;
+    z-index: 1000;
+    left: 50%;
+    transform: translateX(-50%) translateY(12px);
+    bottom: 30px;
+    font-size: 13.5px;
+    font-weight: 700;
+    opacity: 0;
+    box-shadow: 0 10px 25px -8px rgba(99, 102, 241, 0.65);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+#toast.show {
+    visibility: visible;
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* ------------------------------------------------------------
+   Modal
+   ------------------------------------------------------------ */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(5, 7, 15, 0.75);
+    backdrop-filter: blur(2px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+}
+
+.modal-content {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color-strong);
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.7);
+}
+
+/* Loading overlay text already uses Tailwind utility classes in the HTML;
+   just make sure the backdrop matches the theme. */
+#overlay {
+    background: rgba(5, 7, 15, 0.82) !important;
+    backdrop-filter: blur(3px);
+}
