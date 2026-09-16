@@ -1158,24 +1158,27 @@ The next section describes where the full evidentiary package for the reported c
 
 ---
 
+
 ## 14. Verification Dataset
 
-The large artifacts excluded from this repository under Section 13 — the complete sealed forensic case and the full campaign-level evidence backing the reported experimental results — are distributed separately as a standalone verification dataset.
+The large artifacts excluded from this repository under Section 13 — the complete sealed forensic case and the campaign-level records supporting the reported experimental results — are distributed separately as a standalone verification dataset through Zenodo.
 
 The verification dataset contains:
 
-- one complete sealed forensic case;
-- campaign-level records for the ten reported executions;
-- manifests and integrity records;
-- reconstruction outputs and cross-run summaries.
+- one complete sealed forensic case from the reported reconstruction campaign;
+- campaign-level records for all ten reported executions;
+- preserved evidence, case metadata, manifests, integrity records, and custody information;
+- analysis and reconstruction outputs, together with cross-run summaries.
 
-This allows independent inspection and verification of the reported campaign without requiring redeployment of the infrastructure or re-execution of the experiment.
+These materials support independent inspection of the preserved evidence and verification of the reported campaign results without requiring infrastructure redeployment or re-execution of the experiment.
 
 | | |
 |---|---|
-| **Archive** | [nics.uma.es OwnCloud — FORGE-VI verification dataset](https://www.nics.uma.es:8081/owncloud/index.php/s/XzZ2cKZAfV5Nifb) |
-| **Dataset version** | 1.0 |
-| **Access** | Public, read-only |
+| **Repository** | [Zenodo — FORGE-VI Verification Dataset](https://doi.org/10.5281/zenodo.22706525) |
+| **DOI** | [10.5281/zenodo.22706525](https://doi.org/10.5281/zenodo.22706525) |
+| **Dataset version** | 1.0.0 |
+| **Campaign ID** | `CMP-20260903-083211-125A` |
+| **Access** | Public, open access |
 
 The next section acknowledges the funding and institutional support behind the project.
 
