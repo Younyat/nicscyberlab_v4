@@ -8,6 +8,21 @@
     <link rel="stylesheet" href="/css/theme.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
+    <style>
+        /* Darkened so panel text stays legible; !important + background-image
+           (not the `background` shorthand) so it coexists with both Tailwind's
+           bg-gray-900 utility and theme.css's per-theme background-color
+           override instead of being clobbered by either. */
+        body.bg-gray-900 {
+            background-image:
+                linear-gradient(rgba(10, 14, 26, 0.75), rgba(10, 14, 26, 0.75)),
+                url('/images/my_space.png') !important;
+            background-size: cover !important;
+            background-position: center !important;
+            background-attachment: fixed !important;
+            background-repeat: no-repeat !important;
+        }
+    </style>
 </head>
 <body class="bg-gray-900 text-white">
     <div class="min-h-screen p-6">

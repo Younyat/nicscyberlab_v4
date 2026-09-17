@@ -7,6 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.0/cytoscape.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <script>document.documentElement.setAttribute('data-theme', (function(){try{return localStorage.getItem('nics-cyberlab-theme')||'dark';}catch(e){return 'dark';}})());</script>
+    <link rel="stylesheet" href="/css/theme.css">
     <link rel="stylesheet" href="css/style-scenario.css">
     <style>
         #cy {
@@ -31,6 +33,7 @@
                         <div class="brand-subtitle">Design &bull; Simulate &bull; Secure</div>
                     </div>
                 </div>
+                <div id="theme-switcher-mount"></div>
             </div>
 
             <div id="cy" class="flex-1"></div>
@@ -220,6 +223,9 @@ window.addEventListener('load', () => {
     }
 });
 </script>
+
+<script src="/js/theme-switcher.js"></script>
+<script>window.NicsThemeSwitcher.mount('#theme-switcher-mount');</script>
 
 </body>
 </html>

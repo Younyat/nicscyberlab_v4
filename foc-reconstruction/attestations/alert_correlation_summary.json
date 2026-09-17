@@ -1,21 +1,21 @@
 {
-  "generated_at": "2026-09-03T22:34:45.125359+00:00",
+  "generated_at": "2026-09-16T05:38:23.916161+00:00",
   "scenario_id": "scn-b83dbbfb",
   "scenario_name": "industrial_file",
-  "total_correlation_records": 12412,
-  "total_alerts": 2355,
-  "relevant_alerts": 2182,
-  "correlated_alerts": 12351,
-  "confirmed_correlations": 12351,
+  "total_correlation_records": 12447,
+  "total_alerts": 6995,
+  "relevant_alerts": 5846,
+  "correlated_alerts": 12386,
+  "confirmed_correlations": 12386,
   "weak_correlations": 0,
   "unresolved_alerts": 0,
   "noise_alerts": 0,
   "false_positive_candidates": 0,
   "missing_expected_alerts_total": 61,
   "bucket_counts": {
-    "correlated": 12351,
-    "uncorrelated": 2159,
-    "noise": 173,
+    "correlated": 12386,
+    "uncorrelated": 5824,
+    "noise": 1149,
     "false_positive_candidate": 0,
     "missing_expected_alert": 61,
     "weak_candidate": 0,
@@ -25,36 +25,44 @@
   "top_signatures": [
     {
       "label": "NICS CyberLab ICS Modbus write multiple registers",
-      "count": 12351
+      "count": 12386
     }
   ],
   "top_rule_ids": [
     {
       "label": "86601",
-      "count": 12351
+      "count": 12386
     }
   ],
   "top_nodes": [
     {
+      "label": "node-4e09b076",
+      "count": 563
+    },
+    {
       "label": "node-53087541",
-      "count": 537
+      "count": 563
     }
   ],
   "severity_distribution": [
     {
-      "label": "HIGH",
-      "count": 1798
+      "label": "MEDIUM",
+      "count": 4368
     },
     {
-      "label": "MEDIUM",
-      "count": 384
+      "label": "HIGH",
+      "count": 1478
     },
     {
       "label": "LOW",
-      "count": 173
+      "count": 1149
     }
   ],
   "alerts_by_node": [
+    {
+      "label": "node-4e09b076",
+      "count": 1
+    },
     {
       "label": "node-53087541",
       "count": 1
@@ -63,31 +71,31 @@
   "alerts_by_mitre_technique": [
     {
       "label": "T1692.001",
-      "count": 23
+      "count": 22
     },
     {
       "label": "T0836",
-      "count": 23
+      "count": 22
     }
   ],
   "alerts_by_original_sensor": [
     {
       "label": "wazuh",
-      "count": 2159
+      "count": 5824
     },
     {
       "label": "suricata",
-      "count": 196
+      "count": 1171
     }
   ],
   "alerts_by_collector": [
     {
       "label": "wazuh",
-      "count": 2355
+      "count": 6995
     }
   ],
-  "unique_confirmed_attack_pairs": 2,
-  "unique_correlation_candidates": 27,
+  "unique_confirmed_attack_pairs": 3,
+  "unique_correlation_candidates": 28,
   "confirmed_attack_ids": 1,
   "weak_attack_ids": 0,
   "observable_attack_ids": 1,
@@ -415,226 +423,226 @@
   ],
   "uncorrelated_alert_samples": [
     {
-      "alert_id": "alr-fc3c6260",
-      "signature": "/usr/sbin/fsck.cramfs",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-ce670406",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"
     },
     {
-      "alert_id": "alr-6b2427f8",
-      "signature": "/usr/sbin/fsck.cramfs",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-dbddc341",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"
     },
     {
-      "alert_id": "alr-75bfbb56",
-      "signature": "/usr/sbin/fsck.cramfs",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-5f560c76",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"
     },
     {
-      "alert_id": "alr-e3a62117",
-      "signature": "/usr/sbin/fsck.cramfs",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-d590195e",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"
     },
     {
-      "alert_id": "alr-4b3764de",
-      "signature": "/usr/sbin/fsck.cramfs",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-5649605a",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"
     },
     {
-      "alert_id": "alr-9142f4da",
-      "signature": "/usr/sbin/fsck.cramfs",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-a53077e0",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"
     },
     {
-      "alert_id": "alr-c90a213c",
-      "signature": "/usr/sbin/fsck.cramfs",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-f7c89b7f",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"
     },
     {
-      "alert_id": "alr-a245937d",
-      "signature": "/usr/sbin/fsck.cramfs",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-454dded8",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"
     },
     {
-      "alert_id": "alr-46dda67f",
-      "signature": "/usr/sbin/fsck.cramfs",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-93caee9b",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"
     },
     {
-      "alert_id": "alr-b30bf419",
-      "signature": "/usr/sbin/fsck.cramfs",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-8c18edc0",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"
     },
     {
-      "alert_id": "alr-40045a4d",
-      "signature": "/usr/sbin/fsck.cramfs",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-a65a1646",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"
     },
     {
-      "alert_id": "alr-25282e7d",
-      "signature": "/usr/sbin/fsck.cramfs",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-1f45e7a1",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"
     },
     {
-      "alert_id": "alr-40e55d73",
-      "signature": "/usr/sbin/fsck.cramfs",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-4fb685a1",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"
     },
     {
-      "alert_id": "alr-07941d0c",
-      "signature": "/usr/sbin/fsck.cramfs",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-aef5c968",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"
     },
     {
-      "alert_id": "alr-9e35012e",
-      "signature": "/usr/sbin/fsck.cramfs",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-3e079974",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"
     },
     {
-      "alert_id": "alr-6ea73a7f",
-      "signature": "/usr/sbin/fsck.cramfs",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-16776b07",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"
     },
     {
-      "alert_id": "alr-453b2c1a",
-      "signature": "/usr/sbin/fsck.minix",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-886295d1",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"
     },
     {
-      "alert_id": "alr-ab23a973",
-      "signature": "/usr/sbin/fsck.minix",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-855b6888",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"
     },
     {
-      "alert_id": "alr-2752ec1d",
-      "signature": "/usr/sbin/fsck.minix",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-9b7ee532",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"
     },
     {
-      "alert_id": "alr-b76d9e7d",
-      "signature": "/usr/sbin/fsck.minix",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-bcba1f7b",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"
     },
     {
-      "alert_id": "alr-125eb037",
-      "signature": "/usr/sbin/fsck.minix",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-2e816137",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"
     },
     {
-      "alert_id": "alr-db4cfe23",
-      "signature": "/usr/sbin/fsck.minix",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-87ee1540",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"
     },
     {
-      "alert_id": "alr-505d9786",
-      "signature": "/usr/sbin/fsck.minix",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-77e239e0",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"
     },
     {
-      "alert_id": "alr-f935d23a",
-      "signature": "/usr/sbin/fsck.minix",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-6849e41f",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"
     },
     {
-      "alert_id": "alr-2c7baaa5",
-      "signature": "/usr/sbin/fsck.minix",
-      "rule_id": "550",
-      "severity": "HIGH",
+      "alert_id": "alr-937d1501",
+      "signature": "ALERTA: Ping Detectado",
+      "rule_id": "86601",
+      "severity": "LOW",
       "node_id": "unresolved",
       "instance_id": "unresolved",
       "status": "noise"

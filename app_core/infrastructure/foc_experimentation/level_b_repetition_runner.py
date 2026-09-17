@@ -2024,6 +2024,16 @@ def _repetition_result_from_case(
             write_fsr_verdict(case_dir, run_id=execution_id)
         except Exception:
             pass
+        # Durable per-execution plain-language narrative explaining WHY each causal
+        # relation ended up recovered/degraded/ambiguous/missing (derived/executive/
+        # execution_narrative_report.{json,md}), cross-referencing the general network
+        # analysis, the OT-specific export, temporal-uncertainty inputs, and the
+        # independent attack ground truth. Best-effort, never blocks the pipeline.
+        try:
+            from ..foc_causal_reconstruction.narrative_report import generate_execution_narrative_report
+            generate_execution_narrative_report(case_id, case_dir, execution_id=execution_id)
+        except Exception:
+            pass
         for rel_path, artifact_type in _MANIFEST_REFRESH_TARGETS:
             _refresh_manifest_hash_if_stale(case_dir, rel_path, artifact_type)
 

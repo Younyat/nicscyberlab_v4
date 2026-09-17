@@ -102,6 +102,29 @@
   --t-scrollbar: rgba(248, 113, 113, 0.35);
 }
 
+/* Clean, opaque, institutional palette (blue header, white panels, flat
+ * bootstrap-style status colors) -- requested to match a specific reference
+ * (an academic data-repository upload screen), for pages that need to read
+ * as a professional records/reporting tool rather than a SOC/HUD console. */
+:root[data-theme="professional"] {
+  --t-bg: #eef1f4;
+  --t-bg-2: #e4e8ec;
+  --t-bg-3: #ffffff;
+  --t-panel: #ffffff;
+  --t-panel-2: #f7f8fa;
+  --t-border: #d7dce2;
+  --t-text: #1f2937;
+  --t-text-muted: #5f6b7a;
+  --t-accent: #1c6ea4;
+  --t-accent-2: #2b7fbd;
+  --t-ok: #1e7e34;
+  --t-warn: #b45309;
+  --t-danger: #c0392b;
+  --t-info: #1c6ea4;
+  --t-shadow: rgba(31, 41, 55, 0.14);
+  --t-scrollbar: rgba(31, 41, 55, 0.25);
+}
+
 /* ---------------------------------------------------------------------- */
 /* Generic, opt-in component classes pages can use directly.              */
 /* ---------------------------------------------------------------------- */
@@ -197,6 +220,7 @@
   color: var(--t-ok) !important;
 }
 
+:root[data-theme]:not([data-theme="dark"]) .text-red-200,
 :root[data-theme]:not([data-theme="dark"]) .text-red-300,
 :root[data-theme]:not([data-theme="dark"]) .text-rose-300,
 :root[data-theme]:not([data-theme="dark"]) .text-red-400,
@@ -204,11 +228,81 @@
   color: var(--t-danger) !important;
 }
 
+:root[data-theme]:not([data-theme="dark"]) .text-cyan-200,
+:root[data-theme]:not([data-theme="dark"]) .text-fuchsia-200,
+:root[data-theme]:not([data-theme="dark"]) .text-purple-200,
+:root[data-theme]:not([data-theme="dark"]) .text-violet-200 {
+  color: var(--t-accent-2) !important;
+}
+
+/* Tailwind's opacity-suffixed utilities (bg-slate-900/85, bg-red-500/10...)
+   are literal, separate class names -- the plain-class rules above never
+   match them, which left dark-on-dark panels once text got re-colored for
+   a light theme but their translucent dark backgrounds didn't. Neutral
+   panel backgrounds get flattened to the theme's own panel color; tinted
+   status backgrounds (red/amber/cyan/fuchsia at low opacity, used for
+   alert/badge panels) get a light wash of the matching status color so the
+   "this is a warning/danger/info panel" meaning survives the theme swap. */
+:root[data-theme]:not([data-theme="dark"]) .bg-slate-900\/85,
+:root[data-theme]:not([data-theme="dark"]) .bg-gray-900\/85,
+:root[data-theme]:not([data-theme="dark"]) .bg-slate-950\/70,
+:root[data-theme]:not([data-theme="dark"]) .bg-gray-950\/70 {
+  background-color: var(--t-panel) !important;
+}
+
+:root[data-theme]:not([data-theme="dark"]) .bg-red-500\/5,
+:root[data-theme]:not([data-theme="dark"]) .bg-red-500\/10,
+:root[data-theme]:not([data-theme="dark"]) .bg-red-500\/20 {
+  background-color: color-mix(in srgb, var(--t-danger) 12%, var(--t-panel)) !important;
+}
+:root[data-theme]:not([data-theme="dark"]) .bg-amber-500\/10,
+:root[data-theme]:not([data-theme="dark"]) .bg-amber-500\/20 {
+  background-color: color-mix(in srgb, var(--t-warn) 12%, var(--t-panel)) !important;
+}
+:root[data-theme]:not([data-theme="dark"]) .bg-cyan-500\/10,
+:root[data-theme]:not([data-theme="dark"]) .bg-cyan-500\/20,
+:root[data-theme]:not([data-theme="dark"]) .bg-sky-500\/10,
+:root[data-theme]:not([data-theme="dark"]) .bg-sky-500\/20 {
+  background-color: color-mix(in srgb, var(--t-info) 12%, var(--t-panel)) !important;
+}
+:root[data-theme]:not([data-theme="dark"]) .bg-fuchsia-500\/10,
+:root[data-theme]:not([data-theme="dark"]) .bg-fuchsia-500\/20,
+:root[data-theme]:not([data-theme="dark"]) .bg-purple-500\/10,
+:root[data-theme]:not([data-theme="dark"]) .bg-purple-500\/20 {
+  background-color: color-mix(in srgb, var(--t-accent-2) 12%, var(--t-panel)) !important;
+}
+:root[data-theme]:not([data-theme="dark"]) .bg-emerald-500\/10,
+:root[data-theme]:not([data-theme="dark"]) .bg-emerald-500\/20,
+:root[data-theme]:not([data-theme="dark"]) .bg-green-500\/10,
+:root[data-theme]:not([data-theme="dark"]) .bg-green-500\/20 {
+  background-color: color-mix(in srgb, var(--t-ok) 12%, var(--t-panel)) !important;
+}
+
 :root[data-theme]:not([data-theme="dark"]) .border-gray-700,
 :root[data-theme]:not([data-theme="dark"]) .border-slate-700,
 :root[data-theme]:not([data-theme="dark"]) .border-gray-800,
 :root[data-theme]:not([data-theme="dark"]) .border-slate-800 {
   border-color: var(--t-border) !important;
+}
+
+:root[data-theme]:not([data-theme="dark"]) .border-red-500\/20,
+:root[data-theme]:not([data-theme="dark"]) .border-red-500\/40 {
+  border-color: color-mix(in srgb, var(--t-danger) 45%, transparent) !important;
+}
+:root[data-theme]:not([data-theme="dark"]) .border-amber-500\/40 {
+  border-color: color-mix(in srgb, var(--t-warn) 45%, transparent) !important;
+}
+:root[data-theme]:not([data-theme="dark"]) .border-cyan-500\/40,
+:root[data-theme]:not([data-theme="dark"]) .border-sky-500\/60 {
+  border-color: color-mix(in srgb, var(--t-info) 45%, transparent) !important;
+}
+:root[data-theme]:not([data-theme="dark"]) .border-fuchsia-500\/40,
+:root[data-theme]:not([data-theme="dark"]) .border-purple-500\/40 {
+  border-color: color-mix(in srgb, var(--t-accent-2) 45%, transparent) !important;
+}
+:root[data-theme]:not([data-theme="dark"]) .border-emerald-500\/40,
+:root[data-theme]:not([data-theme="dark"]) .border-green-500\/40 {
+  border-color: color-mix(in srgb, var(--t-ok) 45%, transparent) !important;
 }
 
 body {

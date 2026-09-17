@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>FORGE-VI | 3D Live Monitor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="/css/theme.css" />
+<style>
+  /* Aliased to the shared --t-* theme variables (see /css/theme.css) so the
+     global theme switcher re-colors this page's UI chrome. The 3D scene
+     itself (starfield background, box wireframe colors) is WebGL canvas
+     content, not CSS, so it deliberately keeps its own fixed cyan/blue/red
+     identity palette regardless of the selected theme -- only the
+     surrounding panels/text/borders respond. */
+  :root {
+    --bg: var(--t-bg, #050b14);
+    --panel: var(--t-panel, rgba(8, 19, 32, 0.82));
+    --border: var(--t-border, rgba(34, 211, 238, 0.22));
+    --cyan: var(--t-accent, #22d3ee);
+    --cyan-glow: color-mix(in srgb, var(--cyan) 50%, transparent);
+    --amber: var(--t-warn, #f59e0b);
+    --red: var(--t-danger, #ef4444);
+    --green: var(--t-ok, #34d399);
+    --blue: var(--t-accent-2, #3b82f6);
+    --gray: var(--t-text-muted, #64748b);
+    --text: var(--t-text, #e6f6fb);
+    --text-dim: var(--t-text-muted, #7c93a0);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    background: radial-gradient(ellipse 1400px 700px at 50% -10%, rgba(34,211,238,0.08), transparent 60%), var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 12.5px;
+  }
+  .shell { display: grid; grid-template-rows: auto auto 1fr; height: 100vh; }
+
+  .top-bar {
+    grid-row: 1;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--panel); z-index: 5;
+  }
+  .brand { font-size: 13px; letter-spacing: 2.5px; color: var(--cyan); font-weight: 700; text-shadow: 0 0 10px var(--cyan-glow); }
+  .brand-sub { font-size: 9px; letter-spacing: 1.5px; color: var(--text-dim); margin-top: 2px; }
+  .top-right { display: flex; align-items: center; gap: 14px; }
+  .conn { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-dim); }
+  .conn-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .conn-dot.error { background: var(--red); box-shadow: 0 0 6px var(--red); }
+  .conn-dot.syncing { animation: conn-pulse 0.9s ease-in-out infinite; }
+  .conn-dot.reconstructing { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+  @keyframes conn-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(1.35); } }
+  .back-btn {
+    background: var(--panel); border: 1px solid var(--border); color: var(--cyan);
+    padding: 5px 12px; border-radius: 7px; cursor: pointer; font-size: 11px; font-weight: 600; display: none;
+  }
+  .back-btn:hover { background: rgba(34,211,238,0.12); }
+
+  .transparent-btn {
+    background: transparent; border: 1px dashed var(--border); color: var(--text-dim);
+    padding: 5px 12px; border-radius: 7px; cursor: pointer; font-size: 11px; font-weight: 600;
+  }
+  .transparent-btn:hover, .transparent-btn.active { border-style: solid; border-color: var(--cyan); color: var(--cyan); }
+
+  #reconstruction-bar {
+    grid-row: 2;
+    display: none; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: rgba(3,10,18,0.9); border-bottom: 1px solid var(--border);
+    padding: 8px 16px; font-size: 11px; color: var(--text-dim);
+  }
+  #reconstruction-bar.visible { display: flex; }
+  #reconstruction-bar select {
+    background: var(--panel); border: 1px solid var(--border); color: var(--text);
+    font-size: 11px; padding: 4px 8px; border-radius: 6px;
+  }
+  .transport-btn {
+    background: var(--panel); border: 1px solid var(--border); color: var(--cyan);
+    padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600;
+  }
+  .transport-btn:hover { background: rgba(34,211,238,0.12); }
+  .transport-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  #reconstruction-beat-label { color: var(--text); font-weight: 600; }
+  #reconstruction-progress { color: var(--text-dim); font-size: 10px; }
+
+  .recon-speed { display: flex; align-items: center; gap: 6px; }
+  .recon-speed span:first-child { color: var(--text-dim); font-size: 10px; }
+  #reconstruction-speed {
+    width: 110px; accent-color: var(--cyan); cursor: pointer;
+  }
+  #reconstruction-speed-label {
+    color: var(--cyan); font-weight: 700; font-size: 11px; min-width: 30px; display: inline-block;
+  }
+
+  .body-grid { grid-row: 3; display: grid; grid-template-columns: 250px 1fr 300px; min-height: 0; }
+
+  .side { background: var(--panel); border-right: 1px solid var(--border); overflow-y: auto; padding: 14px; }
+  .side.right { border-right: none; border-left: 1px solid var(--border); }
+  .side h2 { font-size: 10.5px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); margin: 0 0 4px; }
+  .side .h2sub { font-size: 9.5px; color: #4d6774; margin-bottom: 12px; }
+
+  .src-item { display: flex; gap: 8px; padding: 7px 6px; margin: 0 -6px; border-bottom: 1px dashed rgba(34,211,238,0.08); border-radius: 6px; cursor: pointer; }
+  .src-item:hover { background: rgba(34,211,238,0.06); }
+  .src-item.active { background: rgba(34,211,238,0.12); border: 1px solid var(--border); }
+  .src-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); margin-top: 5px; flex-shrink: 0; box-shadow: 0 0 4px var(--green); }
+  .src-dot.dim { background: var(--text-dim); box-shadow: none; }
+  .src-name { font-size: 11px; font-weight: 600; }
+  .src-desc { font-size: 10px; color: var(--text-dim); }
+
+  .layer-toggle { display: flex; gap: 8px; padding: 7px 6px; margin: 0 -6px; border-radius: 6px; cursor: pointer; align-items: flex-start; }
+  .layer-toggle:hover { background: rgba(34,211,238,0.06); }
+  .layer-toggle input { margin-top: 3px; accent-color: var(--cyan); flex-shrink: 0; }
+  .layer-toggle .lt-name { font-size: 11px; font-weight: 600; }
+  .layer-toggle .lt-desc { font-size: 10px; color: var(--text-dim); }
+  .layer-toggle.disabled { opacity: 0.4; cursor: not-allowed; }
+  .relation-label { font-size: 9.5px; font-weight: 600; padding: 2px 6px; border-radius: 4px; white-space: nowrap; pointer-events: none; border: 1px solid; }
+  .relation-label.security { color: #fca5a5; border-color: rgba(239,68,68,0.6); background: rgba(30,4,4,0.75); }
+  .relation-label.evidence { color: #a5b4fc; border-color: rgba(99,102,241,0.6); background: rgba(8,7,30,0.75); }
+  .ent-card.dimmed { filter: grayscale(0.5); }
+  .ent-card.dimmed .ent-title, .ent-card.dimmed .ent-sub, .ent-card.dimmed .ent-stat { opacity: 0.4; }
+
+  #viewport { position: relative; background: transparent; }
+  #viewport canvas { display: block; }
+
+  .ent-card {
+    --cage-color: #3b82f6;
+    position: relative;
+    background: rgba(2,7,14,0.94); border: 1.5px solid var(--cage-color); border-radius: 8px;
+    padding: 9px 11px; min-width: 120px; text-align: left; pointer-events: none;
+    box-shadow: 0 0 18px color-mix(in srgb, var(--cage-color) 55%, transparent), inset 0 0 22px color-mix(in srgb, var(--cage-color) 12%, transparent);
+  }
+  .ent-card.selected { box-shadow: 0 0 26px color-mix(in srgb, var(--cage-color) 85%, transparent), inset 0 0 26px color-mix(in srgb, var(--cage-color) 20%, transparent); }
+  .ent-card.kind-campaign, .ent-card.kind-case { min-width: 200px; }
+  .ent-card:has(.metric-grid) { min-width: 280px; }
+  /* Tool/telemetry cards pack tightly (up to 6 inside one host) -- a
+     smaller footprint per card leaves more real separation between them
+     at the same 3D spacing. CSS2DObject content doesn't scale with the 3D
+     box's apparent screen size (a structural limit of this renderer, not
+     fixable without switching the whole dashboard to CSS3DObject), so a
+     max-width + smaller font is the practical mitigation: keeps the card
+     close to these small boxes' own footprint instead of overflowing well
+     past their wireframe edges. */
+  .ent-card.kind-tool, .ent-card.kind-telemetry { min-width: 92px; max-width: 118px; padding: 6px 8px; }
+  .ent-card.kind-tool .ent-title, .ent-card.kind-telemetry .ent-title { font-size: 10.5px; }
+  .ent-card.kind-tool .ent-sub, .ent-card.kind-telemetry .ent-sub { font-size: 8.5px; }
+  .ent-card.kind-evidence { max-width: 150px; }
+  .ent-card.kind-evidence .ent-stat { font-size: 9px; word-break: break-all; }
+  /* Faint parent/grandparent context shown while drilled into a child, per
+     spec: orientation only, must never compete visually with the real
+     content in focus. */
+  .ent-card-ghost {
+    background: rgba(2,7,14,0.35); border-width: 1px; box-shadow: none; padding: 5px 9px; min-width: 0;
+  }
+  .ent-card-ghost .ent-title { font-size: 10px; font-weight: 700; color: color-mix(in srgb, var(--cage-color) 70%, var(--text-dim)); text-shadow: none; opacity: 0.75; }
+  .ent-card-ghost .ent-sub { font-size: 8.5px; opacity: 0.6; }
+  /* HUD-style corner brackets on every box, per the reference design */
+  .corner { position: absolute; width: 9px; height: 9px; border-color: var(--cage-color); pointer-events: none; }
+  .corner.tl { top: -1.5px; left: -1.5px; border-top: 2px solid; border-left: 2px solid; border-radius: 3px 0 0 0; }
+  .corner.tr { top: -1.5px; right: -1.5px; border-top: 2px solid; border-right: 2px solid; border-radius: 0 3px 0 0; }
+  .corner.bl { bottom: -1.5px; left: -1.5px; border-bottom: 2px solid; border-left: 2px solid; border-radius: 0 0 0 3px; }
+  .corner.br { bottom: -1.5px; right: -1.5px; border-bottom: 2px solid; border-right: 2px solid; border-radius: 0 0 3px 0; }
+  .ent-head { display: flex; align-items: flex-start; gap: 7px; }
+  .ent-icon { display: flex; color: var(--cage-color); flex-shrink: 0; margin-top: 1px; filter: drop-shadow(0 0 3px var(--cage-color)); }
+  .ent-head-text { flex: 1; min-width: 0; }
+  .ent-ring { flex-shrink: 0; margin-left: 4px; }
+  .ent-ring .ring text { text-shadow: 0 0 3px rgba(0,0,0,0.9); }
+  .ent-title { font-size: 12px; font-weight: 800; color: #ffffff; white-space: nowrap; text-shadow: 0 0 6px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.9); }
+  .ent-sub { font-size: 9.5px; color: #cfe3ec; margin-top: 1px; white-space: nowrap; text-shadow: 0 0 4px rgba(0,0,0,0.9); }
+  .ent-badge { display: inline-block; margin-top: 4px; font-size: 8.5px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; border: 1px solid currentColor; border-radius: 10px; padding: 1px 7px; }
+  .ent-stat { font-size: 10px; color: #e2eef4; margin-top: 2px; text-shadow: 0 0 4px rgba(0,0,0,0.9); }
+
+  .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; }
+  .metric-tile {
+    background: rgba(255,255,255,0.04); border: 1px solid color-mix(in srgb, var(--cage-color) 40%, transparent);
+    border-radius: 6px; padding: 5px 7px; text-align: left;
+  }
+  .metric-tile .mt-label { font-size: 8px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.4px; }
+  .metric-tile .mt-value { font-size: 12px; font-weight: 700; color: #fff; margin-top: 1px; }
+  .info-panel {
+    margin-top: 9px; padding-top: 7px; border-top: 1px dashed color-mix(in srgb, var(--cage-color) 35%, transparent);
+  }
+  .info-panel .panel-title { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 4px; }
+  .info-panel .panel-row { display: flex; justify-content: space-between; gap: 10px; font-size: 10px; padding: 1.5px 0; }
+  .info-panel .panel-row .k { color: var(--text-dim); }
+  .info-panel .panel-row .v { color: #fff; text-align: right; }
+
+  .detail-empty { color: var(--text-dim); font-size: 11px; }
+  .kv-row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed rgba(34,211,238,0.08); font-size: 11px; gap: 8px; }
+  .kv-row .k { color: var(--text-dim); }
+  .kv-row .v { color: var(--text); text-align: right; }
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 20px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; border: 1px solid currentColor; }
+  .badge::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .b-completed,.b-installed,.b-ready,.b-ok,.b-idle{color:var(--green)} .b-running,.b-live{color:var(--cyan)}
+  .b-installing_tools,.b-provisioning,.b-acquiring_evidence,.b-partial{color:var(--blue)}
+  .b-under_attack,.b-warning,.b-degraded,.b-blocked{color:var(--amber)} .b-failed,.b-error{color:var(--red)}
+  .b-pending,.b-stopped,.b-unknown{color:var(--gray)} .b-info{color:var(--cyan)}
+
+  .bar-track { height: 6px; border-radius: 4px; background: rgba(255,255,255,0.07); overflow: hidden; margin-top: 3px; }
+  .bar-fill { height: 100%; background: linear-gradient(90deg, var(--cyan), #67e8f9); transition: width 0.1s linear; }
+  .bar-fill.warn { background: linear-gradient(90deg, var(--amber), #fbbf24); }
+  .bar-fill.crit { background: linear-gradient(90deg, var(--red), #f87171); }
+  .beat-timer { font-size: 9px; color: var(--text-dim); margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+  .action-btn {
+    display: block; width: 100%; text-align: left; background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+    color: var(--text); padding: 7px 10px; border-radius: 8px; font-size: 11px; margin-top: 6px; cursor: pointer;
+  }
+  .action-btn:hover { border-color: var(--cyan); background: rgba(34,211,238,0.08); }
+
+  .events-list { max-height: 220px; overflow-y: auto; margin-top: 6px; }
+  .event-row { font-size: 10px; padding: 3px 0; border-bottom: 1px dashed rgba(34,211,238,0.07); color: var(--text-dim); }
+  .event-row b { color: var(--text); }
+
+  #hint {
+    position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+    font-size: 10px; color: var(--text-dim); background: rgba(3,10,18,0.6); padding: 4px 12px; border-radius: 20px;
+    border: 1px solid var(--border);
+  }
+  /* "Where did this value come from?" (spec section 16) -- shown while
+     hovering any box, sourced from the same Data Sources descriptions. */
+  #provenance-hint {
+    position: absolute; bottom: 42px; left: 50%; transform: translateX(-50%);
+    font-size: 10px; color: var(--cyan); background: rgba(3,10,18,0.82); padding: 5px 14px; border-radius: 20px;
+    border: 1px solid var(--border); display: none; white-space: nowrap; pointer-events: none;
+  }
+  #provenance-hint.visible { display: block; }
+  #provenance-hint b { color: var(--text); }
+  #breadcrumb-bar {
+    position: absolute; top: 10px; left: 10px; z-index: 4;
+    display: flex; align-items: center; gap: 6px; font-size: 11px;
+    background: rgba(3,10,18,0.78); border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 12px; color: var(--text-dim); max-width: calc(100% - 20px); overflow: hidden; white-space: nowrap;
+  }
+  #breadcrumb-bar .crumb { color: var(--text-dim); }
+  #breadcrumb-bar .crumb:not(.current) { color: var(--cyan); cursor: pointer; }
+  #breadcrumb-bar .crumb:not(.current):hover { text-decoration: underline; }
+  #breadcrumb-bar .crumb.current { color: var(--text); font-weight: 600; }
+  #breadcrumb-bar .sep { color: var(--text-dim); opacity: 0.6; }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <div class="top-bar">
+      <div>
+        <div class="brand">FORGE-VI // 3D LIVE MONITOR</div>
+        <div class="brand-sub">SINGLE CAMPAIGN &middot; HIERARCHICAL 3D SCENE &middot; THREE.JS</div>
+      </div>
+      <div class="top-right">
+        <button class="back-btn" id="collapse-btn">&larr; Back to overview</button>
+        <button class="transparent-btn" id="reconstruction-toggle-btn">Reconstruction mode</button>
+        <div class="conn"><span class="conn-dot" id="conn-dot"></span><span id="conn-text">connecting&hellip;</span></div>
+        <div id="theme-switcher-mount"></div>
+      </div>
+    </div>
+    <div id="reconstruction-bar">
+      <span>Campaign</span>
+      <select id="reconstruction-campaign-select"><option value="">Select a campaign&hellip;</option></select>
+      <button class="transport-btn" id="reconstruction-play-btn">Play</button>
+      <button class="transport-btn" id="reconstruction-pause-btn" disabled>Pause</button>
+      <button class="transport-btn" id="reconstruction-reset-btn" disabled>Reset</button>
+      <button class="transport-btn" id="reconstruction-exit-btn" disabled>Exit</button>
+      <div class="recon-speed">
+        <span>Speed</span>
+        <input type="range" id="reconstruction-speed" min="0.25" max="4" step="0.25" value="1">
+        <span id="reconstruction-speed-label">1x</span>
+      </div>
+      <span id="reconstruction-beat-label"></span>
+      <span id="reconstruction-progress"></span>
+    </div>
+    <div class="body-grid">
+      <div class="side left">
+        <div id="live-sources-panel">
+          <h2>Data sources</h2>
+          <div class="h2sub">Fused, in real time, into this scene</div>
+          <div id="sources-list"></div>
+          <h2 style="margin-top:16px;">Relationship layers</h2>
+          <div class="h2sub">Cross-cutting overlays, overview only</div>
+          <div id="layers-list"></div>
+        </div>
+        <div id="recon-progress-panel" hidden>
+          <h2>Reconstruction progress</h2>
+          <div class="h2sub">Since repetition 1, beat 1</div>
+          <div id="recon-progress-body"></div>
+        </div>
+      </div>
+      <div id="viewport">
+        <div id="breadcrumb-bar"></div>
+        <div id="provenance-hint"></div>
+        <div id="hint">Drag to orbit &middot; scroll to zoom &middot; click a box for details &middot; double-click a box (or the breadcrumb above) to switch level</div>
+      </div>
+      <div class="side right">
+        <div id="live-detail-panel">
+          <h2>Details</h2>
+          <div class="h2sub">Click any box in the scene</div>
+          <div id="detail-body"><div class="detail-empty">Nothing selected yet.</div></div>
+        </div>
+        <div id="recon-stage-panel" hidden>
+          <h2>Stage detail</h2>
+          <div class="h2sub" id="recon-stage-subtitle">Current beat</div>
+          <div id="recon-stage-body"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  { "imports": { "three": "/vendor/three/three.module.js" } }
+  </script>
+  <script type="module" src="js/monitor3d/app.js"></script>
+  <script src="/js/theme-switcher.js"></script>
+  <script>window.NicsThemeSwitcher.mount('#theme-switcher-mount');</script>
+</body>
+</html>

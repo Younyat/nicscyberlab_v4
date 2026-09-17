@@ -143,6 +143,8 @@ def _acquisition_stage_entries(events: list[dict], now: float) -> list[dict]:
                     match, match_epoch = end, end_epoch
             error_detail = None
             size_bytes = None
+            sha256 = None
+            rel_path = None
             target_ip = (start.get("meta") or {}).get("vm_ip")
             if match:
                 status = "completed" if str(match.get("event") or "").endswith("preserved") else "failed"
@@ -156,6 +158,12 @@ def _acquisition_stage_entries(events: list[dict], now: float) -> list[dict]:
                 # being preserved and how much it weighs, live, per host.
                 if status == "completed":
                     size_bytes = match_meta.get("size")
+                    # Same real sha256/rel path the case's manifest.json records
+                    # for this exact artifact (already computed at preservation
+                    # time, already sitting in this same event's meta) -- just
+                    # never surfaced outside the manifest before.
+                    sha256 = match_meta.get("sha256")
+                    rel_path = match_meta.get("rel")
                 else:
                     error_detail = match_meta.get("reason") or match_meta.get("error")
             else:
@@ -175,6 +183,8 @@ def _acquisition_stage_entries(events: list[dict], now: float) -> list[dict]:
                 "finished_at": finished_at,
                 "elapsed_seconds": round(elapsed, 1),
                 "size_bytes": size_bytes,
+                "sha256": sha256,
+                "rel_path": rel_path,
                 "error_detail": error_detail,
                 "progress_detail": progress_detail,
             })

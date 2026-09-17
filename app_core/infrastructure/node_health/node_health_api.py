@@ -288,6 +288,37 @@ def _list_nodes() -> list[dict]:
             pass
 
 
+def power_on_stopped_nodes() -> dict:
+    """Starts every real, currently-SHUTOFF instance (Nova's own 'start'
+    action, openstacksdk's start_server) -- one click to recover from
+    everything that only comes back once the lab VMs themselves are running
+    again (network state that only settles once a VM's own interface is up,
+    etc.). Safe by construction, not just by convention: Nova itself rejects
+    starting an instance that is already ACTIVE (real per-server exception,
+    caught below and reported as a no-op) -- an already-running machine is
+    never touched, never rebooted, by this call.
+    """
+    conn = _connect()
+    results: list[dict] = []
+    try:
+        servers = list(conn.compute.servers(details=True))
+        for server in servers:
+            status = getattr(server, "status", "")
+            if status != "SHUTOFF":
+                continue
+            try:
+                conn.compute.start_server(server.id)
+                results.append({"instance_id": server.id, "name": server.name, "result": "start_requested"})
+            except Exception as exc:
+                results.append({"instance_id": server.id, "name": server.name, "result": "error", "detail": str(exc)})
+        return {"attempted": len(results), "results": results}
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+
 def _find_node(instance_id: str) -> dict | None:
     for node in _list_nodes():
         if node["id"] == instance_id:
@@ -1061,6 +1092,15 @@ def _parse_probe_output(stdout: str) -> dict:
             "apt_cache_size_bytes": as_int("apt_cache_size_bytes"),
             "severity": severity(root_pct),
         },
+        "network": {
+            # Raw cumulative counters only (sum of every non-loopback interface),
+            # never a computed rate -- probing is on-demand/irregular, so a rate
+            # derived here would assume a sampling interval that doesn't really
+            # exist. Added 2026-09-14 for the 3D Live Monitor; a rate is derived
+            # by the caller from two successive real samples, not fabricated here.
+            "rx_bytes": as_int("net_rx_bytes"),
+            "tx_bytes": as_int("net_tx_bytes"),
+        },
         "services": {
             (line.split("=", 1)[0] if "=" in line else line): (line.split("=", 1)[1] if "=" in line else "unknown")
             for line in sections.get("services", [])
@@ -1666,9 +1706,33 @@ def _node_time_sync_summary(instance_id: str, node: dict | None = None) -> dict:
     }
 
 
+def _case_actively_acquiring(case_dir: Path) -> bool:
+    """Precise, event-based check (reused from forensics_api._case_preservation_in_progress):
+    is this case genuinely in the middle of an evidence-acquisition step (memory/
+    disk/network/industrial started but not finished, or DFIR preservation
+    claimed but not yet released/done) -- as opposed to merely "a case
+    directory currently exists".
+
+    Added 2026-09-14: the previous rule blocked corrective time-sync for the
+    mere EXISTENCE of any active-case pointer, which produced unexplained
+    SYNCING_CLOCKS blocks even when investigation showed the referenced case
+    was not necessarily mid-acquisition. Lazy-imported because forensics_api
+    already imports FROM this module at top level (a top-level import here
+    would be circular). Fails CLOSED: any import/lookup error is treated as
+    "still acquiring" (the old, more conservative behavior) -- a broken check
+    must never silently make it easier to alter a VM's clock.
+    """
+    try:
+        from ..forensics.forensics_api import _case_preservation_in_progress
+        return _case_preservation_in_progress(str(case_dir))
+    except Exception:
+        return True
+
+
 def _time_sync_policy(node: dict | None, *, fix_time: bool = False, maintenance_override: bool = False) -> dict:
     active_case = _read_active_case_dir()
     active_case_id = active_case.name if active_case else None
+    active_case_acquiring = bool(active_case) and _case_actively_acquiring(active_case)
     if not fix_time:
         return {
             "measure_allowed": True,
@@ -1679,7 +1743,7 @@ def _time_sync_policy(node: dict | None, *, fix_time: bool = False, maintenance_
             "policy_state": "measure_safe",
             "reason": "Clock offset measurement is non-destructive and allowed by default.",
         }
-    if active_case and not maintenance_override:
+    if active_case_acquiring and not maintenance_override:
         return {
             "measure_allowed": True,
             "fix_allowed": False,
@@ -1687,9 +1751,9 @@ def _time_sync_policy(node: dict | None, *, fix_time: bool = False, maintenance_
             "active_case_present": True,
             "active_case_id": active_case_id,
             "policy_state": "blocked_active_case",
-            "reason": "Corrective time synchronization is blocked by default while a forensic case is active because it can alter timestamps, logs, temporal ordering and volatile evidence.",
+            "reason": "Corrective time synchronization is blocked by default while a forensic case is actively acquiring evidence because it can alter timestamps, logs, temporal ordering and volatile evidence.",
         }
-    if active_case and maintenance_override:
+    if active_case_acquiring and maintenance_override:
         return {
             "measure_allowed": True,
             "fix_allowed": True,
@@ -1697,16 +1761,21 @@ def _time_sync_policy(node: dict | None, *, fix_time: bool = False, maintenance_
             "active_case_present": True,
             "active_case_id": active_case_id,
             "policy_state": "override_active_case",
-            "reason": "Corrective time synchronization is proceeding under explicit laboratory or maintenance override during an active forensic case and must be treated as an infrastructure intervention.",
+            "reason": "Corrective time synchronization is proceeding under explicit laboratory or maintenance override while a forensic case is actively acquiring evidence and must be treated as an infrastructure intervention.",
         }
     return {
         "measure_allowed": True,
         "fix_allowed": True,
         "requires_override": False,
-        "active_case_present": False,
-        "active_case_id": None,
-        "policy_state": "fix_allowed_no_active_case",
-        "reason": "No active forensic case is registered, so corrective time synchronization is allowed.",
+        "active_case_present": bool(active_case),
+        "active_case_id": active_case_id,
+        "policy_state": "fix_allowed_no_active_case" if not active_case else "fix_allowed_case_not_acquiring",
+        "reason": (
+            "No active forensic case is registered, so corrective time synchronization is allowed."
+            if not active_case else
+            "A forensic case is registered but is not currently in an active acquisition window (no evidence "
+            "acquisition step is in progress), so corrective time synchronization is allowed."
+        ),
     }
 
 
@@ -1898,6 +1967,15 @@ def run_node_time_sync(instance_id: str, fix_time: bool = False, threshold_ms: i
 @node_health_bp.route("/node-health")
 def node_health_view():
     return send_from_directory(STATIC_DIR, "node_health.html")
+
+
+@node_health_bp.route("/api/node-health/nodes/power-on-stopped", methods=["POST"])
+def node_health_power_on_stopped():
+    try:
+        result = power_on_stopped_nodes()
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+    return jsonify(result)
 
 
 @node_health_bp.route("/api/node-health/nodes", methods=["GET"])

@@ -1,0 +1,17 @@
+{"ts": "2026-09-15T13:34:36.609586+00:00", "event": "resolved_reference_case", "case_id": "case-0396988e", "report_output_path": "app_core/infrastructure/forensics/scientific_reports/level_a_repetitions/case-0396988e/CMP-20260915-133436-684F/level_A_2026-09-15T133436.605220_0000", "requested_repetitions": 1}
+{"ts": "2026-09-15T13:34:36.623540+00:00", "event": "validated_manifest_and_custody", "manifest_present": true, "custody_present": true, "warnings": []}
+{"ts": "2026-09-15T13:34:36.631704+00:00", "event": "validated_level_a_scope", "notes": ["Same preserved case reused in read-only mode.", "The workflow will call the same Run Dry-Run Execution scientific backend path multiple times.", "No new attack execution was launched by this report workflow.", "No Level B or Level C orchestration was invoked."]}
+{"ts": "2026-09-15T13:34:37.683306+00:00", "event": "start_dry_run_repetition", "repetition_index": 1, "requested_repetitions": 1, "case_id": "case-0396988e"}
+{"ts": "2026-09-15T13:48:29.243255+00:00", "event": "completed_dry_run_repetition", "repetition_index": 1, "requested_repetitions": 1, "child_job_id": "exp-da29bf212f93", "child_status": "completed_with_degradation", "execution_id": "EXEC-0001"}
+{"ts": "2026-09-15T13:48:29.276419+00:00", "event": "analysis_ready", "analysis_status": "completed", "report_status": "completed", "generated_execution_ids": ["EXEC-0001"]}
+{"ts": "2026-09-15T13:48:29.286663+00:00", "event": "network_loaded", "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260915-121728/analysis/03_network/network_findings.json", "status": "completed"}
+{"ts": "2026-09-15T13:48:29.294662+00:00", "event": "memory_loaded", "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260915-121728/analysis/04_memory/memory_findings.json", "status": "completed"}
+{"ts": "2026-09-15T13:48:29.309681+00:00", "event": "disk_loaded", "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260915-121728/analysis/05_disk/disk_findings.json", "status": "completed"}
+{"ts": "2026-09-15T13:48:29.339712+00:00", "event": "ot_loaded", "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260915-121728/analysis/06_ot/ot_findings.json", "status": "completed"}
+{"ts": "2026-09-15T13:48:29.358043+00:00", "event": "alerts_loaded", "path": "app_core/infrastructure/forensics/evidence_store/CASE-20260915-121728/analysis/07_alerts/alert_findings.json", "status": "completed"}
+{"ts": "2026-09-15T13:48:29.750379+00:00", "event": "timeline_loaded", "timeline_path": "app_core/infrastructure/forensics/evidence_store/CASE-20260915-121728/analysis/09_timeline/unified_forensic_timeline.json", "timeline_status": "completed"}
+{"ts": "2026-09-15T13:48:31.881457+00:00", "event": "causal_ready", "causal_status": "completed_with_degradation", "recovered_edges": 7, "missing_edges": 0}
+{"ts": "2026-09-15T13:49:10.916704+00:00", "event": "hypothesis_support_ready", "support_level": "moderate_support", "interpretation": "the hypothesis can receive moderate support, not absolute causality."}
+{"ts": "2026-09-15T13:49:10.937346+00:00", "event": "comparison_ready", "status": "Insufficient Data", "comparison_type": "not_enough_generated_level_a_repetitions", "compared_execution_ids": ["EXEC-0001"]}
+{"ts": "2026-09-15T13:49:11.030895+00:00", "event": "claim_map_built", "claim_count": 9, "source_count": 24}
+{"ts": "2026-09-15T13:49:11.037841+00:00", "event": "markdown_rendered", "length": 16220}

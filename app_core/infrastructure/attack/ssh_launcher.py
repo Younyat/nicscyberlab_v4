@@ -59,14 +59,33 @@ class SSHTacticalManager:
             return None, None
 
         try:
+            # Campaigns destroy and redeploy the attacker VM on every repetition;
+            # a stale instance from a previous repetition (still tearing down, or
+            # simply not yet garbage-collected) can share the "attack*" name
+            # prefix with the current one. Matching on name alone picked
+            # whichever the OpenStack SDK's unordered listing happened to return
+            # first, which could silently be that stale VM -- one that never had
+            # this run's tools (e.g. mbpoll) installed on it, so every SSH-based
+            # attack step against it fails with "command not found" even though
+            # the tools-installer status file correctly says "installed" for the
+            # real, current instance. Restrict to ACTIVE servers and, among
+            # matches, prefer the most recently created one.
+            candidates = []
             for server in self.conn.compute.servers(all_projects=True):
-                if server.name and server.name.lower().startswith("attack"):
-                    floating_ip = server.access_ipv4 or self._get_floating_ip_from_addresses(server.addresses)
-                    if floating_ip:
-                        image = self.conn.image.get_image(server.image.id)
-                        user = self._map_user(getattr(image, "name", "") or "")
-                        return floating_ip, user
-            return None, None
+                if not server.name or not server.name.lower().startswith("attack"):
+                    continue
+                if getattr(server, "status", None) != "ACTIVE":
+                    continue
+                floating_ip = server.access_ipv4 or self._get_floating_ip_from_addresses(server.addresses)
+                if floating_ip:
+                    candidates.append((getattr(server, "created_at", "") or "", floating_ip, server))
+            if not candidates:
+                return None, None
+            candidates.sort(key=lambda c: c[0])
+            _, floating_ip, server = candidates[-1]
+            image = self.conn.image.get_image(server.image.id)
+            user = self._map_user(getattr(image, "name", "") or "")
+            return floating_ip, user
         except Exception:
             return None, None
 

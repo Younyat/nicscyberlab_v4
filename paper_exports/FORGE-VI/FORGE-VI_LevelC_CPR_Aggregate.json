@@ -1,50 +1,50 @@
 {
   "schema": "forge_vi_cpr_aggregate_v1",
-  "generated_at_utc": "2026-09-03T22:42:42Z",
+  "generated_at_utc": "2026-09-16T05:55:40Z",
   "n_executions": 10,
   "cpr_stable": false,
   "cpr_values": [
-    0.875,
-    0.875,
-    0.875,
+    0.75,
     0.875,
     0.875,
     0.75,
     0.875,
+    0.75,
     0.875,
     0.875,
-    0.875
+    0.75,
+    0.75
   ],
-  "cpr_mean": 0.8625,
-  "cpr_std": 0.0395,
+  "cpr_mean": 0.8125,
+  "cpr_std": 0.0659,
   "wcpr_values": [
-    0.8767,
-    0.8767,
-    0.8767,
+    0.7808,
     0.8767,
     0.8767,
     0.7808,
     0.8767,
+    0.7808,
     0.8767,
     0.8767,
-    0.8767
+    0.7808,
+    0.7808
   ],
-  "wcpr_mean": 0.8671,
+  "wcpr_mean": 0.8288,
   "recoverability_labels": [
-    "mostly_recoverable",
-    "mostly_recoverable",
-    "mostly_recoverable",
+    "partially_recoverable",
     "mostly_recoverable",
     "mostly_recoverable",
     "partially_recoverable",
     "mostly_recoverable",
+    "partially_recoverable",
     "mostly_recoverable",
     "mostly_recoverable",
-    "mostly_recoverable"
+    "partially_recoverable",
+    "partially_recoverable"
   ],
   "expected_edges": 8,
-  "aggregate_recovered": 7,
-  "aggregate_degraded": 0,
+  "aggregate_recovered": 6,
+  "aggregate_degraded": 1,
   "aggregate_missing": 0,
   "aggregate_ambiguous": 1,
   "edge_aggregate": {
@@ -79,10 +79,10 @@
       "edge_id": "edge_ot_write_to_plc_state_observation",
       "name": "OT Modbus Write → PLC State Observation",
       "state_counts": {
-        "recovered": 9,
-        "degraded": 1
+        "degraded": 5,
+        "recovered": 5
       },
-      "dominant_state": "recovered",
+      "dominant_state": "degraded",
       "consistent_across_runs": false
     },
     "edge_detection_surface_to_alert_observation": {

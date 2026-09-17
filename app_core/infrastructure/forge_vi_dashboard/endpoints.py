@@ -277,6 +277,14 @@ def _per_case_data() -> list[dict]:
                         "required_evidence": e.get("required_evidence", []),
                         "evidence_refs": e.get("evidence_refs", []),
                         "limitations": e.get("limitations", []),
+                        # The specific, real sentence edge_evaluator._build_status_reason()
+                        # already computes and persists per edge (e.g. "Required evidence
+                        # was found, but the temporal order could not be resolved from
+                        # preserved timestamps.") -- already used in the standalone
+                        # narrative/forensic report, but this dashboard was dropping it
+                        # and showing only the bare recovered/ambiguous/degraded/missing
+                        # label with no investigated cause behind it.
+                        "status_reason": e.get("status_reason"),
                     }
                     break
 

@@ -23,6 +23,15 @@ LIGHTWEIGHT_CASE_RETAIN_PATHS: tuple[str, ...] = (
     "metadata/normalized_causal_timestamps.json",
     "metadata/pipeline_events.jsonl",
     "metadata/time_sync.json",
+    # 2026-09-16: forensics_api._write_case_digest() writes this into the ORIGINAL
+    # heavy case dir as part of sealing (metadata/pipeline_events.jsonl already shows
+    # "case_digest_written" fired during a normal run), but it was missing from this
+    # tuple -- so the moment cleanup reduced a case to its lightweight bundle, the
+    # seal artifact itself was silently dropped even though sealing genuinely
+    # happened, leaving every dashboard that checks case_digest.json's existence
+    # (e.g. monitor3d's case_sealed) reporting "unsealed" for a case that was sealed.
+    # Purely additive to this tuple -- every existing reader of the bundle is unaffected.
+    "metadata/case_digest.json",
     # 2026-07-20: added so forge_vi_dashboard._per_case_data() can read this after
     # cleanup deletes the heavy case (see that module's README for the full incident:
     # the FORGE-VI Scientific Reproducibility Dashboard was only ever seeing whatever
@@ -689,6 +698,19 @@ def delete_generated_case_artifacts(
         lightweight_case_audit_path = original_case_path / "metadata" / "lightweight_retention_audit.json"
         _write_json(lightweight_case_audit_path, retention_audit)
         case_shell_path = original_case_path
+
+    # Defensive: guarantee the global active-case pointer (evidence_store/_active_case.txt)
+    # is cleared once a case's lifecycle ends here (archived or reduced to a lightweight
+    # bundle), regardless of whether the normal sealing path (forensics_api.py) already
+    # cleared it. A case that errors out before reaching sealing would otherwise leave the
+    # pointer stuck forever, permanently blocking corrective time-sync for every future
+    # repetition. No-op if the pointer does not currently point at this case (safe to call
+    # unconditionally); never allowed to fail cleanup itself.
+    try:
+        from ..forensics.forensics_api import _clear_active_case_pointer_if_matches
+        _clear_active_case_pointer_if_matches(str(original_case_path))
+    except Exception:
+        pass
 
     causal_summary = (comparison_profile or {}).get("causal_reconstruction") or {}
     if isinstance(result_card, dict):

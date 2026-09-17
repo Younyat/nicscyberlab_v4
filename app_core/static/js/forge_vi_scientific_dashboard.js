@@ -400,12 +400,14 @@ function openEdgeModal(label) {
     const tmp = st.temporal || "—";
     const lims = (st.limitations || []).join("; ") || "none";
     const refs = (st.evidence_refs || []).join(", ") || "—";
+    const reason = st.status_reason || "";
     return `<div class="glass2 rounded-[14px] p-4">
       <div class="flex items-center justify-between gap-3">
         <span class="mono text-xs font-bold" style="color:var(--info);">${esc(r.exec_id)}</span>
         <div class="flex gap-2">${stPill(sup)} ${stPill(tmp === "not_required" ? "not_applicable" : tmp, tmp)}</div>
       </div>
       <div class="mt-2 text-xs" style="color:var(--muted);">Evidence: ${esc(refs)}</div>
+      ${reason ? `<div class="mt-2 text-xs" style="color:#e2e8f0;"><span style="color:#64748b;">Why this status:</span> ${esc(reason)}</div>` : ""}
       ${lims !== "none" ? `<div class="mt-1 text-xs" style="color:#ef4444;">⚠ ${esc(lims)}</div>` : ""}
     </div>`;
   }).join("");

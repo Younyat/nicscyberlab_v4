@@ -227,6 +227,39 @@ def _host_resource_snapshot() -> dict:
     return snap
 
 
+_ACTIVE_CASE_PTR_PATH = PROJECT_ROOT / "app_core" / "infrastructure" / "forensics" / "evidence_store" / "_active_case.txt"
+
+
+def _process_case_pointer_snapshot() -> dict:
+    """Diagnostic sensor: PID of the process executing THIS phase transition,
+    plus the raw current value of the global active-case pointer.
+
+    Added 2026-09-14 after two SYNCING_CLOCKS blocks on a live campaign that
+    could not be conclusively root-caused after the fact — we could not tell
+    whether the process running this job's background thread had changed
+    (proving a worker/process restart interrupted and something else resumed
+    it) or whether some unrelated, legitimate case was simply active at that
+    exact moment. Logging the PID on every phase transition makes a process
+    change directly visible by comparing consecutive log lines; logging the
+    raw pointer value (not just whether it blocked something) means the
+    _active_case_history.jsonl trail (forensics_api.py) can be cross-checked
+    against the exact phase timeline. Pure /proc + file read, cannot hang or
+    raise in a way that affects the campaign.
+    """
+    snap: dict = {"pid": os.getpid()}
+    try:
+        if _ACTIVE_CASE_PTR_PATH.is_file():
+            raw = _ACTIVE_CASE_PTR_PATH.read_text(encoding="utf-8").strip()
+            snap["active_case_ptr_raw"] = raw or None
+            snap["active_case_ptr_exists_as_dir"] = bool(raw) and Path(raw).is_dir()
+        else:
+            snap["active_case_ptr_raw"] = None
+            snap["active_case_ptr_exists_as_dir"] = False
+    except Exception:
+        pass
+    return snap
+
+
 def _host_snapshot_summary(snap: dict) -> str:
     """One-line human-readable summary of _host_resource_snapshot(), for
     inline log messages (the full dict is still attached as `extra` on the
@@ -1406,7 +1439,8 @@ def _phase_sync_node_clocks(state: dict, job_dir: Path, rep_num: int) -> None:
             _log(state, "WARN", f"  {name}: could not start clock sync: {exc}")
             continue
         if result.get("status") == "blocked_policy":
-            _log(state, "WARN", f"  {name}: clock sync blocked — {result.get('error')}")
+            blocking_case = (result.get("policy") or {}).get("active_case_id") or "unknown"
+            _log(state, "WARN", f"  {name}: clock sync blocked (active_case={blocking_case}, pid={os.getpid()}) — {result.get('error')}")
             continue
         pending[inst_id] = name
 
@@ -2350,6 +2384,13 @@ def _run_level_c_job(job_id: str, job_dir: Path, config: dict) -> None:
         # level=="PHASE" log entries, not just eyeballing the format).
         snap = _host_resource_snapshot()
         _log(state, "INFO", f"  [Host] {_host_snapshot_summary(snap)}", extra={"host_snapshot": snap})
+        proc_snap = _process_case_pointer_snapshot()
+        _log(
+            state, "INFO",
+            f"  [Proc] pid={proc_snap.get('pid')} active_case_ptr={proc_snap.get('active_case_ptr_raw') or '(empty)'} "
+            f"exists_as_dir={proc_snap.get('active_case_ptr_exists_as_dir')}",
+            extra={"process_snapshot": proc_snap},
+        )
         _save()
 
     def _check_stop() -> bool:

@@ -30,6 +30,7 @@ const NH = {
   btnMeasureClock: document.getElementById("nh-measure-clock"),
   btnFixTimeSync: document.getElementById("nh-fix-time-sync"),
   btnCleanupSelected: document.getElementById("nh-cleanup-selected"),
+  btnPowerOnStopped: document.getElementById("nh-power-on-stopped"),
   btnRestartOpenstack: document.getElementById("nh-restart-openstack"),
   btnOpenHealthAlertCenter: document.getElementById("nh-open-health-alert-center"),
   btnClearConsole: document.getElementById("nh-clear-console"),
@@ -1325,6 +1326,36 @@ function startCleanup() {
   };
 }
 
+async function startPowerOnStopped() {
+  setStatus("Powering on stopped instances", "warn");
+  consoleWrite("Checking for stopped instances to power on...");
+  try {
+    const response = await fetch("/api/node-health/nodes/power-on-stopped", { method: "POST" });
+    const payload = await response.json();
+    if (!response.ok) {
+      consoleWrite(`Power-on request failed: ${payload?.error || "not_available"}`);
+      setStatus("Power-on failed", "error");
+      return;
+    }
+    if (!payload.attempted) {
+      consoleWrite("No stopped instances found — every real instance is already running.");
+    } else {
+      for (const row of payload.results || []) {
+        if (row.result === "start_requested") {
+          consoleWrite(`Power-on requested for ${row.name} (${row.instance_id}).`);
+        } else {
+          consoleWrite(`Power-on for ${row.name} did not start: ${row.detail || "unknown error"}`);
+        }
+      }
+    }
+    setStatus("Power-on requested", "ok");
+    await loadNodes(false);
+  } catch (error) {
+    consoleWrite(`Power-on request failed: ${error.message}`);
+    setStatus("Power-on failed", "error");
+  }
+}
+
 function startOpenstackRestart() {
   const confirmed = window.confirm("Restart OpenStack services from Node Health? This can temporarily degrade Horizon, Keystone, Nova and Neutron while containers restart.");
   if (!confirmed) return;
@@ -1384,6 +1415,7 @@ NH.btnFixTimeSync.addEventListener("click", () => runTimeSync(true).catch(error 
   consoleWrite(`Time synchronization correction failed: ${error.message}`);
 }));
 NH.btnCleanupSelected.addEventListener("click", startCleanup);
+NH.btnPowerOnStopped.addEventListener("click", startPowerOnStopped);
 NH.btnRestartOpenstack.addEventListener("click", startOpenstackRestart);
 NH.btnCleanupFloatingIps.addEventListener("click", startFloatingIpCleanup);
 NH.btnOpenHealthAlertCenter.addEventListener("click", openHealthAlertCenter);

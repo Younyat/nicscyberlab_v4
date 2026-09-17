@@ -626,6 +626,36 @@ def get_level_c_repetition_detail(job_id: str, rep_num: int) -> dict | None:
     }
 
 
+def list_level_c_repetition_statuses(job: dict) -> list[dict]:
+    """Lightweight per-repetition status for EVERY repetition of a Level C
+    job, derived only from the job's own summary fields (status,
+    current_repetition, level_c_repetitions) -- no log parsing. Unlike
+    get_level_c_repetition_detail (which re-scans the whole job log and is
+    meant to be called for ONE repetition at a time), this is safe to call
+    for all N repetitions on every poll of a live dashboard. Same real
+    classification rules as _lc_list_recent's per-repetition rows, just
+    listing every repetition instead of only ones already reached.
+    """
+    total_reps = int(job.get("level_c_repetitions") or 1)
+    current_rep = int(job.get("current_repetition") or 0)
+    status = str(job.get("status") or "unknown")
+    rows = []
+    for rep in range(1, total_reps + 1):
+        if rep < current_rep:
+            rep_status = "completed"
+        elif rep == current_rep:
+            rep_status = status if status in ("running", "failed", "stopped", "completed") else "running"
+        else:
+            rep_status = "completed" if status == "completed" else "pending"
+        rows.append({
+            "repetition_number": rep,
+            "total_repetitions": total_reps,
+            "status": rep_status,
+            "is_focus": rep == current_rep,
+        })
+    return rows
+
+
 def _lc_list_recent(limit: int) -> list[dict]:
     rows = []
     for job in level_c_service.list_jobs():

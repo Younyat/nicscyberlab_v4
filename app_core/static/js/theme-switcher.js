@@ -9,7 +9,8 @@
     { id: "light", label: "Light", hint: "High visibility", colors: ["#0284c7", "#2563eb"] },
     { id: "mixed", label: "Mixed", hint: "Twilight balance", colors: ["#38bdf8", "#a78bfa"] },
     { id: "blueteam", label: "Blue Team", hint: "Defensive", colors: ["#2dd4bf", "#0ea5e9"] },
-    { id: "redteam", label: "Red Team", hint: "Offensive", colors: ["#ef4444", "#f59e0b"] }
+    { id: "redteam", label: "Red Team", hint: "Offensive", colors: ["#ef4444", "#f59e0b"] },
+    { id: "professional", label: "Professional", hint: "Clean & institutional", colors: ["#1c6ea4", "#2b7fbd"] }
   ];
 
   function getStoredTheme() {

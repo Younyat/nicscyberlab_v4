@@ -6,6 +6,7 @@
   <title>NICS CyberLab | Node Health</title>
   <script src="https://unpkg.com/cytoscape/dist/cytoscape.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/theme.css" />
   <style>
     #nh-graph { height: 520px; width: 100%; }
     .terminal-scroll::-webkit-scrollbar { width: 6px; }
@@ -32,7 +33,9 @@
           <button id="nh-measure-clock" class="rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-2 text-sm font-black text-cyan-200 hover:bg-cyan-500/20">Measure Clock Offset</button>
           <button id="nh-fix-time-sync" class="rounded-xl border border-fuchsia-500/40 bg-fuchsia-500/10 px-4 py-2 text-sm font-black text-fuchsia-200 hover:bg-fuchsia-500/20">Fix Time Synchronization</button>
           <button id="nh-cleanup-selected" class="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm font-black text-amber-300 hover:bg-amber-500/20">Safe Disk Cleanup</button>
+          <button id="nh-power-on-stopped" class="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm font-black text-emerald-300 hover:bg-emerald-500/20">Power On Stopped Instances</button>
           <button id="nh-restart-openstack" class="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm font-black text-red-200 hover:bg-red-500/20">Restart OpenStack Services</button>
+          <div id="theme-switcher-mount" class="flex items-center"></div>
         </div>
       </div>
     </header>
@@ -186,6 +189,8 @@
     </section>
   </div>
 
-  <script src="js/node_health.js?v=20260630-node-health-openstack-health-1"></script>
+  <script src="js/node_health.js?v=20260917-power-on-stopped-1"></script>
+  <script src="/js/theme-switcher.js"></script>
+  <script>window.NicsThemeSwitcher.mount('#theme-switcher-mount');</script>
 </body>
 </html>

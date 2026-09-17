@@ -2815,6 +2815,13 @@ try:
 except Exception:
     pass
 
+try:
+    from app_core.infrastructure.monitor3d.api import monitor3d_bp
+    api_bp.register_blueprint(monitor3d_bp)
+    print("[OK] Monitor3D Blueprint cargado correctamente")
+except Exception:
+    pass
+
 
 #-------------------------------------------Forensics new one  end----------------------------------------------------
 

@@ -6,27 +6,31 @@
    ============================================================ */
 
 :root {
-    --primary-color: #6366f1;       /* indigo-500 — accent, replaces old teal */
-    --primary-color-hover: #4f46e5; /* indigo-600 */
-    --primary-color-soft: rgba(99, 102, 241, 0.16);
+    /* Aliased to the shared --t-* theme variables (see /css/theme.css) so
+       the global theme switcher re-colors this page too; the fallback
+       after each var() is the original indigo design's own value, used
+       whenever theme.css isn't loaded or a variable is undefined. */
+    --primary-color: var(--t-accent, #6366f1);       /* indigo-500 — accent, replaces old teal */
+    --primary-color-hover: var(--t-accent-2, #4f46e5); /* indigo-600 */
+    --primary-color-soft: color-mix(in srgb, var(--t-accent, #6366f1) 16%, transparent);
     --secondary-color: #f97316;     /* orange-500 — connect / selection accent */
-    --accent-warning: #f59e0b;      /* amber-500 — "unsaved change" state */
-    --accent-danger: #ef4444;       /* red-500 */
-    --accent-success: #22c55e;      /* green-500 */
+    --accent-warning: var(--t-warn, #f59e0b);      /* amber-500 — "unsaved change" state */
+    --accent-danger: var(--t-danger, #ef4444);      /* red-500 */
+    --accent-success: var(--t-ok, #22c55e);      /* green-500 */
 
-    --bg-app: #0a0e1a;              /* page background */
+    --bg-app: var(--t-bg, #0a0e1a);              /* page background */
     --bg-dark: #10152488;
-    --bg-panel: #12172a;            /* card / panel background */
-    --bg-panel-soft: #161c33;       /* nested / secondary surface */
-    --bg-canvas: #0c1020;
-    --bg-input: #0d1122;
+    --bg-panel: var(--t-panel, #12172a);            /* card / panel background */
+    --bg-panel-soft: var(--t-panel-2, #161c33);       /* nested / secondary surface */
+    --bg-canvas: var(--t-bg-3, #0c1020);
+    --bg-input: var(--t-bg-2, #0d1122);
 
-    --border-color-light: rgba(148, 163, 184, 0.14);
-    --border-color-strong: rgba(148, 163, 184, 0.24);
+    --border-color-light: var(--t-border, rgba(148, 163, 184, 0.14));
+    --border-color-strong: var(--t-border, rgba(148, 163, 184, 0.24));
 
-    --text-primary: #f1f5f9;
-    --text-secondary: #94a3b8;
-    --text-muted: #64748b;
+    --text-primary: var(--t-text, #f1f5f9);
+    --text-secondary: var(--t-text-muted, #94a3b8);
+    --text-muted: var(--t-text-muted, #64748b);
 
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --font-mono: 'Fira Mono', 'JetBrains Mono', ui-monospace, monospace;
@@ -63,6 +67,8 @@ body {
     background:
         radial-gradient(circle at 15% 0%, rgba(99, 102, 241, 0.08), transparent 45%),
         radial-gradient(circle at 100% 100%, rgba(99, 102, 241, 0.05), transparent 40%),
+        linear-gradient(rgba(4, 6, 12, 0.7), rgba(4, 6, 12, 0.7)),
+        url('/images/my_space.png') center/cover no-repeat fixed,
         var(--bg-app);
 }
 
@@ -154,8 +160,12 @@ body {
     flex-grow: 1;
     background-color: var(--bg-canvas);
     background-image:
-        radial-gradient(rgba(148, 163, 184, 0.16) 1px, transparent 1px);
-    background-size: 22px 22px;
+        radial-gradient(rgba(148, 163, 184, 0.16) 1px, transparent 1px),
+        linear-gradient(rgba(4, 6, 12, 0.78), rgba(4, 6, 12, 0.78)),
+        url('/images/my_space.png');
+    background-size: 22px 22px, cover, cover;
+    background-position: 0 0, center, center;
+    background-repeat: repeat, no-repeat, no-repeat;
     border-radius: var(--radius-lg);
     border: 1px solid var(--border-color-light);
     box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.35), var(--shadow-panel);

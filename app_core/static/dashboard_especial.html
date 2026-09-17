@@ -16,19 +16,22 @@
        
         body {
             font-family: 'Orbitron', sans-serif;
-            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            background:
+                linear-gradient(135deg, rgba(10,14,39,0.72) 0%, rgba(26,31,58,0.72) 100%),
+                url('/images/my_space.png') center/cover fixed no-repeat;
             color: #00ff88;
             margin: 0;
-            overflow-y: auto;   
+            overflow-y: auto;
             overflow-x: hidden;
         }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         #cy {
             width: 100%;
             height: 100%;
-            background: radial-gradient(ellipse at center, rgba(10,14,39,0.8) 0%, rgba(10,14,39,0.95) 100%),
+            background: radial-gradient(ellipse at center, rgba(10,14,39,0.55) 0%, rgba(10,14,39,0.75) 100%),
                         repeating-linear-gradient(0deg, rgba(0,255,136,0.03) 0px, transparent 1px, transparent 40px, rgba(0,255,136,0.03) 41px),
-                        repeating-linear-gradient(90deg, rgba(0,255,136,0.03) 0px, transparent 1px, transparent 40px, rgba(0,255,136,0.03) 41px);
+                        repeating-linear-gradient(90deg, rgba(0,255,136,0.03) 0px, transparent 1px, transparent 40px, rgba(0,255,136,0.03) 41px),
+                        url('/images/my_space.png') center/cover no-repeat;
         }
         .hud-overlay {
             position: absolute;

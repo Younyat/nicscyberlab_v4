@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import json
 import time
 import fcntl
@@ -78,9 +79,44 @@ DFIR_AUTO_DECISIONS_ROOT.mkdir(parents=True, exist_ok=True)
 # ============================================================
 
 ACTIVE_CASE_PTR = os.path.join(EVIDENCE_ROOT, "_active_case.txt")
+ACTIVE_CASE_HISTORY_LOG = os.path.join(EVIDENCE_ROOT, "_active_case_history.jsonl")
 ACTIVE_PRESERVATION_PTR = os.path.join(EVIDENCE_ROOT, "_active_preservation.json")
 STALE_PLACEHOLDER_CASE_MIN_AGE_SECONDS = 30
 MEMORY_BUILD_MIN_FREE_MB = 1200
+
+
+def _append_active_case_history(action: str, case_dir: str, **extra) -> None:
+    """Diagnostic sensor: append-only audit trail of every set/clear of the
+    global active-case pointer (evidence_store/_active_case.txt), across every
+    call site and every process. Added 2026-09-14 after two SYNCING_CLOCKS
+    blocks on a live Level C campaign that could not be root-caused after the
+    fact -- _active_case.txt only ever shows its CURRENT value, so the exact
+    sequence of who set/cleared it and when was already lost by the time we
+    looked. This gives that history going forward: timestamp, action, the
+    case path involved, the PID of the process that touched it (proves/
+    disproves a worker/process restart), and the calling function (via
+    sys._getframe, no extra dependency). Best-effort only: a failure here must
+    never affect the pointer write/clear it is observing.
+    """
+    try:
+        caller = sys._getframe(2).f_code.co_name
+    except Exception:
+        caller = "unknown"
+    entry = {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "action": action,
+        "case_dir": case_dir,
+        "pid": os.getpid(),
+        "caller": caller,
+        **extra,
+    }
+    try:
+        os.makedirs(os.path.dirname(ACTIVE_CASE_HISTORY_LOG), exist_ok=True)
+        with open(ACTIVE_CASE_HISTORY_LOG, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception:
+        pass
+
 
 def set_active_case_dir(case_dir: str) -> None:
     """
@@ -101,8 +137,10 @@ def set_active_case_dir(case_dir: str) -> None:
 
         os.makedirs(os.path.dirname(ACTIVE_CASE_PTR), exist_ok=True)
 
+        previous = _read_active_case_dir()
         with open(ACTIVE_CASE_PTR, "w", encoding="utf-8") as f:
             f.write(case_dir + "\n")
+        _append_active_case_history("set", case_dir, previous_value=previous or None)
     except Exception:
         # Fail-safe: nunca romper el flujo de creación del caso
         pass
@@ -268,8 +306,15 @@ def _case_preservation_in_progress(case_dir: str) -> bool:
 def _clear_active_case_pointer_if_matches(case_dir: str) -> None:
     try:
         current = _read_active_case_dir()
-        if current and os.path.abspath(current) == os.path.abspath(case_dir):
+        matches = bool(current) and os.path.abspath(current) == os.path.abspath(case_dir)
+        if matches:
             Path(ACTIVE_CASE_PTR).write_text("", encoding="utf-8")
+        _append_active_case_history(
+            "clear_if_matches",
+            case_dir,
+            pointer_value_at_call=current or None,
+            cleared=matches,
+        )
     except Exception:
         pass
 
