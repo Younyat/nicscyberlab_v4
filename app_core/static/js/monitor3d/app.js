@@ -1046,11 +1046,14 @@ const reconProgressBody = document.getElementById("recon-progress-body");
 const reconStageBody = document.getElementById("recon-stage-body");
 const reconStageSubtitle = document.getElementById("recon-stage-subtitle");
 
+const reconWatermark = document.getElementById("reconstruction-watermark");
+
 function setReconPanelsVisible(active) {
   liveSourcesPanel.hidden = active;
   reconProgressPanel.hidden = !active;
   liveDetailPanel.hidden = active;
   reconStagePanel.hidden = !active;
+  reconWatermark.classList.toggle("visible", active);
 }
 
 function setTransportEnabled(loaded) {
@@ -1130,7 +1133,7 @@ function renderReconStageDetail(beat) {
     if (beat.real_duration_seconds != null) html += kv("Duration", fmtElapsed(beat.real_duration_seconds));
   } else if (beat.kind === "detection") {
     const d = p.detection || {};
-    html += kv("Outcome", badge(d.outcome));
+    html += kv("Historical outcome", badge(d.outcome));
     html += kv("Alert rule", esc(d.trigger_alert_rule));
     html += kv("Severity", esc(d.trigger_alert_severity));
     html += kv("Alert timestamp", esc(fmt(d.trigger_alert_timestamp)));

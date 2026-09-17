@@ -235,6 +235,20 @@
   #breadcrumb-bar .crumb:not(.current):hover { text-decoration: underline; }
   #breadcrumb-bar .crumb.current { color: var(--text); font-weight: 600; }
   #breadcrumb-bar .sep { color: var(--text-dim); opacity: 0.6; }
+
+  /* Unmissable "this is a historical replay, nothing here is live" marker --
+     added after a user twice read replayed detection/attack text as a real,
+     current alert on the real scenario machines. The small top-bar conn-text
+     alone wasn't enough; this sits permanently in the viewport corner
+     whenever reconstruction mode is active, impossible to scroll/zoom away
+     from since it's a plain HTML overlay, not a 3D object. */
+  #reconstruction-watermark {
+    position: absolute; top: 10px; right: 10px; z-index: 5; display: none;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.5px; color: #1a1006;
+    background: var(--amber); padding: 5px 12px; border-radius: 6px;
+    box-shadow: 0 0 10px rgba(251,191,36,0.5);
+  }
+  #reconstruction-watermark.visible { display: block; }
 </style>
 </head>
 <body>
@@ -285,6 +299,7 @@
       <div id="viewport">
         <div id="breadcrumb-bar"></div>
         <div id="provenance-hint"></div>
+        <div id="reconstruction-watermark">HISTORICAL REPLAY &mdash; NOTHING HERE IS LIVE</div>
         <div id="hint">Drag to orbit &middot; scroll to zoom &middot; click a box for details &middot; double-click a box (or the breadcrumb above) to switch level</div>
       </div>
       <div class="side right">

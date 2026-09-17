@@ -555,7 +555,12 @@ function handleDetection(beat) {
   const targetBox = targetName ? [...hostBoxes.values()].find((b) => b.userData.raw?.name === targetName) : null;
   if (!targetBox) return;
   const detected = detection?.outcome === "detected";
-  updateBadge(targetBox.userData.card, detected ? "under_attack" : "warning", detection?.outcome || "unknown");
+  // "historical:" prefix is deliberate -- this badge replays a real detection
+  // from an already-completed campaign (days/weeks old), not a live alert on
+  // the real scenario machines. User reported reading this as a live alert
+  // twice; the label itself now says otherwise rather than relying on the
+  // small top-bar "reconstruction mode" text to carry that distinction.
+  updateBadge(targetBox.userData.card, detected ? "under_attack" : "warning", `historical: ${detection?.outcome || "unknown"}`);
 }
 
 function handleCaseCreated(beat) {

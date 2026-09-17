@@ -723,7 +723,18 @@ def _repetition_beats(job: dict, rep_num: int, role_lookup: dict, base_repetitio
     # immediately followed by that host's own tool-install beats (so the
     # story stays "build this machine, then configure it" before moving to
     # the next machine, instead of grouping all deployments then all tools).
-    infra_instances = (lc_detail.get("snapshot_infrastructure") or {}).get("instances") or []
+    # Real deployment order, not whatever order snapshot_infrastructure happens
+    # to list instances in -- confirmed those two can differ (e.g. a real
+    # repetition had monitor created first at 09:21:15Z, then attacker,
+    # victim, fuxa, plc last at 09:25:26Z, while the instances list itself
+    # was ordered plc/fuxa/victim/attack/monitor). ISO 8601 zulu timestamps
+    # sort correctly as plain strings; instances missing created_at (should
+    # not happen for a real deployed instance) sort last rather than
+    # fabricating a position for them.
+    infra_instances = sorted(
+        (lc_detail.get("snapshot_infrastructure") or {}).get("instances") or [],
+        key=lambda inst: inst.get("created_at") or "9999",
+    )
     for inst in infra_instances:
         beats.append(_beat(
             "deployment", rep_num, seq=next_seq(), available=bool(inst.get("created_at")),
